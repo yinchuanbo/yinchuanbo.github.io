@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>帧动画和DOM观察器 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="requestAnimationFrame 认识 requestAnimationFrame 设计 web 动画可以有多种选择：
+使用 css3 的 animation &#43; keyframes; 使用 css3 的 transition; canvas 作图实现动画； 借助 jQuery 动画实现； 使用 js 原生的 window.setTimeout() 或者 window.setInterval() ，通过不间断移动元素位置来实现动画；前提是画面的更新频率要达到每秒 60次才能被肉眼看到流畅的动画效果。 现在 html5 新增了 window.requestAnimationFrame() 方法，该方法用来在页面重绘之前，通知浏览器调用一个指定的函数。
+如果想得到连贯的逐帧动画，函数中必须重新调用 requestAnimationFrame()。
+如果想做到逐帧动画，应该调用该方法，这要求用户设计的动画函数执行先于浏览器重绘动画。通常来说，被调用的频率是每秒 60次，但是一般会遵循 W3C 标准规定的频率。如果是后台标签页面，重绘频率则会大大降低。
+requestID = window.requestAnimationFrame(callback); // Firefox23 / IE10 / Chrome / Safari 7 requestID = window.mozRequestAnimationFrame(callback); // Firefox &lt; 23 requestID = window.webkitRequestAnimationFrame(callback); // Old versions Chrome/Webkit 参数说明如下：
+callback 在每次需要重新绘制动画时，会调用这个参数所指定的函数。这个回调函数会收到一个参数，这个 DOMHighResTimeStamp 类型的参数指示当前时间距离开始触发 requestAnimationFrame 的回调的时间。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+  <link rel="preload" as="image" href="/twitter.svg" />
+  
+  <link rel="preload" as="image" href="/github.svg" />
+  
+  <link rel="preload" as="image" href="/instagram.svg" />
+  
+  <link rel="preload" as="image" href="/rss.svg" />
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="帧动画和DOM观察器" />
+<meta property="og:description" content="requestAnimationFrame 认识 requestAnimationFrame 设计 web 动画可以有多种选择：
+使用 css3 的 animation &#43; keyframes; 使用 css3 的 transition; canvas 作图实现动画； 借助 jQuery 动画实现； 使用 js 原生的 window.setTimeout() 或者 window.setInterval() ，通过不间断移动元素位置来实现动画；前提是画面的更新频率要达到每秒 60次才能被肉眼看到流畅的动画效果。 现在 html5 新增了 window.requestAnimationFrame() 方法，该方法用来在页面重绘之前，通知浏览器调用一个指定的函数。
+如果想得到连贯的逐帧动画，函数中必须重新调用 requestAnimationFrame()。
+如果想做到逐帧动画，应该调用该方法，这要求用户设计的动画函数执行先于浏览器重绘动画。通常来说，被调用的频率是每秒 60次，但是一般会遵循 W3C 标准规定的频率。如果是后台标签页面，重绘频率则会大大降低。
+requestID = window.requestAnimationFrame(callback); // Firefox23 / IE10 / Chrome / Safari 7 requestID = window.mozRequestAnimationFrame(callback); // Firefox &lt; 23 requestID = window.webkitRequestAnimationFrame(callback); // Old versions Chrome/Webkit 参数说明如下：
+callback 在每次需要重新绘制动画时，会调用这个参数所指定的函数。这个回调函数会收到一个参数，这个 DOMHighResTimeStamp 类型的参数指示当前时间距离开始触发 requestAnimationFrame 的回调的时间。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/62/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-09-16T21:47:10+08:00" />
+<meta property="article:modified_time" content="2022-09-16T21:47:10+08:00" />
+
+
+  
+  <meta itemprop="name" content="帧动画和DOM观察器">
+<meta itemprop="description" content="requestAnimationFrame 认识 requestAnimationFrame 设计 web 动画可以有多种选择：
+使用 css3 的 animation &#43; keyframes; 使用 css3 的 transition; canvas 作图实现动画； 借助 jQuery 动画实现； 使用 js 原生的 window.setTimeout() 或者 window.setInterval() ，通过不间断移动元素位置来实现动画；前提是画面的更新频率要达到每秒 60次才能被肉眼看到流畅的动画效果。 现在 html5 新增了 window.requestAnimationFrame() 方法，该方法用来在页面重绘之前，通知浏览器调用一个指定的函数。
+如果想得到连贯的逐帧动画，函数中必须重新调用 requestAnimationFrame()。
+如果想做到逐帧动画，应该调用该方法，这要求用户设计的动画函数执行先于浏览器重绘动画。通常来说，被调用的频率是每秒 60次，但是一般会遵循 W3C 标准规定的频率。如果是后台标签页面，重绘频率则会大大降低。
+requestID = window.requestAnimationFrame(callback); // Firefox23 / IE10 / Chrome / Safari 7 requestID = window.mozRequestAnimationFrame(callback); // Firefox &lt; 23 requestID = window.webkitRequestAnimationFrame(callback); // Old versions Chrome/Webkit 参数说明如下：
+callback 在每次需要重新绘制动画时，会调用这个参数所指定的函数。这个回调函数会收到一个参数，这个 DOMHighResTimeStamp 类型的参数指示当前时间距离开始触发 requestAnimationFrame 的回调的时间。"><meta itemprop="datePublished" content="2022-09-16T21:47:10+08:00" />
+<meta itemprop="dateModified" content="2022-09-16T21:47:10+08:00" />
+<meta itemprop="wordCount" content="605">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="帧动画和DOM观察器"/>
+<meta name="twitter:description" content="requestAnimationFrame 认识 requestAnimationFrame 设计 web 动画可以有多种选择：
+使用 css3 的 animation &#43; keyframes; 使用 css3 的 transition; canvas 作图实现动画； 借助 jQuery 动画实现； 使用 js 原生的 window.setTimeout() 或者 window.setInterval() ，通过不间断移动元素位置来实现动画；前提是画面的更新频率要达到每秒 60次才能被肉眼看到流畅的动画效果。 现在 html5 新增了 window.requestAnimationFrame() 方法，该方法用来在页面重绘之前，通知浏览器调用一个指定的函数。
+如果想得到连贯的逐帧动画，函数中必须重新调用 requestAnimationFrame()。
+如果想做到逐帧动画，应该调用该方法，这要求用户设计的动画函数执行先于浏览器重绘动画。通常来说，被调用的频率是每秒 60次，但是一般会遵循 W3C 标准规定的频率。如果是后台标签页面，重绘频率则会大大降低。
+requestID = window.requestAnimationFrame(callback); // Firefox23 / IE10 / Chrome / Safari 7 requestID = window.mozRequestAnimationFrame(callback); // Firefox &lt; 23 requestID = window.webkitRequestAnimationFrame(callback); // Old versions Chrome/Webkit 参数说明如下：
+callback 在每次需要重新绘制动画时，会调用这个参数所指定的函数。这个回调函数会收到一个参数，这个 DOMHighResTimeStamp 类型的参数指示当前时间距离开始触发 requestAnimationFrame 的回调的时间。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/about/"
+        >关于</a
+      >
+      
+    </nav>
+    
+
+    
+    <nav
+      class="mt-12 flex justify-center space-x-10 dark:invert lg:mt-0 lg:ml-12 lg:items-center lg:space-x-6"
+    >
+      
+      <a
+        class="h-8 w-8 [background:var(--url)_center_center/cover_no-repeat] lg:h-6 lg:w-6"
+        style="--url: url(./twitter.svg)"
+        href=" https://twitter.com/yinchuanbo "
+        target="_blank"
+      ></a>
+      
+      <a
+        class="h-8 w-8 [background:var(--url)_center_center/cover_no-repeat] lg:h-6 lg:w-6"
+        style="--url: url(./github.svg)"
+        href=" https://github.com/yinchuanbo "
+        target="_blank"
+      ></a>
+      
+      <a
+        class="h-8 w-8 [background:var(--url)_center_center/cover_no-repeat] lg:h-6 lg:w-6"
+        style="--url: url(./instagram.svg)"
+        href=" https://instagram.com/yinchuanbo "
+        target="_blank"
+      ></a>
+      
+      <a
+        class="h-8 w-8 [background:var(--url)_center_center/cover_no-repeat] lg:h-6 lg:w-6"
+        style="--url: url(./rss.svg)"
+        href=" /index.xml "
+        target="_blank"
+      ></a>
+      
+    </nav>
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-20">
+    <h1 class="!my-0 pb-2.5">帧动画和DOM观察器</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年9月16日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><h2 id="requestanimationframe">requestAnimationFrame</h2>
+<h3 id="认识-requestanimationframe">认识 requestAnimationFrame</h3>
+<p>设计 <code>web</code> 动画可以有多种选择：</p>
+<ol>
+<li>使用 <code>css3</code> 的 <code>animation + keyframes</code>;</li>
+<li>使用 <code>css3</code> 的 <code>transition</code>;</li>
+<li><code>canvas</code> 作图实现动画；</li>
+<li>借助 <code>jQuery</code> 动画实现；</li>
+<li>使用 <code>js</code> 原生的 <code>window.setTimeout()</code> 或者 <code>window.setInterval() </code>，通过不间断移动元素位置来实现动画；前提是画面的更新频率要达到每秒 <code>60</code>次才能被肉眼看到流畅的动画效果。</li>
+</ol>
+<p>现在 <code>html5</code> 新增了 <code>window.requestAnimationFrame()</code> 方法，该方法用来在页面重绘之前，通知浏览器调用一个指定的函数。</p>
+<p>如果想得到连贯的逐帧动画，函数中必须重新调用 <code>requestAnimationFrame()</code>。</p>
+<p>如果想做到逐帧动画，应该调用该方法，这要求用户设计的动画函数执行先于浏览器重绘动画。通常来说，被调用的频率是每秒 <code>60</code>次，但是一般会遵循 <code>W3C</code> 标准规定的频率。如果是后台标签页面，重绘频率则会大大降低。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">requestID</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">callback</span>); <span style="color:#75715e">// Firefox23 / IE10 / Chrome / Safari 7
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">requestID</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">mozRequestAnimationFrame</span>(<span style="color:#a6e22e">callback</span>); <span style="color:#75715e">// Firefox &lt; 23
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">requestID</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">webkitRequestAnimationFrame</span>(<span style="color:#a6e22e">callback</span>); <span style="color:#75715e">// Old versions Chrome/Webkit
+</span></span></span></code></pre></div><p>参数说明如下：</p>
+<ul>
+<li>
+<p><code>callback</code> 在每次需要重新绘制动画时，会调用这个参数所指定的函数。这个回调函数会收到一个参数，这个 <code>DOMHighResTimeStamp</code> 类型的参数指示当前时间距离开始触发 <code>requestAnimationFrame</code> 的回调的时间。</p>
+</li>
+<li>
+<p>返回 <code>requestID</code> 是一个长整型非零值，作为一个唯一的标识符，可以将该值作为参数传给 <code>window.cancelAnimationFrame()</code> 来取消这个回调函数。</p>
+</li>
+</ul>
+<p>我们经常使用 <code>setInterval</code> 和 <code>setTimeout</code> 制作动画效果，但是这种方式非常耗费资源，经常会出现卡顿的情况。</p>
+<p><code>requestAnimationFrame</code> 的优势如下：</p>
+<ol>
+<li>经过浏览器优化，动画更流畅。</li>
+<li>窗口没激活，动画将停止，省计算机资源。</li>
+<li>更省电，尤其是对移动端。</li>
+</ol>
+<p><code>requestAnimationFrame</code> 的使用方式：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">animate</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//任意操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">animate</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 请求动画
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">animate</span>);
+</span></span></code></pre></div><p>有时候需要加一些控制，<code>requestAnimationFrame()</code> 可以像 <code>setInterval()</code> 一样返回一个句柄，也可以取消他。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">globalID</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">animate</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//任意操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">globalID</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">animate</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 当加时赛开始
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">globalID</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">animate</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 当停止
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">cancelAnimationFrame</span>(<span style="color:#a6e22e">globalID</span>);
+</span></span></code></pre></div><h3 id="案例设计进度条">案例：设计进度条</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">/*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">  &lt;div id=&#34;test&#34; style=&#34;width: 1px;height: 17px;background: #0f0;&#34;&gt;&lt;/div&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">  &lt;input type=&#34;button&#34; value=&#34;Run&#34; id=&#34;run&#34; /&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">*/</span>
+</span></span><span style="display:flex;"><span>window.<span style="color:#a6e22e">requestAnimationFrame</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span> <span style="color:#f92672">||</span>
+</span></span><span style="display:flex;"><span>window.<span style="color:#a6e22e">mozRequestAnimationFrame</span> <span style="color:#f92672">||</span> window.<span style="color:#a6e22e">webkitRequestAnimationFrame</span> <span style="color:#f92672">||</span>
+</span></span><span style="display:flex;"><span>window.<span style="color:#a6e22e">msRequestAnimationFrame</span>; 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">start</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">ele</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;test&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">progress</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">step</span>(<span style="color:#a6e22e">timestamp</span>) {
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">progress</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">ele</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">progress</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;%&#39;</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">ele</span>.<span style="color:#a6e22e">innerHTML</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">progress</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;%&#39;</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">if</span>(<span style="color:#a6e22e">progress</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">100</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>   }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>); <span style="color:#75715e">// 自动执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;run&#39;</span>).<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#39;click&#39;</span>, <span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">ele</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;1px&#39;</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">progress</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>}, <span style="color:#66d9ef">false</span>);
+</span></span></code></pre></div><h3 id="案例设计旋转的小球">案例：设计旋转的小球</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>window.<span style="color:#a6e22e">requestAnimationFrame</span> <span style="color:#f92672">=</span> (<span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">return</span> window.<span style="color:#a6e22e">requestAnimationFrame</span> <span style="color:#f92672">||</span> window.<span style="color:#a6e22e">oRequestAnimationFrame</span> <span style="color:#f92672">||</span>
+</span></span><span style="display:flex;"><span>   window.<span style="color:#a6e22e">mozRequestAnimationFrame</span> <span style="color:#f92672">||</span> window.<span style="color:#a6e22e">webkitRequestAnimationFrame</span> <span style="color:#f92672">||</span>
+</span></span><span style="display:flex;"><span>   window.<span style="color:#a6e22e">msRequestAnimationFrame</span> <span style="color:#f92672">||</span> <span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>      window.<span style="color:#a6e22e">setTimeout</span>(<span style="color:#a6e22e">callback</span>, <span style="color:#ae81ff">1000</span><span style="color:#f92672">/</span><span style="color:#ae81ff">60</span>);
+</span></span><span style="display:flex;"><span>   }
+</span></span><span style="display:flex;"><span>})();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">canvas</span>, <span style="color:#a6e22e">context</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">init</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">animate</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">init</span>() {
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">canvas</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;canvas&#39;</span>);
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">left</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">top</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">210</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">210</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">context</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">getContext</span>(<span style="color:#e6db74">&#39;2d&#39;</span>);
+</span></span><span style="display:flex;"><span>   document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">canvas</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">animate</span>() {
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">animate</span>);
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">draw</span>();
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">draw</span>() {
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">time</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>() <span style="color:#f92672">*</span> <span style="color:#ae81ff">0.002</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">sin</span>(<span style="color:#a6e22e">time</span>) <span style="color:#f92672">*</span> <span style="color:#ae81ff">96</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">105</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">cos</span>(<span style="color:#a6e22e">time</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">0.9</span>) <span style="color:#f92672">*</span> <span style="color:#ae81ff">96</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">105</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">fillStyle</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;pink&#39;</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">fillRect</span>(<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">255</span>,<span style="color:#ae81ff">255</span>);
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">fillStyle</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;rgb(255,0,0)&#39;</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">beginPath</span>();
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">arc</span>(<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">y</span>, <span style="color:#ae81ff">10</span>, <span style="color:#ae81ff">0</span>, Math.<span style="color:#a6e22e">PI</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>, <span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">closePath</span>();
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">fill</span>();
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="mutation-observer">Mutation Observer</h2>
+<p>变动观察器，是监视 DOM 变动的接口。当 DOM 对象树发生任何变动时，Mutation Observer 就会接到通知。</p>
+<p>Mutation Observer 类似于事件，可以理解为当 DOM 发生变动会触发 Mutation Observer 事件。但是它与事件有一个本质不同，比较如下：</p>
+<ol>
+<li>事件是同步触发的，也就是说 DOM 发生变动立刻会触发相应的事件。</li>
+<li>Mutation Observer 则是异步触发，DOM 发生变动以后，并不会马上触发，而是要等到当前所有 DOM 操作都结束后才触发。</li>
+</ol>
+<p>这样设计是为了应付 DOM 变动频繁的情况。</p>
+<p>Mutation Observer 有以下特点：</p>
+<ul>
+<li>等待所有脚本任务完成后才会运行，采用异步方式。</li>
+<li>把 DOM 变动记录封装成一个数组进行处理，而不是一条条的个别处理 DOM 变动。</li>
+<li>可以观察发生在 DOM 节点的所有变动，也可以观察某一类变动。</li>
+</ul>
+<p>使用下面的表达式检查浏览器是否支持 API</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">MutationObserver</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">MutationObserver</span> <span style="color:#f92672">||</span> window.<span style="color:#a6e22e">WebkitMutationObserver</span> <span style="color:#f92672">||</span> window.<span style="color:#a6e22e">MozMutationObserver</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">MutationObserverSupper</span> <span style="color:#f92672">=</span> <span style="color:#f92672">!!</span><span style="color:#a6e22e">MutationObserver</span>;
+</span></span></code></pre></div><p>使用步骤：</p>
+<ol>
+<li>使用 MutationObserver() 构造函数，新建一个实例，同时指定这个实例的回调函数。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">observer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MutationObserver</span>(<span style="color:#a6e22e">callback</span>);
+</span></span></code></pre></div><ol start="2">
+<li>使用 observer() 方法指定所要观察的 DOM 元素，以及要观察的特定变动。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">article</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#39;article&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#39;childList&#39;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#39;arrtibutes&#39;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面代码首先要指定所要观察的 DOM 元素时 article，然后指定所要观察的变动是子元素的变动和属性变动，最后，将这两个限定条件作为参数，传入 observer 对象的 observer() 方法。</p>
+<p>MutationObserver 所观察的 DOM 变动（即上面 option 对象），包含以下类型，设置值为 布尔值。</p>
+<ul>
+<li>childList: 子元素的变动。</li>
+<li>arrtibutes: 属性的变动。</li>
+<li>characterData: 节点内容或节点文本的变动。</li>
+</ul>
+<p>除了变动类型，option 对象还可以设定以下属性，设置值为布尔值。</p>
+<ul>
+<li>attributeOldValue: 如果为 true，则表示需要记录变动前的属性值。</li>
+<li>characterDataOldValue: 如果为 true，则表示需要记录变动前的数据值。</li>
+<li>attributesFilter: 值为一个数组，表示需要观察的特定属性，如 [&lsquo;class&rsquo;, &lsquo;str&rsquo;]。</li>
+<li>subtree: 所有下属节点（包括子节点和子节点的子节点）的变动。</li>
+</ul>
+<ol start="3">
+<li>使用 disconnect() 停止观察，发生相应变化时，不再调用回调函数。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">observer</span>.<span style="color:#a6e22e">disconnect</span>();
+</span></span></code></pre></div><ol start="4">
+<li>使用过 takeRecord() 清除变动记录，即不再处理未处理的变动。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">observer</span>.<span style="color:#a6e22e">takeRecord</span>
+</span></span></code></pre></div><p>DOM 对象每次发生变化，就会生成一条变动记录。这个变动记录对应一个 MutationRecord 对象，该对象包含了与变动相关的所有信息。</p>
+<ul>
+<li>type: 观察变动的类型，如 attribute、characterData、childList。</li>
+<li>target: 发生变化的 DOM 对象。</li>
+<li>addedNodes: 新增的 DOM 对象。</li>
+<li>removeNodes: 删除的 DOM 对象。</li>
+<li>previousSibling: 前一个同级的 DOM 对象，如果没有则返回 null。</li>
+<li>nextSibling: 下一个同级的 DOM 对象，如果没有返回 null。</li>
+<li>attributeName: 发生变动的属性。如果设置了 attibuteFilter，则只返回预先指定的属性。</li>
+<li>oldValue: 变动前的值。这个属性只对 attribute 和 characterData 变动有效，如果发生 childList 变动，则返回 null。</li>
+</ul>
+<ol start="5">
+<li>使用 MutationObserver 对象时，可能触发的各种事件必须设定的 MutationObserver 选项值说明如下，小括号内的选项为可选项，如下：</li>
+</ol>
+<img src="/imgs/notes/54.jpg" />
+<h3 id="案例观察-dom-元素">案例：观察 DOM 元素</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">/*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">    &lt;div id=&#34;div&#34; style=&#34;height:100px;width: 100%;background-color:pink&#34;&gt;&lt;/div&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">    &lt;input type=&#34;button&#34; name=&#34;&#34; value=&#34;插入 span 元素&#34; onclick=&#34;changeDiv()&#34;&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">*/</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">onchange</span>(<span style="color:#a6e22e">mutationRecords</span>, <span style="color:#a6e22e">mutationObserver</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;onchange&#39;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">mutationRecords</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">mutationObserver</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">div</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;div&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">mo</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> window.<span style="color:#a6e22e">MutationObserver</span>(<span style="color:#a6e22e">onchange</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">childList</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">mo</span>.<span style="color:#a6e22e">observe</span>(<span style="color:#a6e22e">div</span>, <span style="color:#a6e22e">options</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">changeDiv</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">span</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;span&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">span</span>.<span style="color:#a6e22e">innerHTML</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;我是一个 span 元素&#34;</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">span</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="案例观察-dom-属性">案例：观察 DOM 属性</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">/*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">    &lt;a href=&#34;#a&#34; id=&#34;a1&#34;&gt;链接1&lt;/a&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">    &lt;a href=&#34;#b&#34; id=&#34;a2&#34;&gt;链接2&lt;/a&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">    &lt;input type=&#34;button&#34; onclick=&#34;changeA()&#34; value=&#34;修改 a 元素&#34;&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">*/</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a1E1</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;a1&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a2E2</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;a2&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">attr</span> <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#39;href&#39;</span>];
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">mo</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> window.<span style="color:#a6e22e">MutationObserver</span>(<span style="color:#a6e22e">onchange</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">attributes</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">attributeFilter</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">attr</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">attributeOldValue</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">mo</span>.<span style="color:#a6e22e">observe</span>(<span style="color:#a6e22e">a1E1</span>, <span style="color:#a6e22e">options</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">mo</span>.<span style="color:#a6e22e">observe</span>(<span style="color:#a6e22e">a2E2</span>, <span style="color:#a6e22e">options</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">changeA</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">a1E1</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#39;href&#39;</span>, <span style="color:#e6db74">&#34;http://www.baidu.com&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">a2E2</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#39;href&#39;</span>, <span style="color:#e6db74">&#34;http://www.weibo.com&#34;</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">onchange</span>(<span style="color:#a6e22e">mutationRecords</span>, <span style="color:#a6e22e">mutationObserver</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span>(<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">mutationRecords</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;修改前的&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">mutationRecords</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">attributeName</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;属性为：&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">mutationRecords</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">oldValue</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       修改前的href属性为：#a
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       修改前的href属性为：#b
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">    */</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div></section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/63/"
+      ><span class="mr-1.5">←</span><span>全屏和隐藏显示处理</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/61/"
+      ><span>本地数据存储</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://gohugo.io/" rel="noopener" target="_blank">Powered by Hugo️️</a
+  >️
+  <a class="link" href="https://github.com/nanxiaobei/hugo-paper" rel="noopener" target="_blank"
+    >▷ Paper 6</a
+  >
+</footer>
+
+  </body>
+</html>
