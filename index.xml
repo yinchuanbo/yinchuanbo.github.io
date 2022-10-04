@@ -7,7 +7,102 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh</language>
     <copyright>Copyright © 2008–2019, Steve Francia and the lee.so; all rights reserved.</copyright>
-    <lastBuildDate>Wed, 28 Sep 2022 20:48:48 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 04 Oct 2022 18:26:56 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>两行 CSS 提升渲染性能7倍</title>
+      <link>/posts/114/</link>
+      <pubDate>Tue, 04 Oct 2022 18:26:56 +0800</pubDate>
+      
+      <guid>/posts/114/</guid>
+      <description>话不多说，先直接上代码：
+{ content-visibility: auto; contain-intrinsic-size: 1px 5000px; } 就是这两行css代码，添加了以后页面渲染性能将提高大约7倍！
+为什么需要这个？ 现在的网站需要优化和高性能，因为用户的注意力很短暂。阈值响应时间为400毫秒。
+假如Facebook、Instagram这样的网站登录时间大于阈值会怎么样？那么大概没人会再回到这些网站了。大家说对吧？
+哪些场景适合使用？ 最常见的用例是当你需要在页面加载时呈现大量数据列表、数据表格或者图片列表的时候。
+例如像文档、说明书这样的静态网站，或旅游博客等&amp;hellip;&amp;hellip;
+如何工作？ 当你对 CSS 类应用 content-visibility: auto 时，浏览器就会变得非常聪明，它可以跳过渲染带有这个 CSS 属性的 DOM 元素。
+浏览器需要知道 DOM 的布局才能渲染，且不会渲染那些不在视窗中的元素，而实际上你提供的 contain-intrinsic-size 会产生一个空框。
+总而言之，所有渲染都被推迟到浏览器使用你提供的宽度、高度和样式渲染实际布局的视窗。
+P.S：不在视窗之外的布局会有一个height: 0，所以当延迟布局来到视窗时，会堆叠在一起，所以这就是为什么需要contain-intrinsic-size的原因。但是，不用担心，这些只是备用值，浏览器在视窗中渲染时将渲染实际值。
+这样做的一个缺点是，如果未正确给出 contain-intrinsic-size，滚动条会很古怪并出现抖动现象。
+浏览器支持 content-visibility 依赖于 CSS Containment规范[1]。截至撰写本文时，大多数谷歌浏览器目前都支持 content-visibility。
+而且，content-visibility 支持对于在高端系统上实现功能来说并不是一件坏事，所以我相信，随着 web 开发的进步，这将很快会得到所有浏览器的支持。
+备选方案 再介绍一个使用 JavaScript 提高性能的替代方法，如使用 List Virtualization[2]，但是，见识过这样简单明确的 2 行css ，谁还会想要编写和维护实现相同功能却需求 100 行的 js 代码呢？</description>
+    </item>
+    
+    <item>
+      <title>封装 axios 拦截器实现用户无感刷新 access_token</title>
+      <link>/posts/113/</link>
+      <pubDate>Tue, 04 Oct 2022 17:31:50 +0800</pubDate>
+      
+      <guid>/posts/113/</guid>
+      <description>前言 最近做项目的时候，涉及到一个单点登录，即是项目的登录页面，用的是公司共用的一个登录页面，在该页面统一处理逻辑。最终实现用户只需登录一次，就可以以登录状态访问公司旗下的所有网站。
+单点登录( Single Sign On ，简称 SSO），是目前比较流行的企业业务整合的解决方案之一，用于多个应用系统间，用户只需要登录一次就可以访问所有相互信任的应用系统。
+其中本文讲的是在登录后如何管理access_token和refresh_token，主要就是封装 axios拦截器，在此记录。
+需求 前置场景 进入该项目某个页面http://xxxx.project.com/profile需要登录，未登录就跳转至SSO登录平台，此时的登录网址 url为http://xxxxx.com/login?app_id=project_name_id&amp;amp;redirect_url=http://xxxx.project.com/profile，其中app_id是后台那边约定定义好的，redirect_url是成功授权后指定的回调地址。
+输入账号密码且正确后，就会重定向回刚开始进入的页面，并在地址栏带一个参数 ?code=XXXXX，即是http://xxxx.project.com/profile?code=XXXXXX，code的值是使用一次后即无效，且10分钟内过期
+立马获取这个code值再去请求一个api /access_token/authenticate，携带参数{ verify_code: code }，并且该api已经自带app_id和app_secret两个固定值参数，通过它去请求授权的api，请求成功后得到返回值{ access_token: &amp;ldquo;xxxxxxx&amp;rdquo;, refresh_token: &amp;ldquo;xxxxxxxx&amp;rdquo;, expires_in: xxxxxxxx }，存下access_token和refresh_token到cookie中（localStorage也可以），此时用户就算登录成功了。
+access_token为标准JWT格式，是授权令牌，可以理解就是验证用户身份的，是应用在调用api访问和修改用户数据必须传入的参数（放在请求头headers里），2小时后过期。也就是说，做完前三步后，你可以调用需要用户登录才能使用的api；但是假如你什么都不操作，静静过去两个小时后，再去请求这些api，就会报access_token过期，调用失败。
+那么总不能2小时后就让用户退出登录吧，解决方法就是两小时后拿着过期的access_token和refresh_token（refresh_token过期时间一般长一些，比如一个月或更长）去请求/refresh api，返回结果为{ access_token: &amp;ldquo;xxxxx&amp;rdquo;, expires_in: xxxxx }，换取新的access_token，新的access_token过期时间也是2小时，并重新存到cookie，循环往复继续保持登录调用用户api了。refresh_token在限定过期时间内（比如一周或一个月等），下次就可以继续换取新的access_token，但过了限定时间，就算真正意义过期了，也就要重新输入账号密码来登录了。
+公司网站登录过期时间都只有两小时（token过期时间），但又想让一个月内经常活跃的用户不再次登录，于是才有这样需求，避免了用户再次输入账号密码登录。
+为什么要专门用一个 refresh_token 去更新 access_token 呢？首先access_token会关联一定的用户权限，如果用户授权更改了，这个access_token也是需要被刷新以关联新的权限的，如果没有 refresh_token，也可以刷新 access_token，但每次刷新都要用户输入登录用户名与密码，多麻烦。有了 refresh_ token，可以减少这个麻烦，客户端直接用 refresh_token 去更新 access_token，无需用户进行额外的操作。
+需求 当access_token过期的时候，要用refresh_token去请求获取新的access_token，前端需要做到用户无感知的刷新access_token。比如用户发起一个请求时，如果判断access_token已经过期，那么就先要去调用刷新token接口拿到新的access_token，再重新发起用户请求。
+如果同时发起多个用户请求，第一个用户请求去调用刷新token接口，当接口还没返回时，其余的用户请求也依旧发起了刷新token接口请求，就会导致多个请求，这些请求如何处理，就是我们本文的内容了。
+思路 方案一 写在请求拦截器里，在请求前，先利用最初请求返回的字段expires_in字段来判断access_token是否已经过期，若已过期，则将请求挂起，先刷新access_token后再继续请求。
+优点：能节省http请求
+缺点：因为使用了本地时间判断，若本地时间被篡改，有校验失败的风险
+方案二 写在响应拦截器里，拦截返回后的数据。先发起用户请求，如果接口返回access_token过期，先刷新access_token，再进行一次重试。
+优点：无需判断时间
+缺点：会消耗多一次http请求
+在此我选择的是方案二。
+实现 这里使用 axios，其中做的是请求后拦截，所以用到的是 axios 的响应拦截器 axios.interceptors.response.use() 方法
+@utils/auth.js import Cookies from &amp;#39;js-cookie&amp;#39; const TOKEN_KEY = &amp;#39;access_token&amp;#39; const REGRESH_TOKEN_KEY = &amp;#39;refresh_token&amp;#39; export const getToken = () =&amp;gt; Cookies.</description>
+    </item>
+    
+    <item>
+      <title>使用 JavaScript 阻止屏幕进入睡眠状态</title>
+      <link>/posts/112/</link>
+      <pubDate>Tue, 04 Oct 2022 16:07:43 +0800</pubDate>
+      
+      <guid>/posts/112/</guid>
+      <description>使用 JavaScript 阻止屏幕进入睡眠状态
+最近在 H5 端有需要保持手机屏幕常亮的需求，辗转之下，发现了一个早在 chrome 85 中就已经支持的 Web API，不过，截止到今天发文时，Safari 仍不支持，尽管如此，在安卓端我们还是能调用这个 API 来节省设备电池电量（相对于 NoSleep.js 来说），ios 端使用 polyfill 的方式，在将来 Safari 支持该 API 后移除即可。
+Wake Lock 可防止屏幕关闭、变暗或锁定，仅适用于活动的选项卡/窗口，这可以防止后台选项卡使您的设备保持唤醒状态，也提供了函数以随时通过代码手动释放。
+调用 Wake Lock 之前，我们首先需要检查当前浏览器中是否存在该功能。我们可以使用以下简单函数来做到这一点。
+const canWakeLock = () =&amp;gt; &amp;#34;wakeLock&amp;#34; in navigator; 请求唤醒锁 下面的示例演示如何请求 WakeLockSentinel 对象。WakeLock.request 方法是基于 Promise 的，因此我们可以创建一个异步函数。
+let wakeLock = null; const requestWakeLock = async () =&amp;gt; { try { wakeLock = await navigator.wakeLock.request(&amp;#34;screen&amp;#34;); console.log(&amp;#34;Wake Lock is active!&amp;#34;); } catch (err) { console.</description>
+    </item>
+    
+    <item>
+      <title>5 个一定要学会的 JavaScript 新特性</title>
+      <link>/posts/111/</link>
+      <pubDate>Tue, 04 Oct 2022 15:41:07 +0800</pubDate>
+      
+      <guid>/posts/111/</guid>
+      <description>使用 Object.hasOwn 替代 in 操作符 有时，我们想知道对象上是否存在某个属性，一般会使用“in”操作符或“obj.hasOwnProperty”，但它们都有各自的缺陷。
+in 如果指定的属性位于对象或其原型链中，“in” 运算符将返回 true。
+const Person = function (age) { this.age = age } Person.prototype.name = &amp;#39;fatfish&amp;#39; const p1 = new Person(24) console.log(&amp;#39;age&amp;#39; in p1) // true console.log(&amp;#39;name&amp;#39; in p1) // true 注意这里 obj.hasOwnProperty hasOwnProperty 方法会返回一个布尔值，表示对象自身属性中是否具有对应的值（原型链上的属性不会读取）。
+const Person = function (age) { this.age = age } Person.prototype.name = &amp;#39;fatfish&amp;#39; const p1 = new Person(24) console.log(p1.hasOwnProperty(&amp;#39;age&amp;#39;)) // true console.log(p1.hasOwnProperty(&amp;#39;name&amp;#39;)) // fasle 注意这里 obj.hasOwnProperty 已经可以过滤掉原型链上的属性，但在某些情况下，它还是不安全。
+Object.create(null).hasOwnProperty(&amp;#39;name&amp;#39;) // Uncaught TypeError: Object.</description>
+    </item>
+    
+    <item>
+      <title>CSS 有了 :has 伪类可以做些什么</title>
+      <link>/posts/110/</link>
+      <pubDate>Tue, 04 Oct 2022 15:02:22 +0800</pubDate>
+      
+      <guid>/posts/110/</guid>
+      <description>:has 伪类是一个非常强大的伪类，强大到难以置信，可以做很多梦寐以求的事情，很多以前只能更改 dom 结构 或者只能用 JS 才能实现的功能现在也能纯 CSS 实现了，一起看看吧
+:has 简介 :has 伪类的语法非常简单，表示满足一定条件后，就会匹配该元素。
+例如，下面的选择器只会匹配直接包含 img 子元素的 a 元素：
+a:has(&amp;gt; img) 再例如，下面的选择器只会匹配其后紧跟着 p元素的 h1 元素
+h1:has(+ p) 表单元素必填项 &amp;lt;form&amp;gt; &amp;lt;item&amp;gt; &amp;lt;label&amp;gt;用户名&amp;lt;/label&amp;gt; &amp;lt;input required&amp;gt; &amp;lt;/item&amp;gt; &amp;lt;item&amp;gt; &amp;lt;label&amp;gt;备注&amp;lt;/label&amp;gt; &amp;lt;input&amp;gt; &amp;lt;/item&amp;gt; &amp;lt;/form&amp;gt; 现在可以通过 :has 在必填项的前面加上红色的星号
+label:has(+input:required)::before{ content: &amp;#39;*&amp;#39;; color: red; } 可以访问线上完整 demo：has+required(codepen.io)[1] 或者 has+required(runjs.work)[2]
+拖拽指定区域 有些时候列表需要有拖拽功能，但为了拖拽体验，不影响列表内部操作，可能需要指定小部分区域可拖拽，例如
+HTML 结构如下：
+&amp;lt;div class=&amp;#34;content&amp;#34;&amp;gt; &amp;lt;div class=&amp;#34;item&amp;#34;&amp;gt;列表&amp;lt;span class=&amp;#34;thumb&amp;#34;&amp;gt;&amp;lt;/span&amp;gt;&amp;lt;/div&amp;gt; &amp;lt;div class=&amp;#34;item&amp;#34;&amp;gt;列表&amp;lt;span class=&amp;#34;thumb&amp;#34;&amp;gt;&amp;lt;/span&amp;gt;&amp;lt;/div&amp;gt; &amp;lt;div class=&amp;#34;item&amp;#34;&amp;gt;列表&amp;lt;span class=&amp;#34;thumb&amp;#34;&amp;gt;&amp;lt;/span&amp;gt;&amp;lt;/div&amp;gt; &amp;lt;/div&amp;gt; 现在我们希望在 hover 时出现拖拽手柄，按住拖拽手柄才可以拖拽，看着好像非常麻烦，但是现在借助 :has 伪类可以轻易实现，关键 CSS 如下:</description>
+    </item>
+    
     <item>
       <title>自定义鼠标样式</title>
       <link>/posts/109/</link>

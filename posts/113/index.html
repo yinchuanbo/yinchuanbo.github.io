@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>封装 axios 拦截器实现用户无感刷新 access_token - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 最近做项目的时候，涉及到一个单点登录，即是项目的登录页面，用的是公司共用的一个登录页面，在该页面统一处理逻辑。最终实现用户只需登录一次，就可以以登录状态访问公司旗下的所有网站。
+单点登录( Single Sign On ，简称 SSO），是目前比较流行的企业业务整合的解决方案之一，用于多个应用系统间，用户只需要登录一次就可以访问所有相互信任的应用系统。
+其中本文讲的是在登录后如何管理access_token和refresh_token，主要就是封装 axios拦截器，在此记录。
+需求 前置场景 进入该项目某个页面http://xxxx.project.com/profile需要登录，未登录就跳转至SSO登录平台，此时的登录网址 url为http://xxxxx.com/login?app_id=project_name_id&amp;redirect_url=http://xxxx.project.com/profile，其中app_id是后台那边约定定义好的，redirect_url是成功授权后指定的回调地址。
+输入账号密码且正确后，就会重定向回刚开始进入的页面，并在地址栏带一个参数 ?code=XXXXX，即是http://xxxx.project.com/profile?code=XXXXXX，code的值是使用一次后即无效，且10分钟内过期
+立马获取这个code值再去请求一个api /access_token/authenticate，携带参数{ verify_code: code }，并且该api已经自带app_id和app_secret两个固定值参数，通过它去请求授权的api，请求成功后得到返回值{ access_token: &ldquo;xxxxxxx&rdquo;, refresh_token: &ldquo;xxxxxxxx&rdquo;, expires_in: xxxxxxxx }，存下access_token和refresh_token到cookie中（localStorage也可以），此时用户就算登录成功了。
+access_token为标准JWT格式，是授权令牌，可以理解就是验证用户身份的，是应用在调用api访问和修改用户数据必须传入的参数（放在请求头headers里），2小时后过期。也就是说，做完前三步后，你可以调用需要用户登录才能使用的api；但是假如你什么都不操作，静静过去两个小时后，再去请求这些api，就会报access_token过期，调用失败。
+那么总不能2小时后就让用户退出登录吧，解决方法就是两小时后拿着过期的access_token和refresh_token（refresh_token过期时间一般长一些，比如一个月或更长）去请求/refresh api，返回结果为{ access_token: &ldquo;xxxxx&rdquo;, expires_in: xxxxx }，换取新的access_token，新的access_token过期时间也是2小时，并重新存到cookie，循环往复继续保持登录调用用户api了。refresh_token在限定过期时间内（比如一周或一个月等），下次就可以继续换取新的access_token，但过了限定时间，就算真正意义过期了，也就要重新输入账号密码来登录了。
+公司网站登录过期时间都只有两小时（token过期时间），但又想让一个月内经常活跃的用户不再次登录，于是才有这样需求，避免了用户再次输入账号密码登录。
+为什么要专门用一个 refresh_token 去更新 access_token 呢？首先access_token会关联一定的用户权限，如果用户授权更改了，这个access_token也是需要被刷新以关联新的权限的，如果没有 refresh_token，也可以刷新 access_token，但每次刷新都要用户输入登录用户名与密码，多麻烦。有了 refresh_ token，可以减少这个麻烦，客户端直接用 refresh_token 去更新 access_token，无需用户进行额外的操作。
+需求 当access_token过期的时候，要用refresh_token去请求获取新的access_token，前端需要做到用户无感知的刷新access_token。比如用户发起一个请求时，如果判断access_token已经过期，那么就先要去调用刷新token接口拿到新的access_token，再重新发起用户请求。
+如果同时发起多个用户请求，第一个用户请求去调用刷新token接口，当接口还没返回时，其余的用户请求也依旧发起了刷新token接口请求，就会导致多个请求，这些请求如何处理，就是我们本文的内容了。
+思路 方案一 写在请求拦截器里，在请求前，先利用最初请求返回的字段expires_in字段来判断access_token是否已经过期，若已过期，则将请求挂起，先刷新access_token后再继续请求。
+优点：能节省http请求
+缺点：因为使用了本地时间判断，若本地时间被篡改，有校验失败的风险
+方案二 写在响应拦截器里，拦截返回后的数据。先发起用户请求，如果接口返回access_token过期，先刷新access_token，再进行一次重试。
+优点：无需判断时间
+缺点：会消耗多一次http请求
+在此我选择的是方案二。
+实现 这里使用 axios，其中做的是请求后拦截，所以用到的是 axios 的响应拦截器 axios.interceptors.response.use() 方法
+@utils/auth.js import Cookies from &#39;js-cookie&#39; const TOKEN_KEY = &#39;access_token&#39; const REGRESH_TOKEN_KEY = &#39;refresh_token&#39; export const getToken = () =&gt; Cookies." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+  <link rel="preload" as="image" href="/twitter.svg" />
+  
+  <link rel="preload" as="image" href="/github.svg" />
+  
+  <link rel="preload" as="image" href="/instagram.svg" />
+  
+  <link rel="preload" as="image" href="/rss.svg" />
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="封装 axios 拦截器实现用户无感刷新 access_token" />
+<meta property="og:description" content="前言 最近做项目的时候，涉及到一个单点登录，即是项目的登录页面，用的是公司共用的一个登录页面，在该页面统一处理逻辑。最终实现用户只需登录一次，就可以以登录状态访问公司旗下的所有网站。
+单点登录( Single Sign On ，简称 SSO），是目前比较流行的企业业务整合的解决方案之一，用于多个应用系统间，用户只需要登录一次就可以访问所有相互信任的应用系统。
+其中本文讲的是在登录后如何管理access_token和refresh_token，主要就是封装 axios拦截器，在此记录。
+需求 前置场景 进入该项目某个页面http://xxxx.project.com/profile需要登录，未登录就跳转至SSO登录平台，此时的登录网址 url为http://xxxxx.com/login?app_id=project_name_id&amp;redirect_url=http://xxxx.project.com/profile，其中app_id是后台那边约定定义好的，redirect_url是成功授权后指定的回调地址。
+输入账号密码且正确后，就会重定向回刚开始进入的页面，并在地址栏带一个参数 ?code=XXXXX，即是http://xxxx.project.com/profile?code=XXXXXX，code的值是使用一次后即无效，且10分钟内过期
+立马获取这个code值再去请求一个api /access_token/authenticate，携带参数{ verify_code: code }，并且该api已经自带app_id和app_secret两个固定值参数，通过它去请求授权的api，请求成功后得到返回值{ access_token: &ldquo;xxxxxxx&rdquo;, refresh_token: &ldquo;xxxxxxxx&rdquo;, expires_in: xxxxxxxx }，存下access_token和refresh_token到cookie中（localStorage也可以），此时用户就算登录成功了。
+access_token为标准JWT格式，是授权令牌，可以理解就是验证用户身份的，是应用在调用api访问和修改用户数据必须传入的参数（放在请求头headers里），2小时后过期。也就是说，做完前三步后，你可以调用需要用户登录才能使用的api；但是假如你什么都不操作，静静过去两个小时后，再去请求这些api，就会报access_token过期，调用失败。
+那么总不能2小时后就让用户退出登录吧，解决方法就是两小时后拿着过期的access_token和refresh_token（refresh_token过期时间一般长一些，比如一个月或更长）去请求/refresh api，返回结果为{ access_token: &ldquo;xxxxx&rdquo;, expires_in: xxxxx }，换取新的access_token，新的access_token过期时间也是2小时，并重新存到cookie，循环往复继续保持登录调用用户api了。refresh_token在限定过期时间内（比如一周或一个月等），下次就可以继续换取新的access_token，但过了限定时间，就算真正意义过期了，也就要重新输入账号密码来登录了。
+公司网站登录过期时间都只有两小时（token过期时间），但又想让一个月内经常活跃的用户不再次登录，于是才有这样需求，避免了用户再次输入账号密码登录。
+为什么要专门用一个 refresh_token 去更新 access_token 呢？首先access_token会关联一定的用户权限，如果用户授权更改了，这个access_token也是需要被刷新以关联新的权限的，如果没有 refresh_token，也可以刷新 access_token，但每次刷新都要用户输入登录用户名与密码，多麻烦。有了 refresh_ token，可以减少这个麻烦，客户端直接用 refresh_token 去更新 access_token，无需用户进行额外的操作。
+需求 当access_token过期的时候，要用refresh_token去请求获取新的access_token，前端需要做到用户无感知的刷新access_token。比如用户发起一个请求时，如果判断access_token已经过期，那么就先要去调用刷新token接口拿到新的access_token，再重新发起用户请求。
+如果同时发起多个用户请求，第一个用户请求去调用刷新token接口，当接口还没返回时，其余的用户请求也依旧发起了刷新token接口请求，就会导致多个请求，这些请求如何处理，就是我们本文的内容了。
+思路 方案一 写在请求拦截器里，在请求前，先利用最初请求返回的字段expires_in字段来判断access_token是否已经过期，若已过期，则将请求挂起，先刷新access_token后再继续请求。
+优点：能节省http请求
+缺点：因为使用了本地时间判断，若本地时间被篡改，有校验失败的风险
+方案二 写在响应拦截器里，拦截返回后的数据。先发起用户请求，如果接口返回access_token过期，先刷新access_token，再进行一次重试。
+优点：无需判断时间
+缺点：会消耗多一次http请求
+在此我选择的是方案二。
+实现 这里使用 axios，其中做的是请求后拦截，所以用到的是 axios 的响应拦截器 axios.interceptors.response.use() 方法
+@utils/auth.js import Cookies from &#39;js-cookie&#39; const TOKEN_KEY = &#39;access_token&#39; const REGRESH_TOKEN_KEY = &#39;refresh_token&#39; export const getToken = () =&gt; Cookies." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/113/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-04T17:31:50+08:00" />
+<meta property="article:modified_time" content="2022-10-04T17:31:50+08:00" />
+
+
+  
+  <meta itemprop="name" content="封装 axios 拦截器实现用户无感刷新 access_token">
+<meta itemprop="description" content="前言 最近做项目的时候，涉及到一个单点登录，即是项目的登录页面，用的是公司共用的一个登录页面，在该页面统一处理逻辑。最终实现用户只需登录一次，就可以以登录状态访问公司旗下的所有网站。
+单点登录( Single Sign On ，简称 SSO），是目前比较流行的企业业务整合的解决方案之一，用于多个应用系统间，用户只需要登录一次就可以访问所有相互信任的应用系统。
+其中本文讲的是在登录后如何管理access_token和refresh_token，主要就是封装 axios拦截器，在此记录。
+需求 前置场景 进入该项目某个页面http://xxxx.project.com/profile需要登录，未登录就跳转至SSO登录平台，此时的登录网址 url为http://xxxxx.com/login?app_id=project_name_id&amp;redirect_url=http://xxxx.project.com/profile，其中app_id是后台那边约定定义好的，redirect_url是成功授权后指定的回调地址。
+输入账号密码且正确后，就会重定向回刚开始进入的页面，并在地址栏带一个参数 ?code=XXXXX，即是http://xxxx.project.com/profile?code=XXXXXX，code的值是使用一次后即无效，且10分钟内过期
+立马获取这个code值再去请求一个api /access_token/authenticate，携带参数{ verify_code: code }，并且该api已经自带app_id和app_secret两个固定值参数，通过它去请求授权的api，请求成功后得到返回值{ access_token: &ldquo;xxxxxxx&rdquo;, refresh_token: &ldquo;xxxxxxxx&rdquo;, expires_in: xxxxxxxx }，存下access_token和refresh_token到cookie中（localStorage也可以），此时用户就算登录成功了。
+access_token为标准JWT格式，是授权令牌，可以理解就是验证用户身份的，是应用在调用api访问和修改用户数据必须传入的参数（放在请求头headers里），2小时后过期。也就是说，做完前三步后，你可以调用需要用户登录才能使用的api；但是假如你什么都不操作，静静过去两个小时后，再去请求这些api，就会报access_token过期，调用失败。
+那么总不能2小时后就让用户退出登录吧，解决方法就是两小时后拿着过期的access_token和refresh_token（refresh_token过期时间一般长一些，比如一个月或更长）去请求/refresh api，返回结果为{ access_token: &ldquo;xxxxx&rdquo;, expires_in: xxxxx }，换取新的access_token，新的access_token过期时间也是2小时，并重新存到cookie，循环往复继续保持登录调用用户api了。refresh_token在限定过期时间内（比如一周或一个月等），下次就可以继续换取新的access_token，但过了限定时间，就算真正意义过期了，也就要重新输入账号密码来登录了。
+公司网站登录过期时间都只有两小时（token过期时间），但又想让一个月内经常活跃的用户不再次登录，于是才有这样需求，避免了用户再次输入账号密码登录。
+为什么要专门用一个 refresh_token 去更新 access_token 呢？首先access_token会关联一定的用户权限，如果用户授权更改了，这个access_token也是需要被刷新以关联新的权限的，如果没有 refresh_token，也可以刷新 access_token，但每次刷新都要用户输入登录用户名与密码，多麻烦。有了 refresh_ token，可以减少这个麻烦，客户端直接用 refresh_token 去更新 access_token，无需用户进行额外的操作。
+需求 当access_token过期的时候，要用refresh_token去请求获取新的access_token，前端需要做到用户无感知的刷新access_token。比如用户发起一个请求时，如果判断access_token已经过期，那么就先要去调用刷新token接口拿到新的access_token，再重新发起用户请求。
+如果同时发起多个用户请求，第一个用户请求去调用刷新token接口，当接口还没返回时，其余的用户请求也依旧发起了刷新token接口请求，就会导致多个请求，这些请求如何处理，就是我们本文的内容了。
+思路 方案一 写在请求拦截器里，在请求前，先利用最初请求返回的字段expires_in字段来判断access_token是否已经过期，若已过期，则将请求挂起，先刷新access_token后再继续请求。
+优点：能节省http请求
+缺点：因为使用了本地时间判断，若本地时间被篡改，有校验失败的风险
+方案二 写在响应拦截器里，拦截返回后的数据。先发起用户请求，如果接口返回access_token过期，先刷新access_token，再进行一次重试。
+优点：无需判断时间
+缺点：会消耗多一次http请求
+在此我选择的是方案二。
+实现 这里使用 axios，其中做的是请求后拦截，所以用到的是 axios 的响应拦截器 axios.interceptors.response.use() 方法
+@utils/auth.js import Cookies from &#39;js-cookie&#39; const TOKEN_KEY = &#39;access_token&#39; const REGRESH_TOKEN_KEY = &#39;refresh_token&#39; export const getToken = () =&gt; Cookies."><meta itemprop="datePublished" content="2022-10-04T17:31:50+08:00" />
+<meta itemprop="dateModified" content="2022-10-04T17:31:50+08:00" />
+<meta itemprop="wordCount" content="849">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="封装 axios 拦截器实现用户无感刷新 access_token"/>
+<meta name="twitter:description" content="前言 最近做项目的时候，涉及到一个单点登录，即是项目的登录页面，用的是公司共用的一个登录页面，在该页面统一处理逻辑。最终实现用户只需登录一次，就可以以登录状态访问公司旗下的所有网站。
+单点登录( Single Sign On ，简称 SSO），是目前比较流行的企业业务整合的解决方案之一，用于多个应用系统间，用户只需要登录一次就可以访问所有相互信任的应用系统。
+其中本文讲的是在登录后如何管理access_token和refresh_token，主要就是封装 axios拦截器，在此记录。
+需求 前置场景 进入该项目某个页面http://xxxx.project.com/profile需要登录，未登录就跳转至SSO登录平台，此时的登录网址 url为http://xxxxx.com/login?app_id=project_name_id&amp;redirect_url=http://xxxx.project.com/profile，其中app_id是后台那边约定定义好的，redirect_url是成功授权后指定的回调地址。
+输入账号密码且正确后，就会重定向回刚开始进入的页面，并在地址栏带一个参数 ?code=XXXXX，即是http://xxxx.project.com/profile?code=XXXXXX，code的值是使用一次后即无效，且10分钟内过期
+立马获取这个code值再去请求一个api /access_token/authenticate，携带参数{ verify_code: code }，并且该api已经自带app_id和app_secret两个固定值参数，通过它去请求授权的api，请求成功后得到返回值{ access_token: &ldquo;xxxxxxx&rdquo;, refresh_token: &ldquo;xxxxxxxx&rdquo;, expires_in: xxxxxxxx }，存下access_token和refresh_token到cookie中（localStorage也可以），此时用户就算登录成功了。
+access_token为标准JWT格式，是授权令牌，可以理解就是验证用户身份的，是应用在调用api访问和修改用户数据必须传入的参数（放在请求头headers里），2小时后过期。也就是说，做完前三步后，你可以调用需要用户登录才能使用的api；但是假如你什么都不操作，静静过去两个小时后，再去请求这些api，就会报access_token过期，调用失败。
+那么总不能2小时后就让用户退出登录吧，解决方法就是两小时后拿着过期的access_token和refresh_token（refresh_token过期时间一般长一些，比如一个月或更长）去请求/refresh api，返回结果为{ access_token: &ldquo;xxxxx&rdquo;, expires_in: xxxxx }，换取新的access_token，新的access_token过期时间也是2小时，并重新存到cookie，循环往复继续保持登录调用用户api了。refresh_token在限定过期时间内（比如一周或一个月等），下次就可以继续换取新的access_token，但过了限定时间，就算真正意义过期了，也就要重新输入账号密码来登录了。
+公司网站登录过期时间都只有两小时（token过期时间），但又想让一个月内经常活跃的用户不再次登录，于是才有这样需求，避免了用户再次输入账号密码登录。
+为什么要专门用一个 refresh_token 去更新 access_token 呢？首先access_token会关联一定的用户权限，如果用户授权更改了，这个access_token也是需要被刷新以关联新的权限的，如果没有 refresh_token，也可以刷新 access_token，但每次刷新都要用户输入登录用户名与密码，多麻烦。有了 refresh_ token，可以减少这个麻烦，客户端直接用 refresh_token 去更新 access_token，无需用户进行额外的操作。
+需求 当access_token过期的时候，要用refresh_token去请求获取新的access_token，前端需要做到用户无感知的刷新access_token。比如用户发起一个请求时，如果判断access_token已经过期，那么就先要去调用刷新token接口拿到新的access_token，再重新发起用户请求。
+如果同时发起多个用户请求，第一个用户请求去调用刷新token接口，当接口还没返回时，其余的用户请求也依旧发起了刷新token接口请求，就会导致多个请求，这些请求如何处理，就是我们本文的内容了。
+思路 方案一 写在请求拦截器里，在请求前，先利用最初请求返回的字段expires_in字段来判断access_token是否已经过期，若已过期，则将请求挂起，先刷新access_token后再继续请求。
+优点：能节省http请求
+缺点：因为使用了本地时间判断，若本地时间被篡改，有校验失败的风险
+方案二 写在响应拦截器里，拦截返回后的数据。先发起用户请求，如果接口返回access_token过期，先刷新access_token，再进行一次重试。
+优点：无需判断时间
+缺点：会消耗多一次http请求
+在此我选择的是方案二。
+实现 这里使用 axios，其中做的是请求后拦截，所以用到的是 axios 的响应拦截器 axios.interceptors.response.use() 方法
+@utils/auth.js import Cookies from &#39;js-cookie&#39; const TOKEN_KEY = &#39;access_token&#39; const REGRESH_TOKEN_KEY = &#39;refresh_token&#39; export const getToken = () =&gt; Cookies."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/about/"
+        >关于</a
+      >
+      
+    </nav>
+    
+
+    
+    <nav
+      class="mt-12 flex justify-center space-x-10 dark:invert lg:mt-0 lg:ml-12 lg:items-center lg:space-x-6"
+    >
+      
+      <a
+        class="h-8 w-8 [background:var(--url)_center_center/cover_no-repeat] lg:h-6 lg:w-6"
+        style="--url: url(./twitter.svg)"
+        href=" https://twitter.com/yinchuanbo "
+        target="_blank"
+      ></a>
+      
+      <a
+        class="h-8 w-8 [background:var(--url)_center_center/cover_no-repeat] lg:h-6 lg:w-6"
+        style="--url: url(./github.svg)"
+        href=" https://github.com/yinchuanbo "
+        target="_blank"
+      ></a>
+      
+      <a
+        class="h-8 w-8 [background:var(--url)_center_center/cover_no-repeat] lg:h-6 lg:w-6"
+        style="--url: url(./instagram.svg)"
+        href=" https://instagram.com/yinchuanbo "
+        target="_blank"
+      ></a>
+      
+      <a
+        class="h-8 w-8 [background:var(--url)_center_center/cover_no-repeat] lg:h-6 lg:w-6"
+        style="--url: url(./rss.svg)"
+        href=" /index.xml "
+        target="_blank"
+      ></a>
+      
+    </nav>
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-20">
+    <h1 class="!my-0 pb-2.5">封装 axios 拦截器实现用户无感刷新 access_token</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年10月4日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><h3 id="前言">前言</h3>
+<p>最近做项目的时候，涉及到一个单点登录，即是项目的登录页面，用的是公司共用的一个登录页面，在该页面统一处理逻辑。最终实现用户只需登录一次，就可以以登录状态访问公司旗下的所有网站。</p>
+<blockquote>
+<p>单点登录( Single Sign On ，简称 SSO），是目前比较流行的企业业务整合的解决方案之一，用于多个应用系统间，用户只需要登录一次就可以访问所有相互信任的应用系统。</p>
+</blockquote>
+<p>其中本文讲的是在登录后如何管理access_token和refresh_token，主要就是封装 axios拦截器，在此记录。</p>
+<h3 id="需求">需求</h3>
+<ul>
+<li>前置场景</li>
+</ul>
+<img src="/imgs/notes/20221004181252.jpg" />
+<ol>
+<li>
+<p>进入该项目某个页面http://xxxx.project.com/profile需要登录，未登录就跳转至SSO登录平台，此时的登录网址 url为http://xxxxx.com/login?app_id=project_name_id&amp;redirect_url=http://xxxx.project.com/profile，其中app_id是后台那边约定定义好的，redirect_url是成功授权后指定的回调地址。</p>
+</li>
+<li>
+<p>输入账号密码且正确后，就会重定向回刚开始进入的页面，并在地址栏带一个参数 ?code=XXXXX，即是http://xxxx.project.com/profile?code=XXXXXX，code的值是使用一次后即无效，且10分钟内过期</p>
+</li>
+<li>
+<p>立马获取这个code值再去请求一个api /access_token/authenticate，携带参数{ verify_code: code }，并且该api已经自带app_id和app_secret两个固定值参数，通过它去请求授权的api，请求成功后得到返回值{ access_token: &ldquo;xxxxxxx&rdquo;, refresh_token: &ldquo;xxxxxxxx&rdquo;, expires_in: xxxxxxxx }，存下access_token和refresh_token到cookie中（localStorage也可以），此时用户就算登录成功了。</p>
+</li>
+<li>
+<p>access_token为标准JWT格式，是授权令牌，可以理解就是验证用户身份的，是应用在调用api访问和修改用户数据必须传入的参数（放在请求头headers里），2小时后过期。也就是说，做完前三步后，你可以调用需要用户登录才能使用的api；但是假如你什么都不操作，静静过去两个小时后，再去请求这些api，就会报access_token过期，调用失败。</p>
+</li>
+<li>
+<p>那么总不能2小时后就让用户退出登录吧，解决方法就是两小时后拿着过期的access_token和refresh_token（refresh_token过期时间一般长一些，比如一个月或更长）去请求/refresh api，返回结果为{ access_token: &ldquo;xxxxx&rdquo;, expires_in: xxxxx }，换取新的access_token，新的access_token过期时间也是2小时，并重新存到cookie，循环往复继续保持登录调用用户api了。refresh_token在限定过期时间内（比如一周或一个月等），下次就可以继续换取新的access_token，但过了限定时间，就算真正意义过期了，也就要重新输入账号密码来登录了。</p>
+</li>
+</ol>
+<blockquote>
+<p>公司网站登录过期时间都只有两小时（token过期时间），但又想让一个月内经常活跃的用户不再次登录，于是才有这样需求，避免了用户再次输入账号密码登录。</p>
+</blockquote>
+<p>为什么要专门用一个 refresh_token 去更新 access_token 呢？首先access_token会关联一定的用户权限，如果用户授权更改了，这个access_token也是需要被刷新以关联新的权限的，如果没有 refresh_token，也可以刷新 access_token，但每次刷新都要用户输入登录用户名与密码，多麻烦。有了 refresh_ token，可以减少这个麻烦，客户端直接用 refresh_token 去更新 access_token，无需用户进行额外的操作。</p>
+<ul>
+<li>需求</li>
+</ul>
+<ol>
+<li>
+<p>当access_token过期的时候，要用refresh_token去请求获取新的access_token，前端需要做到用户无感知的刷新access_token。比如用户发起一个请求时，如果判断access_token已经过期，那么就先要去调用刷新token接口拿到新的access_token，再重新发起用户请求。</p>
+</li>
+<li>
+<p>如果同时发起多个用户请求，第一个用户请求去调用刷新token接口，当接口还没返回时，其余的用户请求也依旧发起了刷新token接口请求，就会导致多个请求，这些请求如何处理，就是我们本文的内容了。</p>
+</li>
+</ol>
+<h2 id="思路">思路</h2>
+<h3 id="方案一">方案一</h3>
+<p>写在请求拦截器里，在请求前，先利用最初请求返回的字段expires_in字段来判断access_token是否已经过期，若已过期，则将请求挂起，先刷新access_token后再继续请求。</p>
+<ul>
+<li>
+<p>优点：能节省http请求</p>
+</li>
+<li>
+<p>缺点：因为使用了本地时间判断，若本地时间被篡改，有校验失败的风险</p>
+</li>
+</ul>
+<h3 id="方案二">方案二</h3>
+<p>写在响应拦截器里，拦截返回后的数据。先发起用户请求，如果接口返回access_token过期，先刷新access_token，再进行一次重试。</p>
+<ul>
+<li>
+<p>优点：无需判断时间</p>
+</li>
+<li>
+<p>缺点：会消耗多一次http请求</p>
+</li>
+</ul>
+<p>在此我选择的是方案二。</p>
+<h2 id="实现">实现</h2>
+<p>这里使用 axios，其中做的是请求后拦截，所以用到的是 axios 的响应拦截器 <code>axios.interceptors.response.use()</code> 方法</p>
+<ul>
+<li>@utils/auth.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Cookies</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;js-cookie&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">TOKEN_KEY</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;access_token&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">REGRESH_TOKEN_KEY</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;refresh_token&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">getToken</span> <span style="color:#f92672">=</span> () =&gt; <span style="color:#a6e22e">Cookies</span>.<span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">TOKEN_KEY</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">setToken</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">token</span>, <span style="color:#a6e22e">params</span> <span style="color:#f92672">=</span> {}) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">Cookies</span>.<span style="color:#a6e22e">set</span>(<span style="color:#a6e22e">TOKEN_KEY</span>, <span style="color:#a6e22e">token</span>, <span style="color:#a6e22e">params</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">setRefreshToken</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">token</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">Cookies</span>.<span style="color:#a6e22e">set</span>(<span style="color:#a6e22e">REGRESH_TOKEN_KEY</span>, <span style="color:#a6e22e">token</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ul>
+<li>request.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">axios</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;axios&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">getToken</span>, <span style="color:#a6e22e">setToken</span>, <span style="color:#a6e22e">getRefreshToken</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;@utils/auth&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 刷新 access_token 的接口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">refreshToken</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">post</span>(<span style="color:#e6db74">&#39;/auth/refresh&#39;</span>, { <span style="color:#a6e22e">refresh_token</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">getRefreshToken</span>() }, <span style="color:#66d9ef">true</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 创建 axios 实例
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">create</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">baseURL</span><span style="color:#f92672">:</span>  <span style="color:#a6e22e">process</span>.<span style="color:#a6e22e">env</span>.<span style="color:#a6e22e">GATSBY_API_URL</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">30000</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">headers</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;Content-Type&#39;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;application/json&#39;</span>,
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">use</span>(<span style="color:#a6e22e">response</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">response</span>
+</span></span><span style="display:flex;"><span>}, <span style="color:#a6e22e">error</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">response</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// token 过期或无效，返回 401 状态码，在此处理逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 给请求头添加 access_token
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">setHeaderToken</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">isNeedToken</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">accessToken</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">isNeedToken</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">getToken</span>() <span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">isNeedToken</span>) { <span style="color:#75715e">// api 请求需要携带 access_token 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">accessToken</span>) { 
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;不存在 access_token 则跳转回登录页&#39;</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">defaults</span>.<span style="color:#a6e22e">headers</span>.<span style="color:#a6e22e">common</span>.<span style="color:#a6e22e">Authorization</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`Bearer </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">accessToken</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 有些 api 并不需要用户授权使用，则不携带 access_token；默认不携带，需要传则设置第三个参数为 true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">get</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">params</span> <span style="color:#f92672">=</span> {}, <span style="color:#a6e22e">isNeedToken</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setHeaderToken</span>(<span style="color:#a6e22e">isNeedToken</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">method</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;get&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">params</span>,
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">post</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">params</span> <span style="color:#f92672">=</span> {}, <span style="color:#a6e22e">isNeedToken</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setHeaderToken</span>(<span style="color:#a6e22e">isNeedToken</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">method</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;post&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">params</span>,
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>接下来改造 request.js 中 axios 的响应拦截器</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">use</span>(<span style="color:#a6e22e">response</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">response</span>
+</span></span><span style="display:flex;"><span>}, <span style="color:#a6e22e">error</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">response</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">status</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">401</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">config</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">error</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">refreshToken</span>().<span style="color:#a6e22e">then</span>(<span style="color:#a6e22e">res</span>=&gt; {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">access_token</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">data</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">setToken</span>(<span style="color:#a6e22e">access_token</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">headers</span>.<span style="color:#a6e22e">Authorization</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`Bearer </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">access_token</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span>        }).<span style="color:#66d9ef">catch</span>(<span style="color:#a6e22e">err</span> =&gt; {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;抱歉，您的登录状态已失效，请重新登录！&#39;</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>        })
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><p>约定返回 401 状态码表示 access_token 过期或者无效，如果用户发起一个请求后返回结果是 access_token 过期，则请求刷新 access_token 的接口。请求成功则进入 then 里面，重置配置，并刷新 access_token 并重新发起原来的请求。</p>
+<p>但如果 refresh_token 也过期了，则请求也是返回 401。此时调试会发现函数进不到refreshToken() 的 catch 里面，那是因为 refreshToken() 方法内部是也是用了同个instance 实例，重复响应拦截器 401 的处理逻辑，但该函数本身就是刷新 access_token，故需要把该接口排除掉，即：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">status</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">401</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">!</span><span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">url</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#39;/auth/refresh&#39;</span>)) {}
+</span></span></code></pre></div><p>上述代码就已经实现了无感刷新 access_token 了，当 access_token 没过期，正常返回；过期时，则 axios 内部进行了一次刷新 token 的操作，再重新发起原来的请求。</p>
+<h2 id="优化">优化</h2>
+<h3 id="防止多次刷新-token">防止多次刷新 token</h3>
+<p>如果 token 是过期的，那请求刷新 access_token 的接口返回也是有一定时间间隔，如果此时还有其他请求发过来，就会再执行一次刷新 access_token 的接口，就会导致多次刷新access_token。</p>
+<p>因此，我们需要做一个判断，定义一个标记判断当前是否处于刷新 access_token 的状态，如果处在刷新状态则不再允许其他请求调用该接口。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">isRefreshing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span> <span style="color:#75715e">// 标记是否正在刷新 token
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">use</span>(<span style="color:#a6e22e">response</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">response</span>
+</span></span><span style="display:flex;"><span>}, <span style="color:#a6e22e">error</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">response</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">status</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">401</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">!</span><span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">url</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#39;/auth/refresh&#39;</span>)) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">config</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">error</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">isRefreshing</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">isRefreshing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">refreshToken</span>().<span style="color:#a6e22e">then</span>(<span style="color:#a6e22e">res</span>=&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">access_token</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">data</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">setToken</span>(<span style="color:#a6e22e">access_token</span>)
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">headers</span>.<span style="color:#a6e22e">Authorization</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`Bearer </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">access_token</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span>            }).<span style="color:#66d9ef">catch</span>(<span style="color:#a6e22e">err</span> =&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;抱歉，您的登录状态已失效，请重新登录！&#39;</span>)
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>            }).<span style="color:#66d9ef">finally</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">isRefreshing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>            })
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><h3 id="同时发起多个请求的处理">同时发起多个请求的处理</h3>
+<p>上面做法还不够，因为如果同时发起多个请求，在 token 过期的情况，第一个请求进入刷新token 方法，则其他请求进去没有做任何逻辑处理，单纯返回失败，最终只执行了第一个请求，这显然不合理。</p>
+<p>比如同时发起三个请求，第一个请求进入刷新token的流程，第二个和第三个请求需要存起来，等到token更新后再重新发起请求。</p>
+<p>在此，我们定义一个数组 requests，用来保存处于等待的请求，之后返回一个 Promise，只要不调用 resolve 方法，该请求就会处于等待状态，则可以知道其实数组存的是函数；等到token更新完毕，则通过数组循环执行函数，即逐个执行resolve重发请求。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">isRefreshing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span> <span style="color:#75715e">// 标记是否正在刷新 token
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">requests</span> <span style="color:#f92672">=</span> [] <span style="color:#75715e">// 存储待重发请求的数组
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">use</span>(<span style="color:#a6e22e">response</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">response</span>
+</span></span><span style="display:flex;"><span>}, <span style="color:#a6e22e">error</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">response</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">status</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">401</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">!</span><span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">url</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#39;/auth/refresh&#39;</span>)) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">config</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">error</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">isRefreshing</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">isRefreshing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">refreshToken</span>().<span style="color:#a6e22e">then</span>(<span style="color:#a6e22e">res</span>=&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">access_token</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">data</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">setToken</span>(<span style="color:#a6e22e">access_token</span>)
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">headers</span>.<span style="color:#a6e22e">Authorization</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`Bearer </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">access_token</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e">// token 刷新后将数组的方法重新执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#a6e22e">requests</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">cb</span>) =&gt; <span style="color:#a6e22e">cb</span>(<span style="color:#a6e22e">access_token</span>))
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">requests</span> <span style="color:#f92672">=</span> [] <span style="color:#75715e">// 重新请求完清空
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span>            }).<span style="color:#66d9ef">catch</span>(<span style="color:#a6e22e">err</span> =&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;抱歉，您的登录状态已失效，请重新登录！&#39;</span>)
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>            }).<span style="color:#66d9ef">finally</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">isRefreshing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>            })
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 返回未执行 resolve 的 Promise
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise(<span style="color:#a6e22e">resolve</span> =&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e">// 用函数形式将 resolve 存入，等待刷新后再执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#a6e22e">requests</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">token</span> =&gt; {
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">headers</span>.<span style="color:#a6e22e">Authorization</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`Bearer </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">token</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">instance</span>(<span style="color:#a6e22e">config</span>))
+</span></span><span style="display:flex;"><span>                })  
+</span></span><span style="display:flex;"><span>            })
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><p>最终 request.js 代码</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">axios</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;axios&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">getToken</span>, <span style="color:#a6e22e">setToken</span>, <span style="color:#a6e22e">getRefreshToken</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;@utils/auth&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 刷新 access_token 的接口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">refreshToken</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">post</span>(<span style="color:#e6db74">&#39;/auth/refresh&#39;</span>, { <span style="color:#a6e22e">refresh_token</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">getRefreshToken</span>() }, <span style="color:#66d9ef">true</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 创建 axios 实例
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">create</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">baseURL</span><span style="color:#f92672">:</span>  <span style="color:#a6e22e">process</span>.<span style="color:#a6e22e">env</span>.<span style="color:#a6e22e">GATSBY_API_URL</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">30000</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">headers</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;Content-Type&#39;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;application/json&#39;</span>,
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">isRefreshing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span> <span style="color:#75715e">// 标记是否正在刷新 token
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">requests</span> <span style="color:#f92672">=</span> [] <span style="color:#75715e">// 存储待重发请求的数组
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">use</span>(<span style="color:#a6e22e">response</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">response</span>
+</span></span><span style="display:flex;"><span>}, <span style="color:#a6e22e">error</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">response</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">status</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">401</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">!</span><span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">url</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#39;/auth/refresh&#39;</span>)) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">config</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">error</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">isRefreshing</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">isRefreshing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">refreshToken</span>().<span style="color:#a6e22e">then</span>(<span style="color:#a6e22e">res</span>=&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">access_token</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">data</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">setToken</span>(<span style="color:#a6e22e">access_token</span>)
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">headers</span>.<span style="color:#a6e22e">Authorization</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`Bearer </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">access_token</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e">// token 刷新后将数组的方法重新执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#a6e22e">requests</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">cb</span>) =&gt; <span style="color:#a6e22e">cb</span>(<span style="color:#a6e22e">access_token</span>))
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">requests</span> <span style="color:#f92672">=</span> [] <span style="color:#75715e">// 重新请求完清空
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span>            }).<span style="color:#66d9ef">catch</span>(<span style="color:#a6e22e">err</span> =&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;抱歉，您的登录状态已失效，请重新登录！&#39;</span>)
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>            }).<span style="color:#66d9ef">finally</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">isRefreshing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>            })
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 返回未执行 resolve 的 Promise
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise(<span style="color:#a6e22e">resolve</span> =&gt; {
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e">// 用函数形式将 resolve 存入，等待刷新后再执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#a6e22e">requests</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">token</span> =&gt; {
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">headers</span>.<span style="color:#a6e22e">Authorization</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`Bearer </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">token</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">instance</span>(<span style="color:#a6e22e">config</span>))
+</span></span><span style="display:flex;"><span>                })  
+</span></span><span style="display:flex;"><span>            })
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 给请求头添加 access_token
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">setHeaderToken</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">isNeedToken</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">accessToken</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">isNeedToken</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">getToken</span>() <span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">isNeedToken</span>) { <span style="color:#75715e">// api 请求需要携带 access_token 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">accessToken</span>) { 
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;不存在 access_token 则跳转回登录页&#39;</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">defaults</span>.<span style="color:#a6e22e">headers</span>.<span style="color:#a6e22e">common</span>.<span style="color:#a6e22e">Authorization</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`Bearer </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">accessToken</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 有些 api 并不需要用户授权使用，则无需携带 access_token；默认不携带，需要传则设置第三个参数为 true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">get</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">params</span> <span style="color:#f92672">=</span> {}, <span style="color:#a6e22e">isNeedToken</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setHeaderToken</span>(<span style="color:#a6e22e">isNeedToken</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">method</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;get&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">params</span>,
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">post</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">params</span> <span style="color:#f92672">=</span> {}, <span style="color:#a6e22e">isNeedToken</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setHeaderToken</span>(<span style="color:#a6e22e">isNeedToken</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">method</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;post&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">params</span>,
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div></section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/114/"
+      ><span class="mr-1.5">←</span><span>两行 CSS 提升渲染性能7倍</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/112/"
+      ><span>使用 JavaScript 阻止屏幕进入睡眠状态</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>
