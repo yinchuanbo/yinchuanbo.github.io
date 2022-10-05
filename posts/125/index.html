@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #faf6f1"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>JavaScript设计模式之单例模式 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="在《JavaScript 设计模式与开发实践》 中对单例模式的定义为：保证一个类仅有一个实例，并提供一个访问它的全局访问点。单例模式属于是比较常用的设计模式，其一个主要用途是避免重复的创建实例，节约不必要的开销。通常会在第三方库的开发中使用到，如果是项目的开发，单例模式也会用在一些数据缓存、全局通用弹窗（如登录弹窗）等一些场景中。
+单例模式 标准的单例模式 标准的单例模式并不复杂，这里直接借用书中的一个例子：
+var Singleton = function (name) { this.name = name; this.instance = null; }; Singleton.prototype.getName = function () { alert(this.name); }; Singleton.getInstance = function (name) { if (!this.instance) { this.instance = new Singleton(name); } return this.instance; }; var a = Singleton.getInstance(&#34;sven1&#34;); var b = Singleton.getInstance(&#34;sven2&#34;); alert(a === b); // true 从这个例子中，很容易卡不到当执行Singleton.getInstance时：只有没有instance时才会执行初始化方法，后面再执行的时候会直接复用之前的instance，这就保证了即使函数执行了很多次，也能保证唯一实例。
+JavaScript 中的单例模式 在JavaScript中创建对象的方式非常简单，而通常，我们只需要创建一个全局变量，即可满足单例模式的核心：确保只有一个实例，并提供全局访问。但在书中有一句话：全局变量不是单例模式，但在 JavaScript 开发中，我们经常会把全局变量当成单例来使用。我对这句话的理解是，因为全局变量并不能保证实例唯一，也就是说我们可以在任何一个地方去修改全局变量，也就可能导致全局变量的代码被覆盖，引起代码报错，而单例模式则只会创建一个实例，就像上面的getInstance一样，如果已经存在instance就不会创建新实例。书中也建议尽量减少全局变量的使用，即使需要，也要把它们的污染降到最低。
+降低全局变量带来的污染 使用命名空间 var namespace1 = { a: functino() {}, b: function() {} } 使用闭包封装私有变量 var user = (function() { var _name = &#39;seven&#39;, _age = 29 return { getUserInfo: function() { return _name &#43; &#39;-&#39; &#43; _age } } })() 惰性单例 惰性单例指的是在需要的时候才创建对象实例。通常会用在全局唯一且非必需的一些场景，例如：全局弹窗、购物车列表、全局共同信息等场景。拿书中登录弹窗的例子可以理解的更加清晰：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="JavaScript设计模式之单例模式" />
+<meta property="og:description" content="在《JavaScript 设计模式与开发实践》 中对单例模式的定义为：保证一个类仅有一个实例，并提供一个访问它的全局访问点。单例模式属于是比较常用的设计模式，其一个主要用途是避免重复的创建实例，节约不必要的开销。通常会在第三方库的开发中使用到，如果是项目的开发，单例模式也会用在一些数据缓存、全局通用弹窗（如登录弹窗）等一些场景中。
+单例模式 标准的单例模式 标准的单例模式并不复杂，这里直接借用书中的一个例子：
+var Singleton = function (name) { this.name = name; this.instance = null; }; Singleton.prototype.getName = function () { alert(this.name); }; Singleton.getInstance = function (name) { if (!this.instance) { this.instance = new Singleton(name); } return this.instance; }; var a = Singleton.getInstance(&#34;sven1&#34;); var b = Singleton.getInstance(&#34;sven2&#34;); alert(a === b); // true 从这个例子中，很容易卡不到当执行Singleton.getInstance时：只有没有instance时才会执行初始化方法，后面再执行的时候会直接复用之前的instance，这就保证了即使函数执行了很多次，也能保证唯一实例。
+JavaScript 中的单例模式 在JavaScript中创建对象的方式非常简单，而通常，我们只需要创建一个全局变量，即可满足单例模式的核心：确保只有一个实例，并提供全局访问。但在书中有一句话：全局变量不是单例模式，但在 JavaScript 开发中，我们经常会把全局变量当成单例来使用。我对这句话的理解是，因为全局变量并不能保证实例唯一，也就是说我们可以在任何一个地方去修改全局变量，也就可能导致全局变量的代码被覆盖，引起代码报错，而单例模式则只会创建一个实例，就像上面的getInstance一样，如果已经存在instance就不会创建新实例。书中也建议尽量减少全局变量的使用，即使需要，也要把它们的污染降到最低。
+降低全局变量带来的污染 使用命名空间 var namespace1 = { a: functino() {}, b: function() {} } 使用闭包封装私有变量 var user = (function() { var _name = &#39;seven&#39;, _age = 29 return { getUserInfo: function() { return _name &#43; &#39;-&#39; &#43; _age } } })() 惰性单例 惰性单例指的是在需要的时候才创建对象实例。通常会用在全局唯一且非必需的一些场景，例如：全局弹窗、购物车列表、全局共同信息等场景。拿书中登录弹窗的例子可以理解的更加清晰：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/125/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-05T21:36:03+08:00" />
+<meta property="article:modified_time" content="2022-10-05T21:36:03+08:00" />
+
+
+  
+  <meta itemprop="name" content="JavaScript设计模式之单例模式">
+<meta itemprop="description" content="在《JavaScript 设计模式与开发实践》 中对单例模式的定义为：保证一个类仅有一个实例，并提供一个访问它的全局访问点。单例模式属于是比较常用的设计模式，其一个主要用途是避免重复的创建实例，节约不必要的开销。通常会在第三方库的开发中使用到，如果是项目的开发，单例模式也会用在一些数据缓存、全局通用弹窗（如登录弹窗）等一些场景中。
+单例模式 标准的单例模式 标准的单例模式并不复杂，这里直接借用书中的一个例子：
+var Singleton = function (name) { this.name = name; this.instance = null; }; Singleton.prototype.getName = function () { alert(this.name); }; Singleton.getInstance = function (name) { if (!this.instance) { this.instance = new Singleton(name); } return this.instance; }; var a = Singleton.getInstance(&#34;sven1&#34;); var b = Singleton.getInstance(&#34;sven2&#34;); alert(a === b); // true 从这个例子中，很容易卡不到当执行Singleton.getInstance时：只有没有instance时才会执行初始化方法，后面再执行的时候会直接复用之前的instance，这就保证了即使函数执行了很多次，也能保证唯一实例。
+JavaScript 中的单例模式 在JavaScript中创建对象的方式非常简单，而通常，我们只需要创建一个全局变量，即可满足单例模式的核心：确保只有一个实例，并提供全局访问。但在书中有一句话：全局变量不是单例模式，但在 JavaScript 开发中，我们经常会把全局变量当成单例来使用。我对这句话的理解是，因为全局变量并不能保证实例唯一，也就是说我们可以在任何一个地方去修改全局变量，也就可能导致全局变量的代码被覆盖，引起代码报错，而单例模式则只会创建一个实例，就像上面的getInstance一样，如果已经存在instance就不会创建新实例。书中也建议尽量减少全局变量的使用，即使需要，也要把它们的污染降到最低。
+降低全局变量带来的污染 使用命名空间 var namespace1 = { a: functino() {}, b: function() {} } 使用闭包封装私有变量 var user = (function() { var _name = &#39;seven&#39;, _age = 29 return { getUserInfo: function() { return _name &#43; &#39;-&#39; &#43; _age } } })() 惰性单例 惰性单例指的是在需要的时候才创建对象实例。通常会用在全局唯一且非必需的一些场景，例如：全局弹窗、购物车列表、全局共同信息等场景。拿书中登录弹窗的例子可以理解的更加清晰："><meta itemprop="datePublished" content="2022-10-05T21:36:03+08:00" />
+<meta itemprop="dateModified" content="2022-10-05T21:36:03+08:00" />
+<meta itemprop="wordCount" content="495">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="JavaScript设计模式之单例模式"/>
+<meta name="twitter:description" content="在《JavaScript 设计模式与开发实践》 中对单例模式的定义为：保证一个类仅有一个实例，并提供一个访问它的全局访问点。单例模式属于是比较常用的设计模式，其一个主要用途是避免重复的创建实例，节约不必要的开销。通常会在第三方库的开发中使用到，如果是项目的开发，单例模式也会用在一些数据缓存、全局通用弹窗（如登录弹窗）等一些场景中。
+单例模式 标准的单例模式 标准的单例模式并不复杂，这里直接借用书中的一个例子：
+var Singleton = function (name) { this.name = name; this.instance = null; }; Singleton.prototype.getName = function () { alert(this.name); }; Singleton.getInstance = function (name) { if (!this.instance) { this.instance = new Singleton(name); } return this.instance; }; var a = Singleton.getInstance(&#34;sven1&#34;); var b = Singleton.getInstance(&#34;sven2&#34;); alert(a === b); // true 从这个例子中，很容易卡不到当执行Singleton.getInstance时：只有没有instance时才会执行初始化方法，后面再执行的时候会直接复用之前的instance，这就保证了即使函数执行了很多次，也能保证唯一实例。
+JavaScript 中的单例模式 在JavaScript中创建对象的方式非常简单，而通常，我们只需要创建一个全局变量，即可满足单例模式的核心：确保只有一个实例，并提供全局访问。但在书中有一句话：全局变量不是单例模式，但在 JavaScript 开发中，我们经常会把全局变量当成单例来使用。我对这句话的理解是，因为全局变量并不能保证实例唯一，也就是说我们可以在任何一个地方去修改全局变量，也就可能导致全局变量的代码被覆盖，引起代码报错，而单例模式则只会创建一个实例，就像上面的getInstance一样，如果已经存在instance就不会创建新实例。书中也建议尽量减少全局变量的使用，即使需要，也要把它们的污染降到最低。
+降低全局变量带来的污染 使用命名空间 var namespace1 = { a: functino() {}, b: function() {} } 使用闭包封装私有变量 var user = (function() { var _name = &#39;seven&#39;, _age = 29 return { getUserInfo: function() { return _name &#43; &#39;-&#39; &#43; _age } } })() 惰性单例 惰性单例指的是在需要的时候才创建对象实例。通常会用在全局唯一且非必需的一些场景，例如：全局弹窗、购物车列表、全局共同信息等场景。拿书中登录弹窗的例子可以理解的更加清晰："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#faf6f1"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">JavaScript设计模式之单例模式</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年10月5日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><blockquote>
+<p>在《JavaScript 设计模式与开发实践》 中对<strong>单例模式</strong>的定义为：<strong>保证一个类仅有一个实例，并提供一个访问它的全局访问点</strong>。<strong>单例模式</strong>属于是比较常用的设计模式，其一个主要用途是避免重复的创建实例，节约不必要的开销。通常会在第三方库的开发中使用到，如果是项目的开发，单例模式也会用在一些数据缓存、全局通用弹窗（如登录弹窗）等一些场景中。</p>
+</blockquote>
+<h1 id="单例模式">单例模式</h1>
+<h2 id="标准的单例模式">标准的单例模式</h2>
+<blockquote>
+<p>标准的<strong>单例模式</strong>并不复杂，这里直接借用书中的一个例子：</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">Singleton</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">name</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">name</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">name</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Singleton</span>.<span style="color:#a6e22e">prototype</span>.<span style="color:#a6e22e">getName</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">alert</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">name</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Singleton</span>.<span style="color:#a6e22e">getInstance</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">name</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">instance</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Singleton</span>(<span style="color:#a6e22e">name</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">instance</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">Singleton</span>.<span style="color:#a6e22e">getInstance</span>(<span style="color:#e6db74">&#34;sven1&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">b</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">Singleton</span>.<span style="color:#a6e22e">getInstance</span>(<span style="color:#e6db74">&#34;sven2&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">alert</span>(<span style="color:#a6e22e">a</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">b</span>); <span style="color:#75715e">// true
+</span></span></span></code></pre></div><p>从这个例子中，很容易卡不到当执行<code>Singleton.getInstance</code>时：只有没有<code>instance</code>时才会执行初始化方法，后面再执行的时候会直接复用之前的<code>instance</code>，这就保证了即使函数执行了很多次，也能保证唯一实例。</p>
+<h2 id="javascript-中的单例模式">JavaScript 中的单例模式</h2>
+<blockquote>
+<p>在<code>JavaScript</code>中创建对象的方式非常简单，而通常，我们只需要创建一个全局变量，即可满足<strong>单例模式</strong>的核心：<strong>确保只有一个实例，并提供全局访问</strong>。但在书中有一句话：<strong>全局变量不是单例模式，但在 JavaScript 开发中，我们经常会把全局变量当成单例来使用</strong>。我对这句话的理解是，因为全局变量并不能保证实例唯一，也就是说我们可以在任何一个地方去修改全局变量，也就可能导致全局变量的代码被覆盖，引起代码报错，而单例模式则只会创建一个实例，就像上面的<code>getInstance</code>一样，如果已经存在<code>instance</code>就不会创建新实例。书中也建议<strong>尽量减少全局变量的使用，即使需要，也要把它们的污染降到最低。</strong></p>
+</blockquote>
+<h3 id="降低全局变量带来的污染">降低全局变量带来的污染</h3>
+<ul>
+<li>
+<ol>
+<li>使用命名空间</li>
+</ol>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javaScript" data-lang="javaScript"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">namespace1</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">a</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">functino</span>() {},
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">b</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">function</span>() {}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ul>
+<li>
+<ol start="2">
+<li>使用闭包封装私有变量</li>
+</ol>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javaScript" data-lang="javaScript"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">user</span> <span style="color:#f92672">=</span> (<span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">_name</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;seven&#39;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">_age</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">29</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">getUserInfo</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">_name</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;-&#39;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">_age</span>
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>})()
+</span></span></code></pre></div><h3 id="惰性单例">惰性单例</h3>
+<blockquote>
+<p><strong>惰性单例</strong>指的是在需要的时候才创建对象实例。通常会用在全局唯一且非必需的一些场景，例如：全局弹窗、购物车列表、全局共同信息等场景。拿书中登录弹窗的例子可以理解的更加清晰：</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javaScript" data-lang="javaScript"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">createLoginLayer</span> <span style="color:#f92672">=</span> (<span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">div</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span>(<span style="color:#f92672">!</span><span style="color:#a6e22e">div</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">div</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;div&#39;</span>);
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">innerHtml</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;登录弹窗&#39;</span>;
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">display</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;none&#39;</span>;
+</span></span><span style="display:flex;"><span>            document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">div</span>);
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">div</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>})()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;loginBtn&#39;</span>).<span style="color:#a6e22e">onclick</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">loginLayer</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">createLoginLayer</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">loginLayer</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">display</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;block&#39;</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>在这个例子中，只有在登录按钮点击时，才会去创建<strong>登录弹窗 dom 节点</strong>，而不是在页面加载时就默认创建，并且，只有在第一次执行时创建<strong>登录弹窗 dom 节点</strong>，再次执行也不会创建多余的节点，节省了一部分性能。</p>
+<h3 id="通用的惰性单例">通用的惰性单例</h3>
+<blockquote>
+<p>在上面<strong>登录弹窗</strong>这个例子中，虽然实现了惰性单例，但同时还存在一些代码设计上的问题：<br>
+上面代码在<code>createLoginLayer</code>方法中，既实现了<strong>单例</strong>的逻辑，也实现了<strong>创建登录弹窗</strong>的逻辑。这违反了上节介绍的<strong>单一职责原则</strong>，如果下次仍然需要创建另一个弹窗或其他的功能，我们仍然需要将创建单例这部分逻辑再次抄一遍。这么一说相信大家也能理解到这段代码需要如何进行拆分了：<strong>将不变的部分抽离出来</strong>，也就是将要介绍的<strong>通用的惰性单例</strong></p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javaScript" data-lang="javaScript"><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 通用的惰性单例
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">getSingle</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span>(<span style="color:#a6e22e">fn</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">result</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">result</span> <span style="color:#f92672">||</span> (<span style="color:#a6e22e">resule</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fn</span>.<span style="color:#a6e22e">apply</span>(<span style="color:#66d9ef">this</span>, <span style="color:#a6e22e">arguments</span>));
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 创建登录弹窗的方法就可以改写成
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">createLoginLayer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">div</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;div&#39;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">innerHtml</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;登录弹窗&#39;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">display</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;none&#39;</span>;
+</span></span><span style="display:flex;"><span>    document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">div</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">div</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">createSingleLoginLayer</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">getSingle</span>(<span style="color:#a6e22e">createLoginLayer</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;loginBtn&#39;</span>).<span style="color:#a6e22e">onclick</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">loginLayer</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">createSingleLoginLayer</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">loginLayer</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">display</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;block&#39;</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>如上面代码，我们将创建登录弹窗和单例的逻辑分离成<code>createLoginLayer</code>和<code>getSingle</code>，这样之后再有了类似的需求，就可以复用到<code>getSingle</code>方法实现单例。</p>
+<h1 id="源码中的单例模式">源码中的单例模式</h1>
+<blockquote>
+<p>前面介绍了<strong>单例模式</strong>的基础概念和使用方式，虽然也有一些代码实例来说明问题，但毕竟不是实实在在的真实场景，所以还是差一点意思。后面我也看了一些主流的开源代码，并找到几个源码中用到的部分，来看一下这些优秀的开源代码是如何使用的吧。</p>
+</blockquote>
+<h2 id="vuex">Vuex</h2>
+<p>在介绍中也说到了<strong>单例模式</strong>会用到<strong>数据缓存</strong>的场景中，那么状态管理库一定是最能满足这个场景的，这里我只选择了<code>Vuex</code>来举例，实际上其他的状态管理库也是有类似的实现方案：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// src/store.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">Vue</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Store</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> {}) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">Vue</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#66d9ef">typeof</span> window <span style="color:#f92672">!==</span> <span style="color:#e6db74">&#34;undefined&#34;</span> <span style="color:#f92672">&amp;&amp;</span> window.<span style="color:#a6e22e">Vue</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">install</span>(window.<span style="color:#a6e22e">Vue</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">install</span>(<span style="color:#a6e22e">_Vue</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">Vue</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">_Vue</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">Vue</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">__DEV__</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">error</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;[vuex] already installed. Vue.use(Vuex) should be called only once.&#34;</span>
+</span></span><span style="display:flex;"><span>      );
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">Vue</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">_Vue</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">applyMixin</span>(<span style="color:#a6e22e">Vue</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>在上面代码中，很明显可以找到一个<strong>单例模式</strong>的应用：在<code>Store</code>的初始化时，只会执行一次<code>install</code>方法。在<code>install</code>方法中，会将<code>Vue</code>赋值，并将 vuex 的相关逻辑绑定到<code>Vue</code>实例上。</p>
+<h2 id="antdmessage">antd/message</h2>
+<p>在大家最常用的<code>Antd</code>中，<code>message</code>组件相信大家也不陌生了，其实他的弹窗组件也用到了单例模式：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javaScript" data-lang="javaScript"><span style="display:flex;"><span><span style="color:#75715e">// components/message
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">messageInstance</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getMessageInstance</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">messageInstance</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">callback</span>(<span style="color:#a6e22e">messageInstance</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">Notification</span>.<span style="color:#a6e22e">newInstance</span>(
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">prefixCls</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">transitionName</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">style</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">top</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">defaultTop</span> }, <span style="color:#75715e">// 覆盖原来的样式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">getContainer</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">maxCount</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">instance</span> =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">messageInstance</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">callback</span>(<span style="color:#a6e22e">messageInstance</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">messageInstance</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">instance</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">callback</span>(<span style="color:#a6e22e">instance</span>);
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>在上面代码中，我们可以看到当已经存在<code>messageInstance</code>时，会直接复用对应的实例：<code>callback(messageInstance)</code>,否则的话，将会赋值<code>messageInstance = instance</code>。既然知道了<code>message</code>组件用到了<strong>单例模式</strong>，那么我们也要了解一下使用的背景。<br>
+先看下面这段代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-vue" data-lang="vue"><span style="display:flex;"><span>&lt;<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">a-button</span> <span style="color:#f92672">@click</span><span style="color:#e6db74">=&#34;handleMessage&#34;</span>&gt;<span style="color:#a6e22e">message</span><span style="color:#960050;background-color:#1e0010">&lt;/</span><span style="color:#a6e22e">a</span><span style="color:#f92672">-button</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">methods</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">handleMessage</span>() {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">$message</span>.<span style="color:#a6e22e">info</span>(<span style="color:#e6db74">&#39;handleMessage&#39;</span>);
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">created</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">$message</span>.<span style="color:#a6e22e">config</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">top</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;100px&#39;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">duration</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>这是一个 vue 组件，在<code>created</code>时，我们配置了<code>message</code>的参数，当点击按钮时，会执行方法调用<code>message.info</code>方法弹出组件。在<code>message</code>源码中，会通过执行<code>notice</code>方法弹出弹窗，而如果我们是第一次弹出弹窗时：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8cbce45e7d5e42309d1246dd2aef628a~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>会创建一个<code>ant-message</code>节点其中<code>top: 100px</code>就是刚才设置的配置项，当我们再次触发时：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0c2783c0444b48c78f562238bae619cf~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>可以看到会复用刚刚创建的 dom 节点，并在内部创建一个弹窗。那么这样做有什么好处呢？</p>
+<ul>
+<li>最显然的一个优势就是复用了 dom 节点</li>
+<li>还有一个优势，当我们连续多次点击时，可以看到弹窗的效果是按顺序依次显示的，只有一个 dom 节点可以保证多次弹出的弹窗只有一个父节点，那么弹窗位置只要由父节点控制即可，不需要每次都重新计算，效果如图所示：</li>
+</ul>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a9635fd3e30a460688f3532cdd58a149~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>通过这个<code>message</code>源码中的应用，应该会对<strong>单例模式</strong>的应用有了一个更直观和深刻的认识，在今后封装一些自定义弹窗时，也可以借鉴这样一个思路。</p>
+<h1 id="单例模式应用">单例模式应用</h1>
+<blockquote>
+<p>对于单例模式的实际应用场景，其实也确实不少。最简单的，当我们使用 vuex 时，其实已经算是应用到了<strong>单例模式</strong>，除此之外，如果我们需要封装一些公共库时，更应该想到<strong>单例模式</strong>的应用。</p>
+</blockquote>
+<h2 id="axios-取消重复请求">axios 取消重复请求</h2>
+<blockquote>
+<p><strong>背景</strong> 举一个自己在开发中的使用场景，例如<strong>列表筛选</strong>,在项目经常会遇到一个场景，通过列表的<code>SearchBar</code>对列表进行筛选，如果结果返回较慢并且此时用户频繁切换 tab，就会导致<strong>多个接口一直在响应中，但前面的筛选数据已经没有意义了</strong>，如果接口不是按顺序响应，那就会导致返回数据与筛选不符合，在项目中应该会有很多类似的场景这里提供一个我的思路，应用到了单例模式的思想</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javaScript" data-lang="javaScript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">axios</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;axios&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">CancelToken</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">CancelToken</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">cancelId</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">cancelArray</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加请求拦截器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">use</span>(<span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">config</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 在请求时，可以添加自己的特点标识去筛选出需要重复取消的接口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">source</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">CancelToken</span>.<span style="color:#a6e22e">source</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cancelId</span><span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">id</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">cancelId</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">cancelId</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">id</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">cancelToken</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">source</span>.<span style="color:#a6e22e">token</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">cancelIndex</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">cancelArray</span>.<span style="color:#a6e22e">findIndex</span>(<span style="color:#a6e22e">e</span> =&gt; <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">url</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">url</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cancelArray</span>.<span style="color:#a6e22e">push</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">id</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">url</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">source</span>
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">cancelIndex</span> <span style="color:#f92672">&gt;</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cancelArray</span>[<span style="color:#a6e22e">cancelIndex</span>].<span style="color:#a6e22e">source</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#e6db74">&#39;取消重复请求&#39;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cancelArray</span>.<span style="color:#a6e22e">splice</span>(<span style="color:#a6e22e">cancelIndex</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">config</span>;
+</span></span><span style="display:flex;"><span>}, <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加响应拦截器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">use</span>(<span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">response</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">cancelIndex</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">cancelArray</span>.<span style="color:#a6e22e">findIndex</span>(<span style="color:#a6e22e">e</span> =&gt; <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">id</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">cancelId</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">cancelIndex</span> <span style="color:#f92672">&gt;=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cancelArray</span>.<span style="color:#a6e22e">splice</span>(<span style="color:#a6e22e">cancelIndex</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 对响应数据做点什么
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">response</span>;
+</span></span><span style="display:flex;"><span>}, <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">isCancel</span>(<span style="color:#a6e22e">error</span>)) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 如果是取消的接口，可以自行返回一个特定标识
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;isCancel&#39;</span>)
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 对响应错误做点什么
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">axios</span>
+</span></span></code></pre></div><p>测试一下效果： <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/af3839a09db74708ad884cdf7675ed61~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp" alt="image.png"></p>
+<p>如上代码用到了<code>cancelArray</code>保存在请求中的接口，当接口响应后，会删除掉该数据，如果在下一个请求触发时仍然存在未完成接口，则直接取消。我认为这个是用到了单例模式的思想，在项目中可提高一定的开发效率，避免复制大量重复代码。</p>
+<h1 id="总结">总结</h1>
+<blockquote>
+<p><strong>单例模式</strong>的概念和使用场景都很容易理解，结合一些优秀的开源代码相信大家对<strong>单例模式</strong>的场景和作用也有了更深刻的认识。在前端开发中，<strong>单例模式</strong>算是比较常用的设计模式之一，尤其是<strong>惰性单例</strong>，在开发中非常实用。同时，在举例<strong>单例模式</strong>时，也巩固了上节所说的<strong>单一职责原则</strong>的概念，并根据这一设计原则对代码进行了优化，抽象出了更加通用的<strong>惰性单例</strong>，希望大家能通过这篇文章学到一些的编码技巧。</p>
+</blockquote>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/124/"
+      ><span>github访问很慢，又没有梯子该怎么办？</span><span class="ml-1.5">▷</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>
