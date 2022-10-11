@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>前端性能优化—渲染优化 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="1.知识体系 1.1 从 URL 输入到页面加载 打开浏览器从输入网址到网页呈现在大家面前，背后到底发生了什么？经历怎么样的一个过程？现在带大家来看看流程。
+首先我们需要通过 DNS（域名解析系统）将 URL 解析为对应的 IP 地址，然后与这个 IP 地址确定的那台服务器建立起 TCP 网络连接，随后我们向服务端抛出我们的 HTTP 请求，服务端处理完我们的请求之后，把目标数据放在 HTTP 响应里返回给客户端，拿到响应数据的浏览器就可以开始走一个渲染的流程。渲染完毕，页面便呈现给了用户
+总体来说分为以下几个过程:
+DNS 解析:将域名解析成 IP 地址 TCP 连接：TCP 三次握手 发送 HTTP 请求 服务器处理请求并返回 HTTP 报文 浏览器拿到响应数据，解析响应内容，把解析的结果展示给用户 断开连接：TCP 四次挥手 1.2 性能优化思维导图 2. 资源的合并和压缩 web前端应用的开发与部署过程：
+输入url到页面显示出来的过程
+请求过程中一些潜在的性能优化点：
+dns是否可以通过缓存减少dns查询时间？ 网络请求的过程如何走最近的网络环境？ 相同的静态资源是否可以缓存？ 能否减少http请求的大小和次数？ 能否进行服务端渲染？ 总结：深入理解http请求的过程是前端性能优化的核心。 优化核心
+减少http请求数量； 减少请求资源的大小； google首页案例学习
+html压缩； css压缩； js的压缩和混乱； 文件合并； 开启gzip； 2.1html压缩 HTML代码压缩就是压缩一些在文本文件中有意义，但是在HTML中不显示的字符，包括空格，制表符，换行符等，还有一些其他意义的字符，如HTML注释也可以被压缩；
+一个简单的计算：
+google的流量，占到整个互联网的40%，如果2016年全球网络流量是1.3ZB(1ZB = 10^9TB)，那么google在2016年的流量就是1.3ZB * 40%，如果google每1MB请求减少一个字节，每年可以节省流量近500TB流量。
+如何进行html压缩
+使用在线网站进行压缩； nodejs提供的html-minifier工具； 后端模板引擎渲染压缩； 2." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="前端性能优化—渲染优化" />
+<meta property="og:description" content="1.知识体系 1.1 从 URL 输入到页面加载 打开浏览器从输入网址到网页呈现在大家面前，背后到底发生了什么？经历怎么样的一个过程？现在带大家来看看流程。
+首先我们需要通过 DNS（域名解析系统）将 URL 解析为对应的 IP 地址，然后与这个 IP 地址确定的那台服务器建立起 TCP 网络连接，随后我们向服务端抛出我们的 HTTP 请求，服务端处理完我们的请求之后，把目标数据放在 HTTP 响应里返回给客户端，拿到响应数据的浏览器就可以开始走一个渲染的流程。渲染完毕，页面便呈现给了用户
+总体来说分为以下几个过程:
+DNS 解析:将域名解析成 IP 地址 TCP 连接：TCP 三次握手 发送 HTTP 请求 服务器处理请求并返回 HTTP 报文 浏览器拿到响应数据，解析响应内容，把解析的结果展示给用户 断开连接：TCP 四次挥手 1.2 性能优化思维导图 2. 资源的合并和压缩 web前端应用的开发与部署过程：
+输入url到页面显示出来的过程
+请求过程中一些潜在的性能优化点：
+dns是否可以通过缓存减少dns查询时间？ 网络请求的过程如何走最近的网络环境？ 相同的静态资源是否可以缓存？ 能否减少http请求的大小和次数？ 能否进行服务端渲染？ 总结：深入理解http请求的过程是前端性能优化的核心。 优化核心
+减少http请求数量； 减少请求资源的大小； google首页案例学习
+html压缩； css压缩； js的压缩和混乱； 文件合并； 开启gzip； 2.1html压缩 HTML代码压缩就是压缩一些在文本文件中有意义，但是在HTML中不显示的字符，包括空格，制表符，换行符等，还有一些其他意义的字符，如HTML注释也可以被压缩；
+一个简单的计算：
+google的流量，占到整个互联网的40%，如果2016年全球网络流量是1.3ZB(1ZB = 10^9TB)，那么google在2016年的流量就是1.3ZB * 40%，如果google每1MB请求减少一个字节，每年可以节省流量近500TB流量。
+如何进行html压缩
+使用在线网站进行压缩； nodejs提供的html-minifier工具； 后端模板引擎渲染压缩； 2." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/152/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-11T21:07:57+08:00" />
+<meta property="article:modified_time" content="2022-10-11T21:07:57+08:00" />
+
+
+  
+  <meta itemprop="name" content="前端性能优化—渲染优化">
+<meta itemprop="description" content="1.知识体系 1.1 从 URL 输入到页面加载 打开浏览器从输入网址到网页呈现在大家面前，背后到底发生了什么？经历怎么样的一个过程？现在带大家来看看流程。
+首先我们需要通过 DNS（域名解析系统）将 URL 解析为对应的 IP 地址，然后与这个 IP 地址确定的那台服务器建立起 TCP 网络连接，随后我们向服务端抛出我们的 HTTP 请求，服务端处理完我们的请求之后，把目标数据放在 HTTP 响应里返回给客户端，拿到响应数据的浏览器就可以开始走一个渲染的流程。渲染完毕，页面便呈现给了用户
+总体来说分为以下几个过程:
+DNS 解析:将域名解析成 IP 地址 TCP 连接：TCP 三次握手 发送 HTTP 请求 服务器处理请求并返回 HTTP 报文 浏览器拿到响应数据，解析响应内容，把解析的结果展示给用户 断开连接：TCP 四次挥手 1.2 性能优化思维导图 2. 资源的合并和压缩 web前端应用的开发与部署过程：
+输入url到页面显示出来的过程
+请求过程中一些潜在的性能优化点：
+dns是否可以通过缓存减少dns查询时间？ 网络请求的过程如何走最近的网络环境？ 相同的静态资源是否可以缓存？ 能否减少http请求的大小和次数？ 能否进行服务端渲染？ 总结：深入理解http请求的过程是前端性能优化的核心。 优化核心
+减少http请求数量； 减少请求资源的大小； google首页案例学习
+html压缩； css压缩； js的压缩和混乱； 文件合并； 开启gzip； 2.1html压缩 HTML代码压缩就是压缩一些在文本文件中有意义，但是在HTML中不显示的字符，包括空格，制表符，换行符等，还有一些其他意义的字符，如HTML注释也可以被压缩；
+一个简单的计算：
+google的流量，占到整个互联网的40%，如果2016年全球网络流量是1.3ZB(1ZB = 10^9TB)，那么google在2016年的流量就是1.3ZB * 40%，如果google每1MB请求减少一个字节，每年可以节省流量近500TB流量。
+如何进行html压缩
+使用在线网站进行压缩； nodejs提供的html-minifier工具； 后端模板引擎渲染压缩； 2."><meta itemprop="datePublished" content="2022-10-11T21:07:57+08:00" />
+<meta itemprop="dateModified" content="2022-10-11T21:07:57+08:00" />
+<meta itemprop="wordCount" content="945">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="前端性能优化—渲染优化"/>
+<meta name="twitter:description" content="1.知识体系 1.1 从 URL 输入到页面加载 打开浏览器从输入网址到网页呈现在大家面前，背后到底发生了什么？经历怎么样的一个过程？现在带大家来看看流程。
+首先我们需要通过 DNS（域名解析系统）将 URL 解析为对应的 IP 地址，然后与这个 IP 地址确定的那台服务器建立起 TCP 网络连接，随后我们向服务端抛出我们的 HTTP 请求，服务端处理完我们的请求之后，把目标数据放在 HTTP 响应里返回给客户端，拿到响应数据的浏览器就可以开始走一个渲染的流程。渲染完毕，页面便呈现给了用户
+总体来说分为以下几个过程:
+DNS 解析:将域名解析成 IP 地址 TCP 连接：TCP 三次握手 发送 HTTP 请求 服务器处理请求并返回 HTTP 报文 浏览器拿到响应数据，解析响应内容，把解析的结果展示给用户 断开连接：TCP 四次挥手 1.2 性能优化思维导图 2. 资源的合并和压缩 web前端应用的开发与部署过程：
+输入url到页面显示出来的过程
+请求过程中一些潜在的性能优化点：
+dns是否可以通过缓存减少dns查询时间？ 网络请求的过程如何走最近的网络环境？ 相同的静态资源是否可以缓存？ 能否减少http请求的大小和次数？ 能否进行服务端渲染？ 总结：深入理解http请求的过程是前端性能优化的核心。 优化核心
+减少http请求数量； 减少请求资源的大小； google首页案例学习
+html压缩； css压缩； js的压缩和混乱； 文件合并； 开启gzip； 2.1html压缩 HTML代码压缩就是压缩一些在文本文件中有意义，但是在HTML中不显示的字符，包括空格，制表符，换行符等，还有一些其他意义的字符，如HTML注释也可以被压缩；
+一个简单的计算：
+google的流量，占到整个互联网的40%，如果2016年全球网络流量是1.3ZB(1ZB = 10^9TB)，那么google在2016年的流量就是1.3ZB * 40%，如果google每1MB请求减少一个字节，每年可以节省流量近500TB流量。
+如何进行html压缩
+使用在线网站进行压缩； nodejs提供的html-minifier工具； 后端模板引擎渲染压缩； 2."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">前端性能优化—渲染优化</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年10月11日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><h2 id="1知识体系">1.知识体系</h2>
+<h3 id="11-从-url-输入到页面加载">1.1 从 URL 输入到页面加载</h3>
+<p>打开浏览器从输入网址到网页呈现在大家面前，背后到底发生了什么？经历怎么样的一个过程？现在带大家来看看流程。</p>
+<p>首先我们需要通过 DNS（域名解析系统）将 URL 解析为对应的 IP 地址，然后与这个 IP 地址确定的那台服务器建立起 TCP 网络连接，随后我们向服务端抛出我们的 HTTP 请求，服务端处理完我们的请求之后，把目标数据放在 HTTP 响应里返回给客户端，拿到响应数据的浏览器就可以开始走一个渲染的流程。渲染完毕，页面便呈现给了用户</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/74651fadf3d147dab65e24e7f4b69448~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>总体来说分为以下几个过程:</p>
+<ul>
+<li>DNS 解析:将域名解析成 IP 地址</li>
+<li>TCP 连接：TCP 三次握手</li>
+<li>发送 HTTP 请求</li>
+<li>服务器处理请求并返回 HTTP 报文</li>
+<li>浏览器拿到响应数据，解析响应内容，把解析的结果展示给用户</li>
+<li>断开连接：TCP 四次挥手</li>
+</ul>
+<h3 id="12-性能优化思维导图">1.2 性能优化思维导图</h3>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/efc98430bb11487baba0bf4adaf81298~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<h2 id="2-资源的合并和压缩">2. 资源的合并和压缩</h2>
+<p><code>web</code>前端应用的开发与部署过程：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1a35c77981b14c4b9276ed04facdccea~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>输入<code>url</code>到页面显示出来的过程</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/98babaadf46e404bafb72f3c69172ffd~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>请求过程中一些潜在的性能优化点：</p>
+<ul>
+<li><code>dns</code>是否可以通过缓存减少<code>dns</code>查询时间？</li>
+<li>网络请求的过程如何走最近的网络环境？</li>
+<li>相同的静态资源是否可以缓存？</li>
+<li>能否减少<code>http</code>请求的大小和次数？</li>
+<li>能否进行服务端渲染？</li>
+<li>总结：深入理解<code>http</code>请求的过程是前端性能优化的核心。</li>
+</ul>
+<p>优化核心</p>
+<ul>
+<li>减少<code>http</code>请求数量；</li>
+<li>减少请求资源的大小；</li>
+</ul>
+<p><code>google</code>首页案例学习</p>
+<ul>
+<li><code>html</code>压缩；</li>
+<li><code>css</code>压缩；</li>
+<li><code>js</code>的压缩和混乱；</li>
+<li>文件合并；</li>
+<li>开启<code>gzip</code>；</li>
+</ul>
+<h3 id="21html压缩">2.1<code>html</code>压缩</h3>
+<p><code>HTML</code>代码压缩就是压缩一些在文本文件中有意义，但是在<code>HTML</code>中不显示的字符，包括空格，制表符，换行符等，还有一些其他意义的字符，如<code>HTML</code>注释也可以被压缩；</p>
+<p>一个简单的计算：</p>
+<p><code>google</code>的流量，占到整个互联网的<code>40%</code>，如果<code>2016</code>年全球网络流量是<code>1.3ZB(1ZB = 10^9TB)</code>，那么<code>google</code>在<code>2016</code>年的流量就是<code>1.3ZB * 40%</code>，如果<code>google</code>每<code>1MB</code>请求减少一个字节，每年可以节省流量近<code>500TB</code>流量。</p>
+<p>如何进行<code>html</code>压缩</p>
+<ul>
+<li>使用在线网站进行压缩；</li>
+<li><code>nodejs</code>提供的<code>html-minifier</code>工具；</li>
+<li>后端模板引擎渲染压缩；</li>
+</ul>
+<h3 id="22css代码压缩">2.2<code>css</code>代码压缩</h3>
+<p>分为两部分：</p>
+<ul>
+<li>无效代码的压缩；</li>
+<li><code>css</code>语义合并；</li>
+</ul>
+<p>如何进行<code>css</code>压缩</p>
+<ul>
+<li>使用在线网站进行压缩；</li>
+<li>使用<code>html-minifier</code>对<code>html</code>中的<code>css</code>进行压缩；</li>
+<li>使用<code>clean-css</code>对<code>css</code>进行压缩；</li>
+</ul>
+<h3 id="23-js压缩与混乱丑化">2.3 <code>js</code>压缩与混乱（丑化）</h3>
+<p>包括：</p>
+<ul>
+<li>无效字符的删除（空格，回车等）；</li>
+<li>剔除注释；</li>
+<li>代码语义的缩减和优化；</li>
+<li>代码保护（如果代码不经处理，客户端可直接窥探代码漏洞）；</li>
+</ul>
+<p><code>JS</code>压缩与混乱（丑化）</p>
+<ul>
+<li>使用在线网站进行压缩：<a href="https://link.juejin.cn/?target=https%3A%2F%2Ftool.oschina.net%2Fjscompress%2F" title="https://tool.oschina.net/jscompress/">tool.oschina.net/jscompress/</a></li>
+<li><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7c000f960fbf46be86e179ece8ceead1~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></li>
+<li>使用<code>html-minifier</code>对<code>html</code>中的<code>js</code>进行压缩；</li>
+<li>使用<code>uglify.js2</code>对<code>js</code>进行压缩；</li>
+</ul>
+<h3 id="24-文件合并">2.4 文件合并</h3>
+<p>文件合并的好处：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ff8d8a6de9ee493abd96c15a138b4d73~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>左边的表示使用<code>http</code>长链接<code>keep-alive</code>但不合并请求的情况，需要分三次去获取<code>a.js</code>、<code>b.js</code>、<code>c.js</code>；右边是使用长链接并且合并请求的情况，只需要发送一次获取合并文件<code>a-b-c.js</code>的请求，就能将三个文件都请求回来。</p>
+<p>不合并请求有下列缺点：</p>
+<ul>
+<li>文件与文件之间有插入的上行请求，会增加<code>N-1</code>个网络延迟；</li>
+<li>受丢包问题的影响更严重：因为每次请求都可能出现丢包的情况，减少请求能有效减少丢包情况；</li>
+<li><code>keep-alive</code>本身也存在问题：经过代理服务器时可能会被断开；</li>
+</ul>
+<p>文件合并存在的问题</p>
+<ul>
+<li>首屏渲染问题：当请求<code>js</code>文件的时候，如果页面渲染只依赖<code>a.js</code>文件，由于文件合并，需要等待合并后的<code>a-b-c.js</code>文件请求回来才能继续渲染，这样就会导致页面渲染速度变慢。这种情况大多出现在现代化的前端框架，如<code>Vue</code>等的使用过程中；</li>
+<li>缓存失效问题：合并后的文件<code>a-b-c.js</code>中只要其中一个文件（比如<code>a.js</code>）发生变化，那么整个合并文件都将失效，而不采用文件合并就不会出现这种情况；</li>
+</ul>
+<p>使用建议</p>
+<ul>
+<li>公共库合并：将不经常发生变化的公共组件库文件进行合并；</li>
+<li>将不同页面的<code>js</code>文件单独合并：比如在单页面应用<code>SPA</code>中，当路由跳转到具体的页面时才请求该页面需要的<code>js</code>文件；</li>
+</ul>
+<p>如何进行文件合并</p>
+<ul>
+<li>使用在线网站进行文件合并；</li>
+<li>使用<code>nodejs</code>实现文件合并；</li>
+<li>使用<code>webpack</code>等前端构件化工具也可以很好地实现；</li>
+</ul>
+<h2 id="3图片相关的优化">3.图片相关的优化</h2>
+<h3 id="31-不同业务场景下的图片方案选型">3.1 不同业务场景下的图片方案选型</h3>
+<p>前置知识：二进制位数与色彩的关系 在计算机中，像素用二进制数来表示。不同的图片格式中像素与二进制位数之间的对应关系是不同的。一个像素对应的二进制位数越多，它可以表示的颜色种类就越多，成像效果也就越细腻，文件体积相应也会越大。</p>
+<h3 id="32-jpegjpg">3.2 JPEG/JPG</h3>
+<p>关键字：有损压缩、体积小、加载快、不支持透明。</p>
+<p>JPG 或 Joint Photographic Experts Group 联合图像专家小组，（JPEG）可能是最知名并且使用最广的图像格式。 这是大多数图像保存的默认选项，因为它几乎可以无限制地显示彩色照片。</p>
+<p><strong>JPG 的优点：</strong></p>
+<ul>
+<li>非常适合高饱和度和摄影</li>
+<li>易于减小文件大小</li>
+<li>在电子邮件客户端中有很好的兼容性</li>
+</ul>
+<p><strong>JPG 的缺点：</strong></p>
+<ul>
+<li>没有透明度</li>
+<li>文本在保存之后会出现锯齿状边缘</li>
+<li>不支持动画特效</li>
+<li>有损压缩格式</li>
+<li>没有自动搜索元数据，必须包含 alt 信息</li>
+</ul>
+<p><strong>JPG 的应用场景：</strong></p>
+<p>JPG 适用于呈现色彩丰富的图片，在我们日常开发中，JPG 图片经常作为大的背景图、轮播图或 Banner 图出现。</p>
+<hr>
+<h3 id="33-png">3.3 png</h3>
+<p>关键字：无损压缩、质量高、体积大、支持透明。</p>
+<p>PNG 是便携式网络图形，是一种为网络设计的格式，提供 JPG 无法提供的东西—透明度。 这就是为什么 PNG 如此受欢迎，这种格式的图像元素可以很方便被上传到网站设计中。</p>
+<p>有两种类型的 PNG 格式： PNG-8 和 PNG-24。 PNG-8 使用更有限的调色板，只有 256 种颜色，透明度更好，保存尺寸更小。 PNG-24 使用无限的调色板，可以呈现约 1600 万种颜色，保持透明度，但保存尺寸更大。 两种 PNG 类型都具有无损压缩。</p>
+<p>虽然 PNG 格式与 GIF 类似，但它们不支持动画。 此格式最常用于图标，小型静止图像或任何需要透明度的图像。</p>
+<p><strong>PNG 的优点：</strong></p>
+<ul>
+<li>支持透明度</li>
+<li>适用于带有文字的图像</li>
+<li>PNG 格式可以很好地呈现 LOGO</li>
+<li>包括搜索引擎的嵌入式文本说明</li>
+<li>PNG-8 文件很小，重量也是最轻</li>
+<li>保存时不会存在没有锯齿状边缘</li>
+</ul>
+<p><strong>PNG 的缺点：</strong></p>
+<ul>
+<li>对于大型文件（如图像），文件大小会随着图像的尺寸设定而明显</li>
+<li>一些较旧的电子邮件客户端无法呈现它们</li>
+<li>不支持动画特效</li>
+<li>PNG-24 文件可能变大; 不太适合网络共享</li>
+</ul>
+<p><strong>PNG</strong> <strong>的应用场景：</strong></p>
+<p>考虑到 PNG 在处理线条和颜色对比度方面的优势，我们主要用它来呈现小的 Logo、颜色简单且对比强烈的图片或背景等。</p>
+<h3 id="34svg">3.4SVG</h3>
+<p>关键字：文本文件、体积小、不失真、兼容性好。</p>
+<p>SVG 是可缩放矢量图形。它非常实用，适用于除照片之外的任何类型的图像。这就是设计师更频繁地使用它的原因</p>
+<p><strong>SVG 的优点：</strong></p>
+<ul>
+<li>矢量格式可呈现任何大小而不降低其质量</li>
+<li>能够在代码或文本编辑器中创建简单的 SVG 渲染</li>
+<li>从 Adobe Illustrator 或 Sketch 设计可导出复杂图形或者是草图</li>
+<li>可以访问 SVG 文本</li>
+<li>SVG 很容易设计风格和脚本</li>
+<li>现代浏览器支持 SVG 格式，并且面向未来</li>
+<li>格式具有高度可压缩性和轻量级</li>
+<li>由于基于文本的格式，因此适合搜索</li>
+<li>支持透明度</li>
+<li>允许静止或动态图像</li>
+</ul>
+<p><strong>SVG 的缺点：</strong></p>
+<ul>
+<li>设计 SVG 可能会变得复杂</li>
+<li>在某些版本过低的浏览器上无法呈现</li>
+<li>电子邮件客户端支持有限</li>
+</ul>
+<p><strong>SVG 的使用方式与应用场景</strong> <strong>：</strong></p>
+<p>常用于网络上的图形和 LOGO 以及将在视网膜或其他高分辨率屏幕上查看的项目。</p>
+<p>将 SVG 写入 HTML</p>
+<p>将 SVG 写入独立文件后引入 HTML 将 SVG 写入 HTML</p>
+<h3 id="35base64">3.5Base64</h3>
+<p>关键字：文本文件、依赖编码、小图标解决方案</p>
+<p>Base64 是网络上最常见的用于传输 8Bit 字节代码的编码方式之一。Base64 编码可用于在 HTTP 环境下传递较长的标识信息, 直接把 base64 当成是<strong>字符串方式</strong>的<strong>数据</strong>就好了。</p>
+<p><strong>Base 的优点：</strong></p>
+<ul>
+<li>减少了 http 请求</li>
+<li>数据就是图片</li>
+</ul>
+<p><strong>Base 的缺点：</strong></p>
+<ul>
+<li>如果图片稍微有点大，这个字符串会很长很长，浏览器不会缓存内联图片资源；</li>
+<li>兼容性较差，只支持<code>ie8</code>以上浏览器；</li>
+<li>超过<code>1000kb</code>的图片，<code>base64</code>编码会使图片大小增大，导致网页整体下载速度减慢；</li>
+</ul>
+<hr>
+<p><strong>Base64 的应用场景:</strong></p>
+<p>图片的实际尺寸很小（大家可以观察一下掘金页面的 Base64 图，几乎没有超过 2kb 的）</p>
+<p>图片无法以雪碧图的形式与其它小图结合（合成雪碧图仍是主要的减少 HTTP 请求的途径，Base64 是雪碧图的补充）</p>
+<p>图片的更新频率非常低（不需我们重复编码和修改文件内容，维护成本较低）</p>
+<p>将图片的内容内嵌到<code>html</code>当中，减少网站的<code>HTTP</code>请求数量，常用于处理小图标和背景图片。网页内联图片写法为：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">&lt;</span><span style="color:#f92672">img</span> <span style="color:#f92672">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAiCAYAAAA3WXuFAAAAAXNSR0IArs4c6QAAA1dJREFUWAnNl0tIVGEUx//XBxpWGmGUVmAPUoiMngZRpDNTmkWb3FSki2wRRi160aKCsqAWWq2cmSyJWrgIEhVsYLSsRQgRQYSE9lgEQU+sHGfmfv2/xpvjnYf36jz8YLj3u/d85/zuOd853xkF02SU3xK5XhX7U6cDT+UdkT/ihZss/pRkA9nsomB4BE8EUChZkgpksYsivyCMQIHmmKQBWZvEakL08JevwchrUoDKnGKTqsBNz+QGwyQFiHumFH50QSBHD5NwIItD7PQD7TQ8MxxMQoEsTaJKqHhAz2RGgkkYELOpBgru0WB6NJiEANEzdawxTm5gQ0U4rllW5hBnCHOdYVIm8oz2Pm5ArDP1UFGvGTJ6TTMqaFROCKFYHWhUBeqMrgmWiynQeSFSCOPgfqkJNmLmPmZAtX0ivdeBu4SpMgOgl40JUHWzyBx4gVbCVOoNmJ1PGcjWIrI+evCQmVRq1ng4+Sll2Z5mkaN68MgMTA7r9IE1wIZF4XCASXtItpxDPnQxTLKNMDSyCdOwG1iYDfhUYN994Mvv8UsnBWR1ijyvHy7CFI1XF3mWSUv1OwIwUmrEBwx5QuVNh0y2nDwkZZdnGCaVdfqcBVgx2v346Z0r3YCHR79+mAKyNYvC0ZZziV7Rsc0Mxy6geIH+DXBiK7A+aM80PgWevQ+Vk08MA213imLVh8dcM67llEqWzgUq6a+V84HL5UDJYvk0MGo3Apbl2gy43Qd0vBmb6+8MncBsH0p4FLiYTTQdOn4MA2XLgFkZQCo/cQv99+5bIJMOrh2Tb3sN2J+PzfV3ioKXE57C9Mw2n591JkqXJxXPywKusSzmzQ6Ykfskhdpp5N/oHQQuuMBvijwo2xI1ZFa7qGB6dlBFxJZTU//5F3C8DfjwPfBEekqDefUJuOSODqPpiRgyq0PsZZhaKchAGBt/vPxfMwCs4waeMyOwZvArcLITGGaaTzRkyMICsZeppmtbqMB0nZKGJVQGV0qYqz3AzzD1JhycBArZQwzTEYb/BoMd8i6cklg+C9lDzKbTDNPNZMCMflj/fy8Q5iKr79lYfrEZXfROf3o+VqXJltPmQAM9c9SMgjjIHu6sUDxpbDlPUXkFCd/GwYghlYxMu+uQ0i2F/wIQpwzQdGJ/EQAAAABJRU5ErkJggg==&#34;</span><span style="color:#f92672">&gt;</span>
+</span></span></code></pre></div><p>浏览器上的表现形式为：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ff85f0071acd475aa0c3fe64e0207049~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>这里提供一个将：<code>image</code>  转  <code>DataUrI</code>的网址：<a href="https://link.juejin.cn/?target=http%3A%2F%2Ftool.c7sky.com%2Fdatauri%2F" title="http://tool.c7sky.com/datauri/">tool.c7sky.com/datauri/</a></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f9174198d74048779854012751151a35~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<h3 id="36webp">3.6webp</h3>
+<p>关键字：年轻的全能型选手 是 Google 专为 Web 开发的一种旨在加快图片加载速度的图片格式，它支持有损压缩和无损压缩。</p>
+<p><strong>webp 的优点：</strong></p>
+<p>WebP 像 JPEG 一样对细节丰富的图片信手拈来，像 PNG 一样支持透明，像 GIF 一样可以显示动态图片——它集多种图片文件格式的优点于一身。体积小巧.</p>
+<p><code>webp</code>的优势体现在它具有更优的图像压缩算法，能带来更小的图片体积，而且拥有肉眼识别无差异的图像质量；同时具备了无损和有损的压缩模式、<code>Alpha</code>透明以及动画的特性。在<code>JPEG</code>和<code>PNG</code>上的转化效果都非常优秀、稳定和统一。安卓上不存在兼容性问题，推荐安卓下使用。</p>
+<p><strong>webp</strong> <strong>的缺点：</strong></p>
+<p>兼容性不太好, 只有 opera,和 chrome 支持;</p>
+<p>以下为淘宝网首页请求的图片：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/32034866c3f54564a72c67562da90d6d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a565d945483e455db94eb6d0b8cac1ff~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>可以通过在线网站将图片转换为<code>webp</code>：<a href="https://link.juejin.cn/?target=https%3A%2F%2Fzhitu.isux.us%2F" title="https://zhitu.isux.us/">zhitu.isux.us/</a></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4bb788a18d754a4b997cda5a6e958dae~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<h3 id="37gif">3.7GIF</h3>
+<p>GIF 图形交换格式是一种位图图形文件格式,以 8 位色（即 256 种颜色）重现真彩色的图像。它实际上是一种压缩文档,采用 LZW 压缩算法进行编码,有效地减少了图像文件在网络上传输的时间。它是目前广泛应用于网络传输的图像格式之一。</p>
+<p><strong>GIF 的优点：</strong></p>
+<p>① 优秀的压缩算法使其在一定程度上保证图像质量的同时将体积变得很小。</p>
+<p>② 可插入多帧,从而实现动画效果。</p>
+<p>③ 可设置透明色以产生对象浮现于背景之上的效果。</p>
+<p><strong>GIF 的缺点：</strong></p>
+<p>由于采用了 8 位压缩,最多只能处理 256 种颜色（2 的 8 次方）,故不宜应用于真彩图像。</p>
+<h3 id="38-矢量图svg与iconfont">3.8 矢量图<code>SVG</code>与<code>iconfont</code></h3>
+<p>使用<code>iconfont</code>解决<code>icon</code>问题</p>
+<p>应尽量使用该方式，比如可以采用阿里巴巴矢量图库：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f0dde917dc2c4c31bb484dd40c0c7447~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>可以选择格式进行下载：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/649daf1ef227435d88d48d06bb3c94a6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>\</p>
+<p>可以看到它们的大小有着明显的差异：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bac978c1e8d54a73b95206bb02b90026~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>使用<code>SVG</code>进行矢量图的控制</p>
+<p><code>SVG</code> 意为可缩放矢量图形（<code>Scalable Vector Graphics</code>）。<code>SVG</code>  使用  <code>XML</code>  格式定义图像。下为示例：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f6fc6016db7746219b72b36c68f8f967~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>在线转换网站：<a href="https://link.juejin.cn/?target=http%3A%2F%2Fwww.bejson.com%2Fconvert%2Fimage_to_svg%2F" title="http://www.bejson.com/convert/image_to_svg/">www.bejson.com/convert/ima…</a></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3416867dfc5e46b4be17b3b36041553a~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<h3 id="39css雪碧图">3.9<code>css</code>雪碧图</h3>
+<p>将网站上用到的一些图片整合到一张单独的图片中，从而减少网站<code>HTTP</code>请求数量。原理为：设定整张雪碧图可示区域，将想要显示的图标定位到该处（左上角）；缺点：整合图片比较大时，一次加载比较慢。</p>
+<p>如天猫的雪碧图：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/90c3c5a7073b40a38ed069b01c4f3859~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>很多情况下，并不是所有的小图标都放在一张雪碧图中，而是会适当进行拆分。现在使用雪碧图的场景比较少了。</p>
+<p>自动生成雪碧图样式的网站：<a href="https://link.juejin.cn/?target=http%3A%2F%2Fwww.spritecow.com%2F" title="http://www.spritecow.com/">www.spritecow.com/</a></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3077091e1d1a4e1b8614337a8fac11b2~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>选中雪碧图中对应的图标，就会生成对应的样式。</p>
+<h2 id="4懒加载和预加载">4.懒加载和预加载</h2>
+<h3 id="41-懒加载">4.1 懒加载</h3>
+<p>图片进入可视区域之后再请求图片资源的方式称为图片懒加载。适用于图片很多，页面很长的业务场景，比如电商；</p>
+<p>懒加载的作用：</p>
+<ul>
+<li>减少无效资源的加载：<br>
+比如一个网站有十页图片，用户只查看了第一页的图片，这就没必要将十页图片全都加载出来；</li>
+<li>并发加载的资源过多会阻塞<code>js</code>的加载，影响网站正常的使用：<br>
+由于浏览器对某一个<code>host name</code>是有并发度上限的，如果图片资源所在的<code>CDN</code>和静态资源所在的<code>CDN</code>是同一个的话，过多图片的并发加载就会阻塞后续<code>js</code>文件的并发加载。</li>
+</ul>
+<p>懒加载实现的原理：</p>
+<p>监听<code>onscroll</code>事件，判断可视区域位置：</p>
+<p>图片的加载是依赖于<code>src</code>路径的，首先可以为所有懒加载的静态资源添加自定义属性字段，用于存储真实的<code>url</code>。比如是图片的话，可以定义<code>data-src</code>属性存储真实的图片地址，<code>src</code>指向<code>loading</code>的图片或占位符。然后当资源进入视口的时候，才将<code>src</code>属性值替换成<code>data-src</code>中存放的真实<code>url</code>。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#a6e22e">&lt;img src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&#34; class=&#34;image-item&#34; alt=&#34;&#34; lazyload = &#34;true&#34; data-src=&#34;TB27YQvbm_I8KJjy0FoXXaFnVXa_!!400677031.jpg_180x180xzq90.jpg_.webp&#34;&gt;</span>
+</span></span></code></pre></div><p>懒加载实例</p>
+<p>可以使用元素的<code>getBoundingRect().top</code>来判断当前位置是否在视口内，也可以使用元素距离文档顶部的距离<code>offsetTop</code>和<code>scrollTop</code>是否小于视口高度来判断：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7e67d340cfb14d238acbf2de96397019~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>举例</p>
+<p>比如手机淘宝首页：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5ed146b451084f89ad3c331bed45449f~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>当快要滚动到需要展示的图片时才进行图片的请求，可以看到图片上有一个<code>lazyload</code>的属性：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9f928ccd0b834f3287a5710ffa5c329d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<h3 id="42-预加载">4.2 预加载</h3>
+<p>预加载与懒加载正好是相反的过程：懒加载实际上是延迟加载，将我们所需的静态资源加载时间延后；而预加载是将图片等静态资源在使用之前的提前请求，这样资源在使用到时能从缓存中直接加载，从而提升用户体验；</p>
+<p>预加载的作用：</p>
+<ul>
+<li>提前请求资源，提升加载速度：使用时只需要读取浏览器缓存中提前请求到的资源即可；</li>
+<li>维护页面的依赖关系：比如<code>WebGL</code>页面，会依赖一些<code>3D</code>模型，这些都是页面渲染所必须的资源。如果资源都没有加载完毕就进行页面的渲染，就会造成非常不好的体验。<br>
+所以时常使用预加载的方式维护页面渲染的依赖关系，比如将<code>WebGL</code>页面依赖的<code>3D</code>模型加载完之后才进行页面渲染。这样渲染的过程就不会有任何阻碍，具有较好的用户体验；</li>
+</ul>
+<p>预加载的实例</p>
+<p>例如九宫格抽奖业务，每个奖品都有一个选中态和非选中态，实际上这是由两张图片组合而成的。由于每个奖品的选中过程都是一瞬间，这就对图片的选中态和非选中态切换效率要求很高，如果选中态的图片没有预加载的话显然是来不及的。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d25b621004e144d08135aa89c58c640c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>所以，实际上对于九宫格中所有图片选中态的样式和对应的图片都需要进行预加载，从而让我们在抽奖的过程中，能够瞬间从缓存中读取到选中态的图片，从而不影响抽奖效果的展示。</p>
+<p>除此之外还有网站登录或活动时需要用到的动画，这是在动画需要的每帧图片都完全预加载完之后才会进行显示的。</p>
+<h2 id="5渲染篇服务端渲染">5.渲染篇（服务端渲染）</h2>
+<h3 id="51-客户端渲染">5.1 客户端渲染</h3>
+<p>客户端渲染模式下，服务端会把渲染需要的静态文件发送给客户端，客户端加载过来后，自己在浏览器里跑一遍 js,根据 js 的运行结果，生成相应的 DOM</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!doctype html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;我是客户端渲染的页面&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#39;root&#39;</span>&gt;&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#39;index.js&#39;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p>根节点下到底是什么内容呢？只有浏览器把 index.js 跑过一遍后才知道，这就是典型的客户端渲染。</p>
+<p><strong>页面上呈现的内容，你在 html 源文件里里找不到</strong>——这正是它的特点。</p>
+<h3 id="52-服务端渲染">5.2 服务端渲染</h3>
+<p>服务端渲染的模式下，当用户第一次请求页面时，由服务器把需要的组件或页面渲染成 HTML 字符串，然后把它返回给客户端。客户端拿到手的，是可以直接渲染然后呈现给用户的 HTML 内容，不需要为了生成 DOM 内容自己再去跑一遍 JS 代码。</p>
+<p>使用服务端渲染的网站，可以说是“所见即所得”，页面上呈现的内容，<strong>我们在 html 源文件里也能找到</strong></p>
+<h3 id="53-服务端渲染解决了什么性能问题">5.3 服务端渲染解决了什么性能问题</h3>
+<p>事实上，很多网站是出于效益(seo)的考虑才启用服务端渲染，性能倒是在其次。</p>
+<p>假设 A 网站页面中有一个关键字叫“前端性能优化”，这个关键字是 JS 代码跑过一遍后添加到 HTML 页面中的。那么客户端渲染模式下，我们在搜索引擎搜索这个关键字，是找不到 A 网站的——<strong>搜索引擎只会查找现成的内容，不会帮你跑 JS 代码</strong>。A 网站的运营方见此情形，感到很头大：搜索引擎搜不出来，用户找不到我们，谁还会用我的网站呢？为了把“现成的内容”拿给搜索引擎看，A 网站不得不启用服务端渲染。</p>
+<p>但性能在其次，不代表性能不重要。服务端渲染解决了一个非常关键的性能问题——首屏加载速度过慢。在客户端渲染模式下，我们除了加载 HTML，还要等渲染所需的这部分 JS 加载完，之后还得把这部分 JS 在浏览器上再跑一遍。这一切都是发生在用户点击了我们的链接之后的事情，在这个过程结束之前，用户始终见不到我们网页的庐山真面目，也就是说用户一直在等！相比之下，服务端渲染模式下，服务器给到客户端的已经是一个直接可以拿来呈现给用户的网页，中间环节早在服务端就帮我们做掉了，用户岂不“美滋滋”？。</p>
+<h3 id="54-服务端渲染的应用场景">5.4 服务端渲染的应用场景</h3>
+<p>服务端渲染本质上是本该浏览器做的事情，分担给服务器去做。这样当资源抵达浏览器时，它呈现的速度就快了</p>
+<p>但仔细想想，在这个网民遍地的时代，几乎有多少个用户就有多少台浏览器。用户拥有的浏览器总量多到数不清，那么一个公司的服务器又有多少台呢？我们把这么多台浏览器的渲染压力集中起来，分散给相比之下数量并不多的服务器，服务器肯定是承受不住的</p>
+<p><strong>除非网页对性能要求太高了</strong>，以至于所有的招式都用完了，性能表现还是不尽人意，这时候我们就可以考虑向老板多申请几台服务器，把服务端渲染搞起来了~</p>
+<h3 id="55-渲染优化">5.5 渲染优化</h3>
+<ul>
+<li>HTML 使用 <code>viewport</code> ：<code>viewport</code> 可以加速页面的渲染；</li>
+<li>减少 DOM 节点：DOM 节点太多影响页面的渲染，应尽量减少 DOM 节点</li>
+<li>动画优化：</li>
+<li>尽量使用 CSS3 动画</li>
+<li>合理使用 <code>requestAnimationFrame</code> 动画代替 <code>setTimeout</code> （跑在主线程上，一般一秒刷新 60 次，提高动画帧的利用效率），参考文章 <a href="https://link.juejin.cn/?target=https%3A%2F%2Flink.jianshu.com%3Ft%3Dhttp%3A%2F%2Fwww.zhangxinxu.com%2Fwordpress%2F2013%2F09%2Fcss3-animation-requestanimationframe-tween-%25E5%258A%25A8%25E7%2594%25BB%25E7%25AE%2597%25E6%25B3%2595%2F" title="https://link.jianshu.com?t=http://www.zhangxinxu.com/wordpress/2013/09/css3-animation-requestanimationframe-tween-%E5%8A%A8%E7%94%BB%E7%AE%97%E6%B3%95/">requestAnimationFrame &amp; CSS3 animation</a>；</li>
+<li>适当使用 Canvas 动画， 5 个元素以内使用 CSS 动画（IOS8 可使用 webGL）；</li>
+<li>高频事件优化：<code>Touchmove</code> 和 <code>Scroll</code> 事件可导致多次渲染</li>
+<li>使用 <code>requestAnimationFrame</code> 监听帧变化，使得在正确的时间进行渲染；</li>
+<li>增加响应变化的时间间隔，减少重绘次数</li>
+<li>GPU 加速：CSS 中以下属性（CSS3 transitions、CSS3 3D transforms、Opacity、Canvas、webGL、Video）来触发 GPU 渲染，但过度使用会引发手机耗电增加。</li>
+</ul>
+<h2 id="6渲染篇浏览器渲染">6.渲染篇(浏览器渲染)</h2>
+<h3 id="61-浏览器内核">6.1 浏览器内核</h3>
+<p>浏览器内核可以分成两部分：渲染引擎（Layout Engine 或者 Rendering Engine）和 JS 引擎</p>
+<p>渲染引擎包括了 HTML 解释器、CSS 解释器、布局、网络、存储、图形、音视频、图片解码器等等零部件。</p>
+<h3 id="62-浏览器渲染过程解析">6.2 浏览器渲染过程解析</h3>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d08368edf1ad4810bf883e7316690f37~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<h3 id="63-基于渲染流程的-css-优化建议">6.3 基于渲染流程的 css 优化建议</h3>
+<h4 id="631css-选择符是从右到左进行匹配的">6.3.1CSS 选择符是从右到左进行匹配的</h4>
+<pre tabindex="0"><code class="language-less" data-lang="less">#myList li {}
+</code></pre><p>浏览器必须遍历页面上每个 li 元素，并且每次都要去确认这个 li 元素的父元素 id 是不是 myList</p>
+<h4 id="632-具体优化">6.3.2 具体优化</h4>
+<ul>
+<li>避免使用通配符，只对需要用到的元素进行选择</li>
+<li>关注可以通过继承实现的属性，避免重复匹配重复定义。</li>
+<li>少用标签选择器。如果可以，用类选择器替代</li>
+<li>不要画蛇添足，id 和 class 选择器不应该被多余的标签选择器拖后腿</li>
+<li>减少嵌套。后代选择器的开销是最高的，因此我们应该尽量将选择器的深度降到最低（最高不要超过三层），尽可能使用类来关联每一个标签元素</li>
+<li>尽量避免在 HTML 标签中写 Style 属性</li>
+<li>避免 CSS 表达式：CSS 表达式的执行需跳出 CSS 书的渲染，因此请避免 CSS 表达式</li>
+<li>移除空的 CSS 规则：空的 CSS 规则增加了 CSS 文件的大小，且影响 CSS 树的执行，所以需移除空的 CSS 规则</li>
+<li>使用 <code>flexbox</code> 代替传统的布局模型</li>
+<li>正确使用 <code>display</code> 属性：</li>
+<li><code>display:inline</code> 后边不应再使用 <code>width</code>、<code>height</code>、<code>margin</code>、<code>padding</code> 以及 <code>float</code></li>
+<li><code>display:inline-block</code> 后不应该使用 <code>float</code></li>
+<li><code>display:block</code> 后不应该再使用 <code>vertical-align</code></li>
+<li><code>display:table</code> 后不应该再使用 <code>margin</code> 或 <code>float</code></li>
+<li>不滥用 <code>float</code> ：<code>float</code> 在渲染时的计算量比较大，尽量减少使用</li>
+<li>不滥用 Web 字体：Web 字体需要下载，解析，重绘当前页面，尽量减少使用</li>
+<li>不声明过多的 <code>font-size</code>： 尽量使用语义化标签的默认字体大小，提高 CSS 树的效率</li>
+<li>值为 0 时不需要任何单位</li>
+<li>标准化各种浏览器前缀</li>
+<li>没前缀应放在最后</li>
+<li>CSS 动画只用（<code>-webkit-</code> <code>无前缀</code> 两种即可）</li>
+<li>其他前缀为 <code>-webkit-</code> 、<code>-moz-</code> 、<code>-ms-</code> 、<code>无前缀</code> 四种</li>
+<li>避免让选择器看起来像正则表达式：高级选择器执行耗时长且不易读懂，避免使用</li>
+</ul>
+<h3 id="64-告别阻塞css-与-js-的加载顺序优化">6.4 告别阻塞：CSS 与 JS 的加载顺序优化</h3>
+<p>HTML、CSS 和 JS，都具有阻塞渲染的特性。 HTML 阻塞，天经地义——没有 HTML，何来 DOM？没有 DOM，渲染和优化，都是空谈。</p>
+<h4 id="641-加载优化最耗时">6.4.1 加载优化（最耗时）</h4>
+<ul>
+<li>减少 HTTP 请求：浏览器一般同时响应请求为 4 个请求（PC 一般为 4 个，Android 支持 4 个，IOS 5 后可支持 6 个），所以尽量减少页面的请求数，首次加载同时请求数不能超过 4 个。（Webpack 打包等）</li>
+<li>合并 CSS、 JavaScript；</li>
+<li>合并小图片、 使用 CSS sprite，base-64；</li>
+<li>缓存：使用缓存可以减少向服务器的请求数，节省加载时间，所以所有静态资源都要在服务器端设置缓存，并且尽量使用长 Cache （长 Cache 资源的更新可使用时间戳）</li>
+<li>缓存一切可缓存的资源；</li>
+<li>使用长 Cache （使用时间戳更新 Cache）；</li>
+<li>使用外联式引用 CSS、JavaScript（可使用 localstorage 缓存图片）；</li>
+<li>压缩 HTML、CSS、JavaScript：减少资源大小可以加快网页显示速度，所以要对 HTML、CSS、JavaScript 等进行代码压缩，并在服务端设置 GZip</li>
+<li>压缩（例如多余的空格、换行符和缩进），自动化工具或在线压缩工具；</li>
+<li>启用 GZip</li>
+<li>使用首屏加载：首屏的快速显示，可以大大提升用户对页面速度的感知，因此应尽量针对首屏的快速显示做优化；</li>
+<li>按需加载：将不影响首屏的资源和当前屏幕资源不用的资源放到用户需要时才加载，可以大大提升重要资源的显示速度和降低总体流量。但是这也会导致大量重绘，影响渲染性能</li>
+<li>LazyLoad</li>
+<li>滚屏加载</li>
+<li>通过 Media Query 加载</li>
+<li>预加载：大型重资源页面（如游戏）可使用增加 Loading 的方法，资源加载完成后再显示页面。但 Loading 时间过长，会造成用户流失。</li>
+<li>对用户行为分析，可以在当前页加载下一页资源，提升速度</li>
+<li>图片压缩：图片是最占流量的资源，因此尽量避免使用它，使用时选择最合适的格式（实现需求的前提下，以大小判断），合适的大小。</li>
+<li>使用其他方式代替图片（CSS3，SVG，IconFont）；</li>
+<li>选择合适的图片（webP 优于 JPG，PNG8 优于 GIF）；</li>
+<li>选择合适的大小（首次加载不大于 1014KB，不宽于 640（基于手机的一般宽度））；</li>
+</ul>
+<h4 id="642css-的阻塞">6.4.2CSS 的阻塞</h4>
+<p>在刚刚的过程中，我们提到 DOM 和 CSSOM 合力才能构建渲染树。这一点会给性能造成严重影响：默认情况下，CSS 是阻塞的资源。<strong>浏览器在构建 CSSOM 的过程中，不会渲染任何已处理的内容。即便 DOM 已经解析完毕了，只要 CSSOM 不 OK，那么渲染这个事情就不 OK</strong>（这主要是为了避免没有 CSS 的 HTML 页面丑陋地“裸奔”在用户眼前）。</p>
+<p><strong>只有当我们开始解析 HTML 后、解析到 link 标签或者 style 标签时，CSS 才登场，CSSOM 的构建才开始。</strong> 很多时候，DOM 不得不等待 CSSOM。因此我们可以这样总结：</p>
+<p>CSS 是阻塞渲染的资源。需要将它尽早、尽快地下载到客户端，以便缩短首次渲染的时间。</p>
+<p><strong>尽早（将 CSS 放在 head 标签里）和尽快（启用 CDN 实现静态资源加载速度的优化）</strong></p>
+<ul>
+<li>css 文件是并行下载的</li>
+<li>css 的下载会阻塞后面 js 的执行</li>
+<li>css 的下载不会阻塞后面的 html 的解析，但是会阻塞 dom 渲染</li>
+<li>css 的下载会阻塞后面的 DOM 的 onload 事件。</li>
+<li>css 的下载不会阻塞后面 js 的下载，但是 js 下载完成后，被阻塞执行。</li>
+</ul>
+<h4 id="643-js-的阻塞">6.4.3 js 的阻塞</h4>
+<p><strong>JS 的作用在于修改</strong>，它帮助我们修改网页的方方面面：内容、样式以及它如何响应用户交互。这“方方面面”的修改，本质上都是对 DOM 和 CSSDOM 进行修改。因此 JS 的执行会阻止 CSSOM，在我们不作显式声明的情况下，它也会阻塞 DOM。</p>
+<p><strong>JS 引擎是独立于渲染引擎存在的</strong>。我们的 JS 代码在文档的何处插入，就在何处执行。当 HTML 解析器遇到一个 script 标签时，它会暂停渲染过程，将控制权交给 JS 引擎。JS 引擎对内联的 JS 代码会直接执行，对外部 JS 文件还要先获取到脚本、再进行执行。等 JS 引擎运行完毕，浏览器又会把控制权还给渲染引擎，继续 CSSOM 和 DOM 的构建。 因此与其说是 JS 把 CSS 和 HTML 阻塞了，不如说是 JS 引擎抢走了渲染引擎的控制权。</p>
+<ul>
+<li>现代浏览器会并行加载 js 文件。</li>
+<li>加载或者执行 js 时会阻塞对标签的解析，也就是阻塞了 dom 树的形成，只有等到 js 执行完毕，浏览器才会继续解析标签。没有 dom 树，浏览器就无法渲染，所以当加载很大的 js 文件时，可以看到页面很长时间是一片空白</li>
+</ul>
+<p>之所以会阻塞对标签的解析是因为加载的 js 中可能会创建，删除节点等，这些操作会对 dom 树产生影响，如果不阻塞，等浏览器解析完标签生成 dom 树后，js 修改了某些节点，那么浏览器又得重新解析，然后生成 dom 树，性能比较差。</p>
+<h4 id="644js-的三种加载方式">6.4.4js 的三种加载方式</h4>
+<p><strong>正常模式</strong></p>
+<p>这种情况下 JS 会阻塞浏览器，浏览器必须等待 index.js 加载和执行完毕才能去做其它事情。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;index.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p><strong>async(异步) 模式</strong></p>
+<p>async 模式下，JS 不会阻塞浏览器做任何其它的事情。它的加载是异步的，当它加载结束，JS 脚本会立即执行。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">async</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;index.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p><strong>defer(延缓) 模式</strong></p>
+<p>defer 模式下，JS 的加载是异步的，执行是被推迟的。等整个文档解析完成、DOMContentLoaded 事件即将被触发时，被标记了 defer 的 JS 文件才会开始依次执行。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">defer</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;index.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p>从应用的角度来说，一般当我们的脚本与 DOM 元素和其它脚本之间的依赖关系不强时，我们会选用 async；当脚本依赖于 DOM 元素和其它脚本的执行结果时，我们会选用 defer。</p>
+<h4 id="645javascript-执行优化">6.4.5JavaScript 执行优化</h4>
+<ul>
+<li>减少重绘和回流</li>
+<li>避免不必要的 DOM 操作；</li>
+<li>尽量改变 Class 而不是 Style ，使用 classList 代替 className ；</li>
+<li>避免使用 <code>document.write()</code> ；</li>
+<li>减少 <code>drawImage</code>；</li>
+<li>缓存 DOM 选择与计算：每次 DOM 选择都要计算，用一个变量保存这个值；</li>
+<li>尽量使用事件代理，避免批量绑定事件；</li>
+<li>尽量使用 ID 选择器：ID 选择器是最快的；</li>
+<li><code>Touch</code> 事件优化：使用 <code>touchstart</code> 、<code>touchend</code> 代替 <code>click</code>，但注意 <code>Touch</code> 响应过快，易引发误操作；</li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/153/"
+      ><span class="mr-1.5">←</span><span>H5页面不同屏幕适配：纯CSS方案</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/151/"
+      ><span>你需要知道的微前端 </span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>

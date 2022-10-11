@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>await 中那些不为人知的细节 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 前置知识：
+《其实你不知道 Promise.then 》
+《你真的明白 promise 的 then 吗？》
+本文为此专栏的第三篇的文章，在之前的文章中我们剖析 v8 引擎 中实现 promise.then 的处处细节，在之前的文章中我们提及了很多 重要的概念 以及 异步模型，为了你拥有更好的阅读体验，极其建议你先看完本专栏的前两篇文章
+1. async 函数的返回值 在讨论 await 之前， async 函数是不可避免的话题不可避免
+关于 async 函数处理返回值，也像 Promise.prototype.then 一样会对返回值的类型进行辨识：根据返回值的类型，引起 js 引擎 对返回值处理方式的不同
+结论：async 函数在抛出返回值会根据返回值类型开启不同数目的 微任务
+return 非 thenable 接口：不落后 return thenable 接口的非 promise，落后 1 个 then 的时间 return promise，落后 2 个 then 的时间 在将返回值抛出之前仍然会进行 Promise.resolve 包装
+就像下面的这三个例子一样
+(async function getNumber() { return 1; })().then(() =&gt; console.log(1)); Promise.resolve() ." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="await 中那些不为人知的细节" />
+<meta property="og:description" content="前言 前置知识：
+《其实你不知道 Promise.then 》
+《你真的明白 promise 的 then 吗？》
+本文为此专栏的第三篇的文章，在之前的文章中我们剖析 v8 引擎 中实现 promise.then 的处处细节，在之前的文章中我们提及了很多 重要的概念 以及 异步模型，为了你拥有更好的阅读体验，极其建议你先看完本专栏的前两篇文章
+1. async 函数的返回值 在讨论 await 之前， async 函数是不可避免的话题不可避免
+关于 async 函数处理返回值，也像 Promise.prototype.then 一样会对返回值的类型进行辨识：根据返回值的类型，引起 js 引擎 对返回值处理方式的不同
+结论：async 函数在抛出返回值会根据返回值类型开启不同数目的 微任务
+return 非 thenable 接口：不落后 return thenable 接口的非 promise，落后 1 个 then 的时间 return promise，落后 2 个 then 的时间 在将返回值抛出之前仍然会进行 Promise.resolve 包装
+就像下面的这三个例子一样
+(async function getNumber() { return 1; })().then(() =&gt; console.log(1)); Promise.resolve() ." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/156/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-11T21:31:43+08:00" />
+<meta property="article:modified_time" content="2022-10-11T21:31:43+08:00" />
+
+
+  
+  <meta itemprop="name" content="await 中那些不为人知的细节">
+<meta itemprop="description" content="前言 前置知识：
+《其实你不知道 Promise.then 》
+《你真的明白 promise 的 then 吗？》
+本文为此专栏的第三篇的文章，在之前的文章中我们剖析 v8 引擎 中实现 promise.then 的处处细节，在之前的文章中我们提及了很多 重要的概念 以及 异步模型，为了你拥有更好的阅读体验，极其建议你先看完本专栏的前两篇文章
+1. async 函数的返回值 在讨论 await 之前， async 函数是不可避免的话题不可避免
+关于 async 函数处理返回值，也像 Promise.prototype.then 一样会对返回值的类型进行辨识：根据返回值的类型，引起 js 引擎 对返回值处理方式的不同
+结论：async 函数在抛出返回值会根据返回值类型开启不同数目的 微任务
+return 非 thenable 接口：不落后 return thenable 接口的非 promise，落后 1 个 then 的时间 return promise，落后 2 个 then 的时间 在将返回值抛出之前仍然会进行 Promise.resolve 包装
+就像下面的这三个例子一样
+(async function getNumber() { return 1; })().then(() =&gt; console.log(1)); Promise.resolve() ."><meta itemprop="datePublished" content="2022-10-11T21:31:43+08:00" />
+<meta itemprop="dateModified" content="2022-10-11T21:31:43+08:00" />
+<meta itemprop="wordCount" content="637">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="await 中那些不为人知的细节"/>
+<meta name="twitter:description" content="前言 前置知识：
+《其实你不知道 Promise.then 》
+《你真的明白 promise 的 then 吗？》
+本文为此专栏的第三篇的文章，在之前的文章中我们剖析 v8 引擎 中实现 promise.then 的处处细节，在之前的文章中我们提及了很多 重要的概念 以及 异步模型，为了你拥有更好的阅读体验，极其建议你先看完本专栏的前两篇文章
+1. async 函数的返回值 在讨论 await 之前， async 函数是不可避免的话题不可避免
+关于 async 函数处理返回值，也像 Promise.prototype.then 一样会对返回值的类型进行辨识：根据返回值的类型，引起 js 引擎 对返回值处理方式的不同
+结论：async 函数在抛出返回值会根据返回值类型开启不同数目的 微任务
+return 非 thenable 接口：不落后 return thenable 接口的非 promise，落后 1 个 then 的时间 return promise，落后 2 个 then 的时间 在将返回值抛出之前仍然会进行 Promise.resolve 包装
+就像下面的这三个例子一样
+(async function getNumber() { return 1; })().then(() =&gt; console.log(1)); Promise.resolve() ."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">await 中那些不为人知的细节</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年10月11日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><h2 id="前言">前言</h2>
+<blockquote>
+<p>前置知识：<br>
+《<a href="https://juejin.cn/post/7151707736562991112">其实你不知道 Promise.then</a> 》<br>
+《<a href="https://juejin.cn/post/7152208179131072520">你真的明白 promise 的 then 吗？</a>》</p>
+</blockquote>
+<p>本文为此专栏的第三篇的文章，在之前的文章中我们剖析 <strong>v8 引擎</strong> 中实现 <strong>promise.then</strong> 的处处细节，在之前的文章中我们提及了很多 <strong>重要的概念</strong> 以及 <strong>异步模型</strong>，为了你拥有更好的阅读体验，极其建议你先看完本专栏的前两篇文章</p>
+<h2 id="1-async-函数的返回值">1. async 函数的返回值</h2>
+<p>在讨论 <code>await</code> 之前， <code>async</code> 函数是不可避免的话题不可避免</p>
+<p>关于 <code>async</code> 函数处理返回值，也像 <code>Promise.prototype.then</code> 一样会对返回值的类型进行辨识：根据返回值的类型，引起 <code>js 引擎</code> 对返回值处理方式的不同</p>
+<blockquote>
+<p>结论：async 函数在抛出返回值会根据返回值类型开启不同数目的 <strong>微任务</strong></p>
+<ol>
+<li>return 非  <code>thenable</code>  接口：不落后</li>
+<li>return <code>thenable</code>  接口的非  <code>promise</code>，落后  <strong>1 个</strong> <code>then</code>  的时间</li>
+<li>return <code>promise</code>，落后  <strong>2 个</strong> <code>then</code>  的时间</li>
+</ol>
+</blockquote>
+<p>在将返回值抛出之前仍然会进行 <code>Promise.resolve</code> 包装</p>
+<p>就像下面的这三个例子一样</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>(<span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getNumber</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>})().<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1 2 3
+</span></span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>(<span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getNumber</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">then</span>(<span style="color:#a6e22e">cb</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">cb</span>();
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>})().<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 2 1 3
+</span></span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>(<span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getNumber</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span>})().<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 2 3 1
+</span></span></span></code></pre></div><p>如果你对这些输出顺序仍然感到困惑，再次建议你回顾本专栏的前两篇文章：<br>
+《<a href="https://juejin.cn/post/7151707736562991112">其实你不知道 Promise.then</a> 》<br>
+《<a href="https://juejin.cn/post/7152208179131072520">你真的明白 promise 的 then 吗？</a>》</p>
+<blockquote>
+<p><code>async</code> 关键字只是一个函数标识符，在不使用 <code>await</code> 情况下，只能通过 <strong>控制返回值</strong> 从而产生异步的 <strong>微任务</strong></p>
+</blockquote>
+<h2 id="2-await-与异步">2. await 与异步</h2>
+<h4 id="21-await-只是暂停函数执行">2.1 await 只是暂停函数执行</h4>
+<p><code>await</code> 关键字的作用和 <code>yield</code> 关键字一模一样，都具有控制函数内部的 <strong>暂停</strong> 与 <strong>恢复执行</strong> 的能力，如果你不了解 <code>yield</code> 与 <code>生成器</code>，你可以阅读 《<a href="https://juejin.cn/post/7150460470426599432">你不知道的生成器 - 掘金 (juejin.cn)</a>》 这篇文章。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">test</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">test</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1 3 2
+</span></span></span></code></pre></div><p>执行顺序：<br>
+（1）执行 <code>test()</code> 函数，<strong>同步执行</strong> 函数体中的代码，输出 <code>1</code></p>
+<p>（2）遇到 <code>await</code> 关键字停止执行，因为 <code>await</code> 右边是一个可用的值，所以立即向 <strong>微任务队列</strong> 添加一个 <strong>微任务</strong>，这个任务会 <strong>恢复异步函数的执行</strong></p>
+<p>（3）输出<code>3</code>，同步线程代码执行完毕</p>
+<p>（4）js 运行时从微任务队列取出任务，恢复函数执行，<code>await</code> 去得值 <code>1</code>，这时候 <code>await 1</code> 的值就是 <code>1</code></p>
+<p>（5）执行函数剩余部分，输出 <code>2</code></p>
+<p>其实在这个过程中，我们更应该关心的是 <code>await</code> 求值的过程，就像下面的代码表现出来的一样</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getNumber</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">test</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">getNumber</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">test</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1 2 4 3
+</span></span></span></code></pre></div><p><code>getNumber()</code> 函数<strong>先执行</strong>，然后再暂停函数，等待同步任务结束后，从微任务队列中取出恢复函数执行的任务并且执行后再将 <code>await</code> 中右边的值赋值给 <code>await</code>。</p>
+<h4 id="22-await-求值顺序">2.2 await 求值顺序</h4>
+<p>如果 <code>await</code> 右边的函数有异步执行的任务，又是什么情况呢</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getNumber</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>  Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">5</span>))
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">6</span>))
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">7</span>));
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">test</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">getNumber</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">test</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1 2 4 5 3 6 7
+</span></span></span></code></pre></div><p>你会发现，<code>await</code> 之后的内容并非会在 <code>getNumber</code> 执行完成之前进行</p>
+<blockquote>
+<p>结论：在时间顺序上 <code>await</code> 之后的内容只会 <strong>等待一个</strong> 右值内部 <code>then</code> 的时间，并非等待 <strong>右边的值</strong> 全部执行完</p>
+</blockquote>
+<h4 id="23-await-右值类型">2.3 await 右值类型</h4>
+<p>如果 await 右值是一个 <code>thenable</code> 或者 <code>promise</code> 呢，又是什么情况呢</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">test</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">then</span>(<span style="color:#a6e22e">cb</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">cb</span>();
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">test</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">5</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">6</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1 3 2 4 5 6
+</span></span></span></code></pre></div><p>如果 <code>await</code> 右边是个 <code>thenable</code>，<code>await</code> 后面的内容只会等待一个 <code>then</code> 的时间</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">test</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> Promise.<span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">test</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">5</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">6</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1 2 3 4 5 6
+</span></span></span></code></pre></div><p>如果 <code>await</code> 右边是个 <code>promise</code>，<code>await</code> 后面的内容只会为什么表现的和非 <code>thenable</code> 值一样呢？为什么不等待两个 <code>then</code> 的时间呢？</p>
+<blockquote>
+<p>TC 39 对 await 后面是 <code>promise</code> 的情况如何处理进行一次修改，在早期版本，<em>依然会等待两个 <code>then</code> 的时间</em></p>
+</blockquote>
+<p>掘金上有大佬翻译了官方解释：《<a href="https://juejin.cn/post/6844903715342647310">「译」更快的 async 函数和 promises - 掘金 (juejin.cn)</a>》，但在这次更新中并没有修改 <code>thenable</code> 的情况</p>
+<p>这样做的好处，极大优化了 <code>await</code> 等待的速度</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getNumber</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">7</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">8</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#ae81ff">3</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">9</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">test</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">getNumber</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">test</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">5</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">6</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1 0 7 3 8 4 9 5 2 6
+</span></span></span></code></pre></div><p>所以你能合并两个函数的代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">test</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">7</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">8</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#ae81ff">3</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">9</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">test</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">5</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">6</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1 0 7 3 8 4 9 5 2 6
+</span></span></span></code></pre></div><p>又完全可以等效如下代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">test</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>  Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">7</span>))
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">8</span>))
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">9</span>))
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>));
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">test</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">5</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">6</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1 0 7 3 8 4 9 5 2 6
+</span></span></span></code></pre></div><p>这三种写法在时间的顺序上完全等效，所以你 <strong>完全可以将 <code>await</code> 后面的代码可以看做在 <code>then</code> 里面执行的结果</strong>，又因为 <code>async</code> 函数会返回 <code>promise</code> 实例，所以你还可以等效成：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">test</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">test</span>()
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">7</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">8</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">9</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">5</span>))
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">6</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1 0 7 3 8 4 9 5 2 6
+</span></span></span></code></pre></div><p>这样你会发现，<code>async test</code> 函数内部全是同步的代码，对于你观察 <code>promise</code> 执行顺序是不是更清晰呢。</p>
+<p>为什么能做这种等效时间替换呢？</p>
+<blockquote>
+<p><code>await</code> 会暂停 <code>async</code> 函数的执行，等到 <code>js 运行时</code> 取出恢复函数执行的微任务并执行，在这个过程中仅仅发生了一个 <code>then</code> 的时间</p>
+</blockquote>
+<h2 id="3-总结">3. 总结</h2>
+<ol>
+<li><code>async</code> 函数会根据返回值类型的不同产生 <code>0 - 2</code> 个的 <strong>微任务</strong>，然后对返回值进行 <code>Promise.resolve</code> 包装并抛出</li>
+<li><code>await</code> 关键字的作用：暂停函数的执行，暂停时间等效为 <strong>一个</strong> <code>then</code> 的时间，在这之后立即将右值结果赋值给 <code>await</code>，并非等到等到右值完全执行完毕，才会执行后面的内容</li>
+</ol>
+<h2 id="结语">结语</h2>
+<p>到此，如果你完整阅读过 《<a href="https://juejin.cn/column/7152127632841113608">从 v8 看 promise</a>》专栏中的 三篇文章，相信你足以面对绝大数关于 <code>promise</code> 的面试题，如果再掌握了一点 <code>宏任务</code> 的知识，相信没有你理解不了 <code>promise</code> 执行顺序的问题了。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/157/"
+      ><span class="mr-1.5">←</span><span>使用 github action 实现自动化部署</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/155/"
+      ><span>图片压缩</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>
