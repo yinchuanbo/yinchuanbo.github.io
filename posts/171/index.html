@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>Unicode 和 UTF-8 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 在日常开发的过程中，有关 Unicode 、UTF-8 的问题并不常出现，但在阅读技术文章或源码时出现频率就比较高了。笔者最近刚好就在开发时遇到了和 Unicode 相关的问题，发现自己对这方面的基础知识并没有充分掌握。因此将相关知识梳理出来，帮助大家理解清楚 Unicode 和 UTF-8。
+字符集 什么是字符集？ 字符集（Character set）是多个字符的集合，并且每个字符都拥有唯一的编号（即码点，Code Point）。不同的字符集所包含的字符个数不同，常见的字符集有：ASCII 字符集、GB2312 字符集、BIG5 字符集、 GB18030 字符集、Unicode 字符集等。
+在没有计算机之前，大部分信息以文本的形式存在，那么如何将文本存储到计算机中呢？
+我们知道，在计算机中是通过二进制值来表示信息的，每个二进制位（bit）都有 0 和 1 两种状态。而计算机中存储的最小单位就是字节（Byte），由 8 个二进制位组成，那么就可以表示 2^8=256 种状态。
+利用这 256 个二进制值，我们可以将字符转换为数值存储到计算机中，假设我们规定：
+A: 00000000 B: 00000001 C: 00000010 这样有了一对一的映射关系后，我们就可以把文本 ABC 用 00000000 00000001 00000010 存储到计算机中。这样的一个包含字符 ABC 的映射集合就是我们自定义的”字符集“。
+ASCII 码 我们在上一节介绍字符集时自定义了一个只包含 ABC 三个字母的字符集，仅仅作为例子可以，但是应用到实际的话显然是不够用的，因为既没有将所有的字母写入，也无法映射空格或标点符号等字符。
+为了解决这个问题，在上世纪六十年代，美国制定了一套字符编码，即 ASCII 码（American Standard Code for Information Interchange，美国信息交换标准代码，详见维基百科-ASCII），将英语字符与二进制值进行一一对应，一直沿用至今。
+标准 ASCII 码使用7位二进制数（剩下的首位二进制为0）来表示所有的大写和小写字母，数字 0 到 9、标点符号，以及在美式英语中使用的特殊控制字符。比如空格 SPACE 的十进制值是 32（二进制00100000 ），大写的字母 A 的十进制值是 65（二进制01000001），如下图所示。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="Unicode 和 UTF-8" />
+<meta property="og:description" content="前言 在日常开发的过程中，有关 Unicode 、UTF-8 的问题并不常出现，但在阅读技术文章或源码时出现频率就比较高了。笔者最近刚好就在开发时遇到了和 Unicode 相关的问题，发现自己对这方面的基础知识并没有充分掌握。因此将相关知识梳理出来，帮助大家理解清楚 Unicode 和 UTF-8。
+字符集 什么是字符集？ 字符集（Character set）是多个字符的集合，并且每个字符都拥有唯一的编号（即码点，Code Point）。不同的字符集所包含的字符个数不同，常见的字符集有：ASCII 字符集、GB2312 字符集、BIG5 字符集、 GB18030 字符集、Unicode 字符集等。
+在没有计算机之前，大部分信息以文本的形式存在，那么如何将文本存储到计算机中呢？
+我们知道，在计算机中是通过二进制值来表示信息的，每个二进制位（bit）都有 0 和 1 两种状态。而计算机中存储的最小单位就是字节（Byte），由 8 个二进制位组成，那么就可以表示 2^8=256 种状态。
+利用这 256 个二进制值，我们可以将字符转换为数值存储到计算机中，假设我们规定：
+A: 00000000 B: 00000001 C: 00000010 这样有了一对一的映射关系后，我们就可以把文本 ABC 用 00000000 00000001 00000010 存储到计算机中。这样的一个包含字符 ABC 的映射集合就是我们自定义的”字符集“。
+ASCII 码 我们在上一节介绍字符集时自定义了一个只包含 ABC 三个字母的字符集，仅仅作为例子可以，但是应用到实际的话显然是不够用的，因为既没有将所有的字母写入，也无法映射空格或标点符号等字符。
+为了解决这个问题，在上世纪六十年代，美国制定了一套字符编码，即 ASCII 码（American Standard Code for Information Interchange，美国信息交换标准代码，详见维基百科-ASCII），将英语字符与二进制值进行一一对应，一直沿用至今。
+标准 ASCII 码使用7位二进制数（剩下的首位二进制为0）来表示所有的大写和小写字母，数字 0 到 9、标点符号，以及在美式英语中使用的特殊控制字符。比如空格 SPACE 的十进制值是 32（二进制00100000 ），大写的字母 A 的十进制值是 65（二进制01000001），如下图所示。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/171/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-12T22:31:15+08:00" />
+<meta property="article:modified_time" content="2022-10-12T22:31:15+08:00" />
+
+
+  
+  <meta itemprop="name" content="Unicode 和 UTF-8">
+<meta itemprop="description" content="前言 在日常开发的过程中，有关 Unicode 、UTF-8 的问题并不常出现，但在阅读技术文章或源码时出现频率就比较高了。笔者最近刚好就在开发时遇到了和 Unicode 相关的问题，发现自己对这方面的基础知识并没有充分掌握。因此将相关知识梳理出来，帮助大家理解清楚 Unicode 和 UTF-8。
+字符集 什么是字符集？ 字符集（Character set）是多个字符的集合，并且每个字符都拥有唯一的编号（即码点，Code Point）。不同的字符集所包含的字符个数不同，常见的字符集有：ASCII 字符集、GB2312 字符集、BIG5 字符集、 GB18030 字符集、Unicode 字符集等。
+在没有计算机之前，大部分信息以文本的形式存在，那么如何将文本存储到计算机中呢？
+我们知道，在计算机中是通过二进制值来表示信息的，每个二进制位（bit）都有 0 和 1 两种状态。而计算机中存储的最小单位就是字节（Byte），由 8 个二进制位组成，那么就可以表示 2^8=256 种状态。
+利用这 256 个二进制值，我们可以将字符转换为数值存储到计算机中，假设我们规定：
+A: 00000000 B: 00000001 C: 00000010 这样有了一对一的映射关系后，我们就可以把文本 ABC 用 00000000 00000001 00000010 存储到计算机中。这样的一个包含字符 ABC 的映射集合就是我们自定义的”字符集“。
+ASCII 码 我们在上一节介绍字符集时自定义了一个只包含 ABC 三个字母的字符集，仅仅作为例子可以，但是应用到实际的话显然是不够用的，因为既没有将所有的字母写入，也无法映射空格或标点符号等字符。
+为了解决这个问题，在上世纪六十年代，美国制定了一套字符编码，即 ASCII 码（American Standard Code for Information Interchange，美国信息交换标准代码，详见维基百科-ASCII），将英语字符与二进制值进行一一对应，一直沿用至今。
+标准 ASCII 码使用7位二进制数（剩下的首位二进制为0）来表示所有的大写和小写字母，数字 0 到 9、标点符号，以及在美式英语中使用的特殊控制字符。比如空格 SPACE 的十进制值是 32（二进制00100000 ），大写的字母 A 的十进制值是 65（二进制01000001），如下图所示。"><meta itemprop="datePublished" content="2022-10-12T22:31:15+08:00" />
+<meta itemprop="dateModified" content="2022-10-12T22:31:15+08:00" />
+<meta itemprop="wordCount" content="544">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Unicode 和 UTF-8"/>
+<meta name="twitter:description" content="前言 在日常开发的过程中，有关 Unicode 、UTF-8 的问题并不常出现，但在阅读技术文章或源码时出现频率就比较高了。笔者最近刚好就在开发时遇到了和 Unicode 相关的问题，发现自己对这方面的基础知识并没有充分掌握。因此将相关知识梳理出来，帮助大家理解清楚 Unicode 和 UTF-8。
+字符集 什么是字符集？ 字符集（Character set）是多个字符的集合，并且每个字符都拥有唯一的编号（即码点，Code Point）。不同的字符集所包含的字符个数不同，常见的字符集有：ASCII 字符集、GB2312 字符集、BIG5 字符集、 GB18030 字符集、Unicode 字符集等。
+在没有计算机之前，大部分信息以文本的形式存在，那么如何将文本存储到计算机中呢？
+我们知道，在计算机中是通过二进制值来表示信息的，每个二进制位（bit）都有 0 和 1 两种状态。而计算机中存储的最小单位就是字节（Byte），由 8 个二进制位组成，那么就可以表示 2^8=256 种状态。
+利用这 256 个二进制值，我们可以将字符转换为数值存储到计算机中，假设我们规定：
+A: 00000000 B: 00000001 C: 00000010 这样有了一对一的映射关系后，我们就可以把文本 ABC 用 00000000 00000001 00000010 存储到计算机中。这样的一个包含字符 ABC 的映射集合就是我们自定义的”字符集“。
+ASCII 码 我们在上一节介绍字符集时自定义了一个只包含 ABC 三个字母的字符集，仅仅作为例子可以，但是应用到实际的话显然是不够用的，因为既没有将所有的字母写入，也无法映射空格或标点符号等字符。
+为了解决这个问题，在上世纪六十年代，美国制定了一套字符编码，即 ASCII 码（American Standard Code for Information Interchange，美国信息交换标准代码，详见维基百科-ASCII），将英语字符与二进制值进行一一对应，一直沿用至今。
+标准 ASCII 码使用7位二进制数（剩下的首位二进制为0）来表示所有的大写和小写字母，数字 0 到 9、标点符号，以及在美式英语中使用的特殊控制字符。比如空格 SPACE 的十进制值是 32（二进制00100000 ），大写的字母 A 的十进制值是 65（二进制01000001），如下图所示。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">Unicode 和 UTF-8</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年10月12日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><h1 id="前言">前言</h1>
+<p>在日常开发的过程中，有关 <code>Unicode</code> 、<code>UTF-8</code> 的问题并不常出现，但在阅读技术文章或源码时出现频率就比较高了。笔者最近刚好就在开发时遇到了和 <code>Unicode</code> 相关的问题，发现自己对这方面的基础知识并没有充分掌握。因此将相关知识梳理出来，帮助大家理解清楚 <code>Unicode</code> 和 <code>UTF-8</code>。</p>
+<h1 id="字符集">字符集</h1>
+<h2 id="什么是字符集">什么是字符集？</h2>
+<p>字符集（Character set）是多个字符的集合，并且每个字符都拥有唯一的编号（即码点，Code Point）。不同的字符集所包含的字符个数不同，常见的字符集有：<code>ASCII</code> 字符集、<code>GB2312</code> 字符集、<code>BIG5</code> 字符集、 <code>GB18030</code> 字符集、<code>Unicode</code> 字符集等。</p>
+<p>在没有计算机之前，大部分信息以文本的形式存在，那么如何将文本存储到计算机中呢？</p>
+<p>我们知道，在计算机中是通过<strong>二进制值</strong>来表示信息的，每个二进制位（bit）都有 <code>0</code> 和 <code>1</code> 两种状态。而计算机中存储的最小单位就是字节（Byte），由 8 个二进制位组成，那么就可以表示 2^8=256 种状态。</p>
+<p>利用这 256 个二进制值，我们可以将字符转换为数值存储到计算机中，假设我们规定：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-makefile" data-lang="makefile"><span style="display:flex;"><span><span style="color:#a6e22e">A</span><span style="color:#f92672">:</span> 00000000
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">B</span><span style="color:#f92672">:</span> 00000001
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">C</span><span style="color:#f92672">:</span> 00000010
+</span></span></code></pre></div><p>这样有了一对一的映射关系后，我们就可以把文本 <code>ABC</code> 用 <code>00000000 00000001 00000010</code> 存储到计算机中。这样的一个包含字符 <code>ABC</code> 的映射集合就是我们自定义的”字符集“。</p>
+<h2 id="ascii-码">ASCII 码</h2>
+<p>我们在上一节介绍字符集时自定义了一个只包含 <code>ABC</code> 三个字母的字符集，仅仅作为例子可以，但是应用到实际的话显然是不够用的，因为既没有将所有的字母写入，也无法映射空格或标点符号等字符。</p>
+<p>为了解决这个问题，在上世纪六十年代，美国制定了一套字符编码，即 <code>ASCII</code> 码（American Standard Code for Information Interchange，美国信息交换标准代码，详见<a href="https://zh.wikipedia.org/zh-hans/ASCII">维基百科-ASCII</a>），将英语字符与二进制值进行一一对应，一直沿用至今。</p>
+<p>标准 <code>ASCII</code> 码使用<code>7</code>位二进制数（剩下的首位二进制为<code>0</code>）来表示所有的大写和小写字母，数字 0 到 9、标点符号，以及在美式英语中使用的特殊控制字符。比如空格 <code>SPACE</code> 的十进制值是 32（二进制<code>00100000</code> ），大写的字母 <code>A</code> 的十进制值是 65（二进制<code>01000001</code>），如下图所示。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/30ea101fd7ab4ba086cd7d8179f609c6~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p><code>ASCII</code> 码对于美国这种使用英语作为母语的国家是够用了，但是对于使用其他语言的国家，128 个二进制值仍不足以表示所有字符，于是一些国家决定利用字节中的闲置最高位编入新的字符，这样一来这些国家使用了 8 位二进制值就可以表示最多 256 个字符。</p>
+<p>然而这又带来了新的问题，即使不同国家都使用 256 个字符的编码方式，但是同一个二进制值在不同的国家却表示不同的字符，例如 130 在法语中表示 é ，在希伯来语编码中却代表了字母 Gimel (ג)，就会造成乱码。</p>
+<p>为了解决多语言环境下产生的编码冲突问题，<code>Unicode</code> 应运而生。</p>
+<h2 id="unicode">Unicode</h2>
+<p><code>Unicode</code>将世界上的所有字符囊括其中，并为每一个字符定义唯一的代码（即一个整数），称作<strong>码点</strong>（Code Point）。</p>
+<p>码点的范围是 <code>U+0000</code>~<code>U+10FFFF</code>，<code>U+</code>表示这是 <code>Unicode</code> 字符集，后面跟着一个<strong>十六进制数</strong>。</p>
+<p>目前的 <code>Unicode</code> 字符分为 17 组编排，每个编组存放<code>65536</code> （即 2^16）个码点，称为一个<strong>平面</strong>（Plane）。</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e80da5dee1814c3990db8981a284c2c1~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>例如，<code>U+0041</code> 表示英语的大写字母 <code>A</code>，<code>U+4E25</code> 表示汉字<code>严</code>，它们都位于基本多文种平面。详见<a href="https://zh.wikipedia.org/zh-hans/Unicode">维基百科-Unicode</a>。</p>
+<h1 id="字符编码">字符编码</h1>
+<h2 id="什么是字符编码">什么是字符编码？</h2>
+<p>字符，即字母、数字、运算符号、标点符号和其他符号，以及一些功能性符号。</p>
+<p>编码，根据词性的不同，表示的含义也不同：</p>
+<ul>
+<li>作为动词时，表示信息从一种形式或格式转换为另一种形式的过程，例如将大写字母 <code>A</code> 转换为二进制值 <code>1000001</code> 的过程就是一个编码动作；</li>
+<li>作为名词时，有两种表示
+<ol>
+<li>表示将字符转为机器码的方案，例如 <code>ASCII</code> 编码、<code>UTF-8</code> 编码等；</li>
+<li>另一种是表示将字符转换后得到的机器码，例如 <code>100001</code> 就是 <code>A</code> 的编码。</li>
+</ol>
+</li>
+</ul>
+<p>因此在阅读有关字符编码的文章时，应该根据当前上下文来判断编码一词的含义。</p>
+<h2 id="unicode-的实现方式">Unicode 的实现方式</h2>
+<p><code>Unicode</code> 字符集解决了多语种间的冲突问题，但是并没有规定如何将编码存储到计算机中。</p>
+<p>以大写字母 A 为例，它的 Unicode 码点为 <code>U+0041</code> ，转换成二进制为 <code>1000001</code> ，需要使用 1 个字节存储；汉字 严 的 Unicode 码点为 <code>U+4E25</code> ，转换成二进制为 <code>1001110 00100101</code>，需要使用 2 个字节存储。而位于编号更靠后的平面中的字符，转换成二进制数字就会更长，最高位 <code>U+10FFFF</code> 甚至<strong>需要 3 个字节来存储</strong>。</p>
+<p>在这种情况下所面临的问题就是，计算机无法得知某个字符究竟<strong>需要多少字节存储</strong>，假设统一使用 3 个字节来存储 1 个字符，那么存储位于基本多文种平面的字符，就会有 2 个字节的所有位都是 0 ，会造成存储资源的浪费。</p>
+<p>为了解决存储方式上存在的问题，就出现了 <code>UTF</code> (Unicode 转换格式，Unicode Transformation Formats，简称 UTF）系列的编码方式。下面介绍一下几种常见的实现方式。</p>
+<h2 id="utf-8-编码">UTF-8 编码</h2>
+<p><code>UTF-8</code> 编码是<strong>互联网上使用最广泛</strong>的一种 <code>Unicode</code> 的实现方式。</p>
+<p>它是一种变长编码。对于 <code>ASCII</code> 字符仍用 7 位编码表示，占用一个字节（首位补 0）；而遇到其他 <code>Unicode</code> 字符时，将按一定算法转换，每个字符使用 <strong>1 到 4 个字节编码</strong>。</p>
+<p>编码规则也很简单：</p>
+<ol>
+<li>编码后的字节长度为 1 时，<strong>首位为 0</strong> ，剩余 7 位为 <code>Unicode</code> 码点值。因此码点值的范围是 0~128，在<strong>这个范围内 ASCII 编码和 UTF-8 是相同的</strong>；</li>
+<li>编码后的字节长度 n 大于 1 时，首个字节的前 n 位都是 1（即，有几个 1 就表示总共有几个字节），n+1 位为 0 ，其他字节的前两位均为 10，剩余的位为 <code>Unicode</code> 码点值。</li>
+</ol>
+<blockquote>
+<p>在 Unicode 中，一般使用频率较高的都是编码值较小的字符（即大部分都位于基本多文种平面），并且 Unicode 中前 128 个字符也是和 ASCII 码的二进制值相同。UTF-8 采用的这种变长编码规则，可以尽可能的节省内存空间，并且完全兼容 ASCII 码，因此，它逐渐成为电子邮件、网页及其他存储或传送文字优先采用的编码方式。</p>
+</blockquote>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e5b27dee95f847fea5748c805e779606~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>以大写字母<code>A</code>为例，码点为 <code>U+0041</code> ，编码后为 1 个字节，和 <code>ASCII</code> 编码下的存储方式相同，都是 <code>01000001</code> ；</p>
+<p>而对于汉字<code>严</code>，码点为 <code>U+4E25</code>，编码后为 3 个字节。码点值转换为二进制是 <code>1001110 00100101</code>，共 15 位，由转换关系表可知它落在 3 字节序列中，因此转换后的格式应该是 <code>1110xxxx 10xxxxxx 10xxxxxx</code>，将码点值按顺序补位后得到 <code>11100100 10111000 10100101</code>，这就是 <code>UTF-8</code> 编码后的汉字严，过程如下图：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/40ed62851de9455d85c277df4a7bce1f~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="WX20220906-105351.png"></p>
+<p>我们来验证下上面的转换过程。</p>
+<p>首先准备两个 txt 文件，第一个文件里只有字母 A，第二个文件里只有汉字 严，保存文件时以 <code>UTF-8</code> 格式保存。这里笔者用的是 Mac 系统，可以直接在命令行中执行<code>echo</code>命令输出到 txt 文件中，默认的编码格式就是<code>UTF-8</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>echo <span style="color:#e6db74">&#39;A&#39;</span> &gt; <span style="color:#e6db74">&#39;A.txt&#39;</span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#39;严&#39;</span> &gt; <span style="color:#e6db74">&#39;严.txt&#39;</span>
+</span></span></code></pre></div><p>然后打开命令行，使用<code>hexdump</code>命令查看文件：</p>
+<blockquote>
+<p>hexdump 命令可以以 ASCII、八进制、十进制或十六进制显示文件内容。</p>
+</blockquote>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/71d30300ab234015b77aa68862cb4845~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>第一列的两个值是文件中的字符偏移量，我们的重点在第二列。显然 A.txt 的结果是符合预期的，因为<code>ASCII</code> 码在 <code>UTF-8</code> 的编码方式下和 Unicode 码点值是相同的。而严.txt 的结果不太一样，显然是经过了变长的编码算法转换后得到的。</p>
+<p>我们将<code>e4 b8 a5</code>的十六进制值转换一下。可以使用在线进制转换工具 <a href="https://tool.oschina.net/hexconvert/">tool.oschina.net/hexconvert/</a> 或者直接将每一个十六进制数转换为二进制进行组合，转换结果就是：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/80ace7294470440f9bf2bc50dbefbd1e~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>这样就和上文我们转换的结果相同了。</p>
+<h2 id="utf-16-编码">UTF-16 编码</h2>
+<p><code>UTF-16</code> 也是一种变长编码，它将 <code>Unicode</code> 码点映射为 16 位长的整数（即码元）的序列，用于数据存储或传递。<code>Unicode</code> 字符的码点，使用 1 个或者 2 个 16 位长的码元来表示。</p>
+<blockquote>
+<p>码元（Code Unit，也称“代码单元”）是指一个已编码的文本中具有最短的比特组合的单元。对于 UTF-8 来说，码元是 8bit ；对于 UTF-16 来说，码元是 16bit；对于 UTF-32 来说，码元是 32bit。</p>
+</blockquote>
+<p><code>Unicode</code> 的基本多文种平面码点范围是 <code>U+0000</code> 到 <code>U+FFFF</code> ，不过从 <code>U+D800</code> 到 <code>U+DFFF</code> 之间的码位区段是<strong>永久保留不映射到 Unicode 字符的</strong>，因此 UTF-16 就利用保留下来的 <code>U+D800</code> 到 <code>U+DFFF</code> 区块的码位来对辅助平面的字符的码位进行编码。</p>
+<p>编码规则如下：</p>
+<ul>
+<li>对于从 <code>U+0000</code> 到 <code>U+D7FF</code> 以及 <code>U+E000</code> 到 <code>U+FFFF</code> 的码位：UTF-16 编码这个范围内的码位为 16bit 的单个码元，数值就等价于对应的码位；</li>
+<li>对于从 <code>U+10000</code> 到 <code>U+10FFFF</code> 的码位：这个范围是补充平面中的码位，在 UTF-16 中被编码为两个 16bit 的码元（即 32 位，4 字节），称作<em>代理对。</em></li>
+</ul>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ea7dd3221ae6484fb543775719b20969~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>编码过程如下：</p>
+<ol>
+<li>码位减去  <code>0x10000</code>，得到的值的范围为 20bit 的  <code>0...0xFFFFF</code>。</li>
+<li>高位的 10bit 的值（从左往右数第 1 位到第 10 位）加上  <code>0xD800</code>  后得到第一个码元，称作<strong>前导代理</strong>，值的范围是  <code>0xD800...0xDBFF</code> 。</li>
+<li>低位的 10bit 的值（从左往右数第 11 位到第 20 位）加上  <code>0xDC00</code>  后得到第二个码元，称作<strong>后尾代理</strong>，值的范围是  <code>0xDC00...0xDFFF</code>。</li>
+</ol>
+<p>以补充平面的字符 🐶 为例，它的码点值是<strong>U+1F436：</strong></p>
+<blockquote>
+<p><a href="https://unicode-table.com/cn/"></a><a href="https://unicode-table.com/cn/">unicode-table.com/cn/</a> 可以在这个网站中查找某个 Unicode 字符的码点值</p>
+</blockquote>
+<ul>
+<li>第一步，<code>0x1F436</code> 减去 <code>0x10000</code>，得到 <code>0xF436</code> ，转为二进制位为 <code>11110100 00110110</code></li>
+<li>高位 10bit 为 <code>00 0011 1101</code>（不足的位补<code>0</code>），转为 16 进制是 <code>0x003D</code> ，加上 <code>0xD800</code> 后为 <code>0xD83D</code></li>
+<li>低位 10bit 为 <code>00 0011 0110</code>，转为 16 进制是 <code>0x0036</code> ，加上 <code>0xDC00</code> 后为 <code>0xDC36</code></li>
+</ul>
+<p>因此最终转换后的值应该是 <code>D8 3D DC 36</code>。整个过程可以看下图：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/dd1831513fc4401f86ac6d9a70a82e50~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="WX20220906-142132.png"></p>
+<p>同样地，我们来验证下上面的转换过程。</p>
+<p>将单个字符存储在 txt 文件中，选择 <code>UTF-16 BE</code> 的编码方式进行保存。</p>
+<blockquote>
+<p>UTF-16 BE 是一种字节序，有关字节序的知识见下一节。</p>
+</blockquote>
+<p>同样使用 <code>hexdump</code> 命令查看：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7fac411dd34b4909a29ef333ba855107~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>符合推测结果。</p>
+<h2 id="utf-字节序">UTF 字节序</h2>
+<p>字节序也叫尾序或端序，详细介绍可见 <a href="https://zh.wikipedia.org/wiki/%E5%AD%97%E8%8A%82%E5%BA%8F">维基百科-字节序</a>。</p>
+<p>顾名思义，字节序就是指字节之间的顺序，在传输 or 存储过程中如果<strong>最小编码单元超过 1 个字节</strong>，需要指定<strong>编码单元内的字节间顺序</strong>。因此对于<code>UTF-8</code>不存在字节序的问题，而<code>UTF-16</code>时就需要考虑字节序的问题了。</p>
+<p>字节序有两个通用规则：</p>
+<ol>
+<li>小端序（little endian）：多位数的低位放在较小的地址处，高位放在较大的地址处。</li>
+<li>大端序（big endian）：和小端序相反，多位数的高位放在较小的地址处，低位放在较大的地址处。</li>
+</ol>
+<p>以上一节的文本为例，下图为字符 🐶 在 <code>UTF-16</code> 编码下使用不同端序时在内存中的存储结果：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/adbac6c829ca40bba1300c8f08551ecf~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="大端序小端序 (1).png"></p>
+<p>网络传输中一般采用大端序，也被称之为<strong>网络字节序</strong>，或<strong>网络序</strong>。在网络传输时，不存在字节序列问题。而在解码时由于 cpu 硬件差异，存在字节序问题，所以需要通过<code>BOM</code>( byte order mark ) 标识来标记字节顺序，通常出现在字节流的开头。</p>
+<h2 id="utf-8-与-utf-16-对比">UTF-8 与 UTF-16 对比</h2>
+<p>综上所述，我们来对比一下 UTF-8 和 UTF-16。</p>
+<p>|标题|UTF-8|UTF-16|
+|兼容性| 好，完美兼容 ASCII 码，字符空间足够大|UTF-16 能表示的字符数有 6w 多，看起来很多，但是实际上目前 Unicode 收录的字符已经达到 9w 个字符，早已超过 UTF-16 的存储范围|
+|字节序 |不存在字节序问题，信息交换便捷 |存在大小端字节序问题，信息交换时可能出现问题|
+|容错率|高，个别字节的错误不会导致整个文档的不可用，字符边界明显|低，局部的字节错误，可能导致所有后续字符全部错乱|
+|效率| 变长字节导致计算字符数和执行索引等操作效率都不高|双字节，在计算字符串长度、执行索引操作时速度很快|
+|多语种环境|ASCII 码只占用一个字节，而对于 CJK 文字来说负担太大，一个字符占用 3 个字节|刚好和前者相反|</p>
+<p>无论是 UTF-8 和 UTF-16/32 都各有优缺点，因此<strong>选择的时候应当立足于实际的应用场景</strong>。</p>
+<h1 id="总结">总结</h1>
+<p>本文主要介绍了字符编码和字符集、<code>Unicode</code> 编码以及 <code>Unicode</code> 的实现方式—— <code>UTF-8</code> 和 <code>UTF-16</code> 两种编码方式的相关知识。需要注意的是 <code>Unicode</code> 编码一般指的是 <code>Unicode</code> 字符集，而 <code>UTF-8</code> 和 <code>UTF-16</code> 编码指的是 <code>Unicode</code> 的实现方式，希望本文能够帮助大家理解清楚这些知识。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/172/"
+      ><span class="mr-1.5">←</span><span>MutationObserver - 监听你的 DOM 是否有变动</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/170/"
+      ><span>快速上手前端自动化测试</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>

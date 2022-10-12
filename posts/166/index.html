@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>从0搭建一个WebRTC，实现多房间多对多通话，并实现屏幕录制 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="这篇文章开始会实现一个一对一 WebRTC 和多对多的 WebRTC，以及基于屏幕共享的录制。本篇会实现信令和前端部分，信令使用 fastity 来搭建，前端部分使用 Vue3 来实现。
+为什么要使用 WebRTC WebRTC 全称Web Real-Time Communication，是一种实时音视频的技术，它的优势是低延时。
+本篇文章使用者要求 了解音视频基础 能搭建简单的 node 服务，docker 配置 vue 框架的使用 环境搭建及要求 废话不多说，现在开始搭建环境，首先是需要开启 socket 服务，采用的是fastify来进行搭建。详情可以见文档地址，本例使用的是 3.x 来启动的。接下来安装fastify-socket.io3.0.0 插件，详细配置可以见文档，此处不做详细解释。接下来是搭建 Vue3，使用 vite 脚手架搭建简单的 demo。
+要求：前端服务运行在 localhost 或者 https 下。node 需要 redis 进行数据缓存
+获取音视频 要实现实时音视频第一步当然是要能获取到视频流，在这里我们使用浏览器提供的 API,MediaDevices来进行摄像头流的捕获
+enumerateDevices 第一个要介绍的 API 是enumerateDevices，是请求一个可用的媒体输入和输出设备的列表，例如麦克风，摄像机，耳机设备等。直接在控制台执行 API，获取的设备如图
+我们注意到里面返回的设备 ID 和 label 是空的，这是由于浏览器的安全策略限制，必须授权摄像头或麦克风才能允许返回设备 ID 和设备标签，接下来我们介绍如何请求摄像头和麦克风
+getUserMedia 这个 API 顾名思义，就是去获取用户的 Meida 的，那我们直接执行这个 API 来看看效果
+ps: 由于掘金的代码片段的 iframe 没有配置allow=&quot;display-capture *;microphone *; camera *&quot;属性，需要手动打开详情查看效果" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="从0搭建一个WebRTC，实现多房间多对多通话，并实现屏幕录制" />
+<meta property="og:description" content="这篇文章开始会实现一个一对一 WebRTC 和多对多的 WebRTC，以及基于屏幕共享的录制。本篇会实现信令和前端部分，信令使用 fastity 来搭建，前端部分使用 Vue3 来实现。
+为什么要使用 WebRTC WebRTC 全称Web Real-Time Communication，是一种实时音视频的技术，它的优势是低延时。
+本篇文章使用者要求 了解音视频基础 能搭建简单的 node 服务，docker 配置 vue 框架的使用 环境搭建及要求 废话不多说，现在开始搭建环境，首先是需要开启 socket 服务，采用的是fastify来进行搭建。详情可以见文档地址，本例使用的是 3.x 来启动的。接下来安装fastify-socket.io3.0.0 插件，详细配置可以见文档，此处不做详细解释。接下来是搭建 Vue3，使用 vite 脚手架搭建简单的 demo。
+要求：前端服务运行在 localhost 或者 https 下。node 需要 redis 进行数据缓存
+获取音视频 要实现实时音视频第一步当然是要能获取到视频流，在这里我们使用浏览器提供的 API,MediaDevices来进行摄像头流的捕获
+enumerateDevices 第一个要介绍的 API 是enumerateDevices，是请求一个可用的媒体输入和输出设备的列表，例如麦克风，摄像机，耳机设备等。直接在控制台执行 API，获取的设备如图
+我们注意到里面返回的设备 ID 和 label 是空的，这是由于浏览器的安全策略限制，必须授权摄像头或麦克风才能允许返回设备 ID 和设备标签，接下来我们介绍如何请求摄像头和麦克风
+getUserMedia 这个 API 顾名思义，就是去获取用户的 Meida 的，那我们直接执行这个 API 来看看效果
+ps: 由于掘金的代码片段的 iframe 没有配置allow=&quot;display-capture *;microphone *; camera *&quot;属性，需要手动打开详情查看效果" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/166/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-12T21:49:15+08:00" />
+<meta property="article:modified_time" content="2022-10-12T21:49:15+08:00" />
+
+
+  
+  <meta itemprop="name" content="从0搭建一个WebRTC，实现多房间多对多通话，并实现屏幕录制">
+<meta itemprop="description" content="这篇文章开始会实现一个一对一 WebRTC 和多对多的 WebRTC，以及基于屏幕共享的录制。本篇会实现信令和前端部分，信令使用 fastity 来搭建，前端部分使用 Vue3 来实现。
+为什么要使用 WebRTC WebRTC 全称Web Real-Time Communication，是一种实时音视频的技术，它的优势是低延时。
+本篇文章使用者要求 了解音视频基础 能搭建简单的 node 服务，docker 配置 vue 框架的使用 环境搭建及要求 废话不多说，现在开始搭建环境，首先是需要开启 socket 服务，采用的是fastify来进行搭建。详情可以见文档地址，本例使用的是 3.x 来启动的。接下来安装fastify-socket.io3.0.0 插件，详细配置可以见文档，此处不做详细解释。接下来是搭建 Vue3，使用 vite 脚手架搭建简单的 demo。
+要求：前端服务运行在 localhost 或者 https 下。node 需要 redis 进行数据缓存
+获取音视频 要实现实时音视频第一步当然是要能获取到视频流，在这里我们使用浏览器提供的 API,MediaDevices来进行摄像头流的捕获
+enumerateDevices 第一个要介绍的 API 是enumerateDevices，是请求一个可用的媒体输入和输出设备的列表，例如麦克风，摄像机，耳机设备等。直接在控制台执行 API，获取的设备如图
+我们注意到里面返回的设备 ID 和 label 是空的，这是由于浏览器的安全策略限制，必须授权摄像头或麦克风才能允许返回设备 ID 和设备标签，接下来我们介绍如何请求摄像头和麦克风
+getUserMedia 这个 API 顾名思义，就是去获取用户的 Meida 的，那我们直接执行这个 API 来看看效果
+ps: 由于掘金的代码片段的 iframe 没有配置allow=&quot;display-capture *;microphone *; camera *&quot;属性，需要手动打开详情查看效果"><meta itemprop="datePublished" content="2022-10-12T21:49:15+08:00" />
+<meta itemprop="dateModified" content="2022-10-12T21:49:15+08:00" />
+<meta itemprop="wordCount" content="1211">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="从0搭建一个WebRTC，实现多房间多对多通话，并实现屏幕录制"/>
+<meta name="twitter:description" content="这篇文章开始会实现一个一对一 WebRTC 和多对多的 WebRTC，以及基于屏幕共享的录制。本篇会实现信令和前端部分，信令使用 fastity 来搭建，前端部分使用 Vue3 来实现。
+为什么要使用 WebRTC WebRTC 全称Web Real-Time Communication，是一种实时音视频的技术，它的优势是低延时。
+本篇文章使用者要求 了解音视频基础 能搭建简单的 node 服务，docker 配置 vue 框架的使用 环境搭建及要求 废话不多说，现在开始搭建环境，首先是需要开启 socket 服务，采用的是fastify来进行搭建。详情可以见文档地址，本例使用的是 3.x 来启动的。接下来安装fastify-socket.io3.0.0 插件，详细配置可以见文档，此处不做详细解释。接下来是搭建 Vue3，使用 vite 脚手架搭建简单的 demo。
+要求：前端服务运行在 localhost 或者 https 下。node 需要 redis 进行数据缓存
+获取音视频 要实现实时音视频第一步当然是要能获取到视频流，在这里我们使用浏览器提供的 API,MediaDevices来进行摄像头流的捕获
+enumerateDevices 第一个要介绍的 API 是enumerateDevices，是请求一个可用的媒体输入和输出设备的列表，例如麦克风，摄像机，耳机设备等。直接在控制台执行 API，获取的设备如图
+我们注意到里面返回的设备 ID 和 label 是空的，这是由于浏览器的安全策略限制，必须授权摄像头或麦克风才能允许返回设备 ID 和设备标签，接下来我们介绍如何请求摄像头和麦克风
+getUserMedia 这个 API 顾名思义，就是去获取用户的 Meida 的，那我们直接执行这个 API 来看看效果
+ps: 由于掘金的代码片段的 iframe 没有配置allow=&quot;display-capture *;microphone *; camera *&quot;属性，需要手动打开详情查看效果"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">从0搭建一个WebRTC，实现多房间多对多通话，并实现屏幕录制</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年10月12日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><p>这篇文章开始会实现一个一对一 WebRTC 和多对多的 WebRTC，以及基于屏幕共享的录制。本篇会实现信令和前端部分，信令使用 fastity 来搭建，前端部分使用 Vue3 来实现。</p>
+<h2 id="为什么要使用-webrtc">为什么要使用 WebRTC</h2>
+<p>WebRTC 全称<strong>Web</strong> Real-Time Communication，是一种实时音视频的技术，它的优势是低延时。</p>
+<h2 id="本篇文章使用者要求">本篇文章使用者要求</h2>
+<ul>
+<li><a href="https://zhuanlan.zhihu.com/p/86751078">了解音视频基础</a></li>
+<li>能搭建简单的 node 服务，docker 配置</li>
+<li>vue 框架的使用</li>
+</ul>
+<h2 id="环境搭建及要求">环境搭建及要求</h2>
+<p>废话不多说，现在开始搭建环境，首先是需要开启 socket 服务，采用的是<a href="https://www.fastify.io/">fastify</a>来进行搭建。<a href="https://www.fastify.io">详情可以见文档地址</a>，本例使用的是 3.x 来启动的。接下来安装<a href="https://github.com/alemagio/fastify-socket.io">fastify-socket.io</a>3.0.0 插件，详细配置可以见文档，此处不做详细解释。接下来是搭建 Vue3，使用 <a href="https://cn.vitejs.dev/">vite</a> 脚手架搭建简单的 demo。</p>
+<p>要求：前端服务运行在 localhost 或者 https 下。node 需要 redis 进行数据缓存</p>
+<h2 id="获取音视频">获取音视频</h2>
+<p>要实现实时音视频第一步当然是要能获取到视频流，在这里我们使用浏览器提供的 API,<a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices">MediaDevices</a>来进行摄像头流的捕获</p>
+<h3 id="enumeratedevices">enumerateDevices</h3>
+<p>第一个要介绍的 API 是<code>enumerateDevices</code>，是请求一个可用的媒体输入和输出设备的列表，例如麦克风，摄像机，耳机设备等。直接在控制台执行 API，获取的设备如图</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/11192f43a25947c3982256a86380ef1f~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>我们注意到里面返回的设备 ID 和 label 是空的，这是由于浏览器的安全策略限制，必须授权摄像头或麦克风才能允许返回设备 ID 和设备标签，接下来我们介绍如何请求摄像头和麦克风</p>
+<h3 id="getusermedia">getUserMedia</h3>
+<p>这个 API 顾名思义，就是去获取用户的 Meida 的，那我们直接执行这个 API 来看看效果</p>
+<blockquote>
+<p>ps: 由于掘金的代码片段的 iframe 没有配置<code>allow=&quot;display-capture *;microphone *; camera *&quot;</code>属性，需要手动打开详情查看效果</p>
+</blockquote>
+<iframe class="code-editor-frame" data-code="code-editor-element" data-code-id="7112060575928188958" data-src="https://code.juejin.cn/pen/7112060575928188958" style="display: inline;width: 100%;height: 400px" loading="lazy" src="https://code.juejin.cn/pen/7112060575928188958"></iframe>
+<p>通过上述例子我们可以获取到本机的音视频画面，并且可以播放在 video 标签里，那么我们可以在获取了用户的流之后，重新再获取一次设备列表看看发生了什么变化</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/77a239c1bb2e42489431fbd53f7de2cd~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>在获取了音视频之后，获取的设备列表的详细信息已经出现，我们就可以获取指定设备的音视频数据，<a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints">详情可以见</a></p>
+<p>这里介绍一下 getUserMedia 的参数 constraints，</p>
+<h4 id="视频参数配置">视频参数配置</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">MediaTrackConstraintSet</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 画面比例
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">aspectRatio?</span>: <span style="color:#66d9ef">ConstrainDouble</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 设备ID，可以从enumerateDevices中获取
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">deviceId?</span>: <span style="color:#66d9ef">ConstrainDOMString</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 摄像头前后置模式，一般适用于手机
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">facingMode?</span>: <span style="color:#66d9ef">ConstrainDOMString</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 帧率，采集视频的目标帧率
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">frameRate?</span>: <span style="color:#66d9ef">ConstrainDouble</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 组ID，用一个设备的输入输出的组ID是同一个
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">groupId?</span>: <span style="color:#66d9ef">ConstrainDOMString</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 视频高度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">height?</span>: <span style="color:#66d9ef">ConstrainULong</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 视频宽度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">width?</span>: <span style="color:#66d9ef">ConstrainULong</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="音频参数配置">音频参数配置</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">MediaTrackConstraintSet</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 是否开启AGC自动增益，可以在原有音量上增加额外的音量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">autoGainControl?</span>: <span style="color:#66d9ef">ConstrainBoolean</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 声道配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">channelCount?</span>: <span style="color:#66d9ef">ConstrainULong</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 设备ID，可以从enumerateDevices中获取
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">deviceId?</span>: <span style="color:#66d9ef">ConstrainDOMString</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 是否开启回声消除
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">echoCancellation?</span>: <span style="color:#66d9ef">ConstrainBoolean</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 组ID，用一个设备的输入输出的组ID是同一个
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">groupId?</span>: <span style="color:#66d9ef">ConstrainDOMString</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 延迟大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">latency?</span>: <span style="color:#66d9ef">ConstrainDouble</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 是否开启降噪
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">noiseSuppression?</span>: <span style="color:#66d9ef">ConstrainBoolean</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 采样率单位Hz
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">sampleRate?</span>: <span style="color:#66d9ef">ConstrainULong</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 采样大小，单位位
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">sampleSize?</span>: <span style="color:#66d9ef">ConstrainULong</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 本地音频在本地扬声器播放
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">suppressLocalAudioPlayback?</span>: <span style="color:#66d9ef">ConstrainBoolean</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="一对一连接">一对一连接</h2>
+<p>当我们采集到了音视频数据，接下来就是要建立链接，在开始之前需要科普一下 WebRTC 的工作方式，我们常见有三种 WebRTC 的网络结构</p>
+<ol>
+<li><strong>Mesh</strong></li>
+<li><strong>MCU</strong></li>
+<li><strong>SFU</strong> 关于这三种模式的区别可以查看 <a href="https://millo-l.github.io/WebRTC-implementation-method-Mesh-SFU-MCU/">文章</a>来了解</li>
+</ol>
+<p>在这里由于设备的限制，我们采用 Mesh 的方案来进行开发</p>
+<h3 id="一对一的流程">一对一的流程</h3>
+<p>我们建立一对一的链接需要知道后流程是怎么流转的，接下来上一张图，便可以清晰的了解</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/96b17ca5021a4335af29162aa1eba215~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="1825097218-5db028f8d5205.webp"></p>
+<p>这里是由 ClientA 发起 B 来接受 A 的视频数据。上图总结可以为 A 创建本地视频流，把视频流添加到 PeerConnection 里面 创建一个 Offer 给 B，B 收到 Offer 以后，保存这个 offer，并响应这个 Offer 给 A，A 收到 B 的响应后保存 A 的远端响应，进行 NAT 穿透，完成链接建立。</p>
+<p>话已经讲了这么多，我们该怎么建立呢，光说不做假把式，接下来，用我们的项目创建一个来试试</p>
+<h3 id="初始化">初始化</h3>
+<p>首先启动 fastify 服务，接下来在 Vue 项目安装<code>socket.io-client@4</code>然后连接服务端的 socket</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">v4</span> <span style="color:#66d9ef">as</span> <span style="color:#a6e22e">uuid</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;uuid&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">io</span>, <span style="color:#a6e22e">Socket</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;socket.io-client&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">myUserId</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">ref</span>(<span style="color:#a6e22e">uuid</span>());
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">socket</span>: <span style="color:#66d9ef">Socket</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">socket</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">io</span>(<span style="color:#e6db74">&#34;http://127.0.0.1:7070&#34;</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">query</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 房间号，由输入框输入获得
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">room</span>: <span style="color:#66d9ef">room.value</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// userId通过uuid获取
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">userId</span>: <span style="color:#66d9ef">myUserId.value</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 昵称，由输入框输入获得
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">nick</span>: <span style="color:#66d9ef">nick.value</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>可以查看 chrome 的控制台，检查 ws 的链接情况，如果出现跨域，请查看 socket.io 的 server 配置并开启 cors 配置。</p>
+<h3 id="创建-offer">创建 offer</h3>
+<p>开始创建 RTCPeerConnection，这里采用 google 的公共 stun 服务</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">peerConnect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">RTCPeerConnection</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">iceServers</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">urls</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;stun:stun.l.google.com:19302&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>根据上面的流程图我们下一步要做的事情是用上面的方式获取视频流，并将获取到的流添加到 RTCPeerConnection 中,并创建 offer，把这个 offer 设置到这个 rtcPeer 中，并把 offer 发送给 socket 服务</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">localStream</span>: <span style="color:#66d9ef">MediaStream</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">stream</span>.<span style="color:#a6e22e">getTracks</span>().<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">track</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">addTrack</span>(<span style="color:#a6e22e">track</span>, <span style="color:#a6e22e">stream</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">offer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">createOffer</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">setLocalDescription</span>(<span style="color:#a6e22e">offer</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">emit</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;offer&#34;</span>,
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">creatorUserId</span>: <span style="color:#66d9ef">myUserId.value</span>, <span style="color:#a6e22e">sdp</span>: <span style="color:#66d9ef">offer</span> },
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">res</span>: <span style="color:#66d9ef">any</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">res</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><p>socket 服务收到了这份 offer 后需要给 B 发送 A 的 offer</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">fastify</span>.<span style="color:#a6e22e">io</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;connection&#34;</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">socket</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;offer&#34;</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">offer</span>, <span style="color:#a6e22e">callback</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">emit</span>(<span style="color:#e6db74">&#34;offer&#34;</span>, <span style="color:#a6e22e">offer</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">callback</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">status</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ok&#34;</span>,
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h3 id="处理-offer">处理 offer</h3>
+<p>B 需要监听 socket 里面的 offer 事件并创建 RTCPeerConnection，将这个 offer 设置到远端，接下来来创建响应。并且将这个响应设置到本地，发送 answer 事件回复给 A</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">on</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;offer&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">offer</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">sdp</span>: <span style="color:#66d9ef">RTCSessionDescriptionInit</span>; <span style="color:#a6e22e">creatorUserId</span>: <span style="color:#66d9ef">string</span> }) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">peerConnect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">RTCPeerConnection</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">iceServers</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">urls</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;stun:stun.l.google.com:19302&#34;</span>,
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>      ],
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">setRemoteDescription</span>(<span style="color:#a6e22e">offer</span>.<span style="color:#a6e22e">sdp</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">answer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">createAnswer</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">setLocalDescription</span>(<span style="color:#a6e22e">answer</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">emit</span>(<span style="color:#e6db74">&#34;answer&#34;</span>, { <span style="color:#a6e22e">sdp</span>: <span style="color:#66d9ef">answer</span> }, (<span style="color:#a6e22e">res</span>: <span style="color:#66d9ef">any</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">res</span>);
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><h3 id="处理-answer">处理 answer</h3>
+<p>服务端广播 answer</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;offer&#34;</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">offer</span>, <span style="color:#a6e22e">callback</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">emit</span>(<span style="color:#e6db74">&#34;offer&#34;</span>, <span style="color:#a6e22e">offer</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">callback</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">status</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ok&#34;</span>,
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>A 监听到 socket 里面的 answer 事件，需要将刚才的自己的 RTCpeer 添加远端描述</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;answer&#34;</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">sdp</span>: <span style="color:#66d9ef">RTCSessionDescriptionInit</span> }) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">setRemoteDescription</span>(<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">sdp</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h3 id="处理-ice-candidate">处理 ICE-candidate</h3>
+<p>接下来 A 会获取到 ICE 候选信息，需要发送给 B</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">onicecandidate</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">candidateInfo</span>: <span style="color:#66d9ef">RTCPeerConnectionIceEvent</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">candidateInfo</span>.<span style="color:#a6e22e">candidate</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">emit</span>(
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;ICE-candidate&#34;</span>,
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">sdp</span>: <span style="color:#66d9ef">candidateInfo.candidate</span> },
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">res</span>: <span style="color:#66d9ef">any</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">res</span>);
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>广播消息是同理这里就不再赘述了，B 获取到了 A 的 ICE，需要设置候选</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;ICE-candidate&#34;</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">sdp</span>: <span style="color:#66d9ef">RTCIceCandidate</span> }) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">addIceCandidate</span>(<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">sdp</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>接下来 B 也会获取到 ICE 候选信息，同理需要发送给 A，待 A 设置完成之后便可以建立链接,代码同上，B 接下来会收到流添加的事件，这个事件会有两次，分别是音频和视频的数据</p>
+<h3 id="处理音视频数据">处理音视频数据</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">ontrack</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">track</span>: <span style="color:#66d9ef">RTCTrackEvent</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">track</span>.<span style="color:#a6e22e">track</span>.<span style="color:#a6e22e">kind</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;video&#34;</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">video</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;video&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">video</span>.<span style="color:#a6e22e">srcObject</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">track</span>.<span style="color:#a6e22e">streams</span>[<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">video</span>.<span style="color:#a6e22e">autoplay</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">video</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">setProperty</span>(<span style="color:#e6db74">&#34;width&#34;</span>, <span style="color:#e6db74">&#34;400px&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">video</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">setProperty</span>(<span style="color:#e6db74">&#34;aspect-ratio&#34;</span>, <span style="color:#e6db74">&#34;16 / 9&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">video</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#34;id&#34;</span>, <span style="color:#a6e22e">track</span>.<span style="color:#a6e22e">track</span>.<span style="color:#a6e22e">id</span>);
+</span></span><span style="display:flex;"><span>    document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">video</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">track</span>.<span style="color:#a6e22e">track</span>.<span style="color:#a6e22e">kind</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;audio&#34;</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">audio</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;audio&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">audio</span>.<span style="color:#a6e22e">srcObject</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">track</span>.<span style="color:#a6e22e">streams</span>[<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">audio</span>.<span style="color:#a6e22e">autoplay</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">audio</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#34;id&#34;</span>, <span style="color:#a6e22e">track</span>.<span style="color:#a6e22e">track</span>.<span style="color:#a6e22e">id</span>);
+</span></span><span style="display:flex;"><span>    document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">audio</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>到这里你就可以见到两个视频建立的 P2P 链接了。到这里为止只是建立了视频的一对一链接，但是我们可以通过这些操作进行复制，就能进行多对多的连接了。</p>
+<h2 id="多对多连接">多对多连接</h2>
+<p>在开始我们需要知道，一个人和另一个人建立连接双方都需要创建自己的 peerConnection。对于多人的情况，首先我们需要知道进入的房间里面当前的人数，给每个人都创建一个 RtcPeer，同时收到的人也回复这个 offer 给发起的人。对于后进入的人，需要让已经创建音视频的人给后进入的人创建新的 offer。</p>
+<p>基于上面的流程，我们现在先实现一个成员列表的接口</p>
+<h3 id="成员列表的接口">成员列表的接口</h3>
+<p>在我们登录 socket 服务的时候我们在 query 参数里面有房间号，userId 和昵称，我们可以通过 redis 记录对应的房间号的登录和登出，从而实现成员列表。</p>
+<p>可以在某一个人登录的时候获取一下 redis 对应房间的成员列表，如果没有这个房间，就把这个人丢进新的房间，并且存储到 redis 中，方便其他人登录这个房间的时候知道现在有多少人。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">fastify</span>.<span style="color:#a6e22e">io</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;connection&#34;</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">socket</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">room</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">handshake</span>.<span style="color:#a6e22e">query</span>.<span style="color:#a6e22e">room</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">redis</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fastify</span>.<span style="color:#a6e22e">redis</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">userList</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 获取当前房间的数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">getUserList</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getUserList</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">roomUser</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">redis</span>.<span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">room</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">roomUser</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">userList</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Map</span>(<span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">parse</span>(<span style="color:#a6e22e">roomUser</span>));
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">userList</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Map</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">setRedisRoom</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">redis</span>.<span style="color:#a6e22e">set</span>(<span style="color:#a6e22e">room</span>, <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">stringify</span>([...<span style="color:#a6e22e">userList</span>]));
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">rmUser</span>(<span style="color:#a6e22e">userId</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">userList</span>.<span style="color:#66d9ef">delete</span>(<span style="color:#a6e22e">userId</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">room</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 将这人加入到对应的socket房间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">join</span>(<span style="color:#a6e22e">room</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">setRedisRoom</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 广播有人加入了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">to</span>(<span style="color:#a6e22e">room</span>).<span style="color:#a6e22e">emit</span>(<span style="color:#e6db74">&#34;join&#34;</span>, <span style="color:#a6e22e">userId</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 这个人断开了链接需要将这个人从redis中删除
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;disconnect&#34;</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">socket</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">getUserList</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rmUser</span>(<span style="color:#a6e22e">userId</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">setRedisRoom</span>();
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>到上面为止，我们实现了成员的记录、广播和删除。接下来是需要实现一个成员列表的接口，提供给前端项目调用。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">fastify</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;/userlist&#34;</span>, <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">request</span>, <span style="color:#a6e22e">reply</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">redis</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fastify</span>.<span style="color:#a6e22e">redis</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">redis</span>.<span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">query</span>.<span style="color:#a6e22e">room</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h3 id="多对多初始化">多对多初始化</h3>
+<p>由于需要给每个人发送 offer，需要对上面的初始化函数进行封装。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * 创建RTCPeerConnection
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param creatorUserId 创建者id，本人
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param recUserId 接收者id
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> */</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">initPeer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">creatorUserId</span>: <span style="color:#66d9ef">string</span>, <span style="color:#a6e22e">recUserId</span>: <span style="color:#66d9ef">string</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">peerConnect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">RTCPeerConnection</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">iceServers</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>      {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">urls</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;stun:stun.l.google.com:19302&#34;</span>
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">peerConnect</span>;
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><p>由于存在多份 rtc 的映射关系，我们这里可以用 Map 来实现映射的保存</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">peerConnectList</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Map</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">initPeer</span> <span style="color:#f92672">=</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>   <span style="color:#75715e">// ice，track，new Peer等其他代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>   ......
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">peerConnectList</span>.<span style="color:#66d9ef">set</span>(<span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">creatorUserId</span><span style="color:#e6db74">}</span><span style="color:#e6db74">_</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">recUserId</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>, <span style="color:#a6e22e">peerConnect</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="获取成员列表">获取成员列表</h3>
+<p>上面实现了成员列表。接下来进入了对应的房间后需要轮询获取对应的成员列表</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">userList</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">ref</span>([]);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">intoRoom</span> <span style="color:#f92672">=</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//其他代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    ......
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setInterval</span>(()<span style="color:#f92672">=&gt;</span>{
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">axios</span>.<span style="color:#66d9ef">get</span>(<span style="color:#e6db74">&#39;/userlist&#39;</span>, { <span style="color:#a6e22e">params</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">room</span>: <span style="color:#66d9ef">room.value</span> }}).<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">res</span>)<span style="color:#f92672">=&gt;</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">userList</span>.<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">data</span>
+</span></span><span style="display:flex;"><span>      })
+</span></span><span style="display:flex;"><span>    }, <span style="color:#ae81ff">1000</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="创建多对多的-offer-和-answer">创建多对多的 Offer 和 Answer</h3>
+<p>在我们获取到视频流的时候，可以对在线列表里除了自己的人都创建一个 RTCpeer，来进行一对一连接，从而达到多对多连接的效果。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#75715e">// 过滤自己
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">emitList</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">userList</span>.<span style="color:#a6e22e">value</span>.<span style="color:#a6e22e">filter</span>((<span style="color:#a6e22e">item</span>) <span style="color:#f92672">=&gt;</span> <span style="color:#a6e22e">item</span>[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">!==</span> <span style="color:#a6e22e">myUserId</span>.<span style="color:#a6e22e">value</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">item</span> <span style="color:#66d9ef">of</span> <span style="color:#a6e22e">emitList</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// item[0]就是目标人的userId
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">peer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">initPeer</span>(<span style="color:#a6e22e">myUserId</span>.<span style="color:#a6e22e">value</span>, <span style="color:#a6e22e">item</span>[<span style="color:#ae81ff">0</span>]);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">createOffer</span>(<span style="color:#a6e22e">item</span>[<span style="color:#ae81ff">0</span>], <span style="color:#a6e22e">peer</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">createOffer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> (
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">recUserId</span>: <span style="color:#66d9ef">string</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">peerConnect</span>: <span style="color:#66d9ef">RTCPeerConnection</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">stream</span>: <span style="color:#66d9ef">MediaStream</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">localStream</span>
+</span></span><span style="display:flex;"><span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">localStream</span>) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">stream</span>.<span style="color:#a6e22e">getTracks</span>().<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">track</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">addTrack</span>(<span style="color:#a6e22e">track</span>, <span style="color:#a6e22e">stream</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">offer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">createOffer</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peerConnect</span>.<span style="color:#a6e22e">setLocalDescription</span>(<span style="color:#a6e22e">offer</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">emit</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;offer&#34;</span>,
+</span></span><span style="display:flex;"><span>    { <span style="color:#a6e22e">creatorUserId</span>: <span style="color:#66d9ef">myUserId.value</span>, <span style="color:#a6e22e">sdp</span>: <span style="color:#66d9ef">offer</span>, <span style="color:#a6e22e">recUserId</span> },
+</span></span><span style="display:flex;"><span>    (<span style="color:#a6e22e">res</span>: <span style="color:#66d9ef">any</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">res</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>那么在 socket 服务中我们怎么只给对应的人进行事件广播，不对其他人进行广播，我们可以用找到这个人 userId 对应的 socketId，进而只给这一个人广播事件。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 首先获取IO对应的nameSpace
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">IONameSpace</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fastify</span>.<span style="color:#a6e22e">io</span>.<span style="color:#66d9ef">of</span>(<span style="color:#e6db74">&#34;/&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 发送Offer给对应的人
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;offer&#34;</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">offer</span>, <span style="color:#a6e22e">callback</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 重新从reids获取用户列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">getUserList</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 找到目标的UserId的数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">user</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">userList</span>.<span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">offer</span>.<span style="color:#a6e22e">recUserId</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">user</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 找到对应的socketId
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">io</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">IONameSpace</span>.<span style="color:#a6e22e">sockets</span>.<span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">user</span>.<span style="color:#a6e22e">sockId</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">io</span>) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">io</span>.<span style="color:#a6e22e">emit</span>(<span style="color:#e6db74">&#34;offer&#34;</span>, <span style="color:#a6e22e">offer</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">callback</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">status</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ok&#34;</span>,
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>其他人需要监听 socket 的事件，每个人都需要处理对应自己的 offer。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;offer&#34;</span>, <span style="color:#a6e22e">handleOffer</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleOffer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">offer</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">sdp</span>: <span style="color:#66d9ef">RTCSessionDescriptionInit</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">creatorUserId</span>: <span style="color:#66d9ef">string</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">recUserId</span>: <span style="color:#66d9ef">string</span>;
+</span></span><span style="display:flex;"><span>}) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">peer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">initPeer</span>(<span style="color:#a6e22e">offer</span>.<span style="color:#a6e22e">creatorUserId</span>, <span style="color:#a6e22e">offer</span>.<span style="color:#a6e22e">recUserId</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peer</span>.<span style="color:#a6e22e">setRemoteDescription</span>(<span style="color:#a6e22e">offer</span>.<span style="color:#a6e22e">sdp</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">answer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peer</span>.<span style="color:#a6e22e">createAnswer</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peer</span>.<span style="color:#a6e22e">setLocalDescription</span>(<span style="color:#a6e22e">answer</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">emit</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;answer&#34;</span>,
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">recUserId</span>: <span style="color:#66d9ef">myUserId.value</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">sdp</span>: <span style="color:#66d9ef">answer</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">creatorUserId</span>: <span style="color:#66d9ef">offer.creatorUserId</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    (<span style="color:#a6e22e">res</span>: <span style="color:#66d9ef">any</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">res</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>接下来的步骤其实就是和一对一是一样的了，后面还需要发起 offer 的人处理对应 peer 的 offer、以及 ICE 候选，还有流进行挂载播放。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#39;answer&#39;</span>, <span style="color:#a6e22e">handleAnswer</span>)
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 应答方回复
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleAnswer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">sdp</span>: <span style="color:#66d9ef">RTCSessionDescriptionInit</span>, <span style="color:#a6e22e">recUserId</span>: <span style="color:#66d9ef">string</span>, <span style="color:#a6e22e">creatorUserId</span>: <span style="color:#66d9ef">string</span> }) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">peer</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">peerConnectList</span>.<span style="color:#66d9ef">get</span>(<span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">creatorUserId</span><span style="color:#e6db74">}</span><span style="color:#e6db74">_</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">recUserId</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">peer</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">warn</span>(<span style="color:#e6db74">&#39;handleAnswer peer 获取失败&#39;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">peer</span>.<span style="color:#a6e22e">setRemoteDescription</span>(<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">sdp</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ......处理播放，处理ICE候选
+</span></span></span></code></pre></div><p>到目前为止，就实现了一个基于 mesh 的 WebRTC 的多对多通信。在这里附上了一个完整的 Demo 可供参考 <a href="https://github.com/sxuan11/WebRTC-socket-server">socketServer</a> <a href="https://github.com/sxuan11/WebRTC-font-multi">FontPage</a></p>
+<h2 id="基于-webrtc-的屏幕录制">基于 WebRTC 的屏幕录制</h2>
+<h3 id="getdisplaymedia">getDisplayMedia</h3>
+<p>这个 API 是在 MediaDevices 里面的一个方法，是用来获取屏幕共享的。</p>
+<blockquote>
+<p>这个  <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/MediaDevices"><code>MediaDevices</code></a>   接口的  <code>getDisplayMedia() 方法提示用户去选择和授权捕获展示的内容或部分内容（如一个窗口）在一个</code>  <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/MediaStream"><code>MediaStream</code></a>  里.  然后，这个媒体流可以通过使用  <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStream_Recording_API">MediaStream Recording API</a>  被记录或者作为<a href="https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API">WebRTC</a>  会话的一部分被传输。</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">navigator</span>.<span style="color:#a6e22e">mediaDevices</span>.<span style="color:#a6e22e">getDisplayMedia</span>();
+</span></span></code></pre></div><h3 id="mediarecorder">MediaRecorder</h3>
+<p>获取到屏幕共享流后，需要使用 <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder">MediaRecorder</a>这个 api 来对流进行录制，接下来我们先获取屏幕流,同时创建一个 MeidaRecord 类</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">screenStream</span>: <span style="color:#66d9ef">MediaStream</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">mediaRecord</span>: <span style="color:#66d9ef">MediaRecorder</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">blobMedia</span>: <span style="color:#66d9ef">Blob</span>[] <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">startLocalRecord</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">blobMedia</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">screenStream</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">navigator</span>.<span style="color:#a6e22e">mediaDevices</span>.<span style="color:#a6e22e">getDisplayMedia</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">screenStream</span>.<span style="color:#a6e22e">getVideoTracks</span>()[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;ended&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;用户中断了屏幕共享&#34;</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">endLocalRecord</span>();
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">mediaRecord</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MediaRecorder</span>(<span style="color:#a6e22e">screenStream</span>, { <span style="color:#a6e22e">mimeType</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;video/webm&#34;</span> });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">mediaRecord</span>.<span style="color:#a6e22e">ondataavailable</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">data</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">size</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">blobMedia</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 500是每隔500ms进行一个保存数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">mediaRecord</span>.<span style="color:#a6e22e">start</span>(<span style="color:#ae81ff">500</span>);
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">`屏幕共享失败-&gt;</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">e</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>获取到了之后可以使用 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Blob">Blob</a> 进行处理</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">replayLocalRecord</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">blobMedia</span>.<span style="color:#a6e22e">length</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">scVideo</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;#screenVideo&#34;</span>) <span style="color:#66d9ef">as</span> <span style="color:#a6e22e">HTMLVideoElement</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">blob</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Blob</span>(<span style="color:#a6e22e">blobMedia</span>, { <span style="color:#66d9ef">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;video/webm&#34;</span> });
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">scVideo</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">scVideo</span>.<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">URL</span>.<span style="color:#a6e22e">createObjectURL</span>(<span style="color:#a6e22e">blob</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;没有录制文件&#34;</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">downloadLocalRecord</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">blobMedia</span>.<span style="color:#a6e22e">length</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;没有录制文件&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">blob</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Blob</span>(<span style="color:#a6e22e">blobMedia</span>, { <span style="color:#66d9ef">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;video/webm&#34;</span> });
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">url</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">URL</span>.<span style="color:#a6e22e">createObjectURL</span>(<span style="color:#a6e22e">blob</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">a</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;a&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">href</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">url</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">download</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`录屏_</span><span style="color:#e6db74">${</span>Date.<span style="color:#a6e22e">now</span>()<span style="color:#e6db74">}</span><span style="color:#e6db74">.webm`</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">click</span>();
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>这里有一个基于 Vue2 的完整例子</p>
+<blockquote>
+<p>ps: 由于掘金的代码片段的 iframe 没有配置<code>allow=&quot;display-capture *;microphone *; camera *&quot;</code>属性，需要手动打开详情查看效果</p>
+</blockquote>
+<iframe class="code-editor-frame" data-code="code-editor-element" data-code-id="7112341506739929119" data-src="https://code.juejin.cn/pen/7112341506739929119" style="display: inline;width: 100%; height: 400px" loading="lazy" src="https://code.juejin.cn/pen/7112341506739929119"></iframe>
+<p>后续将会更新，WebRTC 的自动化测试，视频画中画，视频截图等功能</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/167/"
+      ><span class="mr-1.5">←</span><span>你不知道的JavaScript APIs</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/165/"
+      ><span>新时代布局新特性 - 容器查询</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>
