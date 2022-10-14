@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>axios 取消请求总结 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="应用场景 取消请求在前端有时候会用到，以下是两个工作中可能会用到的场景
+tab 切换时刷新某个列表数据，如果他们共用一个变量存储数据列表，当请求有延时，可能会导致两个 tab 数据错乱； 导出文件或下载文件时，中途取消 。 如何取消请求 取消 http 请求，axios 文档里提供了两种用法：
+第一种：使用 CancelToken
+const { CancelToken, isCanCel } = axios; const source = CancelToken.source(); axios.get(&#39;/user/12345&#39;, { cancelToken: source.token }).catch(thrown =&gt; { if (isCancel(thrown)) { // 获取 取消请求 的相关信息 console.log(&#39;Request canceled&#39;, thrown.message); } else { // 处理其他异常 } }); axios.post(&#39;/user/12345&#39;, { name: &#39;new name&#39; }, { cancelToken: source.token }) // 取消请求。参数是可选的，参数传递一个取消请求的相关信息，在 catch 钩子函数里能获取到 source.cancel(&#39;Operation canceled by the user.&#39;); 第二种：给构造函数 CancelToken 传递一个 executor 函数作为参数。这种方法的好处是，可以用同一个 cancel token 来取消多个请求" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="axios 取消请求总结" />
+<meta property="og:description" content="应用场景 取消请求在前端有时候会用到，以下是两个工作中可能会用到的场景
+tab 切换时刷新某个列表数据，如果他们共用一个变量存储数据列表，当请求有延时，可能会导致两个 tab 数据错乱； 导出文件或下载文件时，中途取消 。 如何取消请求 取消 http 请求，axios 文档里提供了两种用法：
+第一种：使用 CancelToken
+const { CancelToken, isCanCel } = axios; const source = CancelToken.source(); axios.get(&#39;/user/12345&#39;, { cancelToken: source.token }).catch(thrown =&gt; { if (isCancel(thrown)) { // 获取 取消请求 的相关信息 console.log(&#39;Request canceled&#39;, thrown.message); } else { // 处理其他异常 } }); axios.post(&#39;/user/12345&#39;, { name: &#39;new name&#39; }, { cancelToken: source.token }) // 取消请求。参数是可选的，参数传递一个取消请求的相关信息，在 catch 钩子函数里能获取到 source.cancel(&#39;Operation canceled by the user.&#39;); 第二种：给构造函数 CancelToken 传递一个 executor 函数作为参数。这种方法的好处是，可以用同一个 cancel token 来取消多个请求" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/173/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-14T20:10:10+08:00" />
+<meta property="article:modified_time" content="2022-10-14T20:10:10+08:00" />
+
+
+  
+  <meta itemprop="name" content="axios 取消请求总结">
+<meta itemprop="description" content="应用场景 取消请求在前端有时候会用到，以下是两个工作中可能会用到的场景
+tab 切换时刷新某个列表数据，如果他们共用一个变量存储数据列表，当请求有延时，可能会导致两个 tab 数据错乱； 导出文件或下载文件时，中途取消 。 如何取消请求 取消 http 请求，axios 文档里提供了两种用法：
+第一种：使用 CancelToken
+const { CancelToken, isCanCel } = axios; const source = CancelToken.source(); axios.get(&#39;/user/12345&#39;, { cancelToken: source.token }).catch(thrown =&gt; { if (isCancel(thrown)) { // 获取 取消请求 的相关信息 console.log(&#39;Request canceled&#39;, thrown.message); } else { // 处理其他异常 } }); axios.post(&#39;/user/12345&#39;, { name: &#39;new name&#39; }, { cancelToken: source.token }) // 取消请求。参数是可选的，参数传递一个取消请求的相关信息，在 catch 钩子函数里能获取到 source.cancel(&#39;Operation canceled by the user.&#39;); 第二种：给构造函数 CancelToken 传递一个 executor 函数作为参数。这种方法的好处是，可以用同一个 cancel token 来取消多个请求"><meta itemprop="datePublished" content="2022-10-14T20:10:10+08:00" />
+<meta itemprop="dateModified" content="2022-10-14T20:10:10+08:00" />
+<meta itemprop="wordCount" content="649">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="axios 取消请求总结"/>
+<meta name="twitter:description" content="应用场景 取消请求在前端有时候会用到，以下是两个工作中可能会用到的场景
+tab 切换时刷新某个列表数据，如果他们共用一个变量存储数据列表，当请求有延时，可能会导致两个 tab 数据错乱； 导出文件或下载文件时，中途取消 。 如何取消请求 取消 http 请求，axios 文档里提供了两种用法：
+第一种：使用 CancelToken
+const { CancelToken, isCanCel } = axios; const source = CancelToken.source(); axios.get(&#39;/user/12345&#39;, { cancelToken: source.token }).catch(thrown =&gt; { if (isCancel(thrown)) { // 获取 取消请求 的相关信息 console.log(&#39;Request canceled&#39;, thrown.message); } else { // 处理其他异常 } }); axios.post(&#39;/user/12345&#39;, { name: &#39;new name&#39; }, { cancelToken: source.token }) // 取消请求。参数是可选的，参数传递一个取消请求的相关信息，在 catch 钩子函数里能获取到 source.cancel(&#39;Operation canceled by the user.&#39;); 第二种：给构造函数 CancelToken 传递一个 executor 函数作为参数。这种方法的好处是，可以用同一个 cancel token 来取消多个请求"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">axios 取消请求总结</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年10月14日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><h3 id="应用场景">应用场景</h3>
+<p>取消请求在前端有时候会用到，以下是两个工作中可能会用到的场景</p>
+<ol>
+<li>tab 切换时刷新某个列表数据，如果他们共用一个变量存储数据列表，当请求有延时，可能会导致两个 tab 数据错乱；</li>
+<li>导出文件或下载文件时，中途取消 。</li>
+</ol>
+<h3 id="如何取消请求">如何取消请求</h3>
+<p>取消 http 请求，axios 文档里提供了两种用法：</p>
+<p>第一种：使用 CancelToken</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">CancelToken</span>, <span style="color:#a6e22e">isCanCel</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">source</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">CancelToken</span>.<span style="color:#a6e22e">source</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#39;/user/12345&#39;</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cancelToken</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">source</span>.<span style="color:#a6e22e">token</span>
+</span></span><span style="display:flex;"><span>}).<span style="color:#66d9ef">catch</span>(<span style="color:#a6e22e">thrown</span> =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">isCancel</span>(<span style="color:#a6e22e">thrown</span>)) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 获取 取消请求 的相关信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;Request canceled&#39;</span>, <span style="color:#a6e22e">thrown</span>.<span style="color:#a6e22e">message</span>);
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 处理其他异常
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">post</span>(<span style="color:#e6db74">&#39;/user/12345&#39;</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;new name&#39;</span>
+</span></span><span style="display:flex;"><span>}, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cancelToken</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">source</span>.<span style="color:#a6e22e">token</span>
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 取消请求。参数是可选的，参数传递一个取消请求的相关信息，在 catch 钩子函数里能获取到
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">source</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#e6db74">&#39;Operation canceled by the user.&#39;</span>);
+</span></span></code></pre></div><p>第二种：给构造函数 CancelToken 传递一个 executor 函数作为参数。这种方法的好处是，可以用同一个 cancel token 来取消多个请求</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">CancelToken</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">CancelToken</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">cancel</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#39;/user/12345&#39;</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cancelToken</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">CancelToken</span>(<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">executor</span>(<span style="color:#a6e22e">c</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 参数 c 也是个函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cancel</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>;
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 取消请求，参数用法同上
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">cancel</span>();
+</span></span></code></pre></div><h3 id="项目中用法示例">项目中用法示例</h3>
+<p>在一个真实的项目中，一般都会对 axios 进行二次封装，针对请求、响应、状态码、code 等做处理。贴一个项目里常用的 request.js:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">axios</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;axios&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">store</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@/store&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">getToken</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@/utils/auth&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 创建一个 axios 实例，并改变默认配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">service</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">create</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">baseURL</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">process</span>.<span style="color:#a6e22e">env</span>.<span style="color:#a6e22e">BASE_API</span>, <span style="color:#75715e">// api 的 base_url
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">5000</span>, <span style="color:#75715e">// request timeout
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 请求拦截
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">service</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">use</span>(
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">config</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Do something before request is sent
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">store</span>.<span style="color:#a6e22e">getters</span>.<span style="color:#a6e22e">token</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 让每个请求携带token-- [&#39;X-Token&#39;]为自定义key 请根据实际情况自行修改
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">headers</span>[<span style="color:#e6db74">&#34;X-Token&#34;</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">getToken</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">config</span>;
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Do something with request error
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">error</span>); <span style="color:#75715e">// for debug
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 响应拦截
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">service</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">use</span>(
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">response</span>) =&gt; <span style="color:#a6e22e">response</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">alert</span>(<span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">service</span>;
+</span></span></code></pre></div><p>对于某一个请求添加取消的功能，要在调用 api 时，加上 cancelToken 选项，使用时的示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// api.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">request</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;request&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getUsers</span>(<span style="color:#a6e22e">page</span>, <span style="color:#a6e22e">options</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">request</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;api/users&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">params</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">page</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    ...<span style="color:#a6e22e">options</span>,
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// User.vue
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">CancelToken</span>, <span style="color:#a6e22e">isCancel</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;axios&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">getUsers</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;api&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">cancel</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">toCancel</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#e6db74">&#39;取消请求&#39;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">getUsers</span>(<span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cancelToken</span><span style="color:#f92672">:</span>  <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">CancelToken</span>(<span style="color:#a6e22e">c</span> =&gt; (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">cancel</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>))
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">then</span>(...)
+</span></span><span style="display:flex;"><span>.<span style="color:#66d9ef">catch</span>(<span style="color:#a6e22e">err</span> =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">isCancel</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">err</span>.<span style="color:#a6e22e">message</span>)
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><p>以上，我们就可以顺顺利利地使用封装过的 axios，取消某一个请求了。其原理无非就是把 cancelToken 的配置项，在调用 api 时加上，然后就可以在业务代码取消特定请求了。</p>
+<h3 id="批量取消请求">批量取消请求</h3>
+<p>在 document 里的第二种方法已经说过：通过指定同一个 cancel token 来取消。但是，在上面的项目示例中，不能控制拿到相同的 cancel token。我们可以换个思路：用数组保存每个需要取消的 cancel token，然后逐一调用数组里的每一项即可：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// User.vue
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">CancelToken</span>, <span style="color:#a6e22e">isCancel</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;axios&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">getUsers</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;api&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">cancel</span><span style="color:#f92672">:</span> []
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">toCancel</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">cancel</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">cancel</span>.<span style="color:#a6e22e">pop</span>()(<span style="color:#e6db74">&#39;取消请求&#39;</span>)
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">getUser1</span>(<span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cancelToken</span><span style="color:#f92672">:</span>  <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">CancelToken</span>(<span style="color:#a6e22e">c1</span> =&gt; (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">cancel</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">c1</span>)))
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">getUser2</span>(<span style="color:#ae81ff">2</span>,
+</span></span><span style="display:flex;"><span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cancelTokem</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">CancleTokem</span>(<span style="color:#a6e22e">c2</span> =&gt; (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">cancel</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">c2</span>)))
+</span></span><span style="display:flex;"><span> }
+</span></span><span style="display:flex;"><span>)
+</span></span></code></pre></div><h3 id="切换路由时取消请求">切换路由时，取消请求</h3>
+<p>上面讲了取消一个请求及页面内批量 abort 的方法，此外，还有一种需求——切换路由时，取消所有。 这里不详细赘述了，大概思路就是在请求拦截器里，统一加个 token，并设置全局变量 source 控制一个 cancel token，在路由变化时调用 cancel 方法。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">use</span>(<span style="color:#a6e22e">config</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">cancelToken</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">store</span>.<span style="color:#a6e22e">source</span>.<span style="color:#a6e22e">token</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">config</span>
+</span></span><span style="display:flex;"><span>}, <span style="color:#a6e22e">err</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">router</span>.<span style="color:#a6e22e">beforeEach</span>((<span style="color:#a6e22e">to</span>, <span style="color:#a6e22e">from</span>, <span style="color:#a6e22e">next</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">CancelToken</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">CancelToken</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">store</span>.<span style="color:#a6e22e">source</span>.<span style="color:#a6e22e">cancel</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">store</span>.<span style="color:#a6e22e">source</span>.<span style="color:#a6e22e">cancel</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">store</span>.<span style="color:#a6e22e">source</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">CancelToken</span>.<span style="color:#a6e22e">source</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">next</span>()
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 全局变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">store</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">source</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">token</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">cancel</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="取消请求的实现原理">取消请求的实现原理</h3>
+<p>cancelToken 的 source 方法维护了一个对象，里面包括了 token 令牌和 cancel 方法，token 来自与构造函数 CancelToken，调用 cancel 方法后，token 的 promise 状态为 resolved，进而又调用了 xhr 的 abort 方法，取消请求成功。 来分析下取消请求是怎么实现的，先从一个简单的取消请求的例子开始：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">CancelToken</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">CancelToken</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">source</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">CancelToken</span>.<span style="color:#a6e22e">source</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">axios</span>
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;/get?name=xmz&#34;</span>, {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cancelToken</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">source</span>.<span style="color:#a6e22e">token</span>,
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">response</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;response&#34;</span>, <span style="color:#a6e22e">response</span>);
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>  .<span style="color:#66d9ef">catch</span>((<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">isCancel</span>(<span style="color:#a6e22e">error</span>)) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;取消请求传递的消息&#34;</span>, <span style="color:#a6e22e">error</span>.<span style="color:#a6e22e">message</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;error&#34;</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 取消请求
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">source</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#e6db74">&#34;取消请求传递这条消息&#34;</span>);
+</span></span></code></pre></div><p>这就是一个简单的取消请求的例子，那么就从最开始的<code>axios.CancelToken</code>来看，先去<code>axios/lib/axios.js</code>文件中。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">CancelToken</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./cancel/CancelToken&#39;</span>);
+</span></span></code></pre></div><p>不费吹灰之力，就找到了 CancelToken，在例子中我们调用了 source 方法，那么就去<code>axios/lib/cancel/CancelToken.js</code>文件中看看这个 source 方法到底是干什么的？</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">CancelToken</span>.<span style="color:#a6e22e">source</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">cancel</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">token</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">CancelToken</span>(<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">executor</span>(<span style="color:#a6e22e">c</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cancel</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>;
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">token</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">token</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cancel</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">cancel</span>,
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>source 方法很简单，就是返回一个具有 token 和 cancel 属性的对象，但是 token 和 cancel 都是通过 CancelToken 这个构造函数来的，那么还在这个文件中向上看，找到 CancelToken 函数。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">CancelToken</span>(<span style="color:#a6e22e">executor</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 判断executor是一个函数，不然就报错
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">resolvePromise</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">promise</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Promise(<span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">resolve</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">resolvePromise</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">resolve</span>;
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">token</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 以上token现在有一个promise属性，是一个未成功的promise对象；
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">executor</span>(<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">cancel</span>(<span style="color:#a6e22e">message</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">token</span>.<span style="color:#a6e22e">reason</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">token</span>.<span style="color:#a6e22e">reason</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Cancel</span>(<span style="color:#a6e22e">message</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">resolvePromise</span>(<span style="color:#a6e22e">token</span>.<span style="color:#a6e22e">reason</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 这个cancel函数就是 上面函数中的cancel，也就是source.cancel；
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>现在知道了 source.cancel 是一个函数，souce.token 是一个实例化对象，暂时就知道这些，继续看文章最开始的例子，接下来是去发送请求了，最下面还有一行代码是执行<code>souce.cancel();</code> souce.cancel 就是用来触发取消请求的函数。 现在再回头来看，上面的 cancel 函数，cancel 执行，给 token 加了一个 reason 属性，那么看下这个 reason 属性是什么吧，看下这个 Cancel 构造函数，在<code>axios/lib/cancel/Cancel.js</code>文件中</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Cancel</span>(<span style="color:#a6e22e">message</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">message</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">message</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Cancel 特别简单就是给实例化对象添加一个 message 属性，所以现在 token.reason 是一个具有 message 属性的对象了。 继续回到 cancel 函数中，resolvePromise 函数执行了，那么 token.promise 对象，这个原本未变成，成功状态的 promise，变成了成功状态了，并且将 token.reason 对象传递过去了。 简单总结一下，执行取消函数，就是让 token 的 promise 的状态变成了成功； 好了，突然发现分析中断了，变成成功状态又怎样了，怎么取消的呢？虽然现在的同步代码都执行完了，但是请求还没发送出去呢，我们还要去看发送请求的函数</p>
+<p>在分析发送请求之前，再看下最开始的例子，和最普通的发送一个 get 请求还是有一点区别的，配置对象中多了，一个 cancelToken 的属性，值是 token，到底起了什么作用呢，去<code>axios/lib/adapters/xhr.js</code>中一探究竟（这里只截取其中关于 cancelToken 的部分）。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 在发送请求之前，验证了cancelToken，看来此处就是用来取消请求的；
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">if</span>(<span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">cancelToken</span>){
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 具体是如何取消的，是在这个判断内定义的；
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">cancelToken</span>.<span style="color:#a6e22e">promise</span>.<span style="color:#a6e22e">then</span>(<span style="color:#66d9ef">function</span>(<span style="color:#a6e22e">cancel</span>){
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">abort</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">cancel</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">request</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 发送请求
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">requestData</span>);
+</span></span></code></pre></div><p>仔细看这只是一个 promise 的 then 函数，只有在 promise 的状态变成成功后才会执行，而刚才我们分析了，cancel 就是让这个 promise 的状态变成成功，所以如果执行了，取消请求的函数，这个 then 就会执行，取消发送请求，并且把发送请求的 promise 变成 reject,被 axiox.get().catch()捕获； 流程已经清楚了，最后再总结一下: 执行 cancel 是让 token 的 promise 变成成功，在真正发送请求之前，验证 token.promise 的状态是否已经变了，如果变了，就取消请求，就是这样一个简单的思想来进行取消请求的。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/175/"
+      ><span class="mr-1.5">←</span><span>Set 的基本指南</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/172/"
+      ><span>MutationObserver - 监听你的 DOM 是否有变动</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>
