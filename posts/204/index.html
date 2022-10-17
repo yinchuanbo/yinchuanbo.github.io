@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>从0到1封装原生table组件，并支持大数量级渲染(十万级) - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="一、表格布局分析 首先，我们要先设计 table 组件的基本布局，这里如下图所示：
+从上面这张图我们大致可以理清将要设计的表格组件的 dom 结构，如下面图片所示：
+到此，我们就已经把结构大致搭建起来了。但是，我们需要注意：在实际业务中我们肯定不会这么写 dom 结构，我们往往是用 map 对数据做一层映射，将表格数据映射成具体表格行、表格单元格等。
+二、设计数据格式： 在进行映射之前，我们先设计一下数据格式，这里我们参考的是 antd 的 Table 组件传参格式： 表头列用 columns 数据映射，columns 每一项代表每个表头单元格的配置数据，columns 有几个数组元素就代表要渲染几个表头列。columns 相关内容配置如下：
+key 值 必填性 作用 title yes 表头列的标题 dataIndex yes 表示表头列对应表身单元格的内容数据 width no 表示表头列宽度 id no(建议填) 表示表头列的唯一性标识 render no 表示自定义渲染其对应表身单元格的内容 align no 表示表头单元格内容对齐方式 contentAlign no 表示对应表身单元格内容的对齐方式 const columns = [ { title: &#34;用户名称&#34;, // 表示表头单元格的标题 dataIndex: &#34;userName&#34;, // 表示表头单元格对应表身单元格的内容数据 id: &#34;userName&#34;, // 表示表头单元格的唯一性标识 render: (val) =&gt; { return val; }, // 表示自定义渲染对应表身单元格的内容 align: &#34;left&#34;, // 表示单元格内容对齐位置 }, { title: &#34;注册时间&#34;, dataIndex: &#34;registerTime&#34;, id: &#34;registerTime&#34;, align: &#34;right&#34;, }, ]; 表格的内容数据由 dataSource 数据进行映射，dataSource 也是数组类型，数组每一项代表表身的表格行数据；dataSource 有几项就渲染几行数据。这里我们需要注意，dataSource 里每一项的 key 值一定要与 columns 的 dataIndex 对应好，否则数据是渲染不出来的！" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="从0到1封装原生table组件，并支持大数量级渲染(十万级)" />
+<meta property="og:description" content="一、表格布局分析 首先，我们要先设计 table 组件的基本布局，这里如下图所示：
+从上面这张图我们大致可以理清将要设计的表格组件的 dom 结构，如下面图片所示：
+到此，我们就已经把结构大致搭建起来了。但是，我们需要注意：在实际业务中我们肯定不会这么写 dom 结构，我们往往是用 map 对数据做一层映射，将表格数据映射成具体表格行、表格单元格等。
+二、设计数据格式： 在进行映射之前，我们先设计一下数据格式，这里我们参考的是 antd 的 Table 组件传参格式： 表头列用 columns 数据映射，columns 每一项代表每个表头单元格的配置数据，columns 有几个数组元素就代表要渲染几个表头列。columns 相关内容配置如下：
+key 值 必填性 作用 title yes 表头列的标题 dataIndex yes 表示表头列对应表身单元格的内容数据 width no 表示表头列宽度 id no(建议填) 表示表头列的唯一性标识 render no 表示自定义渲染其对应表身单元格的内容 align no 表示表头单元格内容对齐方式 contentAlign no 表示对应表身单元格内容的对齐方式 const columns = [ { title: &#34;用户名称&#34;, // 表示表头单元格的标题 dataIndex: &#34;userName&#34;, // 表示表头单元格对应表身单元格的内容数据 id: &#34;userName&#34;, // 表示表头单元格的唯一性标识 render: (val) =&gt; { return val; }, // 表示自定义渲染对应表身单元格的内容 align: &#34;left&#34;, // 表示单元格内容对齐位置 }, { title: &#34;注册时间&#34;, dataIndex: &#34;registerTime&#34;, id: &#34;registerTime&#34;, align: &#34;right&#34;, }, ]; 表格的内容数据由 dataSource 数据进行映射，dataSource 也是数组类型，数组每一项代表表身的表格行数据；dataSource 有几项就渲染几行数据。这里我们需要注意，dataSource 里每一项的 key 值一定要与 columns 的 dataIndex 对应好，否则数据是渲染不出来的！" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/204/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-17T21:57:21+08:00" />
+<meta property="article:modified_time" content="2022-10-17T21:57:21+08:00" />
+
+
+  
+  <meta itemprop="name" content="从0到1封装原生table组件，并支持大数量级渲染(十万级)">
+<meta itemprop="description" content="一、表格布局分析 首先，我们要先设计 table 组件的基本布局，这里如下图所示：
+从上面这张图我们大致可以理清将要设计的表格组件的 dom 结构，如下面图片所示：
+到此，我们就已经把结构大致搭建起来了。但是，我们需要注意：在实际业务中我们肯定不会这么写 dom 结构，我们往往是用 map 对数据做一层映射，将表格数据映射成具体表格行、表格单元格等。
+二、设计数据格式： 在进行映射之前，我们先设计一下数据格式，这里我们参考的是 antd 的 Table 组件传参格式： 表头列用 columns 数据映射，columns 每一项代表每个表头单元格的配置数据，columns 有几个数组元素就代表要渲染几个表头列。columns 相关内容配置如下：
+key 值 必填性 作用 title yes 表头列的标题 dataIndex yes 表示表头列对应表身单元格的内容数据 width no 表示表头列宽度 id no(建议填) 表示表头列的唯一性标识 render no 表示自定义渲染其对应表身单元格的内容 align no 表示表头单元格内容对齐方式 contentAlign no 表示对应表身单元格内容的对齐方式 const columns = [ { title: &#34;用户名称&#34;, // 表示表头单元格的标题 dataIndex: &#34;userName&#34;, // 表示表头单元格对应表身单元格的内容数据 id: &#34;userName&#34;, // 表示表头单元格的唯一性标识 render: (val) =&gt; { return val; }, // 表示自定义渲染对应表身单元格的内容 align: &#34;left&#34;, // 表示单元格内容对齐位置 }, { title: &#34;注册时间&#34;, dataIndex: &#34;registerTime&#34;, id: &#34;registerTime&#34;, align: &#34;right&#34;, }, ]; 表格的内容数据由 dataSource 数据进行映射，dataSource 也是数组类型，数组每一项代表表身的表格行数据；dataSource 有几项就渲染几行数据。这里我们需要注意，dataSource 里每一项的 key 值一定要与 columns 的 dataIndex 对应好，否则数据是渲染不出来的！"><meta itemprop="datePublished" content="2022-10-17T21:57:21+08:00" />
+<meta itemprop="dateModified" content="2022-10-17T21:57:21+08:00" />
+<meta itemprop="wordCount" content="787">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="从0到1封装原生table组件，并支持大数量级渲染(十万级)"/>
+<meta name="twitter:description" content="一、表格布局分析 首先，我们要先设计 table 组件的基本布局，这里如下图所示：
+从上面这张图我们大致可以理清将要设计的表格组件的 dom 结构，如下面图片所示：
+到此，我们就已经把结构大致搭建起来了。但是，我们需要注意：在实际业务中我们肯定不会这么写 dom 结构，我们往往是用 map 对数据做一层映射，将表格数据映射成具体表格行、表格单元格等。
+二、设计数据格式： 在进行映射之前，我们先设计一下数据格式，这里我们参考的是 antd 的 Table 组件传参格式： 表头列用 columns 数据映射，columns 每一项代表每个表头单元格的配置数据，columns 有几个数组元素就代表要渲染几个表头列。columns 相关内容配置如下：
+key 值 必填性 作用 title yes 表头列的标题 dataIndex yes 表示表头列对应表身单元格的内容数据 width no 表示表头列宽度 id no(建议填) 表示表头列的唯一性标识 render no 表示自定义渲染其对应表身单元格的内容 align no 表示表头单元格内容对齐方式 contentAlign no 表示对应表身单元格内容的对齐方式 const columns = [ { title: &#34;用户名称&#34;, // 表示表头单元格的标题 dataIndex: &#34;userName&#34;, // 表示表头单元格对应表身单元格的内容数据 id: &#34;userName&#34;, // 表示表头单元格的唯一性标识 render: (val) =&gt; { return val; }, // 表示自定义渲染对应表身单元格的内容 align: &#34;left&#34;, // 表示单元格内容对齐位置 }, { title: &#34;注册时间&#34;, dataIndex: &#34;registerTime&#34;, id: &#34;registerTime&#34;, align: &#34;right&#34;, }, ]; 表格的内容数据由 dataSource 数据进行映射，dataSource 也是数组类型，数组每一项代表表身的表格行数据；dataSource 有几项就渲染几行数据。这里我们需要注意，dataSource 里每一项的 key 值一定要与 columns 的 dataIndex 对应好，否则数据是渲染不出来的！"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">从0到1封装原生table组件，并支持大数量级渲染(十万级)</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年10月17日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><h2 id="一表格布局分析">一、表格布局分析</h2>
+<p>首先，我们要先设计 table 组件的基本布局，这里如下图所示：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/606604a0b1e047fd96db9624617ce7a6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>从上面这张图我们大致可以理清将要设计的表格组件的 dom 结构，如下面图片所示：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ad590864466947099c42dff170019dcd~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png">    到此，我们就已经把结构大致搭建起来了。但是，我们需要注意：在实际业务中我们肯定不会这么写 dom 结构，我们往往是用 map 对数据做一层映射，将表格数据映射成具体表格行、表格单元格等。</p>
+<h2 id="二设计数据格式">二、设计数据格式：</h2>
+<p>在进行映射之前，我们先设计一下数据格式，这里我们参考的是 antd 的 Table 组件传参格式： 表头列用 columns 数据映射，columns 每一项代表每个表头单元格的配置数据，columns 有几个数组元素就代表要渲染几个表头列。columns 相关内容配置如下：</p>
+<table>
+<thead>
+<tr>
+<th>key 值</th>
+<th>必填性</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>title</td>
+<td>yes</td>
+<td>表头列的标题</td>
+</tr>
+<tr>
+<td>dataIndex</td>
+<td>yes</td>
+<td>表示表头列对应表身单元格的内容数据</td>
+</tr>
+<tr>
+<td>width</td>
+<td>no</td>
+<td>表示表头列宽度</td>
+</tr>
+<tr>
+<td>id</td>
+<td>no(建议填)</td>
+<td>表示表头列的唯一性标识</td>
+</tr>
+<tr>
+<td>render</td>
+<td>no</td>
+<td>表示自定义渲染其对应表身单元格的内容</td>
+</tr>
+<tr>
+<td>align</td>
+<td>no</td>
+<td>表示表头单元格内容对齐方式</td>
+</tr>
+<tr>
+<td>contentAlign</td>
+<td>no</td>
+<td>表示对应表身单元格内容的对齐方式</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">columns</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">title</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;用户名称&#34;</span>, <span style="color:#75715e">// 表示表头单元格的标题
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">dataIndex</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;userName&#34;</span>, <span style="color:#75715e">// 表示表头单元格对应表身单元格的内容数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;userName&#34;</span>, <span style="color:#75715e">// 表示表头单元格的唯一性标识
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">render</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">val</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">val</span>;
+</span></span><span style="display:flex;"><span>    }, <span style="color:#75715e">// 表示自定义渲染对应表身单元格的内容
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">align</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;left&#34;</span>, <span style="color:#75715e">// 表示单元格内容对齐位置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">title</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;注册时间&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dataIndex</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;registerTime&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;registerTime&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">align</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;right&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>];
+</span></span></code></pre></div><p>表格的内容数据由 dataSource 数据进行映射，dataSource 也是数组类型，数组每一项代表表身的表格行数据；dataSource 有几项就渲染几行数据。这里我们需要注意，dataSource 里每一项的 key 值一定要与 columns 的 dataIndex 对应好，否则数据是渲染不出来的！</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dataSource</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">userName</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;175****0930&#34;</span>, <span style="color:#75715e">// 这里的key值是对应columns的dataIndex值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">registerTime</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2012-12-25 22:13&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">userName</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;这是一串昵称最长十个一&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">registerTime</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2012-12-25 22:13&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">userName</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;这是一串昵称最长十个…&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">registerTime</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2012-12-25 22:13&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">userName</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;这是一串昵称最长十个…&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">registerTime</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2012-12-25 22:13&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>];
+</span></span></code></pre></div><h2 id="三数据映射">三、数据映射</h2>
+<h3 id="表头列映射">表头列映射</h3>
+<p>在上一 part 我们设计了参数格式，容易知道表头列是根据 columns 来进行映射的，并且内容取的是 title 值、对齐位置有 align 决定、自定义渲染有 render 决定。那么我们就可以将映射设计成如下代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>{<span style="color:#75715e">/* 表头 */</span>}
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;tr tr_header&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  {<span style="color:#75715e">/* 表头单元格 */</span>}
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">columns</span>.<span style="color:#a6e22e">map</span>(<span style="color:#a6e22e">item</span> =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">div</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;th&#34;</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">id</span>}
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">style</span><span style="color:#f92672">=</span>{{
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">width</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;auto&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">flex</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34;none&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;1&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">textAlign</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">align</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">align</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;left&#34;</span>,
+</span></span><span style="display:flex;"><span>          }}
+</span></span><span style="display:flex;"><span>          &gt;{<span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">title</span>}
+</span></span><span style="display:flex;"><span>        &lt;/<span style="color:#f92672">div</span>&gt;)
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  ...
+</span></span></code></pre></div><h3 id="表格行映射">表格行映射</h3>
+<p>表格行的渲染与表头不同，因为渲染表身的表格行既要结合 dataSource 进行内容展示，也要根据 columns 来决定表身渲染几列。由此我们初步判断要进行两层映射，一层映射遍历 dataSource 数据决定渲染几行，一层映射遍历 columns 来渲染出每一行的列数。而我们要自定义渲染的内容则需要写在内层映射中。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>{<span style="color:#75715e">/* 表身 */</span>}
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;table_body&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  {<span style="color:#a6e22e">dataSource</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">item</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#39;tr tr_body_line&#39;</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">id</span>}&gt;
+</span></span><span style="display:flex;"><span>      {<span style="color:#a6e22e">columns</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">_item</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">div</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;td&#34;</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">style</span><span style="color:#f92672">=</span>{{
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">width</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">_item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">_item</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;auto&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">flex</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">_item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34;none&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;1&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">textAlign</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">_item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">contentAlign</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">_item</span>.<span style="color:#a6e22e">contentAlign</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;left&#34;</span>,
+</span></span><span style="display:flex;"><span>          }}
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">_item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">id</span>}
+</span></span><span style="display:flex;"><span>          &gt;
+</span></span><span style="display:flex;"><span>          {<span style="color:#a6e22e">_item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">render</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">?</span> <span style="color:#a6e22e">_item</span>.<span style="color:#a6e22e">render</span>(<span style="color:#a6e22e">item</span>[<span style="color:#a6e22e">_item</span>.<span style="color:#a6e22e">dataIndex</span>])
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">:</span> <span style="color:#a6e22e">item</span>[<span style="color:#a6e22e">_item</span>.<span style="color:#a6e22e">dataIndex</span>]}
+</span></span><span style="display:flex;"><span>        &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      );
+</span></span><span style="display:flex;"><span>    })}
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>})}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>到这里我们的表格组件就封装完成了，下面是是完整代码：</p>
+<p>CommonTable.jsx 文件</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">React</span>, { <span style="color:#a6e22e">memo</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">scss</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./index.module.scss&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 支持自定义render; 支持调节宽度(百分比); 支持文本位置; 支持自定义table样式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">CommonTable</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">memo</span>((<span style="color:#a6e22e">props</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">columns</span> <span style="color:#f92672">=</span> [],
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dataSource</span> <span style="color:#f92672">=</span> [],
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">loading</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">customTableStyle</span>,
+</span></span><span style="display:flex;"><span>  } <span style="color:#f92672">=</span> <span style="color:#a6e22e">props</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span>{<span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">scss</span>.<span style="color:#a6e22e">table</span><span style="color:#e6db74">}</span><span style="color:#e6db74"> </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">customTableStyle</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>}&gt;
+</span></span><span style="display:flex;"><span>      {<span style="color:#a6e22e">loading</span> <span style="color:#f92672">?</span> (
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">div</span>&gt;<span style="color:#a6e22e">加载中</span>....&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      ) <span style="color:#f92672">:</span> (
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>          &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span>{<span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">scss</span>.<span style="color:#a6e22e">tr</span><span style="color:#e6db74">}</span><span style="color:#e6db74"> </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">scss</span>.<span style="color:#a6e22e">bg_header</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>}&gt;
+</span></span><span style="display:flex;"><span>            {<span style="color:#a6e22e">columns</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">item</span>) =&gt; {
+</span></span><span style="display:flex;"><span>              <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>                &lt;<span style="color:#f92672">div</span>
+</span></span><span style="display:flex;"><span>                  <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">scss</span>.<span style="color:#a6e22e">th</span>}
+</span></span><span style="display:flex;"><span>                  <span style="color:#a6e22e">style</span><span style="color:#f92672">=</span>{{
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">width</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;auto&#34;</span>,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">flex</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34;none&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;1&#34;</span>,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">textAlign</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">align</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">align</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;left&#34;</span>,
+</span></span><span style="display:flex;"><span>                  }}
+</span></span><span style="display:flex;"><span>                  <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">id</span>}
+</span></span><span style="display:flex;"><span>                &gt;
+</span></span><span style="display:flex;"><span>                  {<span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">title</span>}
+</span></span><span style="display:flex;"><span>                &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>              );
+</span></span><span style="display:flex;"><span>            })}
+</span></span><span style="display:flex;"><span>          &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>          &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">scss</span>.<span style="color:#a6e22e">table_content</span>}&gt;
+</span></span><span style="display:flex;"><span>            {<span style="color:#a6e22e">dataSource</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">item</span>, <span style="color:#a6e22e">idx</span>) =&gt; {
+</span></span><span style="display:flex;"><span>              <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>                &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span>{<span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">scss</span>.<span style="color:#a6e22e">tr</span><span style="color:#e6db74">}</span><span style="color:#e6db74"> </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">scss</span>.<span style="color:#a6e22e">bg_line</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>} <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">id</span>}&gt;
+</span></span><span style="display:flex;"><span>                  {<span style="color:#a6e22e">columns</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">_item</span>) =&gt; {
+</span></span><span style="display:flex;"><span>                    <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>                      &lt;<span style="color:#f92672">div</span>
+</span></span><span style="display:flex;"><span>                        <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">scss</span>.<span style="color:#a6e22e">td</span>}
+</span></span><span style="display:flex;"><span>                        <span style="color:#a6e22e">style</span><span style="color:#f92672">=</span>{{
+</span></span><span style="display:flex;"><span>                          <span style="color:#a6e22e">width</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">_item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">_item</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;auto&#34;</span>,
+</span></span><span style="display:flex;"><span>                          <span style="color:#a6e22e">flex</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">_item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34;none&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;1&#34;</span>,
+</span></span><span style="display:flex;"><span>                          <span style="color:#a6e22e">textAlign</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">_item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">contentAlign</span>
+</span></span><span style="display:flex;"><span>                            <span style="color:#f92672">?</span> <span style="color:#a6e22e">_item</span>.<span style="color:#a6e22e">contentAlign</span>
+</span></span><span style="display:flex;"><span>                            <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;left&#34;</span>,
+</span></span><span style="display:flex;"><span>                        }}
+</span></span><span style="display:flex;"><span>                        <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">_item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">id</span>}
+</span></span><span style="display:flex;"><span>                      &gt;
+</span></span><span style="display:flex;"><span>                        {<span style="color:#a6e22e">_item</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">render</span>
+</span></span><span style="display:flex;"><span>                          <span style="color:#f92672">?</span> <span style="color:#a6e22e">_item</span>.<span style="color:#a6e22e">render</span>(<span style="color:#a6e22e">item</span>[<span style="color:#a6e22e">_item</span>.<span style="color:#a6e22e">dataIndex</span>])
+</span></span><span style="display:flex;"><span>                          <span style="color:#f92672">:</span> <span style="color:#a6e22e">item</span>[<span style="color:#a6e22e">_item</span>.<span style="color:#a6e22e">dataIndex</span>]}
+</span></span><span style="display:flex;"><span>                      &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>                    );
+</span></span><span style="display:flex;"><span>                  })}
+</span></span><span style="display:flex;"><span>                &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>              );
+</span></span><span style="display:flex;"><span>            })}
+</span></span><span style="display:flex;"><span>          &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>        &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      )}
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">CommonTable</span>;
+</span></span></code></pre></div><p>index.module.scss 样式文件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-scss" data-lang="scss"><span style="display:flex;"><span><span style="color:#a6e22e">.table</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">position</span><span style="color:#f92672">:</span> relative;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">border-radius</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">5</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">overflow-y</span><span style="color:#f92672">:</span> hidden;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">border</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span><span style="color:#66d9ef">px</span> solid <span style="color:#ae81ff">#000</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">.table_content</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">height</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">296</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">overflow-y</span><span style="color:#f92672">:</span> auto;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">.tr</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">display</span><span style="color:#f92672">:</span> flex;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">width</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">100</span><span style="color:#66d9ef">%</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">border-bottom</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span><span style="color:#66d9ef">px</span> solid <span style="color:#ae81ff">#000</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">.th</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">flex</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">overflow</span><span style="color:#f92672">:</span> hidden;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">text-overflow</span><span style="color:#f92672">:</span> ellipsis;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">white-space</span><span style="color:#f92672">:</span> nowrap;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">height</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">100</span><span style="color:#66d9ef">%</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">:nth-child</span><span style="color:#f92672">(</span><span style="color:#f92672">n</span><span style="color:#f92672">)</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">border-right</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span><span style="color:#66d9ef">px</span> solid <span style="color:#ae81ff">#000</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">:last-child</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">border-right</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">.td</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">@extend</span> <span style="color:#a6e22e">.th</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 配一些td独有的样式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">.bg_header</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">height</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">66</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">line-height</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">66</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">.bg_line</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">height</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">33</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">line-height</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">33</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>在业务组件中使用此组件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">CommonTable</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">columns</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">mockColumns</span>}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">dataSource</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">mockDataSource</span>}/&gt;
+</span></span><span style="display:flex;"><span>  ...
+</span></span></code></pre></div><h2 id="四大数量级数据渲染优化">四、大数量级数据渲染优化</h2>
+<p>现在我们封装的 table 组件就可以进行使用了，但是存在一个问题：如果表格的行数据很多时，表格渲染会出现卡顿的现象。这里我们以渲染 100000 条行数据来进行性能测试。</p>
+<p>我们先对 Table 组件中增加些代码来算一下阻塞时间：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">startTime</span><span style="color:#f92672">=</span><span style="color:#a6e22e">useRef</span>(<span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">useEffect</span>(() =&gt;  {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">endTime</span><span style="color:#f92672">=</span><span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;endend&gt;&gt;&#39;</span>,<span style="color:#a6e22e">endTime</span>,<span style="color:#e6db74">&#39;startTime.current&gt;&gt;&gt;&#39;</span>,<span style="color:#a6e22e">startTime</span>.<span style="color:#a6e22e">current</span>,<span style="color:#e6db74">&#39;阻塞时间&gt;&gt;&gt;&#39;</span>,<span style="color:#a6e22e">endTime</span><span style="color:#f92672">-</span><span style="color:#a6e22e">startTime</span>.<span style="color:#a6e22e">current</span>);
+</span></span><span style="display:flex;"><span>  },[])
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>  ...
+</span></span><span style="display:flex;"><span>)
+</span></span></code></pre></div><p>创建 dataSource 数据，mock 十万条行数据：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">mockDataLen</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">num</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> Array.<span style="color:#a6e22e">from</span>({ <span style="color:#a6e22e">length</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">num</span> }).<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">it</span>, <span style="color:#a6e22e">idx</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">userName</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">idx</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;测试数据…&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">restNum</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;121211&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">idx</span>,
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">mockDataSource</span> <span style="color:#f92672">=</span> [...<span style="color:#a6e22e">mockDataLen</span>(<span style="color:#ae81ff">100000</span>)];
+</span></span></code></pre></div><h3 id="直接渲染">直接渲染：</h3>
+<p>我们直接将十万条数据传入，此时查看控制台打印的阻塞时间以及控制面板里的 fp 如下图所示: <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b1c382645e944f6697f577145243cc5e~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fbe65a162ca745f79efbb799b3a70180~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="">    我们可以看出，阻塞时间会长达 4-5s 并且首次 paint 在 16s 后了，页面也很卡顿。</p>
+<blockquote>
+<p><strong>卡顿原因分析：</strong> 这里卡顿的原因也很简单：react 一次性渲染十万条数据是一笔不小的开销，scripting 阶段、render 阶段损耗都非常大。</p>
+</blockquote>
+<p><strong>那么我们该如何去优化这种数量级的渲染呢？</strong></p>
+<p>主流方法其实就三种： 时间分片、虚拟列表、后端分页。</p>
+<ol>
+<li><strong>时间分片</strong> 就是将大批量数据进行分批渲染，每次的渲染数都是一个小数量级的分片数据；</li>
+<li><strong>虚拟列表</strong> 是每次只渲染可视区域的数据，也就是说渲染的行数是固定的，变的只是位于可视区数据值；</li>
+<li><strong>后端分页</strong> 是后台每次都返回小数量级的数据，前端根据页码去请求相应页码的后台数据并进行渲染。</li>
+</ol>
+<p>总的来说，我们在优化大数量级别的渲染遵循的原则就是减少每次要渲染的数据量。我们这里采用时间分片的方式来优化 Table 组件。</p>
+<h3 id="时间分片">时间分片：</h3>
+<p>分析：</p>
+<p>既然我们已经知道了时间分片就是将大数量级的数据切成一个个小数量级的分片来进行分批次渲染，那么我们可以这样设计： 首先是 updateRenderList 函数，此函数是用来更改每次要渲染的 table 数据的，也即每个批次增加多个新渲染的行就是在这里处理的；另外我们还需要一个 loop 函数，这个函数的作用就是当本次表格数据更新完之后再去进行下一次的更新 render。</p>
+<blockquote>
+<p>注意：我这里说的是等本次更新完，也就代表着开启下一次更新的时机一定不能同步执行。这里我们用 setTimeout 定时器来进行开启下一次的更新数据。</p>
+</blockquote>
+<p>逻辑分析完之后，我们就来设计代码：</p>
+<p>首先我们先确定需要几个变量值：</p>
+<ol>
+<li>实际要映射渲染的 renderList 是必需的；</li>
+<li>用来被分片的总数据 allDataSource 也是必需的；</li>
+</ol>
+<p><strong>设计 updateRenderList 函数：</strong></p>
+<p>经过上面的分析，我们清楚 updateRenderList 主要就是用来更新实际参与渲染的 table 数据的，那么我们在此函数中要做的工作就两个： 切割总数据、更新 renderList 值。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">updateList</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 取五十个渲染
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">setRenderList</span>((<span style="color:#a6e22e">pre</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> [...<span style="color:#a6e22e">pre</span>, ...<span style="color:#a6e22e">listRef</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">splice</span>(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">50</span>)];
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>设计 loop 函数：</strong></p>
+<p>loop 函数是个递归函数，因为此函数中需要不断的进行自调用去更新 renderList 以及判断是否要进行下一次的 loop。递归函数都需要有个出口，此函数的出口就是当总数据 allDataSource 被分割完，即可跳出递归。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">loop</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">allDataSource</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">updateList</span>(<span style="color:#a6e22e">allDataSource</span>.<span style="color:#a6e22e">current</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 之所以用setTimeout是要等上一个updateList渲染完再进行下一次loop
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 渲染完成，下一次 loop
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">loop</span>();
+</span></span><span style="display:flex;"><span>  }, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>所有优化代码如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> { <span style="color:#a6e22e">columns</span> <span style="color:#f92672">=</span> [], <span style="color:#a6e22e">dataSource</span> <span style="color:#f92672">=</span> [], <span style="color:#a6e22e">loading</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span> ,<span style="color:#a6e22e">customTableStyle</span>,<span style="color:#a6e22e">tabKey</span><span style="color:#f92672">=</span><span style="color:#66d9ef">undefined</span>} <span style="color:#f92672">=</span> <span style="color:#a6e22e">props</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">allDataSource</span><span style="color:#f92672">=</span> <span style="color:#a6e22e">useRef</span>([])
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">renderList</span>,<span style="color:#a6e22e">setRenderList</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>([])
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">updateList</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 取五十个渲染
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">setRenderList</span>((<span style="color:#a6e22e">pre</span>)=&gt;{
+</span></span><span style="display:flex;"><span>     <span style="color:#66d9ef">return</span> [...<span style="color:#a6e22e">pre</span>,...<span style="color:#a6e22e">listRef</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">splice</span>(<span style="color:#ae81ff">0</span>,<span style="color:#ae81ff">50</span>)]
+</span></span><span style="display:flex;"><span>    } )
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">loop</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">allDataSource</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>)  <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">updateList</span>(<span style="color:#a6e22e">allDataSource</span>.<span style="color:#a6e22e">current</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 之所以用setTimeout是要等上一个updateList渲染完再进行下一次loop
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 渲染完成，下一次 loop
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">loop</span>();
+</span></span><span style="display:flex;"><span>    },<span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 数据变化或者有切换tab这种的功能时需要去清除renderList否则会有性能开销
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">useLayoutEffect</span>(()=&gt;{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setRenderList</span>([])
+</span></span><span style="display:flex;"><span>  },[<span style="color:#a6e22e">dataSource</span>,<span style="color:#a6e22e">tabKey</span>])
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">allDataSource</span>.<span style="color:#a6e22e">current</span><span style="color:#f92672">=</span><span style="color:#a6e22e">_</span>.<span style="color:#a6e22e">cloneDeep</span>(<span style="color:#a6e22e">dataSource</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 当数据变化开启loop
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">loop</span>()
+</span></span><span style="display:flex;"><span>   },[<span style="color:#a6e22e">dataSource</span>])
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>     <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>       ...
+</span></span><span style="display:flex;"><span>     )
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>优化后，控制面板相关数据如下图：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c9c2b055a16148a88b7bee799e9a07eb~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""> <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2d1cb36d9e1f4ff8937702ec2afa2cc7~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>这样的结果我们还是可以接受的。</p>
+<h3 id="用-raf-进行优化避免丢帧的情况">用 RAF 进行优化，避免丢帧的情况</h3>
+<p>我们在滚动时又发现了一个问题：页面滚动过快会出现白屏，也就是我们常说的丢帧现象。如下图示：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d951f7fda8bb4b23aea9acc510988c8c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>这是为什么呢？ 原来，我们在开启下一次 loop 时用的是 setTimeout 来进行开启的。而 setTimeout 又是一个宏任务，它与浏览器的刷新频率是不一致的，这也就造成我们滚动过快出现白屏的原因。</p>
+<p><strong>解决方法：</strong></p>
+<p>我们知道 requestAnimationFrame 的回调执行频率和屏幕刷新频率一致，都是 60HZ 也即一秒刷新 60 次，在下一次重绘前进行调用。所以我们就用 requestAnimationFrame 来替代 setTimeout 来更改一下数据更新的时机从而避免闪屏的出现。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">loop</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">allDataSource</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>)  <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">updateList</span>(<span style="color:#a6e22e">allDataSource</span>.<span style="color:#a6e22e">current</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">requestAnimationFrame</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 渲染完成，下一次 loop
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">loop</span>();
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>这是 requestAnimationFrame 优化后面板的数据</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/139cb33f4c1a4e18be972dfae4bc69b2~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/451dd5a9c7b347ba923cd7baa032d7c8~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>以上就是我们整个组件的封装以及优化过程了。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/205/"
+      ><span class="mr-1.5">←</span><span>记录一次组件性能优化的解决过程</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/203/"
+      ><span>js实现贝塞尔曲线，div也能如此丝滑</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>

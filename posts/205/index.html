@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>记录一次组件性能优化的解决过程 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="一、背景 项目迭代期间，有个比较常用的 React 组件发现有性能问题，leader 叫我看看。开始还是比较紧张的，因为这是公司平台的一个基础组件，各个团队都有可能会用，有点担心给改坏了，性能问题给改成了问题。这个组件是一个类似穿梭框的组件，将左侧的待选数据选择增加到右侧的已选数据。
+二、问题记录 在点击单个数据时，只有一条数据增加到右侧选中区，体验良好。
+在点击全选按钮时，将左侧列表全部数据增加到右侧选中区。在数据量为 300 左右时，耗时大概是 90s，迟滞感明显。 这个性能问题可以稳定复现。
+三、问题排查 在源码中找到 全选操作的回调函数，按照全选操作执行的调用链依次排查。
+（具体的代码就不贴出来了，抽象成逻辑来分析）。 点击全选按钮，调用 selectAll 函数 循环遍历 selectAllData ，将数组的每一项 作为参数 传入 B 函数，向外部抛出 调用 B 函数 调用 C 函数 判断传入的数据项是否可以增加 可以增加，全选选中的数据项 和 已选中的数据 合并作为 新的已选中的数据，并调用 setState 重新设置已选中的数据。 不可以增加，不作操作。 调用 C 函数 在全选操作执行的调用链中，可以发现，主要的逻辑都集中在 B 函数中，全选时选中的数据有多少项，B 函数就会执行多少次。
+每次执行 B 函数，都会调用 C 函数，都有可能调用 setState 修改状态并进行重新渲染，这就导致全选操作的耗时随着数据量线性增长。
+导致性能问题的原因主要有两个：
+新增数据的每一项都会调用 appendItem 函数，有可能修改 state 进行重新渲染 每次调用 appendItem 函数都会调用 resetSearch 函数 来重置搜索相关的逻辑 为什么其他情况没有暴露出性能问题：
+在点击单个数据进行选择的时候，只会调用一次 B 函数，单次操作耗时比较少，用户基本无感知。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="记录一次组件性能优化的解决过程" />
+<meta property="og:description" content="一、背景 项目迭代期间，有个比较常用的 React 组件发现有性能问题，leader 叫我看看。开始还是比较紧张的，因为这是公司平台的一个基础组件，各个团队都有可能会用，有点担心给改坏了，性能问题给改成了问题。这个组件是一个类似穿梭框的组件，将左侧的待选数据选择增加到右侧的已选数据。
+二、问题记录 在点击单个数据时，只有一条数据增加到右侧选中区，体验良好。
+在点击全选按钮时，将左侧列表全部数据增加到右侧选中区。在数据量为 300 左右时，耗时大概是 90s，迟滞感明显。 这个性能问题可以稳定复现。
+三、问题排查 在源码中找到 全选操作的回调函数，按照全选操作执行的调用链依次排查。
+（具体的代码就不贴出来了，抽象成逻辑来分析）。 点击全选按钮，调用 selectAll 函数 循环遍历 selectAllData ，将数组的每一项 作为参数 传入 B 函数，向外部抛出 调用 B 函数 调用 C 函数 判断传入的数据项是否可以增加 可以增加，全选选中的数据项 和 已选中的数据 合并作为 新的已选中的数据，并调用 setState 重新设置已选中的数据。 不可以增加，不作操作。 调用 C 函数 在全选操作执行的调用链中，可以发现，主要的逻辑都集中在 B 函数中，全选时选中的数据有多少项，B 函数就会执行多少次。
+每次执行 B 函数，都会调用 C 函数，都有可能调用 setState 修改状态并进行重新渲染，这就导致全选操作的耗时随着数据量线性增长。
+导致性能问题的原因主要有两个：
+新增数据的每一项都会调用 appendItem 函数，有可能修改 state 进行重新渲染 每次调用 appendItem 函数都会调用 resetSearch 函数 来重置搜索相关的逻辑 为什么其他情况没有暴露出性能问题：
+在点击单个数据进行选择的时候，只会调用一次 B 函数，单次操作耗时比较少，用户基本无感知。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/205/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-17T22:07:06+08:00" />
+<meta property="article:modified_time" content="2022-10-17T22:07:06+08:00" />
+
+
+  
+  <meta itemprop="name" content="记录一次组件性能优化的解决过程">
+<meta itemprop="description" content="一、背景 项目迭代期间，有个比较常用的 React 组件发现有性能问题，leader 叫我看看。开始还是比较紧张的，因为这是公司平台的一个基础组件，各个团队都有可能会用，有点担心给改坏了，性能问题给改成了问题。这个组件是一个类似穿梭框的组件，将左侧的待选数据选择增加到右侧的已选数据。
+二、问题记录 在点击单个数据时，只有一条数据增加到右侧选中区，体验良好。
+在点击全选按钮时，将左侧列表全部数据增加到右侧选中区。在数据量为 300 左右时，耗时大概是 90s，迟滞感明显。 这个性能问题可以稳定复现。
+三、问题排查 在源码中找到 全选操作的回调函数，按照全选操作执行的调用链依次排查。
+（具体的代码就不贴出来了，抽象成逻辑来分析）。 点击全选按钮，调用 selectAll 函数 循环遍历 selectAllData ，将数组的每一项 作为参数 传入 B 函数，向外部抛出 调用 B 函数 调用 C 函数 判断传入的数据项是否可以增加 可以增加，全选选中的数据项 和 已选中的数据 合并作为 新的已选中的数据，并调用 setState 重新设置已选中的数据。 不可以增加，不作操作。 调用 C 函数 在全选操作执行的调用链中，可以发现，主要的逻辑都集中在 B 函数中，全选时选中的数据有多少项，B 函数就会执行多少次。
+每次执行 B 函数，都会调用 C 函数，都有可能调用 setState 修改状态并进行重新渲染，这就导致全选操作的耗时随着数据量线性增长。
+导致性能问题的原因主要有两个：
+新增数据的每一项都会调用 appendItem 函数，有可能修改 state 进行重新渲染 每次调用 appendItem 函数都会调用 resetSearch 函数 来重置搜索相关的逻辑 为什么其他情况没有暴露出性能问题：
+在点击单个数据进行选择的时候，只会调用一次 B 函数，单次操作耗时比较少，用户基本无感知。"><meta itemprop="datePublished" content="2022-10-17T22:07:06+08:00" />
+<meta itemprop="dateModified" content="2022-10-17T22:07:06+08:00" />
+<meta itemprop="wordCount" content="122">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="记录一次组件性能优化的解决过程"/>
+<meta name="twitter:description" content="一、背景 项目迭代期间，有个比较常用的 React 组件发现有性能问题，leader 叫我看看。开始还是比较紧张的，因为这是公司平台的一个基础组件，各个团队都有可能会用，有点担心给改坏了，性能问题给改成了问题。这个组件是一个类似穿梭框的组件，将左侧的待选数据选择增加到右侧的已选数据。
+二、问题记录 在点击单个数据时，只有一条数据增加到右侧选中区，体验良好。
+在点击全选按钮时，将左侧列表全部数据增加到右侧选中区。在数据量为 300 左右时，耗时大概是 90s，迟滞感明显。 这个性能问题可以稳定复现。
+三、问题排查 在源码中找到 全选操作的回调函数，按照全选操作执行的调用链依次排查。
+（具体的代码就不贴出来了，抽象成逻辑来分析）。 点击全选按钮，调用 selectAll 函数 循环遍历 selectAllData ，将数组的每一项 作为参数 传入 B 函数，向外部抛出 调用 B 函数 调用 C 函数 判断传入的数据项是否可以增加 可以增加，全选选中的数据项 和 已选中的数据 合并作为 新的已选中的数据，并调用 setState 重新设置已选中的数据。 不可以增加，不作操作。 调用 C 函数 在全选操作执行的调用链中，可以发现，主要的逻辑都集中在 B 函数中，全选时选中的数据有多少项，B 函数就会执行多少次。
+每次执行 B 函数，都会调用 C 函数，都有可能调用 setState 修改状态并进行重新渲染，这就导致全选操作的耗时随着数据量线性增长。
+导致性能问题的原因主要有两个：
+新增数据的每一项都会调用 appendItem 函数，有可能修改 state 进行重新渲染 每次调用 appendItem 函数都会调用 resetSearch 函数 来重置搜索相关的逻辑 为什么其他情况没有暴露出性能问题：
+在点击单个数据进行选择的时候，只会调用一次 B 函数，单次操作耗时比较少，用户基本无感知。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">记录一次组件性能优化的解决过程</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年10月17日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><h2 id="一背景">一、背景</h2>
+<p>项目迭代期间，有个比较常用的 React 组件发现有性能问题，leader 叫我看看。开始还是比较紧张的，因为这是公司平台的一个基础组件，各个团队都有可能会用，有点担心给改坏了，性能问题给改成了问题。这个组件是一个类似穿梭框的组件，将左侧的待选数据选择增加到右侧的已选数据。</p>
+<h2 id="二问题记录">二、问题记录</h2>
+<p>在点击单个数据时，只有一条数据增加到右侧选中区，体验良好。<br>
+在点击全选按钮时，将左侧列表全部数据增加到右侧选中区。在数据量为 300 左右时，耗时大概是 90s，迟滞感明显。 这个性能问题可以稳定复现。</p>
+<h2 id="三问题排查">三、问题排查</h2>
+<ol>
+<li>在源码中找到 全选操作的回调函数，按照全选操作执行的调用链依次排查。<br>
+（具体的代码就不贴出来了，抽象成逻辑来分析）。</li>
+</ol>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b79ae4938ffd4134b52e6c84e2039c2f~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<ul>
+<li>点击全选按钮，调用 selectAll 函数
+<ul>
+<li>循环遍历 selectAllData ，将数组的每一项 作为参数 传入 B  函数，向外部抛出</li>
+</ul>
+</li>
+<li>调用 B 函数
+<ul>
+<li>调用 C 函数</li>
+<li>判断传入的数据项是否可以增加
+<ul>
+<li>可以增加，全选选中的数据项 和 已选中的数据 合并作为 新的已选中的数据，并调用 setState 重新设置已选中的数据。</li>
+<li>不可以增加，不作操作。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>调用  C 函数</li>
+</ul>
+<p>在全选操作执行的调用链中，可以发现，主要的逻辑都集中在 B 函数中，全选时选中的数据有多少项，B 函数就会执行多少次。</p>
+<p>每次执行 B 函数，都会调用 C 函数，都有可能调用 setState 修改状态并进行重新渲染，这就导致全选操作的耗时随着数据量线性增长。</p>
+<p><strong>导致性能问题的原因主要有两个：</strong></p>
+<ol>
+<li>新增数据的每一项都会调用 appendItem 函数，有可能修改 state 进行重新渲染</li>
+<li>每次调用 appendItem 函数都会调用 resetSearch 函数 来重置搜索相关的逻辑</li>
+</ol>
+<p><strong>为什么其他情况没有暴露出性能问题：</strong></p>
+<p>在点击单个数据进行选择的时候，只会调用一次 B 函数，单次操作耗时比较少，用户基本无感知。</p>
+<h2 id="四优化方案">四、优化方案</h2>
+<h3 id="优化思路">优化思路：</h3>
+<p>针对导致性能问题的主要原因，在结合具体的需求和交互，做出以下优化</p>
+<ol>
+<li>全选时，先将 全选选中的数据 和 已选择的数据 进行 去重合并，再用得到的新数据更新 state。</li>
+</ol>
+<p>（将多次的 setState 合并成一次。）</p>
+<ol start="2">
+<li>在设置完新的 state 之后，再调用 C 函数。</li>
+</ol>
+<p>（从交互上来说，原有交互是在点击某个选项时会新增到已选择数据并重置特定逻辑，在统一设置完新的 state 后再重置特定逻辑符合原有的交互。）</p>
+<h3 id="具体实现">具体实现：</h3>
+<p>新增了一个 props onSelectAll，在点击全选时将全选全选选中的数据整体向外抛出</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/17789c91ca0448cd904039a16b4736b0~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<h2 id="五优化结果">五、优化结果</h2>
+<img src="/imgs/2/20221017221230.jpg" />
+<p>从 performance 的分析来看。</p>
+<p>CPU 的图形分布中，script 的执行时间占比较大，可以初步判断是 script 的执行消耗了大量的资源。</p>
+<p>火焰图中存在大量的近似的起伏，有可能是大量的重复调用。</p>
+<h2 id="六总结">六、总结</h2>
+<h3 id="1-性能问题的排查思路">1. 性能问题的排查思路</h3>
+<p>这里主要是指代码逻辑层面</p>
+<ul>
+<li>找到触发性能问题的场景，依照操作执行的调用链依次排查</li>
+<li>性能问题分两种：
+<ul>
+<li>不可用（资源耗尽，爆栈）：是否存在无限循环，循环调用&hellip;&hellip;</li>
+<li>可用（只是单纯的慢）：代码逻辑是否合理，是否存在冗余操作，执行和渲染，重复的操作在逻辑上是否可以进行合并&hellip;&hellip;</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-工具">2. 工具</h3>
+<ul>
+<li>朴实而万能的 console</li>
+<li>Google Chrome performance</li>
+<li>好像还有一些专业的性能测试工具，但是还不太会用哈哈哈</li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/206/"
+      ><span class="mr-1.5">←</span><span>iframe 跨窗口通信</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/204/"
+      ><span>从0到1封装原生table组件，并支持大数量级渲染(十万级)</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>

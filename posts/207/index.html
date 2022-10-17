@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>React 组件如何优雅地处理异步数据 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 我们在编写 React 应用的时候，常常需要在组件里面 异步获取数据。因为异步请求是需要一定时间才能结束的，通常我们为了更好的用户体验会在请求还没有结束前给用户展示一个 loading 的状态，然后如果发生了错误还要在页面上面展示错误的原因，只有当请求结束并且没有错误的情况下，我们才渲染出最终的数据。这个需求十分常见，如果你的 代码封装得比较好 的话，你的处理逻辑大概是这样的:
+const AsyncComponent = () =&gt; { const [data, isLoading, error] = fetchData(&#34;./someapi&#34;); if (isLoading) { return &lt;Loading /&gt;; } if (error) { return &lt;Error error={error} /&gt;; } return &lt;DisplayData data={data} /&gt;; }; 在上面的代码中我展示了大多数项目里面常用的做法，那就是：封装一个 自定义的 hook(fetchData) 来处理异步请求的不同状态 - pending, error 和 success。这种做法一般情况下是没有什么问题的，至少比没有封装要好很多，可是当我们的项目规模变大了以后，你会发现我们还是需要写很多 模板代码，因为每次调用完 fetchData 都需要判断 isLoading 和 error 的值然后展示相对应的内容。那么有没有一种办法可以让我们在某些地方统一处理 pending 和 error 的情况，从而我们在组件里面只需要处理 success 的情况呢？答案是肯定的，本篇文章将会提供一种基于 Suspense 和 ErrorBoundary 的思路来解决这个问题。
+API 介绍 在介绍具体方案之前，我们先来看看会用到的两个组件 - Suspense 和 ErrorBoundary 的具体用法。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/avator.jpg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="React 组件如何优雅地处理异步数据" />
+<meta property="og:description" content="前言 我们在编写 React 应用的时候，常常需要在组件里面 异步获取数据。因为异步请求是需要一定时间才能结束的，通常我们为了更好的用户体验会在请求还没有结束前给用户展示一个 loading 的状态，然后如果发生了错误还要在页面上面展示错误的原因，只有当请求结束并且没有错误的情况下，我们才渲染出最终的数据。这个需求十分常见，如果你的 代码封装得比较好 的话，你的处理逻辑大概是这样的:
+const AsyncComponent = () =&gt; { const [data, isLoading, error] = fetchData(&#34;./someapi&#34;); if (isLoading) { return &lt;Loading /&gt;; } if (error) { return &lt;Error error={error} /&gt;; } return &lt;DisplayData data={data} /&gt;; }; 在上面的代码中我展示了大多数项目里面常用的做法，那就是：封装一个 自定义的 hook(fetchData) 来处理异步请求的不同状态 - pending, error 和 success。这种做法一般情况下是没有什么问题的，至少比没有封装要好很多，可是当我们的项目规模变大了以后，你会发现我们还是需要写很多 模板代码，因为每次调用完 fetchData 都需要判断 isLoading 和 error 的值然后展示相对应的内容。那么有没有一种办法可以让我们在某些地方统一处理 pending 和 error 的情况，从而我们在组件里面只需要处理 success 的情况呢？答案是肯定的，本篇文章将会提供一种基于 Suspense 和 ErrorBoundary 的思路来解决这个问题。
+API 介绍 在介绍具体方案之前，我们先来看看会用到的两个组件 - Suspense 和 ErrorBoundary 的具体用法。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/207/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-17T22:28:00+08:00" />
+<meta property="article:modified_time" content="2022-10-17T22:28:00+08:00" />
+
+
+  
+  <meta itemprop="name" content="React 组件如何优雅地处理异步数据">
+<meta itemprop="description" content="前言 我们在编写 React 应用的时候，常常需要在组件里面 异步获取数据。因为异步请求是需要一定时间才能结束的，通常我们为了更好的用户体验会在请求还没有结束前给用户展示一个 loading 的状态，然后如果发生了错误还要在页面上面展示错误的原因，只有当请求结束并且没有错误的情况下，我们才渲染出最终的数据。这个需求十分常见，如果你的 代码封装得比较好 的话，你的处理逻辑大概是这样的:
+const AsyncComponent = () =&gt; { const [data, isLoading, error] = fetchData(&#34;./someapi&#34;); if (isLoading) { return &lt;Loading /&gt;; } if (error) { return &lt;Error error={error} /&gt;; } return &lt;DisplayData data={data} /&gt;; }; 在上面的代码中我展示了大多数项目里面常用的做法，那就是：封装一个 自定义的 hook(fetchData) 来处理异步请求的不同状态 - pending, error 和 success。这种做法一般情况下是没有什么问题的，至少比没有封装要好很多，可是当我们的项目规模变大了以后，你会发现我们还是需要写很多 模板代码，因为每次调用完 fetchData 都需要判断 isLoading 和 error 的值然后展示相对应的内容。那么有没有一种办法可以让我们在某些地方统一处理 pending 和 error 的情况，从而我们在组件里面只需要处理 success 的情况呢？答案是肯定的，本篇文章将会提供一种基于 Suspense 和 ErrorBoundary 的思路来解决这个问题。
+API 介绍 在介绍具体方案之前，我们先来看看会用到的两个组件 - Suspense 和 ErrorBoundary 的具体用法。"><meta itemprop="datePublished" content="2022-10-17T22:28:00+08:00" />
+<meta itemprop="dateModified" content="2022-10-17T22:28:00+08:00" />
+<meta itemprop="wordCount" content="429">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="React 组件如何优雅地处理异步数据"/>
+<meta name="twitter:description" content="前言 我们在编写 React 应用的时候，常常需要在组件里面 异步获取数据。因为异步请求是需要一定时间才能结束的，通常我们为了更好的用户体验会在请求还没有结束前给用户展示一个 loading 的状态，然后如果发生了错误还要在页面上面展示错误的原因，只有当请求结束并且没有错误的情况下，我们才渲染出最终的数据。这个需求十分常见，如果你的 代码封装得比较好 的话，你的处理逻辑大概是这样的:
+const AsyncComponent = () =&gt; { const [data, isLoading, error] = fetchData(&#34;./someapi&#34;); if (isLoading) { return &lt;Loading /&gt;; } if (error) { return &lt;Error error={error} /&gt;; } return &lt;DisplayData data={data} /&gt;; }; 在上面的代码中我展示了大多数项目里面常用的做法，那就是：封装一个 自定义的 hook(fetchData) 来处理异步请求的不同状态 - pending, error 和 success。这种做法一般情况下是没有什么问题的，至少比没有封装要好很多，可是当我们的项目规模变大了以后，你会发现我们还是需要写很多 模板代码，因为每次调用完 fetchData 都需要判断 isLoading 和 error 的值然后展示相对应的内容。那么有没有一种办法可以让我们在某些地方统一处理 pending 和 error 的情况，从而我们在组件里面只需要处理 success 的情况呢？答案是肯定的，本篇文章将会提供一种基于 Suspense 和 ErrorBoundary 的思路来解决这个问题。
+API 介绍 在介绍具体方案之前，我们先来看看会用到的两个组件 - Suspense 和 ErrorBoundary 的具体用法。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">React 组件如何优雅地处理异步数据</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年10月17日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><h2 id="前言">前言</h2>
+<p>我们在编写 <strong>React</strong> 应用的时候，常常需要在组件里面 <strong>异步获取数据</strong>。因为异步请求是需要一定时间才能结束的，通常我们为了更好的用户体验会在请求还没有结束前给用户展示一个 <strong>loading</strong> 的状态，然后如果发生了错误还要在页面上面展示错误的原因，只有当请求结束并且没有错误的情况下，我们才渲染出最终的数据。这个需求十分常见，如果你的 <strong>代码封装得比较好</strong> 的话，你的处理逻辑大概是这样的:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">AsyncComponent</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">isLoading</span>, <span style="color:#a6e22e">error</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">fetchData</span>(<span style="color:#e6db74">&#34;./someapi&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">isLoading</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">Loading</span> /&gt;;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">Error</span> <span style="color:#a6e22e">error</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">error</span>} /&gt;;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">DisplayData</span> <span style="color:#a6e22e">data</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">data</span>} /&gt;;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>在上面的代码中我展示了大多数项目里面常用的做法，那就是：封装一个 <strong>自定义的 hook(fetchData)</strong> 来处理异步请求的不同状态 - <strong>pending</strong>, <strong>error</strong> 和 <strong>success</strong>。这种做法一般情况下是没有什么问题的，至少比没有封装要好很多，可是当我们的项目规模变大了以后，你会发现我们还是需要写很多 <strong>模板代码</strong>，因为每次调用完 <strong>fetchData</strong> 都需要判断 <strong>isLoading</strong> 和 <strong>error</strong> 的值然后展示相对应的内容。那么有没有一种办法可以让我们在某些地方统一处理 <strong>pending</strong> 和 <strong>error</strong> 的情况，从而我们在组件里面只需要处理 <strong>success</strong> 的情况呢？答案是肯定的，本篇文章将会提供一种基于 <strong>Suspense</strong> 和 <strong>ErrorBoundary</strong> 的思路来解决这个问题。</p>
+<h2 id="api-介绍">API 介绍</h2>
+<p>在介绍具体方案之前，我们先来看看会用到的两个组件 - <strong>Suspense</strong> 和 <strong>ErrorBoundary</strong> 的具体用法。</p>
+<h3 id="suspense">Suspense</h3>
+<p>React 16.6 引入了 <strong>Suspense</strong> 组件，这个组件会在其子组件还处于 <strong>pending</strong> 状态时展示一个 <strong>fallback</strong> 的效果，例如:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">Suspense</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">Suspense</span> <span style="color:#a6e22e">fallback</span><span style="color:#f92672">=</span>{&lt;<span style="color:#f92672">Loading</span> /&gt;}&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">SomeComponent</span> /&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">Suspense</span>&gt;;
+</span></span></code></pre></div><p>在上面的代码中当  <strong>SomeComponent</strong>处于 <strong>pending</strong> 状态时，<strong>Suspense</strong> 会展示 <strong>Loading</strong> 组件。看到这里你可能会问 <strong>Suspense</strong> 组件是怎么知道 <strong>SomeComponent</strong> 处于 <strong>pending</strong> 状态的呢？它的原理简单来说就是这个组件会捕获子组件抛出来的 <strong>异常</strong>，如果这个异常是一个<strong>promise</strong>，而且这个 <strong>promise</strong> 是 <strong>pending</strong> 状态的它就显示 <strong>fallback</strong> 的内容否则就渲染其子组件。</p>
+<p>其实如果你有做过 <strong>Code Spliting</strong> 的优化，你大概率已经用过这个组件了，一般它会用来 <strong>懒加载</strong> 某个组件，例如下面的代码:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">lazy</span>, <span style="color:#a6e22e">Suspense</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;react&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">LazyComponent</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">lazy</span>(() =&gt; <span style="color:#66d9ef">import</span>(<span style="color:#e6db74">&#39;./component&#39;</span>))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">Suspense</span> <span style="color:#a6e22e">fallback</span><span style="color:#f92672">=</span>{&lt;<span style="color:#f92672">Loading</span> /&gt;}&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">LazyComponent</span> /&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">Suspense</span>&gt;
+</span></span></code></pre></div><h3 id="error-boundaries">Error Boundaries</h3>
+<p><strong>Error Boundaries</strong> 也是 React 16 引入进来的<strong>概念</strong>。它的引入是为了解决某个组件发生错误的时候整个页面 <strong>crash</strong> 的情况(白屏)。有了 Error Boundaries 这个功能后，你可以实现一个 <strong>ErrorBoundary</strong> 组件，这个组件可以捕获到从子组件抛出来的错误，然后你就可以对这个错误进行自定义的处理从而防止这个错误直接传递到应用的最外层导致整个应用的奔溃。以下是一个常见的 <strong>ErrorBoundary</strong> 组件的实现:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ErrorBoundary</span> <span style="color:#66d9ef">extends</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">Component</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">props</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">super</span>(<span style="color:#a6e22e">props</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 使用state来保存当前组件的错误信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">state</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">error</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span> };
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 就是这个函数实现了error boundary的功能，用来返回错误出现后的state
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">static</span> <span style="color:#a6e22e">getDerivedStateFromError</span>(<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> { <span style="color:#a6e22e">error</span> };
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">render</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 如果组件发生了错误那么就展示错误的信息否则渲染子组件的内容
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">div</span>&gt;<span style="color:#a6e22e">error</span> <span style="color:#a6e22e">occur</span>&lt;/<span style="color:#f92672">div</span>&gt;;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">children</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="完整方案">完整方案</h2>
+<p>在介绍完我们需要用到的两个组件 <strong>Suspense</strong> 和 <strong>ErrorBoundary</strong> 后，我们终于可以来看一下实际的方案了。我们的方案很简单，总的来说就是：<code>在需要处理异步请求的组件外面包裹一层 Suspense 组件和 ErrorBoundary 组件，其中 Suspense 组件处理异步请求的pending状态，而 ErrorBoundary 处理请求的 error 状态</code>。Talk is cheap, show me the code。我们来看一下具体的代码实现:</p>
+<h3 id="处理异步请求的子组件">处理异步请求的子组件</h3>
+<p>假如我们需要实现一个组件，这个组件会调用一个返回随机单词的接口，当结果返回后我们需要显示返回的单词。我们这里要调用的接口是一个公共的接口，地址是<code>https://api.api-ninjas.com/v1/randomword</code>，调用这个接口的一个示例返回值是:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;word&#34;</span>: <span style="color:#e6db74">&#34;Stokesia&#34;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>接着我们来实现子组件的相关代码:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">// utils/fetchData.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 这个函数式是对fetch函数的封装，它在请求pending和error的状态下都会抛出异常
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fetchData</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">url</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 记录当前请求的状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">status</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;pending&#34;</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 记录请求的结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">response</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">promise</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fetch</span>(<span style="color:#a6e22e">url</span>)
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">res</span>) =&gt; <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">json</span>())
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">res</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 请求成功，转变状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">status</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;success&#34;</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 保存请求的结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">response</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">res</span>;
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>    .<span style="color:#66d9ef">catch</span>((<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 请求失败，转变状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">status</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;error&#34;</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 保存接口的错误信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">response</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">error</span>;
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">switch</span> (<span style="color:#a6e22e">status</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 如果请求还在进行中就抛出promise的异常，这个promise会被外层的Suspense处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;pending&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">promise</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 如果请求出现错误就抛出错误信息，这个错误信息会被外层的ErrorBoundary处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;error&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">response</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 如果请求已经完成，就直接返回数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;success&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">response</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;unexpected status&#34;</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// RandomWord.jsx
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">fetchData</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./utils/fetchData&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 调用上面的fetchData函数来获取一个包装完毕的fetch函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">randomWordFetch</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fetchData</span>(<span style="color:#e6db74">&#34;https://api.api-ninjas.com/v1/randomword&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">RandomWord</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">response</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">randomWordFetch</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 如果代码能执行到这里就表示接口已经调用成功并且返回了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">word</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">word</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">div</span>&gt;{<span style="color:#a6e22e">word</span>}&lt;/<span style="color:#f92672">div</span>&gt;;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">RandomWord</span>;
+</span></span></code></pre></div><h3 id="外层组件">外层组件</h3>
+<p>编写完 <strong>子组件</strong> 的代码后，我们再来看看 <strong>外层组件</strong>(App) 的代码:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">// App.jsx
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">ErrorBoundary</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./ErrorBoundary&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">RandomWord</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./RandomWord&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">Suspense</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">App</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Suspense</span> <span style="color:#a6e22e">fallback</span><span style="color:#f92672">=</span>{&lt;<span style="color:#f92672">div</span>&gt;<span style="color:#a6e22e">loading</span>...&lt;/<span style="color:#f92672">div</span>&gt;}&gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">RandomWord</span> /&gt;
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">Suspense</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><p>看到这里你可能会说每次都需要在子组件最外层使用 <strong>Suspense</strong> 和 <strong>ErrorBoundary</strong> 组件的话感觉跟文章开始前介绍的方案没有很大的区别。其实不是的，这种做法和开头的思路的最大区别就是：<code>这种做法可以统一在最外层处理所有子组件的状态</code>。举个例子，你可以在路由的最外层处理所有子路由的异步请求状态:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>&lt;<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">Suspense</span> <span style="color:#a6e22e">fallback</span><span style="color:#f92672">=</span>{&lt;<span style="color:#f92672">Loading</span> /&gt;}&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">Switch</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Route</span> <span style="color:#a6e22e">path</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;/a&#34;</span> <span style="color:#a6e22e">component</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">ComponentA</span>} /&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Route</span> <span style="color:#a6e22e">path</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;/b&#34;</span> <span style="color:#a6e22e">component</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">ComponentB</span>} /&gt;
+</span></span><span style="display:flex;"><span>      ...
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">Switch</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">Suspense</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span></code></pre></div><p>你看当项目规模变大后，这种写法一下子就简单很多了，因为你只需要处理一次异步请求的逻辑即可！</p>
+<h2 id="总结">总结</h2>
+<p>上面的代码只是给大家说了一个使用 <strong>Suspense</strong> 和 <strong>ErrorBoundary</strong> 组件来优雅地处理异步请求的 <strong>大概思路</strong>，单纯从实现上看还有很多 <strong>不完善</strong> 的地方，例如子组件对 <strong>fetchData</strong> 的调用放在了组件定义之外，这个做法是不够完善的，更好的做法是在组件内部使用<code>useMemo</code>来缓存对某个请求的调用。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/208/"
+      ><span class="mr-1.5">←</span><span>Pinia</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/206/"
+      ><span>iframe 跨窗口通信</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>
