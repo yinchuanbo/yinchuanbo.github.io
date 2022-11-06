@@ -7,7 +7,141 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh</language>
     <copyright>Copyright © 2008–2019, Steve Francia and the lee.so; all rights reserved.</copyright>
-    <lastBuildDate>Sun, 06 Nov 2022 10:04:08 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 06 Nov 2022 11:40:21 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>一文吃透React v18全部Api</title>
+      <link>/posts/232/</link>
+      <pubDate>Sun, 06 Nov 2022 11:40:21 +0800</pubDate>
+      
+      <guid>/posts/232/</guid>
+      <description>其实React官方提供了很多Api，只是这些Api我们并不常用，所以往往会忽略它们，但在一些特定的场景下，这些Api也会起到关键性的作用，所以今天就逐个盘点一下，说说它们的使用方法和使用场景。
+当然这些Api并不需要全部掌握，只需要知道有这个知识点就好了~
+本文将会全面总结所有的ReactApi，包含组件类、工具类、生命周期、react-hooks、react-dom五大模块，并配带示例，帮助大家更好的掌握，大家可以边嗑瓜子边阅读，如有不全、不对的地方欢迎在评论区指出～
+由于本文过长，建议点赞 +收藏， 在正式开始前，我抽取了一些问题，一起来看看：
+1.React v18中对react-dom做了那些改动，增加了那些新的hooks? 2.useRef除了获取元素的节点信息，还能做什么？ 3.为什么会有Children.map?它与不同的遍历有和不同 4.类组件的生命周期在不同的版本是怎样变化的？ 5.子元素如何渲染到父元素上面的？ &amp;hellip; 其实问题很多，看完这篇文章后，相信一定能帮你解答的非常清楚，还请各位小伙伴多多支持一下
+前言 在之前的几篇文章中，有自定义hooks、HOC、虚拟DOM和diff算法，多多少少都有 React 官方 Api 做为基础条件，我的这个专栏的目的就是对React的深入，就是希望对React有一个全面的提升
+写这篇文章的主要目的有：
+提升知识广度，要想深入React就必须全面了解React，首先要学会用，要知道，如果连知道都不知道，谈何深入？ React v18 对 react-dom的改动还是比较大的，并且新增了五个hooks,逐一盘点一下，看看做了那些改动 这个专栏实际上是循序渐进的，相互之间都有一定的关联，同时要想看懂，也需要有一定的React基础，对刚开始学习React的小伙伴可能并不是太友好，所以特地总结一番，用最简单的示例，帮你掌握这些 Api 对之后的源码有帮助，所以本篇文章将会全面解读React Api的使用方法，和场景，如有不足，还希望在评论区指出～ 附上一张今天的学习图谱～
+组件类 Component 在 React 中提供两种形式，一种是类组件，另一种是函数式组件，而在类组件组件中需要使用Component继承，这个组件没有什么好讲的，我们可以看看源码：
+文件位置packages/react/src/ReactBaseClasses.js
+可以看出Component进行一些初始化的工作，updater保存着更新组件的方法
+PureComponent PureComponent：会对props和state进行浅比较，跳过不必要的更新，提高组件性能。
+可以说PureComponent和Component基本完全一致，但PureComponent会浅比较，也就是较少render渲染的次数，所以PureComponent一般用于性能优化
+那么什么是浅比较，举个 🌰：
+import { PureComponent } from &amp;#34;react&amp;#34;; import { Button } from &amp;#34;antd-mobile&amp;#34;; class Index extends PureComponent { constructor(props) { super(props); this.state = { data: { number: 0, }, }; } render() { const { data } = this.</description>
+    </item>
+    
+    <item>
+      <title>浏览器如何评判网站性能</title>
+      <link>/posts/231/</link>
+      <pubDate>Sun, 06 Nov 2022 11:36:59 +0800</pubDate>
+      
+      <guid>/posts/231/</guid>
+      <description>仔细想想，我们经常会被要求做一些性能优化的事情，但我们优化完，浏览器是如何评判的，怎样去判断这个网站性能高，指标是什么，都没有考虑过~
+看完这篇文章你就可以理直气壮的说：
+以Google浏览器为例，自 2021 年中期以来，Google以CWV作为评判 Web 性能指标的标准，其中CWV包括&amp;hellip;,针对这些标准如何去提升页面的性能&amp;hellip;.
+这样的回答，绝对要比你说那些老生常谈的回答要好很多，主要是听着就很高大上，能把面试官唬住（面试官也不一定懂），只要你说的言之凿凿，那么你就成功一半了~
+所以我们今天一起来看看Google是如何评判页面性能的，再开始前，先附上一张脑图，方便大家理解~
+网站的性能是什么？ 网站的性能：也叫网站的速度，是指浏览器能够从给定站点加载网页全部功能的速度
+举个小例子，当我们去餐厅吃饭，点餐后，却迟迟不上菜，服务员的态度极度恶劣，这样的餐厅，就算有再好的美食，也不会有顾客去买单。
+网站也是同理，当你在浏览器中输入网址，网页迟迟渲染不出，就会失去用户，相反，快速加载的网站会收到更多的流量，并具有更高的转换率。
+简单来说，我们的页面加载时间长、对用户操作的响应时间差会导致用户造成不好的体验。等待内容加载使用户感到沮丧，并可能促使他们完全离开站点或应用程序。所以我们应该尽量去提高转化率
+网页转化率充当了什么角色？ 所谓转化率，实际上是指用户完成目标操作的比率,这个比率是转化的访问者占页面总访问这的百分比。
+那么什么是用户完成目标操作的比率呢？比如我们打开掘金商店，发现有很多可兑换的物品，设计者希望我去取购买这些物品，当我们购买后，就是完成了目标操作，比如有 100 个小伙伴点进了商店，只有 7 为小伙伴购买了商品，那么此时的转化率为7%
+当然，并不是用户购买后才会是转化，如何转化是靠人为去定义的，比如说：注册页面、一些表单的填写，甚至是进入下一个页面，都包含在内
+我们制作的网站肯定是希望人们看到的，在页面流量相同的情况下，如果转化率下降，就代表着网站的用户总数下降，如果转化率增加，则转化的总数也是增加的
+总的来说，转化率是对页面的总访问量或访问者人数的单独衡量
+网站性能与转化率 网站性能对转化率有这非常巨大的影响，并且这种影响可以衡量，多项研究表明，页面速度加快可以提高转化率。
+换言之，网页加载速度越快，用户越有可能对该网页执行期望的操作。
+网页应以多快速度加载？根据 skilled.co，47% 的客户希望网页在 2 秒或更短时间内完成加载。同样来自 skilled.co 的数据，AI 医疗保健软件公司 mPulse Mobile 的测试发现：
+页面加载时间为 2.4 秒以内时，其转化率为 1.9％ 3.3 秒时，转化率为 1.5％ 4.2 秒时，转化率为不到 1.1％ 超过 5.7 秒时，转化率为 0.6％ 注意：除了网站性能外，还有页面的设计、页面的布局、图片文字等
+什么是 CWV？ 网站的性能会影响转化率，那么Google是如何来判断网站的性能呢？
+CWV就是Google评判 Web 性能指标的标准，Google 的搜索引擎会测量这三个指标，以帮助确定在用户执行搜索后要显示哪些网站。
+然页面加载时间长期以来一直是SEO(搜索引擎优化) 的重要组成部分，但自 2021 年中期以来，Google 一直将 CWV 作为其排名算法的一部分。
+CWV：Core Web Vitals，包含三个维度（LCP、FID、CLS）的性能指标</description>
+    </item>
+    
+    <item>
+      <title>一文玩转React Hooks的单元测试</title>
+      <link>/posts/230/</link>
+      <pubDate>Sun, 06 Nov 2022 11:31:09 +0800</pubDate>
+      
+      <guid>/posts/230/</guid>
+      <description>在网上我们可以搜到很多React的单元测试，但有关React Hooks的单元测试却很少，或者说并不全面，所以今天就来详细讲讲有关React Hooks如何进行单元测试。
+如果你希望做为一个开源的产品，那么你的代码必须具备单元测试，所以这是进阶React的必经之路，所以本节内容通过具体的例子来讲解React Hooks，这样可以告别繁琐的知识点，又能融会贯通，岂不美哉？
+跟以往一样，先来一张知识图，还请各位小伙伴多多支持～
+自定义 Hooks 该如何测试？ 疑问？ 我们知道 react hooks的本质是 纯函数，那么我们可不可以通过测试纯函数来测试react hooks呢 ？
+我们先看这样一个例子：
+import { useState } from &amp;#34;react&amp;#34;; function useCounter(initialValue = 0) { const [current, setCurrent] = useState(initialValue); const add = (number = 1) =&amp;gt; setCurrent((v) =&amp;gt; v + number); const dec = (number = 1) =&amp;gt; setCurrent((v) =&amp;gt; v - number); const set = (number = 1) =&amp;gt; setCurrent(number); return [ current, { add, dec, set, }, ] as const; } export default useCounter; 我定义了一个简单的useCounter， 功能也是很简单，有增加、减少和设置三个功能</description>
+    </item>
+    
+    <item>
+      <title>迅速掌握 Jest 的全部知识点~</title>
+      <link>/posts/229/</link>
+      <pubDate>Sun, 06 Nov 2022 11:26:34 +0800</pubDate>
+      
+      <guid>/posts/229/</guid>
+      <description>同时附上一张今天的知识图，还请各位小伙伴多多支持～
+单元测试 有些小伙伴看到要讲单元测试，可能会下意识的避而远之，因为单元测试相对而言比较麻烦，而且从一定的角度来说，也比较鸡肋，原因主要有以下几点：
+1.对于大多数人而言，实际的工作中并不需要（需求都写不完，怎么可能还去写单元测试）
+2.Jest的语法相当于一门新的语言，是有一定的学习成本
+3.配置麻烦，虽然Jest的上手文档看似非常简单，但实际情况是：只要有一个配置的不合适，所有的测试都运行不了，这点是比较难受的
+以上几点，可能是大家并不想碰单元测试的主要原因，但单元测试确实也是不可获取的一种实际技能，像一些开源的产品，都会有最基本的单元测试，所以单元测试是我们进阶中不可缺少的一部分~
+什么是单元测试？ 单元测试：指的是以原件的单元为单位，对软件进行测试。
+其中单元可以是一个函数，也可以是一个模块或一个组件，基本特征就是只要输入不变，必定返回同样的输出。
+如果一个软件越容易些单元测试，就表明它的模块化结构越好，给模块之间的耦合越弱。
+我们都知道React是非常自由的，其组件化的思想，React Hooks的普及，都非常适合进行单元测试
+单元测试带来了哪些好处？ 首先我认为单元测试是一个非常具有挑战性的活，因为它是一个不是成功就是失败的活，期间可能会出来各种各样的问题，动手实现下，还是比较有益的，接下来看看单元测试可以给我们带来哪些好处：
+保质保量 单元测试可以有效的防止我们减少bug率
+虽然bug我们无法避免，但没有人想bug多，单元测试会让我们不得不去思考一些异常场景，这样无形之中，增强了代码的质量
+描述代码 对现有的代码进行描述，也就是将用例作为记录。
+举个例子，我们有时写一个比较大的组件时，并没有比较好的示例来说明每个参数的效果，确保各种情况下，代码都能正常运行，而单元测试可以诠释这段代码的意义，并且可以供其他开发者查看，增强代码的可读性
+提升个人实力 抛开其他的不谈，单元测试可以很好的提升专业领域。
+首先单元测试可以算作一个单独领域，不同的框架需要不同的配置，如果依赖的组件发生变化，受影响的组件就有可能发生错误。
+其次，不同的环境、不同的测试框架都会有一定的冲突（版本问题）
+最后，可以模拟各种环境，不同环境的Mock能力，比如：React中有react-testing-library，Next中有@nestjs/testing等
+可以看出单元测试是一个非常大的模块，也是非常值得去研究的领域，总体来说利大于弊，还请想进阶的伙伴耐心的看完，相信一定会让你受益良多～
+Jest Jest是Facebook开源的一个前端测试框架，主要用于React和React Native的单元测试，并且被集成在create-react-app中。
+Jest 的特点 易用性：基于 Jasmine，提供断言库，支持多种测试风格 适应性：Jest 是模块化、可扩展和可配置的 沙箱和快照：Jest 内置了 JSDOM，能够模拟浏览器环境，并且并行执行 快照测试：Jest 能够对 React 组件树进行序列化，生成对应的字符串快照，通过比较字符串提供高性能的 UI 检测 Mock系统：Jest 实现了一个强大的 Mock 系统，并支持自动和手动mock 支持异步代码测试：支持Promise和async/await 自动生成静态分析结果：内置Istanbul，测试代码覆盖率，并生成对应的报告 第一个测试程序 初始化项目 mkdir jest-test cd jest-test // 初始化package.json文件 npm init -y // 安装jest npm i -D jest 初始化 jest // 执行 npx jest --init 此时会弹出一堆问题供你选择，当你选择完后会生成一个jest.</description>
+    </item>
+    
+    <item>
+      <title>细数那些惊艳一时的 CSS 属性</title>
+      <link>/posts/228/</link>
+      <pubDate>Sun, 06 Nov 2022 11:20:54 +0800</pubDate>
+      
+      <guid>/posts/228/</guid>
+      <description>1. position: sticky 不知道大家平时业务开发中有没有碰到像上图一样的吸顶的需求：标题在滚动的时候，会一直贴着最顶上。
+这种场景实际上很多：比如表格的标题栏、网站的导航栏、手机通讯录的人名首字母标题等等。如果让大家自己动手做的话，是不是会用 js 结合 css 来实现呢？以前确实是这样的，直到后来 position 属性新增了一个属性值 sticky ，前端程序员才迎来了小春天。
+.container { background-color: oldlace; height: 200px; width: 140px; overflow: auto; } .container div { height: 20px; background-color: aqua; border: 1px solid; } .container .header { position: sticky; top: 0; background-color: rgb(187, 153, 153); } &amp;lt;div class=&amp;#34;container&amp;#34;&amp;gt; &amp;lt;div class=&amp;#34;header&amp;#34;&amp;gt;Header&amp;lt;/div&amp;gt; &amp;lt;div&amp;gt;1&amp;lt;/div&amp;gt; &amp;lt;div&amp;gt;2&amp;lt;/div&amp;gt; &amp;lt;div&amp;gt;3&amp;lt;/div&amp;gt; &amp;lt;/div&amp;gt; 就这么简单？对，就这么简单，但是小伙伴们使用的时候要注意兼容性。
+2. :empty 选择器 平时开发的时候数据都是通过请求接口获取的，也会存在接口没有数据的情况。这个时候正常的做法是给用户一个提示，让用户知道当前不是出 bug 了，而是确实没有数据。
+一般的做法是我们人为的判断当前数据返回列表的长度是否为 0，如果为 0 则显示一个 “暂无数据” 给用户，反之则隐藏该提示。写过 Vue 的小伙伴是不是经常这么做：</description>
+    </item>
+    
+    <item>
+      <title>全网最优雅的 React 源码调试方式</title>
+      <link>/posts/227/</link>
+      <pubDate>Sun, 06 Nov 2022 11:17:02 +0800</pubDate>
+      
+      <guid>/posts/227/</guid>
+      <description>什么？调试 React 源码还有优雅和不优雅之分？
+别着急，我们先来听个故事：
+东东是一名前端工程师，主要用 React 技术栈，用了多年之后想深入一下，所以最近开始看 React 源码。
+他把 react 和 react-dom 包下载了下来，在项目里引入，开发服务跑起来后，打开 Chrome Devtools 打断点调试。
+这样调试了一段时间之后，他有了一些困惑：
+这样调试是可以的，但是总感觉和源码有段距离，因为调试的是 react-dom.development.js
+而源码里这些逻辑是分散在不同的包里的，所以就算搞懂了逻辑，也不知道这些逻辑在哪些包里，只能靠搜索来定位。
+所以他就在想，是不是有更好的调试方式，能够调试 React 最初的源码呢？
+于是，他跑来问我：光哥，你调试 React 源码会有这些问题么？你是怎么调试的呀？
+我说，确实，我最开始也是调试的 react-dom.development.js，但是现在已经能直接调试 React 最初的源码了，而且是在 VSCode 里调试的，点击调用栈能直接打开对应的 React 源码文件并定位到对应行列号：
+哇哦，这就是我想要的调试效果，这是怎么做到的呀。
+想实现这样的调试效果确实还有点复杂，我们一点点来看：
+首先，我们要做到在 VSCode 里调试 React 项目，而不是在 Chrome Devtools 里，这样才能做到直接打开对应的文件：
+用 VSCode 调试 React 项目 我们用 create-react-app 创建一个 react 项目，然后 npm run start 跑起来。
+这时候浏览器访问就可以用 Chrome Devtools 调试了：
+但我们的目标是在 VSCode 里调试，所以要添加一个 VSCode 的 debugger 配置：</description>
+    </item>
+    
     <item>
       <title>搞懂这 12 个 Hooks，保证让你玩转 React</title>
       <link>/posts/226/</link>
