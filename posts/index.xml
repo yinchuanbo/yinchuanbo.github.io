@@ -7,7 +7,68 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh</language>
     <copyright>Copyright © 2008–2019, Steve Francia and the lee.so; all rights reserved.</copyright>
-    <lastBuildDate>Sun, 06 Nov 2022 11:40:21 +0800</lastBuildDate><atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 09 Nov 2022 22:03:08 +0800</lastBuildDate><atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>超强的 CSS 自适应大小文本</title>
+      <link>/posts/234/</link>
+      <pubDate>Wed, 09 Nov 2022 22:03:08 +0800</pubDate>
+      
+      <guid>/posts/234/</guid>
+      <description>Ant-design 中有一个这样的头像组件，当字符串较长时，字体大小可以根据头像宽度自动调整，效果如下
+当然，这里是通过JS根据字符数量自动缩放文本实现的
+而现在，仅仅通过 CSS也能达到类似的效果，如下
+一、CSS 容器尺寸单位 实现这个效果需要借助容器尺寸单位。这些单位是跟随CSS容器查询[1]一起出现的，有以下几种
+关于容器查询，可以参考这篇文章：介绍2022最期待且已正式支持的CSS container容器查询 « 张鑫旭-鑫空间-鑫生活 (zhangxinxu.com)[2]，本文并不涉及具体容器查询语句
+cqw 容器查询宽度（Container Query Width）占比。1cqw等于容器宽度的1%。假设容器宽度是1000px，则此时1cqw对应的计算值就是10px。
+cqh 容器查询高度（Container Query Height）占比。1cqh等于容器高度的1%。
+cqi 表示容器查询内联方向尺寸（Container Query Inline-Size）占比。这个是逻辑属性单位，默认情况下等同于cqw
+cqb 容器查询块级方向尺寸（Container Query Block-Size）占比。同上，默认情况下等同于cqh
+cqmin 容器查询较小尺寸的（Container Query Min）占比。取 cqw和cqh中较小的一个
+cqmax 表示容器查询较大尺寸的（Container Query Min）占比。取 cqw和cqh中较大的一个
+有了这些尺寸单位，可以很轻易的实现文字大小随着容器尺寸的变化而变化，下面举个例子
+&amp;lt;div class=&amp;#34;con&amp;#34;&amp;gt; &amp;lt;p class=&amp;#34;text&amp;#34;&amp;gt;大家好，欢迎关注前端侦探&amp;lt;/p&amp;gt; &amp;lt;/div&amp;gt; 在不声明容器类型的情况下，cqw等同于vw，也就是相当于把整个页面当成容器，这里希望将这个div作为参考对象，需要提前声明container-type，如下
+.con { container-type: inline-size; } .text{ font-size: 10cqw; } 效果如下
+这样就很轻易的实现了文本缩放效果。
+原理很简单，怎么应用呢？
+二、自适应文本头像 再回过头来看看实际案例，如何让字体大小根据头像宽度自适应呢？也就是文字越多，字号越小。
+有一个比较简单的思路就是，文字越多，占据的宽度越多，然后根据前面的原理，让文字大小随着宽度的变化而变化，只不过这里是成反比，宽度越宽，字号越小。
+假设HTML是这样的
+&amp;lt;div class=&amp;#34;avator&amp;#34;&amp;gt; &amp;lt;span&amp;gt;侦探&amp;lt;/span&amp;gt; &amp;lt;/div&amp;gt; 简单修饰一下
+.avator{ display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; background: bisque; color: rgb(250, 84, 28); white-space: nowrap; } 效果如下</description>
+    </item>
+    
+    <item>
+      <title>CSS 如何设置自动滚动定位的间距</title>
+      <link>/posts/233/</link>
+      <pubDate>Wed, 09 Nov 2022 21:16:42 +0800</pubDate>
+      
+      <guid>/posts/233/</guid>
+      <description>在平时开发中，经常会碰到需要快速定位的问题，比如常见的锚点定位
+&amp;lt;ul&amp;gt; &amp;lt;li&amp;gt;&amp;lt;a href=&amp;#34;#语法&amp;#34;&amp;gt;语法&amp;lt;/a&amp;gt;&amp;lt;/li&amp;gt; &amp;lt;li&amp;gt;&amp;lt;a href=&amp;#34;#示例&amp;#34;&amp;gt;示例&amp;lt;/a&amp;gt;&amp;lt;/li&amp;gt; ... &amp;lt;/ul&amp;gt; &amp;lt;article&amp;gt; &amp;lt;h2 id=&amp;#34;语法&amp;#34;&amp;gt;语法&amp;lt;/h2&amp;gt; &amp;lt;p&amp;gt;...&amp;lt;/p&amp;gt; &amp;lt;h2 id=&amp;#34;示例&amp;#34;&amp;gt;示例&amp;lt;/h2&amp;gt; &amp;lt;p&amp;gt;...&amp;lt;/p&amp;gt; ... &amp;lt;/article&amp;gt; 这样，在点击 a 标签时会自动定位到与之相对应的内容上，如下
+但是，这种通过锚点触发的定位默认是紧贴滚动容器边缘的，如果一些定位元素，比如fixed定位的头部，就会出现被遮挡的情况，如下
+可以看到，“示例”这个标题由于紧贴顶部，导致被sticky定位的头部遮住了。
+那么，如何让自动定位时让目标元素预留出足够大的间距呢？
+一、一行 CSS 解决 没错，看似有些麻烦的问题其实可以通过一行 CSS 解决，那就是 scroll-margin[3] ，下面是 MDN 的介绍
+scroll-margin 属性的值代表用于将盒元素拖拽到显示区域的拖拽滚动区域的起点。拖拽滚动区域由是由转换后边框大小的盒元素决定的，它会找到盒元素的矩形边界（在滚动的容器的坐标空间轴上），并添加指定的起点。
+在上面这个例子中，可以直接给目标设置scroll-margin
+h2{ scroll-margin: 6rem; } 设置这个属性后，当自动滚动定位到h2时，会自动预留6rm的间隔（可以防止被头部遮挡），下面是演示（红框表示6rem的间隔）
+是不是非常简单，最终效果如下
+其实，MDN官方已经采用了这种方式，经常看看 MDN，会发现有很多非常巧妙的实现，如下
+二、还有一个 scroll-padding 和scroll-margin比较类似的还有一个 scroll-padding[4]，功能都是一样的，只是作用对象不一样。
+在前面的例子中可以看到，scroll-margin是直接设置目前元素上的，scroll-padding不一样，它需要设置在滚动容器上，比如
+html{ scroll-padding: 6rem } 这种方式也是可以达到相同的效果的
+一般情况下，两种方式都可以自行选择，如果很清楚滚动容器是哪个，可以直接选择用scroll-padding，否则就用scroll-margin
+三、其他滚动定位方式 除了锚点定位以外，还有其他一些方式可以触发滚动定位
+scrollIntoView 有时候，我们需要将指定元素滚动到视线范围之内，这时就需要用到这样一个DOM方法：scrollIntoView[5]
+element.scrollIntoView(); 这个定位和前面的锚点定位一样，默认也是紧贴滚动容器的，如果设置了scroll-margin或者scroll-pading，也可以实现在滚动定位时自动预留一定间距
+focus 定位 在默认情况下，元素（比如a链接）在focus聚焦时都会自动滚动到视线范围之内。和上面几种情况一样，如果有fixed定位元素，有可能在focus时被遮挡的问题。
+如果设置了scroll-margin或者scroll-pading，这样就可以避免找不到焦点的情况，确保一直都能看到焦点，下面是通过tab键聚焦的情况
+scroll-snap 还有一种情况是滚动捕捉：scroll-snap-type[6]，这个属性可以让滚动时自动捕捉临界点。正常情况下，滚动临界点是紧贴滚动容器的，像这样
+如果希望预留一定的距离如何处理呢？还是这个scroll-margin，下面给第二个元素设置了一定的scroll-margin，效果如下
+可以看到，在滚动到第2个元素时，提前预留了一定的距离，而且还可以设置负值，这样在滚动到第2个元素时，可以提前看到第3个的部分内容
+参考资料 [1] scroll-padding: https://developer.</description>
+    </item>
+    
     <item>
       <title>一文吃透 React v18 全部 Api</title>
       <link>/posts/232/</link>
