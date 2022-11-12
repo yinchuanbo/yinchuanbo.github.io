@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>canvas进阶实现Undo和Redo - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="给 canvas 绑定键盘事件 实现 undo 和 redo 批量回退 2d 包围盒算法 局部渲染 绑定键盘事件 tabindex 很多人说绑定键盘事件，有什么好讲的。对虽然很简单，但是有点小坑， 首先直接对 canvas 监听键盘事件，是 ❌ 不行的。这里涉及到一个小技巧， 就是给 「canvas」 dom 元素 加上 「tabindex」 属性 ，很多人说这是啥，我来看下官方文档。
+「tabindex」 全局属性 指示其元素是否可以聚焦，以及它是否/在何处参与顺序键盘导航（通常使用 Tab 键，因此得名）。
+tabindex 可以设置 正数 和负数
+tabindex=负值 (通常是 tabindex=“-1”)，表示元素是 「可聚焦的」，但是 「不能通过键盘导航来访问到该元素」，用 JS 做页面小组件内部键盘导航的时候非常有用。( 「可聚焦， 但是不能输入键盘」) tabindex=0，表示元素是 「可聚焦的」，并且可以 「通过键盘导航来聚焦到该元素」，它的相对顺序是当前处于的 DOM 结构来决定的。 tabindex=正值，「表示元素是可聚焦的，并且可以通过键盘导航来访问到该元素」；它的相对顺序按照 「tabindex」 的数值递增而滞后获焦。如果多个元素拥有相同的 「tabindex」，它们的相对顺序按照他们在当前 DOM 中的先后顺序决定 OK，这下你应该明白了，我们要想 canvas 可以聚焦， 但是直接加 tabindex = 0。我给出以下代码：
+&lt;canvas id=&#34;canvas&#34; width=&#34;800&#34; height=&#34;600&#34; tabindex=&#34;0&#34;&gt;&lt;/canvas&gt; this.canvas.addEventListener(keydown, () =&gt; {}); 但是会有个问题， 你看下面图片。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/logo.svg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="canvas进阶实现Undo和Redo" />
+<meta property="og:description" content="给 canvas 绑定键盘事件 实现 undo 和 redo 批量回退 2d 包围盒算法 局部渲染 绑定键盘事件 tabindex 很多人说绑定键盘事件，有什么好讲的。对虽然很简单，但是有点小坑， 首先直接对 canvas 监听键盘事件，是 ❌ 不行的。这里涉及到一个小技巧， 就是给 「canvas」 dom 元素 加上 「tabindex」 属性 ，很多人说这是啥，我来看下官方文档。
+「tabindex」 全局属性 指示其元素是否可以聚焦，以及它是否/在何处参与顺序键盘导航（通常使用 Tab 键，因此得名）。
+tabindex 可以设置 正数 和负数
+tabindex=负值 (通常是 tabindex=“-1”)，表示元素是 「可聚焦的」，但是 「不能通过键盘导航来访问到该元素」，用 JS 做页面小组件内部键盘导航的时候非常有用。( 「可聚焦， 但是不能输入键盘」) tabindex=0，表示元素是 「可聚焦的」，并且可以 「通过键盘导航来聚焦到该元素」，它的相对顺序是当前处于的 DOM 结构来决定的。 tabindex=正值，「表示元素是可聚焦的，并且可以通过键盘导航来访问到该元素」；它的相对顺序按照 「tabindex」 的数值递增而滞后获焦。如果多个元素拥有相同的 「tabindex」，它们的相对顺序按照他们在当前 DOM 中的先后顺序决定 OK，这下你应该明白了，我们要想 canvas 可以聚焦， 但是直接加 tabindex = 0。我给出以下代码：
+&lt;canvas id=&#34;canvas&#34; width=&#34;800&#34; height=&#34;600&#34; tabindex=&#34;0&#34;&gt;&lt;/canvas&gt; this.canvas.addEventListener(keydown, () =&gt; {}); 但是会有个问题， 你看下面图片。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/240/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-11-12T20:43:00+08:00" />
+<meta property="article:modified_time" content="2022-11-12T20:43:00+08:00" />
+
+
+  
+  <meta itemprop="name" content="canvas进阶实现Undo和Redo">
+<meta itemprop="description" content="给 canvas 绑定键盘事件 实现 undo 和 redo 批量回退 2d 包围盒算法 局部渲染 绑定键盘事件 tabindex 很多人说绑定键盘事件，有什么好讲的。对虽然很简单，但是有点小坑， 首先直接对 canvas 监听键盘事件，是 ❌ 不行的。这里涉及到一个小技巧， 就是给 「canvas」 dom 元素 加上 「tabindex」 属性 ，很多人说这是啥，我来看下官方文档。
+「tabindex」 全局属性 指示其元素是否可以聚焦，以及它是否/在何处参与顺序键盘导航（通常使用 Tab 键，因此得名）。
+tabindex 可以设置 正数 和负数
+tabindex=负值 (通常是 tabindex=“-1”)，表示元素是 「可聚焦的」，但是 「不能通过键盘导航来访问到该元素」，用 JS 做页面小组件内部键盘导航的时候非常有用。( 「可聚焦， 但是不能输入键盘」) tabindex=0，表示元素是 「可聚焦的」，并且可以 「通过键盘导航来聚焦到该元素」，它的相对顺序是当前处于的 DOM 结构来决定的。 tabindex=正值，「表示元素是可聚焦的，并且可以通过键盘导航来访问到该元素」；它的相对顺序按照 「tabindex」 的数值递增而滞后获焦。如果多个元素拥有相同的 「tabindex」，它们的相对顺序按照他们在当前 DOM 中的先后顺序决定 OK，这下你应该明白了，我们要想 canvas 可以聚焦， 但是直接加 tabindex = 0。我给出以下代码：
+&lt;canvas id=&#34;canvas&#34; width=&#34;800&#34; height=&#34;600&#34; tabindex=&#34;0&#34;&gt;&lt;/canvas&gt; this.canvas.addEventListener(keydown, () =&gt; {}); 但是会有个问题， 你看下面图片。"><meta itemprop="datePublished" content="2022-11-12T20:43:00+08:00" />
+<meta itemprop="dateModified" content="2022-11-12T20:43:00+08:00" />
+<meta itemprop="wordCount" content="1107">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="canvas进阶实现Undo和Redo"/>
+<meta name="twitter:description" content="给 canvas 绑定键盘事件 实现 undo 和 redo 批量回退 2d 包围盒算法 局部渲染 绑定键盘事件 tabindex 很多人说绑定键盘事件，有什么好讲的。对虽然很简单，但是有点小坑， 首先直接对 canvas 监听键盘事件，是 ❌ 不行的。这里涉及到一个小技巧， 就是给 「canvas」 dom 元素 加上 「tabindex」 属性 ，很多人说这是啥，我来看下官方文档。
+「tabindex」 全局属性 指示其元素是否可以聚焦，以及它是否/在何处参与顺序键盘导航（通常使用 Tab 键，因此得名）。
+tabindex 可以设置 正数 和负数
+tabindex=负值 (通常是 tabindex=“-1”)，表示元素是 「可聚焦的」，但是 「不能通过键盘导航来访问到该元素」，用 JS 做页面小组件内部键盘导航的时候非常有用。( 「可聚焦， 但是不能输入键盘」) tabindex=0，表示元素是 「可聚焦的」，并且可以 「通过键盘导航来聚焦到该元素」，它的相对顺序是当前处于的 DOM 结构来决定的。 tabindex=正值，「表示元素是可聚焦的，并且可以通过键盘导航来访问到该元素」；它的相对顺序按照 「tabindex」 的数值递增而滞后获焦。如果多个元素拥有相同的 「tabindex」，它们的相对顺序按照他们在当前 DOM 中的先后顺序决定 OK，这下你应该明白了，我们要想 canvas 可以聚焦， 但是直接加 tabindex = 0。我给出以下代码：
+&lt;canvas id=&#34;canvas&#34; width=&#34;800&#34; height=&#34;600&#34; tabindex=&#34;0&#34;&gt;&lt;/canvas&gt; this.canvas.addEventListener(keydown, () =&gt; {}); 但是会有个问题， 你看下面图片。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">canvas进阶实现Undo和Redo</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年11月12日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><ol>
+<li>给 canvas 绑定键盘事件</li>
+<li>实现 undo 和 redo</li>
+<li>批量回退</li>
+<li>2d 包围盒算法</li>
+<li>局部渲染</li>
+</ol>
+<h1 id="绑定键盘事件">绑定键盘事件</h1>
+<h2 id="tabindex">tabindex</h2>
+<p>很多人说绑定键盘事件，有什么好讲的。对虽然很简单，但是有点小坑， 首先直接对 canvas 监听键盘事件，是 ❌ 不行的。这里涉及到一个小技巧， 就是给 <strong>「canvas」</strong> dom 元素 加上 <strong>「tabindex」</strong> 属性 ，很多人说这是啥，我来看下官方文档。</p>
+<blockquote>
+<p><strong>「tabindex」</strong> 全局属性 指示其元素是否可以聚焦，以及它是否/在何处参与顺序键盘导航（通常使用 Tab 键，因此得名）。</p>
+</blockquote>
+<p>tabindex 可以设置 正数 和负数</p>
+<ol>
+<li>tabindex=负值 (通常是 tabindex=“-1”)，表示元素是 <strong>「可聚焦的」</strong>，但是 <strong>「不能通过键盘导航来访问到该元素」</strong>，用 JS 做页面小组件内部键盘导航的时候非常有用。( <strong>「可聚焦， 但是不能输入键盘」</strong>)</li>
+<li>tabindex=0，表示元素是 <strong>「可聚焦的」</strong>，并且可以 <strong>「通过键盘导航来聚焦到该元素」</strong>，它的相对顺序是当前处于的 DOM 结构来决定的。</li>
+<li>tabindex=正值，<strong>「表示元素是可聚焦的，并且可以通过键盘导航来访问到该元素」</strong>；它的相对顺序按照 <strong>「tabindex」</strong> 的数值递增而滞后获焦。如果多个元素拥有相同的 <strong>「tabindex」</strong>，它们的相对顺序按照他们在当前 DOM 中的先后顺序决定</li>
+</ol>
+<p>OK，这下你应该明白了，我们要想 canvas 可以聚焦， 但是直接加 tabindex = 0。我给出以下代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">canvas</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;canvas&#34;</span> <span style="color:#a6e22e">width</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;800&#34;</span> <span style="color:#a6e22e">height</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;600&#34;</span> <span style="color:#a6e22e">tabindex</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;0&#34;</span>&gt;&lt;/<span style="color:#f92672">canvas</span>&gt;
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#a6e22e">keydown</span>, () =&gt; {});
+</span></span></code></pre></div><p>但是会有个问题， 你看下面图片。</p>
+<ul>
+<li>绑定键盘事件</li>
+</ul>
+<img src="/imgs/11/01.png" />
+<p>有 canvas 有边框， 这个我们可以通过 css 去解决， 不能让用户看到这个，好的交互是用户无感知。代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">canvas</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background</span>: <span style="color:#66d9ef">red</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">outline</span>: <span style="color:#ae81ff">0</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>直接 canvas 的外边框设置为 0 就 OK 了。</p>
+<h2 id="绑定事件">绑定事件</h2>
+<p>监听完成了之后，我开始对键盘事件进行处理， 首先无论是 Mac 还是 windows 一般用户的习惯就是 按 <strong>「ctrl」</strong> 或者 <strong>「command」</strong>,   加 <strong>「z」</strong></p>
+<p>和 <strong>「y」</strong> 之后进行回退， OK ，我们也这样去做。</p>
+<p>首先定义两个变量：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Z</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;KeyZ&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Y</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;KeyY&#34;</span>;
+</span></span></code></pre></div><p>第二步就是写空的 undo 和 redo 方法</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">undo</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;走了undo&#39;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">redo</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;redo&#39;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>第三步开始绑定：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#a6e22e">keydown</span>, (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">preventDefault</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">ctrlKey</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">metaKey</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">code</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">Z</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">undo</span>();
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">code</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">Y</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">redo</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>这里需要讲解的就两个点哈，第一个就是 <strong>「阻止事件的默认行为」</strong> ， 因为，我按 <strong>「command + y」</strong> 会打开新的标签页，   第二个就是兼容 <strong>「mac」</strong> 和 <strong>「windows」</strong>  , 一个 <strong>「metaKey」</strong> 一个是 <strong>「ctrlKey」</strong>.   看下结果：</p>
+<img src="/imgs/11/02.png" />
+<h1 id="实现-undo-和-redo-功能">实现 undo 和 redo 功能</h1>
+<p>撤销和复原 最主要的功能其实就是我们我们记录每一次往画布画图形的这个操作，因为我当前画布没有啥其他操作， 首先我们我用两个栈信息来，一个 undo 栈 一个 redo 栈。来记录每一次画布的信息。我这里给大家画图演示：</p>
+<ul>
+<li>undo 栈</li>
+</ul>
+<img src="/imgs/11/03.png" />
+<p>我在画布中画了 3 个图形， 每一次添加瞬间我都对 canvas 截图了， 并把这个信息，保存到 undoStack 了。这时候我按下 ctrl + z 回退</p>
+<p>undo 栈中 只有 rect 和 circle，然后 redo 栈 就有一个 shape 了。如图：</p>
+<ul>
+<li>undo 栈和 redo 栈</li>
+</ul>
+<img src="/imgs/11/04.png" />
+<p>如果在回退 undo 就只有个 <strong>「cicrle」</strong>, <strong>「redo」</strong>   中有 rect 和 shape, 大概就是这么个过程。原理搞清楚了直接看代码实现：</p>
+<p>第一个先初始化属性：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">undoStack</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">redoStack</span> <span style="color:#f92672">=</span> [];
+</span></span></code></pre></div><p>第二个 canvas 实现截图功能主要是配合 使用 <strong>「toDataUrl」</strong> 这个 api:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">add</span>(<span style="color:#a6e22e">shape</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">shape</span>.<span style="color:#a6e22e">draw</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dataUrl</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">toDataURL</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">img</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Image</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">img</span>.<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">dataUrl</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">undoStack</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">img</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">allShapes</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">shape</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>关于这个 api 的详情 用法可以查阅 Mdn, 可以修改 <strong>「图片的类型 和质量」</strong> 其他没有什么。</p>
+<p>第三个就是 <strong>「undo 和 redo 方法的详细实现」</strong>。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">undo</span>() {
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">clearCanvas</span>()
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">img</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">undoStack</span>.<span style="color:#a6e22e">pop</span>()
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">img</span>) {
+</span></span><span style="display:flex;"><span>     <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>   }
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">drawImage</span>(<span style="color:#a6e22e">img</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">redoStack</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">img</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">redo</span>() {
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">clearCanvas</span>()
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">img</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">redoStack</span>.<span style="color:#a6e22e">pop</span>()
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">img</span>) {
+</span></span><span style="display:flex;"><span>     <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>   }
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">drawImage</span>(<span style="color:#a6e22e">img</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">undoStack</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">img</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这里 this.clearCanvas 就是清空画布。undo 取出 栈顶的元素， 用了 canvas <strong>「drawImage」</strong> 的这个 api ， 这个是 canvas 对外提供绘制图片的能力。然后并将元素 加到 redo 栈中。这样其实就已经实现了。redo 的方法同理。不清楚的同学，看我上面的画的图。</p>
+<p>我们这里直接看 gif:</p>
+<ul>
+<li>回退 gif 演示</li>
+</ul>
+<img src="/imgs/11/01.gif" />
+<h1 id="批量回退">批量回退</h1>
+<p>这是很常见的需求，如果我们在一次操作中画了很多 图形，比如 100 个， 我如果想回到一开始的时候，我难道要一次我要回退 100 次嘛？？  对于用户来说这绝对 <strong>「impossible」</strong> 的 所以我们得实现一个批量回退的功能 ， 其实很简单，就是我们放入到 undoStack 的那张图片 是很多图形的就好了。给出以下实现：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">batchAdd</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">shapes</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">shapes</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">shape</span>) =&gt; <span style="color:#a6e22e">shape</span>.<span style="color:#a6e22e">draw</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>));
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dataUrl</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">toDataURL</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">img</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Image</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">img</span>.<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">dataUrl</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">undoStack</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">img</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">allShapes</span>.<span style="color:#a6e22e">push</span>(...<span style="color:#a6e22e">shapes</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>我测试一下， 我把矩形的添加 和任意多边形的添加 放到一起 给出下面代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">add</span>(<span style="color:#a6e22e">circle</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">batchAdd</span>([<span style="color:#a6e22e">rect</span>, <span style="color:#a6e22e">shape</span>]);
+</span></span></code></pre></div><p>我们看下 gif:</p>
+<ul>
+<li>批量回退</li>
+</ul>
+<img src="/imgs/11/02.gif" />
+<h1 id="patch">patch</h1>
+<p>其实本篇文章回退只是对图形 <strong>「添加」</strong> 这个动作去做了回退，但是其实对于一个画图工具还有很多其他操作，比如修改图形的颜色， 大小哇， 这些都是可以用来记录的， 难道我们每次都要去重新画整个画布嘛， 这样的性能 是在是太差了。所以局部渲染， 就出来了，我们只对画布上变化的东西去做重新绘制。其实也就是去找出两次的不同 去做局部渲染。</p>
+<h2 id="方案">方案</h2>
+<p>我们来思考 Canvas 局部渲染方案时，需要看 Canvas 的 API 给我们提供了什么样的接口，这里主要用到两个方法：</p>
+<ul>
+<li>clip() 确定绘制的的裁剪区域，区域之外的图形不能绘制，详情查看 CanvasRenderingContext2D.clip()</li>
+<li>clearRect(x, y, width, height) 擦除指定矩形内的颜色，查看 CanvasRenderingContext2D.clearRect()</li>
+</ul>
+<p>通过这两个 API 我们可以得到 Canvas 局部刷新的方案：</p>
+<ol>
+<li>清除指定区域的颜色，并设置 clip</li>
+<li><strong>「所有同这个区域相交的图形重新绘制」</strong></li>
+</ol>
+<h2 id="example">example</h2>
+<p>为什么所有同这个区域相交的图形都要重新绘制， 我举个例子：</p>
+<ul>
+<li>图形相交</li>
+</ul>
+<img src="/imgs/11/05.png" />
+<p>首先看上面这张图，如果我只改变了圆形的颜色， 那我去做裁剪的时候，首先我的裁剪路径肯定是是这个圆， 但是同时又包含了 黑色矩形的一部分， 如果我只对圆做颜色变化的， 你会发现黑色矩形少了一部分。我给你看下 图片：</p>
+<ul>
+<li>clip 裁剪结果</li>
+</ul>
+<img src="/imgs/11/06.png" />
+<p>你会发现有点奇怪对吧， 这个时候有人提出了一个问题， 为什么整个圆呢， 3/4 个圆不好嘛。OK 是可以的， 你杠我，我就要在给你举一个例子。或者说我这里我为什么要给大家讲一下 Boundbox 的概念呢？</p>
+<ul>
+<li>anyShape</li>
+</ul>
+<img src="/imgs/11/07.png" />
+<p>假设在这样的情况下：我想做局部渲染， 同时画布中还有一个绿色的三角形。那你怎么去计算路径呢 ？？？ 对吧，所以我们想着肯定得有一个框去把他们框柱， 然后框内所有的的图形都会重画，其他不变。是不是就好了。</p>
+<h2 id="boundingbox">boundingbox</h2>
+<p>我们刚才说的用一个框去把图形包围住， 其实在几何中我们叫 <strong>「包围盒」</strong> 或者是 <strong>「boundingBox」</strong>。可以用来 <strong>「快速检测」</strong> 两个图形是否相交， 但是还是不够准确。最好还是用图形算法去解决。或者游戏中的碰撞检测，都有这个概念。因为我这里讨论的是 2d 的 boudingbox， 还是比较简单的。我给你看几张图， 或许你就瞬间明白了。</p>
+<img src="/imgs/11/08.png" />
+<ul>
+<li>任意多边形</li>
+</ul>
+<img src="/imgs/11/09.png" />
+<p>虚线框其实就是 boundingBox, 其实就是根据图形的大小，算出一个矩形边框。理论我们知道了，映射到代码层次， 我们怎么去表达呢? 我这里带大家原生实现一下 bound2d 类， 其实我们每个 2d 图形，都可以去实现。因为 2d 图形都是由点组成的，所以只要获得每一个图形的离散点集合， 然后对这些点，去获得一个 2d 空间的 boundBox。</p>
+<h2 id="实现-box2">实现 box2</h2>
+<p><strong>「box2」</strong> 这个类的属性其实就有一个 min, max。这个其实就是对应的矩形的 <strong>「左上角」</strong> 和 <strong>「右下角」</strong>   这里是因为 canvas 的坐标系坐标原点是左上方的， 如果坐标原点在左下方。min, max 对应的就是， <strong>「左下」</strong> 和 <strong>「右上」</strong>。  我给出下面代码实现：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Box2</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">min</span>, <span style="color:#a6e22e">max</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">min</span> <span style="color:#f92672">||</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Point2d</span>(<span style="color:#f92672">-</span><span style="color:#66d9ef">Infinity</span>, <span style="color:#f92672">-</span><span style="color:#66d9ef">Infinity</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">max</span> <span style="color:#f92672">||</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Point2d</span>(<span style="color:#66d9ef">Infinity</span>, <span style="color:#66d9ef">Infinity</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setFromPoints</span>(<span style="color:#a6e22e">points</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">makeEmpty</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, <span style="color:#a6e22e">il</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">points</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">il</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">expandByPoint</span>(<span style="color:#a6e22e">points</span>[<span style="color:#a6e22e">i</span>]);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">containsBox</span>(<span style="color:#a6e22e">box</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">&lt;=</span> <span style="color:#a6e22e">box</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">&amp;&amp;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">box</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">&lt;=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">&amp;&amp;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">&lt;=</span> <span style="color:#a6e22e">box</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">&amp;&amp;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">box</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">&lt;=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">y</span>
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">expandByPoint</span>(<span style="color:#a6e22e">point</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">min</span>(<span style="color:#a6e22e">point</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">max</span>(<span style="color:#a6e22e">point</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">intersectsBox</span>(<span style="color:#a6e22e">box</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">box</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">&lt;</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">||</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">box</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">||</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">box</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">&lt;</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">||</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">box</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">y</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">?</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">makeEmpty</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> <span style="color:#f92672">+</span><span style="color:#66d9ef">Infinity</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#66d9ef">Infinity</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>「min」</strong> 和 <strong>「max」</strong>   其实对应着我之前写的 Point2d 点这个类。由于 expandPoint, 这个方法的存在。所以相当于不断的去比较获取的最大的点 和最小的点， 从而获得包围盒。我看下 Point2d min 和 max 这个方法的实现：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">min</span>(<span style="color:#a6e22e">v</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">min</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">v</span>.<span style="color:#a6e22e">x</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">min</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">y</span>, <span style="color:#a6e22e">v</span>.<span style="color:#a6e22e">y</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">max</span>(<span style="color:#a6e22e">v</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">max</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">v</span>.<span style="color:#a6e22e">x</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">max</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">y</span>, <span style="color:#a6e22e">v</span>.<span style="color:#a6e22e">y</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>「其实就是比较两个点的 x 和 y 不断地去比较。」</strong></p>
+<p>然后我再看下， 包围盒 是否相交 和包含这两个方法：</p>
+<p>我先讲下 包含（containsBox）这个方法：代码不好理解，我还是画一张图就理解了：</p>
+<ul>
+<li>包围盒包含的方法实现</li>
+</ul>
+<img src="/imgs/11/10.png" />
+<p>cd 这个包围盒 是不是在 ab 包围盒的内部 我们怎么表示呢</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">Cx</span> <span style="color:#f92672">&gt;=</span> <span style="color:#a6e22e">Ax</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">Cy</span> <span style="color:#f92672">&gt;=</span> <span style="color:#a6e22e">Ay</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">Dx</span> <span style="color:#f92672">&lt;=</span> <span style="color:#a6e22e">Bx</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">Dy</span> <span style="color:#f92672">&lt;=</span> <span style="color:#a6e22e">By</span>;
+</span></span></code></pre></div><p>上面的伪代码， 你理解了，你就理解了包围这个方法的实现了。</p>
+<p>然后我在看相交这个方法的实现，实现思路判断不想交的情况就好了。</p>
+<p>两个包围盒不想交的情况对应下面的这张图：其实是分 4 个象限：</p>
+<ul>
+<li>相交图片</li>
+</ul>
+<img src="/imgs/11/11.png" />
+<p>这是 4 中不想交情况， 对应的伪代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">dx</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">ax</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">cy</span> <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">by</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">cx</span> <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">bx</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">ay</span> <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">dy</span>;
+</span></span></code></pre></div><h1 id="改造-shape">改造 shape</h1>
+<p>有了 boundBox, 我们给每一个图形加一个 getBounding   这个方法。这里就不展示了， 直接展示代码。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 圆
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">getBounding</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">center</span>, <span style="color:#a6e22e">radius</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">props</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">y</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">center</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">min</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Point2d</span>(<span style="color:#a6e22e">x</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">radius</span>, <span style="color:#a6e22e">y</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">radius</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">max</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Point2d</span>(<span style="color:#a6e22e">x</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">radius</span>, <span style="color:#a6e22e">y</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">radius</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Box2</span>(<span style="color:#a6e22e">min</span>,<span style="color:#a6e22e">max</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//矩形
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">getBounding</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">leftTop</span>, <span style="color:#a6e22e">width</span>, <span style="color:#a6e22e">height</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">props</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">min</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">leftTop</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">y</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">leftTop</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">max</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Point2d</span>(<span style="color:#a6e22e">x</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">width</span>, <span style="color:#a6e22e">y</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">height</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Box2</span>(<span style="color:#a6e22e">min</span>, <span style="color:#a6e22e">max</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//任意多边形
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">getDispersed</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">points</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">getBounding</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Box2</span>().<span style="color:#a6e22e">setFromPoints</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">getDispersed</span>())
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h1 id="局部渲染">局部渲染</h1>
+<p>一切知识都已经讲结束了，我们开始进行实战环节了。我在底部加一个按钮， 用于改变圆的颜色。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;btn&#34;</span>&gt;改变圆的颜色&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 改变圆的颜色
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;btn&#34;</span>).<span style="color:#a6e22e">addEventListener</span>(<span style="color:#a6e22e">click</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">circle</span>.<span style="color:#a6e22e">change</span>(
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fillColor</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;blue&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">canvas</span>
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>同时点击的时候改变圆的颜色，我们看下 change 这个方法实现：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">change</span>(<span style="color:#a6e22e">props</span>, <span style="color:#a6e22e">canvas</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 设置不同
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">shapePropsDiffMap</span>.<span style="color:#a6e22e">set</span>(<span style="color:#66d9ef">this</span>, <span style="color:#a6e22e">props</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">reDraw</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这里我给大家讲解一下哈， 首先我们已经在画布中已经有了这个圆，我这是对圆再一次改变，所以我将这一次的改变用一个 map 记录， 重画这个方法 主要是区域裁剪， 但是裁剪我们要去判断 当前图形是不是和其他图形有相交的，如果有相交的，我们需要扩大裁剪区域， 并且重画多个图形。</p>
+<p>如果有相交的其他图形， 这里涉及到两个包围盒的合并。来确定这个裁剪区域</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">union</span>( <span style="color:#a6e22e">box</span> ) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">min</span>( <span style="color:#a6e22e">box</span>.<span style="color:#a6e22e">min</span> );
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">max</span>( <span style="color:#a6e22e">box</span>.<span style="color:#a6e22e">max</span> );
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>区域合并了，我们开始进行清除包围盒区域的图形, 先看下代码实现。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">reDraw</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">shapePropsDiffMap</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">props</span>, <span style="color:#a6e22e">shape</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">shape</span>.<span style="color:#a6e22e">props</span> <span style="color:#f92672">=</span> { ...<span style="color:#a6e22e">shape</span>.<span style="color:#a6e22e">props</span>, ...<span style="color:#a6e22e">props</span> }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">curBox</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">shape</span>.<span style="color:#a6e22e">getBounding</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">otherShapes</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">allShapes</span>.<span style="color:#a6e22e">filter</span>(
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">other</span>) =&gt; <span style="color:#a6e22e">other</span> <span style="color:#f92672">!==</span> <span style="color:#a6e22e">shape</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">other</span>.<span style="color:#a6e22e">getBounding</span>().<span style="color:#a6e22e">intersectsBox</span>(<span style="color:#a6e22e">curBox</span>)
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 如果存在相交 进行包围盒合并
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">otherShapes</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">otherShapes</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">otherShape</span>) =&gt; {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">curBox</span>.<span style="color:#a6e22e">union</span>(<span style="color:#a6e22e">otherShape</span>.<span style="color:#a6e22e">getBounding</span>())
+</span></span><span style="display:flex;"><span>        })
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//清除裁剪区域
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">clearRect</span>(<span style="color:#a6e22e">curBox</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">curBox</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">y</span>, <span style="color:#a6e22e">curBox</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">curBox</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">y</span>)
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>裁剪的区域 就是合并的 boudingBox 区域。我们看下图片</p>
+<img src="/imgs/11/03.gif" />
+<p>哈哈哈成功实现， 我只改变的是圆， 接下来进行裁剪和重画就好了代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 确定裁剪范围
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">save</span>()
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">beginPath</span>()
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 裁剪区域
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">curBox</span>.<span style="color:#a6e22e">getFourPoints</span>().<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">point</span>, <span style="color:#a6e22e">index</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">y</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">point</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">index</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">moveTo</span>(<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">y</span>)
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">lineTo</span>(<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">y</span>)
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">clip</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//重画每一个图形
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>[...<span style="color:#a6e22e">otherShapes</span>, <span style="color:#a6e22e">shape</span>].<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">shape</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">shape</span>.<span style="color:#a6e22e">draw</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>)
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">closePath</span>()
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">restore</span>()
+</span></span></code></pre></div><p>上面的 getFourPoints, 其实是确定裁剪的路径。这个很重要的方法如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">getFourPoints</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">rightTop</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Point2d</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">x</span>, <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">y</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">leftBottom</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Point2d</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>.<span style="color:#a6e22e">x</span>, <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>.<span style="color:#a6e22e">y</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> [<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">min</span>, <span style="color:#a6e22e">rightTop</span>, <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">max</span>, <span style="color:#a6e22e">leftBottom</span>]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>为了测试局部渲染的优势哈，我在画布中画了 50 个圆形，并且增加了走全部渲染的按钮， 看看到底有没有优势。到底有没有优化。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">shapes</span> <span style="color:#f92672">=</span> []
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">50</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">circle</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Circle</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">center</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Point2d</span>.<span style="color:#a6e22e">random</span>(<span style="color:#ae81ff">800</span>, <span style="color:#ae81ff">600</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">radius</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">20</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fillColor</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#39;rgb( &#39;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>      ((Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#ae81ff">255</span>) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">0</span>) <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#39;,&#39;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>      ((Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#ae81ff">255</span>) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">0</span>) <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#39;,&#39;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>      ((Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#ae81ff">255</span>) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">0</span>) <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#39; )&#39;</span>,
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">shapes</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">circle</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">reDraw2</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">clearCanvas</span>()
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">allShapes</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">shape</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">shape</span>.<span style="color:#a6e22e">draw</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ctx</span>)
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>然后画布是这样子的如图：</p>
+<img src="/imgs/11/12.png" />
+<p>分别加了时间 去测试代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 局部改变圆的颜色
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;btn&#34;</span>).<span style="color:#a6e22e">addEventListener</span>(<span style="color:#a6e22e">click</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">time</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">circle</span>.<span style="color:#a6e22e">change</span>(
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fillColor</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;blue&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">canvas</span>
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">timeEnd</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 全部刷新 改变圆的颜色
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;btn2&#34;</span>).<span style="color:#a6e22e">addEventListener</span>(<span style="color:#a6e22e">click</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">time</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">reDraw2</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">timeEnd</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>下面我们开始测试看下 gif:</p>
+<img src="/imgs/11/04.gif" />
+<p>大家可以发现，局部渲染还速度还是快的。这是在 50 个图形的基础上，如果换成 100 个呢， 对吧，优化可能就是比较明显的了。</p>
+<h1 id="总结">总结</h1>
+<p>本篇文章写到这里也就结束了，如果你对文章的内容有困惑，欢迎评论区交流指正。我看到都会回复的， 最后还是希望大家如果看完对你有帮助，希望点个赞 👍 和关注。让更多人看到， 我是喜欢图形的 Fly，我们下期再见 👋。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/238/"
+      ><span>前端异常原理</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>
