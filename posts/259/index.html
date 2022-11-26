@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="zh"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>前端性能优化到底该怎么做（下） - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="在上一篇 前端性能优化到底该怎么做（上）— 开门见山 一文中介绍了和前端性能优化相关的一些前置知识，那么本篇就针对优化方案进行总结，核心的方向还是上篇文章中提到的内容：
+保证资源更快的 加载速度：达到越快渲染越快，视图展现就越快 保证视图更快的 渲染速度/交互速度：用户与页面交互，前提是页面要渲染出来，其次是页面需要尽早反馈，目的就是保证用户良好的体验性 其实将上述两点再进行翻译，那么其实指的就是 网络层面的优化 和 浏览器层面的优化，这样看来其实前端性能优化方向还是很明确的，只不过明确的方向中还是会涉及不同方面的具体优化手段。
+还是不得不回顾 从输入URL到页面加载完成 的核心过程：
+进行DNS解析 建立TCP连接 客户端发送HTTP请求 服务端响应HTTP资源 浏览器获取响应内容，进行解析和渲染 从上述的内容来看，不难发现每一步都是需要消耗一定的时间，那么优化的方向就可以围绕着这些内容来考虑。
+如何保证资源更快的加载速度？ 下面内容主要针对 DNS 解析、TCP 连接、HTTP 请求/响应 等阶段来谈的优化，核心优化核心其实就是 网络层面。
+使用 dns-prefetch 减少 DNS 的查询时间 dns-prefetch 能够 提前解析 后续可能会用到的 不同域的域名，使解析结果 缓存到系统缓存 中，缩短 DNS 解析时间以提高网站的访问速度。
+比如在掘金中的体现如下：
+【扩展】 DNS 解析的核心过程
+当浏览器访问一个域名时需解析一次 DNS，以获得对应域名的 IP 地址：
+浏览器 会从自身的 缓存中 查询是否存在对应域名的 IP 地址，若存在返回，若不存在进入下一步 客户机查询操作系统中的 /etc/hosts 文件中查询是否有对应域名的 IP 地址，若存在则返回，若不存在进入下一步 客户机请求 本地域名服务器（LDNS） 进行解析，本地域名服务器收到客户机的请求后，先查询自己的缓存信息是否有对应域名的 IP 地址，若存在返回结果，没有则进行下一步 本地域名服务器请求 根域名服务器 解析该域名，根域名告诉本地域名服务器去找对应的 一级域名服务器 本地域名服务器请求一级域名服务器解析这个域名，一级域名服务器告诉它去找对应的 二级域名服务器 本地域名服务器请求二级域名服务器解析这个域名，二级域名服务器告诉它去找对应的 子域名服务器 本地域名服务器请求子域名服务器解析这个域名，子域名服务器返回对应的 IP 地址 本地域名服务器将 IP 地址记录到缓存中，并返回给客户机（会缓存起来），客户机根据收到的 IP 地址访问该网站 使用 preconnect 提前建立连接 preconnect 的作用是提前和第三方资源建立连接，设置了它浏览器就会做好早期的连接工作，但这个连接通常只会维持 10 s。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="https://yinchuanbo.github.io/imgs/logo.svg" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.102.3" />
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="前端性能优化到底该怎么做（下）" />
+<meta property="og:description" content="在上一篇 前端性能优化到底该怎么做（上）— 开门见山 一文中介绍了和前端性能优化相关的一些前置知识，那么本篇就针对优化方案进行总结，核心的方向还是上篇文章中提到的内容：
+保证资源更快的 加载速度：达到越快渲染越快，视图展现就越快 保证视图更快的 渲染速度/交互速度：用户与页面交互，前提是页面要渲染出来，其次是页面需要尽早反馈，目的就是保证用户良好的体验性 其实将上述两点再进行翻译，那么其实指的就是 网络层面的优化 和 浏览器层面的优化，这样看来其实前端性能优化方向还是很明确的，只不过明确的方向中还是会涉及不同方面的具体优化手段。
+还是不得不回顾 从输入URL到页面加载完成 的核心过程：
+进行DNS解析 建立TCP连接 客户端发送HTTP请求 服务端响应HTTP资源 浏览器获取响应内容，进行解析和渲染 从上述的内容来看，不难发现每一步都是需要消耗一定的时间，那么优化的方向就可以围绕着这些内容来考虑。
+如何保证资源更快的加载速度？ 下面内容主要针对 DNS 解析、TCP 连接、HTTP 请求/响应 等阶段来谈的优化，核心优化核心其实就是 网络层面。
+使用 dns-prefetch 减少 DNS 的查询时间 dns-prefetch 能够 提前解析 后续可能会用到的 不同域的域名，使解析结果 缓存到系统缓存 中，缩短 DNS 解析时间以提高网站的访问速度。
+比如在掘金中的体现如下：
+【扩展】 DNS 解析的核心过程
+当浏览器访问一个域名时需解析一次 DNS，以获得对应域名的 IP 地址：
+浏览器 会从自身的 缓存中 查询是否存在对应域名的 IP 地址，若存在返回，若不存在进入下一步 客户机查询操作系统中的 /etc/hosts 文件中查询是否有对应域名的 IP 地址，若存在则返回，若不存在进入下一步 客户机请求 本地域名服务器（LDNS） 进行解析，本地域名服务器收到客户机的请求后，先查询自己的缓存信息是否有对应域名的 IP 地址，若存在返回结果，没有则进行下一步 本地域名服务器请求 根域名服务器 解析该域名，根域名告诉本地域名服务器去找对应的 一级域名服务器 本地域名服务器请求一级域名服务器解析这个域名，一级域名服务器告诉它去找对应的 二级域名服务器 本地域名服务器请求二级域名服务器解析这个域名，二级域名服务器告诉它去找对应的 子域名服务器 本地域名服务器请求子域名服务器解析这个域名，子域名服务器返回对应的 IP 地址 本地域名服务器将 IP 地址记录到缓存中，并返回给客户机（会缓存起来），客户机根据收到的 IP 地址访问该网站 使用 preconnect 提前建立连接 preconnect 的作用是提前和第三方资源建立连接，设置了它浏览器就会做好早期的连接工作，但这个连接通常只会维持 10 s。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/259/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-11-26T11:05:21+08:00" />
+<meta property="article:modified_time" content="2022-11-26T11:05:21+08:00" />
+
+
+  
+  <meta itemprop="name" content="前端性能优化到底该怎么做（下）">
+<meta itemprop="description" content="在上一篇 前端性能优化到底该怎么做（上）— 开门见山 一文中介绍了和前端性能优化相关的一些前置知识，那么本篇就针对优化方案进行总结，核心的方向还是上篇文章中提到的内容：
+保证资源更快的 加载速度：达到越快渲染越快，视图展现就越快 保证视图更快的 渲染速度/交互速度：用户与页面交互，前提是页面要渲染出来，其次是页面需要尽早反馈，目的就是保证用户良好的体验性 其实将上述两点再进行翻译，那么其实指的就是 网络层面的优化 和 浏览器层面的优化，这样看来其实前端性能优化方向还是很明确的，只不过明确的方向中还是会涉及不同方面的具体优化手段。
+还是不得不回顾 从输入URL到页面加载完成 的核心过程：
+进行DNS解析 建立TCP连接 客户端发送HTTP请求 服务端响应HTTP资源 浏览器获取响应内容，进行解析和渲染 从上述的内容来看，不难发现每一步都是需要消耗一定的时间，那么优化的方向就可以围绕着这些内容来考虑。
+如何保证资源更快的加载速度？ 下面内容主要针对 DNS 解析、TCP 连接、HTTP 请求/响应 等阶段来谈的优化，核心优化核心其实就是 网络层面。
+使用 dns-prefetch 减少 DNS 的查询时间 dns-prefetch 能够 提前解析 后续可能会用到的 不同域的域名，使解析结果 缓存到系统缓存 中，缩短 DNS 解析时间以提高网站的访问速度。
+比如在掘金中的体现如下：
+【扩展】 DNS 解析的核心过程
+当浏览器访问一个域名时需解析一次 DNS，以获得对应域名的 IP 地址：
+浏览器 会从自身的 缓存中 查询是否存在对应域名的 IP 地址，若存在返回，若不存在进入下一步 客户机查询操作系统中的 /etc/hosts 文件中查询是否有对应域名的 IP 地址，若存在则返回，若不存在进入下一步 客户机请求 本地域名服务器（LDNS） 进行解析，本地域名服务器收到客户机的请求后，先查询自己的缓存信息是否有对应域名的 IP 地址，若存在返回结果，没有则进行下一步 本地域名服务器请求 根域名服务器 解析该域名，根域名告诉本地域名服务器去找对应的 一级域名服务器 本地域名服务器请求一级域名服务器解析这个域名，一级域名服务器告诉它去找对应的 二级域名服务器 本地域名服务器请求二级域名服务器解析这个域名，二级域名服务器告诉它去找对应的 子域名服务器 本地域名服务器请求子域名服务器解析这个域名，子域名服务器返回对应的 IP 地址 本地域名服务器将 IP 地址记录到缓存中，并返回给客户机（会缓存起来），客户机根据收到的 IP 地址访问该网站 使用 preconnect 提前建立连接 preconnect 的作用是提前和第三方资源建立连接，设置了它浏览器就会做好早期的连接工作，但这个连接通常只会维持 10 s。"><meta itemprop="datePublished" content="2022-11-26T11:05:21+08:00" />
+<meta itemprop="dateModified" content="2022-11-26T11:05:21+08:00" />
+<meta itemprop="wordCount" content="921">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="前端性能优化到底该怎么做（下）"/>
+<meta name="twitter:description" content="在上一篇 前端性能优化到底该怎么做（上）— 开门见山 一文中介绍了和前端性能优化相关的一些前置知识，那么本篇就针对优化方案进行总结，核心的方向还是上篇文章中提到的内容：
+保证资源更快的 加载速度：达到越快渲染越快，视图展现就越快 保证视图更快的 渲染速度/交互速度：用户与页面交互，前提是页面要渲染出来，其次是页面需要尽早反馈，目的就是保证用户良好的体验性 其实将上述两点再进行翻译，那么其实指的就是 网络层面的优化 和 浏览器层面的优化，这样看来其实前端性能优化方向还是很明确的，只不过明确的方向中还是会涉及不同方面的具体优化手段。
+还是不得不回顾 从输入URL到页面加载完成 的核心过程：
+进行DNS解析 建立TCP连接 客户端发送HTTP请求 服务端响应HTTP资源 浏览器获取响应内容，进行解析和渲染 从上述的内容来看，不难发现每一步都是需要消耗一定的时间，那么优化的方向就可以围绕着这些内容来考虑。
+如何保证资源更快的加载速度？ 下面内容主要针对 DNS 解析、TCP 连接、HTTP 请求/响应 等阶段来谈的优化，核心优化核心其实就是 网络层面。
+使用 dns-prefetch 减少 DNS 的查询时间 dns-prefetch 能够 提前解析 后续可能会用到的 不同域的域名，使解析结果 缓存到系统缓存 中，缩短 DNS 解析时间以提高网站的访问速度。
+比如在掘金中的体现如下：
+【扩展】 DNS 解析的核心过程
+当浏览器访问一个域名时需解析一次 DNS，以获得对应域名的 IP 地址：
+浏览器 会从自身的 缓存中 查询是否存在对应域名的 IP 地址，若存在返回，若不存在进入下一步 客户机查询操作系统中的 /etc/hosts 文件中查询是否有对应域名的 IP 地址，若存在则返回，若不存在进入下一步 客户机请求 本地域名服务器（LDNS） 进行解析，本地域名服务器收到客户机的请求后，先查询自己的缓存信息是否有对应域名的 IP 地址，若存在返回结果，没有则进行下一步 本地域名服务器请求 根域名服务器 解析该域名，根域名告诉本地域名服务器去找对应的 一级域名服务器 本地域名服务器请求一级域名服务器解析这个域名，一级域名服务器告诉它去找对应的 二级域名服务器 本地域名服务器请求二级域名服务器解析这个域名，二级域名服务器告诉它去找对应的 子域名服务器 本地域名服务器请求子域名服务器解析这个域名，子域名服务器返回对应的 IP 地址 本地域名服务器将 IP 地址记录到缓存中，并返回给客户机（会缓存起来），客户机根据收到的 IP 地址访问该网站 使用 preconnect 提前建立连接 preconnect 的作用是提前和第三方资源建立连接，设置了它浏览器就会做好早期的连接工作，但这个连接通常只会维持 10 s。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center">
+  <div class="relative z-50 mr-auto flex items-center">
+    <a class="-translate-x-[1px] -translate-y-0.5 text-3xl font-bold" href="/"
+      >灏天阁</a
+    >
+    <a
+      class="btn-dark ml-6 h-6 w-6 shrink-0 cursor-pointer [background:url(./theme.svg)_left_center/cover_no-repeat] dark:invert dark:[background-position:right]"
+    ></a>
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    const btnDark = document.querySelector('.btn-dark');
+    btnDark.addEventListener('click', () => {
+      setDark(localStorage.getItem('dark') !== 'true');
+    });
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+
+    
+  </div>
+</header>
+
+
+    <main
+      class="prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 pb-32 dark:prose-invert"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">前端性能优化到底该怎么做（下）</h1>
+
+    
+    <div class="text-sm opacity-60">
+      
+      <time>2022年11月26日</time>
+      
+      
+    </div>
+    
+  </header>
+
+  <section><p>在上一篇 <a href="https://juejin.cn/post/7137058832592666655/"><strong>前端性能优化到底该怎么做（上）— 开门见山</strong></a> 一文中介绍了和前端性能优化相关的一些前置知识，那么本篇就针对优化方案进行总结，核心的方向还是上篇文章中提到的内容：</p>
+<ul>
+<li><strong><code>保证资源更快的 加载速度</code></strong>：达到越快渲染越快，视图展现就越快</li>
+<li><strong><code>保证视图更快的 渲染速度/交互速度</code></strong>：用户与页面交互，前提是页面要渲染出来，其次是页面需要尽早反馈，目的就是保证用户良好的体验性</li>
+</ul>
+<p>其实将上述两点再进行翻译，那么其实指的就是 <strong>网络层面的优化</strong> 和 <strong>浏览器层面的优化</strong>，这样看来其实前端性能优化方向还是很明确的，只不过明确的方向中还是会涉及不同方面的具体优化手段。</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9bdfc777905c4ec187c1a215b5610f86~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="0B249F1E.jpg"></p>
+<p>还是不得不回顾 <strong>从输入<code>URL</code>到页面加载完成</strong> 的核心过程：</p>
+<ul>
+<li>进行<code>DNS</code>解析</li>
+<li>建立<code>TCP</code>连接</li>
+<li>客户端发送<code>HTTP</code>请求</li>
+<li>服务端响应<code>HTTP</code>资源</li>
+<li>浏览器获取响应内容，进行解析和渲染</li>
+</ul>
+<p>从上述的内容来看，不难发现每一步都是需要消耗一定的时间，那么优化的方向就可以围绕着这些内容来考虑。</p>
+<h2 id="如何保证资源更快的加载速度">如何保证资源更快的加载速度？</h2>
+<p>下面内容主要针对  <strong><code>DNS</code>  解析</strong>、<strong><code>TCP</code>  连接</strong>、<strong><code>HTTP</code>  请求/响应</strong> 等阶段来谈的优化，核心优化核心其实就是 <strong>网络层面</strong>。</p>
+<h3 id="使用-dns-prefetch-减少-dns-的查询时间">使用 <code>dns-prefetch</code> 减少 DNS 的查询时间</h3>
+<p><code>dns-prefetch</code> 能够 <strong>提前解析</strong> 后续可能会用到的 <strong>不同域的域名</strong>，使解析结果 <strong>缓存到系统缓存</strong> 中，缩短 <code>DNS</code> 解析时间以提高网站的访问速度。</p>
+<p>比如在掘金中的体现如下：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0915524494ac40529e5197492e65b08d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<blockquote>
+<p>【<strong>扩展</strong>】 <strong><code>DNS</code> 解析的核心过程</strong></p>
+</blockquote>
+<p>当浏览器访问一个域名时需解析一次 <code>DNS</code>，以获得对应域名的 <code>IP</code> 地址：</p>
+<ul>
+<li><strong>浏览器</strong> 会从自身的 <strong>缓存中</strong> 查询是否存在对应域名的 <code>IP</code> 地址，若存在返回，若不存在进入下一步</li>
+<li>客户机查询操作系统中的 <strong><code>/etc/hosts</code></strong> 文件中查询是否有对应域名的 <code>IP</code> 地址，若存在则返回，若不存在进入下一步</li>
+<li>客户机请求 <strong>本地域名服务器（LDNS）</strong> 进行解析，本地域名服务器收到客户机的请求后，先查询自己的缓存信息是否有对应域名的 <code>IP</code> 地址，若存在返回结果，没有则进行下一步</li>
+<li>本地域名服务器请求 <strong>根域名服务器</strong> 解析该域名，根域名告诉本地域名服务器去找对应的 <strong>一级域名服务器</strong></li>
+<li>本地域名服务器请求一级域名服务器解析这个域名，一级域名服务器告诉它去找对应的 <strong>二级域名服务器</strong></li>
+<li>本地域名服务器请求二级域名服务器解析这个域名，二级域名服务器告诉它去找对应的 <strong>子域名服务器</strong></li>
+<li>本地域名服务器请求子域名服务器解析这个域名，<strong>子域名服务器返回对应的 IP 地址</strong></li>
+<li>本地域名服务器将 <code>IP</code> 地址记录到缓存中，并返回给客户机（会缓存起来），客户机根据收到的 <code>IP</code> 地址访问该网站</li>
+</ul>
+<h3 id="使用-preconnect-提前建立连接">使用 <code>preconnect</code> 提前建立连接</h3>
+<p><code>preconnect</code> 的作用是提前和第三方资源建立连接，设置了它浏览器就会做好早期的连接工作，但这个连接通常只会维持 <code>10 s</code>。</p>
+<p>比如在当前域请求一个资源前，可能会涉及 <code>DNS</code> 寻址、<code>TLS</code> 握手、<code>TCP</code> 握手、重定向等，这过程也会花费一定的时间。</p>
+<p>比如在掘金中的体现如下：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/62852721b2234e65858eb9d8db10eec8~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<h3 id="使用-preload--prefetch-预先加载资源">使用 <code>preload / prefetch</code> 预先加载资源</h3>
+<ol>
+<li>preload</li>
+</ol>
+<p><code>preload</code> 的作用是提前加载页面对应的 <strong>关键资源</strong> 加快页面的渲染，<code>preload</code> 的优先级顺序和 <code>as</code> 属性相关，<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/preload"><strong>具体可见</strong></a>。</p>
+<blockquote>
+<p>【<strong>注意</strong>】<code>as</code> 属性一定要设置，除了上面提到的设置优先级外，还涉及到浏览识别的问题：如果没有设置 <code>as</code> 属性，后续遇到该请求就会被作为一个 <code>XHR</code> 请求，把意味着资源预加载的功能可能会失效，因为可能会每次都发起新的请求获取</p>
+</blockquote>
+<p>比如在掘金中的体现如下：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4050cfe8ecf7411facaaa041339b39cd~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>比如在 <code>vue-cli</code> 的默认 <code>webpack</code> 配置，如下：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/98e69fea1ff64fe8aa4481cda4d6cdca~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<ol start="2">
+<li>prefetch</li>
+</ol>
+<p><code>preload</code> 是对资源的预加载，它虽提前加载但只在需要执行时执行，即这个资源一定是当前页面所需要的资源，如果是需要为下一个页面提前加载资源，那么应该使用 <code>prefetch</code>，它会在 <strong>浏览器空闲时</strong> 下载资源。</p>
+<p>比如在 <code>vue-cli</code> 的默认 <code>webpack</code> 配置，如下：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9ac9bfdabc2e466cb3e05a282b381213~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="压缩资源体积">压缩资源体积</h3>
+<p>资源是需要通过 <code>http</code> 数据包的方式在网络中进行传输的，那么只要能减少传输数据包的体积，也是能够使得资源更快到达客户端，这也是压缩资源体积的核心目的。</p>
+<ol>
+<li>HTTP 压缩</li>
+</ol>
+<p>HTTP 压缩中一个典型代表就是 <code>gzip</code>，它是一种优秀的压缩算法，可对 <code>http</code> 请求中的一些文件资源进行压缩处理，一般来讲是要在服务端处理的，可通过在响应头中设置 <code>Content-encoding: gzip</code> 表示当前资源使用的压缩方式（如：<code>gzip、deflate、br</code> 等），便于客户端使用正确的方式解压。</p>
+<blockquote>
+<p>【<strong>注意</strong>】<code>gzip</code> 并不是万能的，它不能保证针对每个文件的压缩都能使其体积变小，关于 <code>Content-Encoding</code> 的内容 <a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Content-Encoding"><strong>可点此查阅</strong></a>，或者可参考 <a href="https://juejin.cn/post/6844904148622639111"><strong>content-encoding 除了 gzip 之外，你还知道哪些？</strong></a></p>
+</blockquote>
+<p>比如在京东中的体现:</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c5a42ccd8d8144adb50d3acdec9da5da~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<p>比如在掘金中的体现：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2ee2a833f35d40b39e30d3cd09906a01~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<ol start="2">
+<li>Webpack 压缩</li>
+</ol>
+<p><strong>有 <code>HTTP</code> 压缩 不就够了吗？为什么还需要 <code>Webpack</code> 压缩？</strong></p>
+<p>首先必须要明确的是压缩的过程本身就是会消耗时间的，如果所有资源都等到被访问的时候再由服务端进行压缩，在压缩完成之前客户端还是得处于等待状态，即仍 <strong>不能保证资源以最快的速度到达客户端</strong>。</p>
+<p>那么优化方案就是将压缩资源的时间放到打包构建中，毕竟只有真正需要发布线上生产环境时才需要执行一系列的打包优化的操作，而这相比于 <strong><code>http</code></strong> 的 <strong>请求/响应</strong> 速度，稍微延长产物打包时间没有什么大问题。</p>
+<p>下面会列举一些 <strong>Webpack</strong> 插件，但并不会去讲其中的具体用法，因为这些只是达到目的的不同方案而已，每个方案要是细讲都可以独占一篇文章，在这是没有必要的，具体用法可自行查阅。</p>
+<blockquote>
+<p><strong>使用 <code>CompressionPlugin</code> 压缩文件</strong></p>
+</blockquote>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cdb388cd47a049cb89eac2eca383f1a9~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<p><a href="https://webpack.docschina.org/awesome-webpack/#Webpack-Plugins"><strong><code>webpack</code> 文档</strong></a> 提供插件合集中就包含了该插件，它的作用就是：<strong><code>Prepare compressed versions of assets to serve them with Content-Encoding.</code></strong></p>
+<blockquote>
+<p><strong>使用 <code>HtmlWebpackPlugin</code> 压缩 <code>HTML</code> 文件</strong></p>
+</blockquote>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/46fc48a1ac4740e094280840e14a0904~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<p>通常我们需要 <a href="https://github.com/jantimon/html-webpack-plugin"><strong><code>HtmlWebpackPlugin</code></strong></a> 插件来生成对应 <code>HTML</code> 或 对已有的 <code>HTML</code> 模板自动注入 <code>webpack bundles</code> 资源，除此之外，它还可配置 <code>minify</code> 选项实现压缩模板的目的。</p>
+<p>可以在 <code>vue</code> 项目下执行 <strong><code>vue inspect --mode production &gt; webpack.config.js</code></strong> 来查看脚手架的默认 <code>webpack</code> 配置内容，比如：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e370965e70f3446c972844caceaf094f~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<blockquote>
+<p><strong>使用 <code>SplitChunksPlugin</code> 自定义分包策略</strong></p>
+</blockquote>
+<p><code>Webpack</code> 默认会将尽可能多的模块代码打包在一起，这种默认规则的带来的优点和缺点都很明显:</p>
+<ul>
+<li>优点：<strong>能减少最终页面的 <code>HTTP</code> 请求数</strong></li>
+<li>缺点：
+<ul>
+<li><strong>页面初始代码包过大，影响首屏渲染性能</strong></li>
+<li><strong>无法有效应用浏览器缓存</strong></li>
+</ul>
+</li>
+</ul>
+<p><a href="https://link.juejin.cn/?target=https%3A%2F%2Fwebpack.docschina.org%2Fplugins%2Fsplit-chunks-plugin%2F"><strong><code>SplitChunksPlugin</code></strong></a>  是 <code>Webpack 4</code> 之后内置实现的最新分包方案，与 <code>Webpack 3</code> 中的  <code>CommonsChunkPlugin</code>  相比，它能够基于一些更灵活、合理的启发式规则将 <code>Module</code> 编排进不同的 <code>Chunk</code>，最终构建出 <strong>性能更佳、缓存更友好</strong> 的应用产物。</p>
+<p>比如在 <code>vue-cli</code> 的默认 <code>webpack</code> 配置，如下：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0a2594b60028491a80e34e8e0be3d6fb~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<blockquote>
+<p><strong>使用 <code>MiniCssExtractPlugin</code> 抽离和压缩 <code>CSS</code></strong></p>
+</blockquote>
+<p><a href="https://webpack.docschina.org/plugins/mini-css-extract-plugin#root"><strong><code>MiniCssExtractPlugin</code></strong></a> 会将 <code>CSS</code> 提取到单独的文件中，为每个包含 <code>CSS</code> 的 <code>JS</code> 文件创建一个 <code>CSS</code> 文件，并且支持 <code>CSS</code> 和 <code>SourceMaps</code> 的 <strong>按需加载</strong> 。</p>
+<p>比如在 <code>vue-cli</code> 的默认 <code>webpack</code> 配置，如下：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1cd8f08a792248d6a151ff04b3cfaeb7~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/51874cb7334f4a40981352438a563ef0~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<blockquote>
+<p><strong>使用 <code>ImageMinimizerWebpackPlugin</code> 压缩图片资源</strong></p>
+</blockquote>
+<p>图片仍是一个 <code>Web</code> 应用中的必不可少的资源，而图片资源的体积也是首屏页面加载的瓶颈之一，因此，压缩图片也是性能优化需要考虑的内容。</p>
+<p><a href="https://webpack.docschina.org/plugins/image-minimizer-webpack-plugin/#root"><strong><code>ImageMinimizerWebpackPlugin</code></strong></a> 可用于使用 <strong>优化/压缩</strong> 所有图像，它可以支持 <strong>无损（不损失质量）</strong>、<strong>有损（质量下降）</strong> 两种模式的压缩方式。</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c22c0109afb14db4bc06a0fd923ea0ff~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<blockquote>
+<p><strong>通过 <code>Tree Shaking</code> 移除无用代码</strong></p>
+</blockquote>
+<p><a href="https://webpack.docschina.org/guides/tree-shaking/#root"><strong><code>Tree Shaking</code></strong></a> 依赖于 <code>ES6</code> 模块语法的  <a href="http://exploringjs.com/es6/ch_modules.html#static-module-structure"><strong>静态结构</strong></a>  特性（如： <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import"><code>import</code></a>  和  <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export"><code>export</code></a>），当 <code>webpack</code> 的模式  <code>mode</code>  为  <code>&quot;production&quot;</code>  时，就可以启用 <a href="https://webpack.docschina.org/concepts/mode/#usage"><strong>更多优化项</strong></a>，包括 <strong>压缩代码</strong> 与 <strong>Tree Shaking</strong>。</p>
+<p>但同时我们就必须保证：</p>
+<ul>
+<li>尽量使用 <code>ES6</code> 模块语法，即  <code>import</code>  和  <code>export</code></li>
+<li>保证没有 <strong>编译器</strong>（如：<code>babel</code>）将对应的 <code>ES6</code> 模块语法转换为 <code>CommonJS</code> 的语法（如：<code>@babel/preset-env</code> 的默认行为）</li>
+<li>可在项目的  <code>package.json</code>  文件中添加  <code>&quot;sideEffects&quot;</code>  属性，标识当前内容是否存在副作用操作</li>
+<li>可在通过  <code>/*#__PURE__*/</code>  注释，将函数调用标记为无副作用<a href="https://webpack.docschina.org/guides/tree-shaking/#mark-a-function-call-as-side-effect-free"></a></li>
+</ul>
+<h3 id="减少-http-请求数量">减少 http 请求数量</h3>
+<p><strong>不同协议</strong> 下 <strong>请求数量</strong> 仍然可能成为 <strong>请求/响应</strong> 慢的原因：</p>
+<ul>
+<li>合并公共资源，如 雪碧图 等</li>
+<li>内置模块资源，如 生成 <code>base64</code> 图片、通过 <code>symbol</code> 引用 <code>svg</code> 等</li>
+<li>合并代码块，如构建工具分包策略配合 公共组件封装、组件复用逻辑抽离 等</li>
+<li>按需加载资源，如 路由懒加载、图片懒加载、上拉加载、分页加载 等</li>
+</ul>
+<h3 id="减少不必要的-cookie">减少不必要的 cookie</h3>
+<p>不必要的 <code>cookie</code> 来回传输会造成带宽浪费：</p>
+<ul>
+<li>减少 <code>cookie</code> 存储的内容</li>
+<li>对于静态资源采用 <code>CDN</code> 托管（即非同域），不同域名默认不携带 <code>cookie</code></li>
+</ul>
+<h3 id="cdn-托管静态资源--http-缓存">CDN 托管静态资源 + HTTP 缓存</h3>
+<p><strong><code>CDN</code> 加速的本质是缓存加速</strong>，将服务器上存储的静资源容缓存在 <code>CDN</code> 节点上，当后续访问这些静态内容时，无需访问服务器源站，选择就近访问 <code>CDN</code> 节点即可，从而达到加速的效果，同时减轻服务器源站的压力。</p>
+<p>在掘金中体现如下：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/53608c5ad7ab4ee9b0daee811fcb226d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8c1051501e47461aaeb45ae368585881~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="协议升级为-http20">协议升级为 Http2.0</h3>
+<blockquote>
+<p><strong><code>http1.x</code> 存在的问题：</strong> <code>HTTP</code> 的底层协议是 <code>TCP</code>，而 <code>TCP</code> 是面向连接即需要 <strong>三次握手</strong> 才能建立连接，其中：</p>
+</blockquote>
+<ul>
+<li><code>http1.0</code> 中使用的是 <strong>短连接</strong>，即 <strong>一次请求/响应</strong> 结束后就会断开连接，这个过程比较耗时</li>
+<li><code>http1.1</code> 中使用的是 <strong>长连接</strong>，在 <strong>请求/响应头</strong> 中设置 <code>Connection: keep-alive</code> 即可开启，优点是 <strong>长连接</strong> 允许多个请求共用一个 <code>TCP</code> 连接，缺点是带来了 <strong>队头阻塞</strong>：
+<ul>
+<li>每个 <code>TCP</code> 连接中的多个请求，需要进行排队，只有队头的请求被响应，才能继续处理下一个请求</li>
+<li>其中一个缓解方案就是如果当前 <code>TCP</code> 连接中发生 <strong>队头阻塞</strong>，那就将部分请求放到其他 <code>TCP</code> 连接中</li>
+<li>浏览器一般会限制同一个域名建立 <code>6-8</code> 个 <code>TCP</code> 链接，这也就是为什么需要为应用划分子域名、静态资源托管 <code>CDN</code> 的原因之一</li>
+</ul>
+</li>
+<li><code>http1.x</code> 中 <code>header</code> 部分的内容可能会很大，而且每一个请求可能都需要携带大量 <strong>重复</strong> <code>header</code> 的 <strong>文本内容</strong>，而这些也是导致 <strong>请求/响应</strong> 慢的原因之一</li>
+</ul>
+<blockquote>
+<p><strong>以上问题 <code>http2.0</code> 都能够解决：</strong></p>
+</blockquote>
+<ul>
+<li>针对 <strong>TCP 连接数</strong> 被限制的问题，<code>http2.0</code> 采用 <strong>多路复用</strong> 一个域名只对应一个 <code>TCP</code> 连接</li>
+<li>针对 <strong>http 队头阻塞</strong> 问题，<code>http2.0</code> 中通过二进制分帧层为每个 <strong>请求/响应</strong> 添加 <code>stream id</code> 保证 <strong>请求/响应</strong> 一一对应，即不必等待前面的请求处理完成，并且还可以为每个请求添加 <strong>优先级</strong></li>
+<li>针对 <strong><code>header</code></strong> 数据大的问题，<code>http2.0</code> 中传输的 <code>header</code> 帧经过处理后会用 <strong>二进制</strong> 的方式表示，替换了原本的 <strong>文本格式</strong>，并使用 <code>HPACK</code> 算法进行压缩
+<ul>
+<li><strong>接收/发送</strong> 两端会维护一个 <strong>索引表</strong>，通过下标来标识 <code>header</code>，针对后续重复的 <code>header</code> 信息就可以用对应的索引来代替</li>
+</ul>
+</li>
+<li>针对传统的 <strong>请求 —&gt; 响应</strong> 模式，<code>http2.0</code> 中提供了 <strong>服务端推送</strong> 的能力，让服务端能够主动向客户端推送关键资源，加快资源加载</li>
+</ul>
+<p>比如在掘金中的体现：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b6db14af77a04c5d9ccecf6e450c680e~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<h1 id="如何保证视图更快的渲染和交互">如何保证视图更快的渲染和交互？</h1>
+<p>保证资源快速到达客户端后，接下来就需要针对 <strong>浏览器的解析和渲染</strong> 进行优化，当然还包括后续的页面交互的优化，这其实就是 <strong>浏览器层面</strong> 的优化。</p>
+<p>浏览器渲染 <code>HTML</code> 文件的核心过程：</p>
+<ul>
+<li><strong>HTML 解释器</strong>：将 <strong><code>HTML</code></strong> 文档经过词法分析输出 <strong><code>DOM Tree</code></strong></li>
+<li><strong>CSS 解释器</strong>：解析 <strong><code>CSS</code></strong> 文档，生成样式规则 <strong><code>CSSOM</code></strong></li>
+<li><strong>样式计算</strong>：将 <strong><code>DOM Tree</code></strong> 和 <strong><code>CSSOM</code></strong> 合并生成 <strong><code>Render Tree</code></strong></li>
+<li><strong>布局计算</strong>：计算 <strong><code>Render Tree</code></strong> 节点在页面中的坐标位置，创建 <strong><code>Layout Tree</code></strong></li>
+<li><strong>划分图层</strong>：页面中有很多复杂的效果，如一些复杂的 <code>3D</code> 变换、页面滚动，或使用 <code>z-index</code> 做 <code>z</code> 轴排序等，为了更加方便地实现这些效果，渲染引擎还需要为特定的节点生成专用的图层，生成对应的图层树 <strong><code>Layer Tree</code></strong></li>
+<li><strong>图层绘制</strong>：
+<ul>
+<li>染引擎实现图层的绘制时，会把一个图层的绘制拆分成很多小的 <strong>绘制指令</strong>，并将这些指令按照顺序组成一个 <strong>待绘制列表</strong></li>
+<li>当图层的绘制列表准备好后，<strong>主线程</strong> 会把 <strong>待绘制列表</strong> 提交（<code>commit</code>）给 <strong>合成线程</strong></li>
+</ul>
+</li>
+<li><strong>栅格化 raster</strong>：
+<ul>
+<li>由于视口有限，用户只能看到页面的很小一部分，没必要绘制出所有图层内容，因此 <strong>合成线程</strong> 会将 <strong>图层（layer）</strong> 划分为 <strong>图块（tile）</strong></li>
+<li><strong>渲染进程</strong> 把 <strong>生成图块的指令</strong> 发送给 <code>GPU</code> 并执行生成图块的 <strong>位图</strong></li>
+</ul>
+</li>
+<li><strong>合成和显示</strong>：
+<ul>
+<li>一旦所有图块都被光栅化，<strong>合成线程</strong> 就会生成一个绘制图块的命令 —— <code>DrawQuad</code>，然后将该命令提交给 <strong>浏览器进程</strong></li>
+<li><strong>浏览器进程</strong> 里面有一个 <strong>viz 组件</strong>，会根据 <code>DrawQuad</code> 命令，将其页面内容绘制到内存中，最后再将内存显示在屏幕上</li>
+</ul>
+</li>
+</ul>
+<h3 id="渲染层面">渲染层面</h3>
+<ol>
+<li>减少阻塞渲染的因素</li>
+</ol>
+<p>真正渲染视图之前，必然要生成 <strong><code>DOM Tree</code></strong> 和 <strong><code>CSSOM</code></strong>，因此必须保证 <strong>HTML 解释器</strong> 和 <strong>CSS 解释器</strong> 都尽早处理完成，同时 <strong><code>JavaScript</code></strong> 的加载和执行可能会阻塞这个过程：</p>
+<ul>
+<li><code>HTML</code> 文档中首次渲染的节点数量要尽量少，避免深层次的嵌套结构，避免大量使用慢标签（如：<code>iframe</code>）等</li>
+<li><code>CSS</code> 资源放文档头部，降低 <code>CSS</code> 复杂度，比如 合理使用 <code>CSS</code> 选择器</li>
+<li><code>JavaScript</code> 资源放文档底部，合理使用 <code>defer、async</code> 的加载方式</li>
+</ul>
+<ol start="2">
+<li>懒加载</li>
+</ol>
+<p>懒加载主要是针对数量大、资源加载慢的情况，比如图片资源、大量列表数据展示等：</p>
+<ul>
+<li><strong>图片资源</strong>：优先加载在可视区范围内的图片，可视区外的图片 <strong><code>延后加载</code></strong>，或者说当移入的可视区时再加载</li>
+<li><strong>列表数据</strong>：列表数据通常数据里量大，不可能一次渲染完所有数据，一般通过 <strong><code>分页加载、上拉加载</code></strong> 等方式分批次渲染</li>
+</ul>
+<ol start="3">
+<li>白屏优化</li>
+</ol>
+<p>白屏是由于 <code>SPA</code> 应用需要等待 <code>JavaScript</code> 加载并执行完成后才会生成具体的页面结构内容导致的，即初始化模板中没有任何有意义需要被渲染的 <code>HTML</code> 结构：</p>
+<ul>
+<li>添加 <strong>白屏 <code>loading</code></strong>，可在模板中添加默认的 <code>loading</code> 效果，等到真正页面内容被渲染就可以替换 <code>loading</code> 内容</li>
+<li>添加 <strong>骨架屏</strong>，和上述方案一致，在真正页面内容展示出来之前，先展示默认的视图内容，避免白屏</li>
+</ul>
+<ol start="4">
+<li>服务端渲染（server-side rendering）</li>
+</ol>
+<p>现代框架默认是属于客户端应用框架，即组件的代码会在浏览器中运行，然后向页面输出  <strong>DOM</strong>  元素，也叫 <strong>客户端渲染（client-side rendering，CSR）</strong>：</p>
+<ul>
+<li>优点
+<ul>
+<li><strong><code>用户体验更好</code></strong>，基于  <strong>前端路由</strong>  的方式并不会真正进行  <strong>页面跳转</strong>，即不会使页面重新刷新、加载，带来更高的流畅度</li>
+<li><strong><code>占用服务端资源少</code></strong>，<strong>CSR 渲染</strong> 是交由客户端进行处理，服务端不需要关心渲染计算的过程，减轻了服务端的压力</li>
+</ul>
+</li>
+<li>缺点
+<ul>
+<li><strong><code>&quot;白屏&quot; 时间较长</code></strong>，主要是因为  <strong>CSR</strong>  渲染需要  <code>*.js</code>  的支持，而  <code>*.js</code>  又必须保证  <code>*.html</code>  被接收和解析， <code>*.html</code>  又强依赖于当前的  <strong>网络环境</strong>，因此，在差网环境下回导致  <strong>白屏时间过长</strong>，特别是在移动网络环境下</li>
+<li><strong><code>对 SEO 的支持不友好</code></strong>，因为  <strong>白屏时间较长</strong>  导致在一段时间内没有重要的内容能够交由  <strong>搜索引擎</strong>  进行分析、分类、打标签等，并且  <strong>搜索引擎</strong>  并不会等待页面渲染完成，因此对  <strong>SEO</strong>  优化并不友好</li>
+</ul>
+</li>
+</ul>
+<p><strong>服务端渲染（server-side rendering，SSR）</strong> 可将相同组件在服务渲染成相应的 <code>HTML</code> 字符串，并发送给浏览器进行渲染，即客户端不需要等待所有的  <strong>JavaScript</strong>  都被下载并执行之后才显示，所以用户可以更快看到完整的渲染好的内容。</p>
+<ol start="5">
+<li>预渲染（prerender）</li>
+</ol>
+<p>上述 <strong>服务端渲染（server-side rendering，SSR）</strong> 虽然能够解决一些客户端存在的问题，但它也带来了别的问题：</p>
+<ul>
+<li><strong><code>需要保证开发一致性</code></strong>，比如 <strong>服务端</strong> 和 <strong>客户端</strong> 能够执行的组件生命周期钩子不同，一些外部库在 <strong>服务端渲染</strong> 应用中可能需要经过特殊处理</li>
+<li><strong><code>需要更多的构建设定和部署要求</code></strong>，一个完全静态的  <strong>SPA</strong>  可以部署在任意的静态文件服务器，但服务端渲染应用需要一个能够运行  <strong>Node.js</strong>  服务器的环境</li>
+<li><strong><code>更多的服务端负载</code></strong>，在  <strong>Node.js</strong>  中渲染一个完整的应用，会比仅供应静态文件产生更密集的  <strong>CPU</strong>  运算，并且需要考虑访问流量过大的情况等</li>
+</ul>
+<p>因此，并不是所有应用都合适 <strong>服务端渲染</strong>，如果只是希望通过  <strong>SSR</strong>  来改善一些  <strong>推广页面</strong> (如  <code>/</code>、<code>/about</code>、<code>/contact</code>  等) 的  <strong>SEO</strong>，那么应该优先考虑  <strong>预渲染</strong>  的方式：</p>
+<ul>
+<li><strong>预渲染</strong> 是在打包构建过程中（离屏状态），针对对应的 <code>routes</code> 路由预先生成对应的页面内容</li>
+<li><strong>预渲染</strong>  需要和  <strong>打包构建工具（webpack、rollup 等）</strong> 进行配合，如  <a href="https://link.juejin.cn/?target=https%3A%2F%2Fwebpack.js.org%2F"><strong><code>webpack</code></strong></a>，就可通过  <a href="https://link.juejin.cn/?target=https%3A%2F%2Fgithub.com%2Fchrisvfritz%2Fprerender-spa-plugin"><strong><code>prerender-spa-plugin</code></strong></a>  来支持  <strong>预渲染</strong></li>
+</ul>
+<h3 id="交互层面">交互层面</h3>
+<ol>
+<li>减少回流/重绘</li>
+</ol>
+<p><strong>重绘</strong>：页面中元素样式的改变并不影响它在文档流中的位置时（如：<code>color、background-color、visibility</code> 等），浏览器会将新样式赋予给元素并 <strong>重新绘制</strong></p>
+<p><strong>回流</strong>：当 <code>Render Tree</code> 中部分或全部元素的 <strong>尺寸、结构、某些属性</strong> 发生改变时，浏览器 <strong>重新渲染</strong> 部分或全部文档</p>
+<ul>
+<li>减少对 <code>DOM</code> 进行频繁操作</li>
+<li>使经常变动的元素脱离文档流，如具有持续性的动画效果，会一直触发回流和重绘</li>
+<li>避免访问或减少访问会导致浏览器 <strong>强制刷新队列</strong> 的属性，如：<code>offsetTop、offsetLeft、offsetWidth</code> 等
+<ul>
+<li>【<strong>扩展</strong>】浏览器的渲染队列机制会通过 <strong>队列</strong> 将会触发 <strong>回流或重绘</strong> 的操作进行存储，等到一定的时间或一定的数量时再执行这些操作</li>
+</ul>
+</li>
+<li>避免对 <code>css</code> 进行单个修改，如在 <code>JavaScript</code> 修改多个样式时，尽量使用 <code>css</code> 选择器实现样式的集中变更</li>
+<li>使用 <code>will-change</code> 开启 <code>GPU</code> 加速，<code>will-change</code> 指定的属性使得浏览器可在元素属性真正发生变化之前提前做好对应的优化</li>
+<li>预先设定图片尺寸，避免图片资源加载完成后引发回流</li>
+</ul>
+<ol start="2">
+<li>防抖/节流</li>
+</ol>
+<p><strong>防抖</strong>：多次频繁触发执行操作，以 <strong>最后一次</strong> 为准，忽略中间过程</p>
+<p><strong>节流</strong>：在指定的时间间隔内，<strong>只允许</strong> 执行一次对应的操作</p>
+<p>合理使用 <strong><code>防抖/节流</code></strong> 优化应用中的操作，比如 <strong><code>节流</code></strong> 可用于优化 滚动事件、模糊搜索等，<strong><code>防抖</code></strong> 可用于优化一些按钮点击操作等。</p>
+<ol start="3">
+<li>Web Worker</li>
+</ol>
+<p><code>JavaScript</code> 是单线程的，如果存在需要大量计算的场景（如视频解码），<code>UI</code> 线程就会被阻塞，甚至浏览器直接卡死。</p>
+<p><code>Web Worker</code> 可以使脚本运行在新的线程中，它们独立于主线程，可以进行大量的计算活动，而不会影响主线程的 <code>UI</code> 渲染，但不能滥用 <code>Web Worker</code> 。</p>
+<ol start="4">
+<li>虚拟列表</li>
+</ol>
+<p>最常用的还是 <strong>分页加载</strong> 的方式：</p>
+<ul>
+<li>基于 <code>table</code> 表格的渲染，只会渲染固定数量的 <code>DOM</code></li>
+<li>基于 <code>上拉加载</code> 列表的渲染，随着加载数据的增多，对应的 <code>DOM</code> 节点也会增多，达到某个限制页面一定会发生卡顿</li>
+</ul>
+<p><strong>虚拟列表</strong> 核心就是固定渲染的  <strong><code>DOM</code></strong>  数，通过动态切换数据内容实现视图的更新，并保证文档中真实  <strong><code>DOM</code></strong>  的数量不随着数据量增大而增大（其实和 <code>table</code> 分页很像，但它支持滚动）。</p>
+<p>想了解其核心实现的，可查看 <a href="https://juejin.cn/post/7129919300994859015"><strong>虚拟滚动是怎么做性能优化的?</strong></a></p>
+<ol start="5">
+<li>大文件分片上传</li>
+</ol>
+<p>大部分的项目总少不了文件上传功能，但对大文件的上传还是有必要进行优化，所谓的 <strong>断点续传</strong>、<strong>秒传</strong> 都要基于 <strong>分片上传</strong> 这个核心功能。</p>
+<p>想了解其核心实现的，可查看 <a href="https://juejin.cn/post/7074534222748188685"><strong>请问：怎么实现大文件快速上传？</strong></a></p>
+<ol start="6">
+<li>Excel 导入/导出</li>
+</ol>
+<p>针对 <strong>Excel 导入/导出</strong> 的功能相信很多人第一印象是后端的活，但大多数情况下，后端接口的处理速度会受各种影响，导致速度方面不是很理想，有时候也是需要前端来进行优化处理的，比如导入时前端不发送文件只发送解析后的 <code>JSON</code> 数据，导出时不需要单独发送额外接口，直接使用当前展示数据实现导出等。</p>
+<p>想了解其核心实现的，可查看 <a href="https://juejin.cn/post/7135945969425711111"><strong>给我实现一个前端的 Excel 导入和导出功能</strong></a></p>
+<ol start="7">
+<li>Vue 项目的优化</li>
+</ol>
+<p>这部分内容相信大家都不陌生，下面就简单列举一些内容（包括但不限于）：</p>
+<ul>
+<li>减少响应式数据的生成，对于纯展示、又需要使用在 <code>template</code> 模板中使用的数据，可使用 <code>Object.freeze()</code> 进行冻结，避免被转为 <strong>不必要的响应式数据</strong></li>
+<li><code>Vue</code> 组件初始化是比较损耗性能的，使用 <strong>函数式组件</strong> 减少组件初始化的过程，适用于实现没有业务逻辑只展示内容的简单组件</li>
+<li>合理使用 <code>v-show</code> 和 <code>v-if</code>、为 <code>v-for</code> 组件设定唯一 <code>key</code>（非 <code>index</code>）、<code>v-for</code> 和 <code>v-if</code> 不要一起使用等</li>
+<li>使用 <code>KeepAlive</code> 复用组件，避免组件重复的创建、销毁带来的性能损耗</li>
+<li>使用 <code>() =&gt; import(xxx)</code> 方式实现路由懒加载</li>
+<li>使用 <code>ESM</code> 的方式封装自定义工具库等</li>
+<li>针对第三方库做到按需引入</li>
+<li>合理使用闭包，避免造成内存泄漏</li>
+<li>及时清除组件中的副作用，比如 <code>setTimeout、setInterval、addEventListener</code> 等</li>
+</ul>
+<p>基于 <code>vue.config.js</code> 或 <code>webpack</code> 进行优化，具体可见 <a href="https://juejin.cn/post/7078491632605069348"><strong>如何优化你的 vue-cli 项目？</strong></a></p>
+<h2 id="总结">总结</h2>
+<p>以上优化方案对应到 <a href="https://juejin.cn/post/7137058832592666655/"><strong>上一篇</strong></a> 中提到的性能指标，如下：</p>
+<ul>
+<li><strong>首字节达到时间（<code>Time to First Byte，TTFB</code>）</strong></li>
+<li><strong>首次绘制（<code>First Paint，FP</code>）</strong></li>
+<li><strong>首次内容绘制（<code>First Contentful Paint，FCP</code>）</strong></li>
+<li><strong>首屏时间 / 最大内容绘制（<code>Largest Contentful Paint, LCP</code>）</strong></li>
+<li><strong>累积布局偏移（<code>Cumulative Layout Shift, CLS</code>)</strong></li>
+<li><strong>首次输入延迟（<code>First Input Delay, FID</code>）</strong></li>
+</ul>
+<p>关键资源越早到达客户端，证明 <code>TTFB</code> 时间越短，而这也能间接的减少 <code>FP</code> 和 <code>FCP</code> 的时间；对资源进行了压缩处理意味着能够尽可能提升 <code>LCP</code> 的时间；减少了页面的 <strong>回流/重绘</strong> 就能使得 <code>CLS</code> 的数值越小，视图越趋于稳定；<code>FID</code> 是一个用于跟踪浏览器对用户输入做出反应之前的延迟时间的指标，包括点击和敲击，保证资源的快速加载和页面尽早渲染，其对应的数值就越小，视图响应就越快。</p>
+<h2 id="最后">最后</h2>
+<p><strong>前端性能优化</strong> 的范围实在太大，以上列举的优化主要围绕着 <strong>资源加载、页面渲染/交互</strong> 两个大的方向，而具体的优化方案其实有很多（包括但不限于上述内容），很多内容随着关注的方向不同而不同。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/260/"
+      ><span class="mr-1.5">←</span><span>12 个优化 CSS 代码小技巧</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/258/"
+      ><span>前端性能优化到底该怎么做（上）</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <footer class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60">
+  <div class="mr-auto">
+    &copy; 2022
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link mx-6" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank">Powered by YinHao</a
+  >️
+  >
+</footer>
+
+  </body>
+</html>
