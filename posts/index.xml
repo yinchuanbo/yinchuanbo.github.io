@@ -7,7 +7,81 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh</language>
     <copyright>Copyright © 2008–2019, Steve Francia and the lee.so; all rights reserved.</copyright>
-    <lastBuildDate>Sat, 17 Dec 2022 11:22:11 +0800</lastBuildDate><atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 19 Dec 2022 22:10:45 +0800</lastBuildDate><atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>你如何实现大文件上传？</title>
+      <link>/posts/290/</link>
+      <pubDate>Mon, 19 Dec 2022 22:10:45 +0800</pubDate>
+      
+      <guid>/posts/290/</guid>
+      <description>提到大文件上传，在脑海里最先想到的应该就是将图片保存在自己的服务器（如七牛云服务器），保存在数据库，不仅可以当做地址使用，还可以当做资源使用；或者将图片转换成 base64，转换成 buffer 流，但是在 javascript 这门语言中不存在，但是这些只适用于一些小图片，对于大文件还是束手无策。
+问题分析 如果将大文件一次性上传，会发生什么？想必都遇到过在一个大文件上传、转发等操作时，由于要上传大量的数据，导致整个上传过程耗时漫长，更有甚者，上传失败，让你重新上传！这个时候，我已经咬牙切齿了。先不说上传时间长久，毕竟上传大文件也没那么容易，要传输更多的报文，丢包也是常有的事，而且在这个时间段万不可以做什么其他会中断上传的操作；其次，前后端交互肯定是有时间限制的，肯定不允许无限制时间上传，大文件又更容易超时而失败&amp;hellip;.
+解决方案 既然大文件上传不适合一次性上传，那么将文件分片散上传是不是就能减少性能消耗了。
+没错，就是分片上传。分片上传就是将大文件分成一个个小文件（切片），将切片进行上传，等到后端接收到所有切片，再将切片合并成大文件。通过将大文件拆分成多个小文件进行上传，确实就是解决了大文件上传的问题。因为请求时可以并发执行的，这样的话每个请求时间就会缩短，如果某个请求发送失败，也不需要全部重新发送。
+具体实现 前端 （1）读取文件
+准备 HTML 结构，包括：读取本地文件（input类型为file）、上传文件按钮、上传进度。
+&amp;lt;input type=&amp;#34;file&amp;#34; id=&amp;#34;input&amp;#34; /&amp;gt; &amp;lt;button id=&amp;#34;upload&amp;#34;&amp;gt;上传&amp;lt;/button&amp;gt; &amp;lt;!-- 上传进度 --&amp;gt; &amp;lt;div style=&amp;#34;width: 300px&amp;#34; id=&amp;#34;progress&amp;#34;&amp;gt;&amp;lt;/div&amp;gt; JS 实现文件读取：
+监听input的change事件，当选取了本地文件后，打印事件源可得到文件的一些信息：
+let input = document.getElementById(&amp;#39;input&amp;#39;) let upload = document.getElementById(&amp;#39;upload&amp;#39;) let files = {}//创建一个文件对象 let chunkList = []//存放切片的数组 ​ // 读取文件 input.addEventListener(&amp;#39;change&amp;#39;, (e) =&amp;gt; { files = e.target.files[0] console.log(files); //创建切片 //上传切片 }) 观察控制台，打印读取的文件信息如下：
+（2）创建切片
+文件的信息包括文件的名字，文件的大小，文件的类型等信息，接下来可以根据文件的大小来进行切片，例如将文件按照 1MB 或者 2MB 等大小进行切片操作：</description>
+    </item>
+    
+    <item>
+      <title>如何实现并发请求数量控制？</title>
+      <link>/posts/289/</link>
+      <pubDate>Mon, 19 Dec 2022 22:06:05 +0800</pubDate>
+      
+      <guid>/posts/289/</guid>
+      <description>场景 假设有这么一个场景：现在有20个异步请求需要发送，但是由于某些原因，要求我们必须将同一时刻的并发请求数量控制在3个以内，并且还要尽可能快速的拿到响应结果。其实这个场景在一些大厂的面试题中也有过提及，如下：
+实现一个并发请求函数 concurrencyRequest(urls, maxNum)，要求如下：
+要求最大并发数 maxNum 每当有一个请求返回，就留下一个空位，可以增加新的请求 所有请求完成后，结果按照 urls 里面的顺序依次打出（发送请求的函数可以直接使用 fetch 即可） 遇到到这个问题时你会怎么来做？
+遇到这个问题还是先来分析一下这个问题的设计思路 →。
+设计思路 首先来看将上面的文字转化为图之后的效果：
+这样就直观的看到，有一个最大并发数maxNum，20个异步请求的urls集合和并发返回之后的results集合。
+下面就开始演示这个思路是如何开始的，如下：
+首先按照每次只能并发3个请求的要求，这里就对应A、B、C，当其中有一个请求完之后就会再从urls里面再取出一个进行请求，这样依次类推，直到urls里面的20个请求都执行完才终止请求。
+主要思路就是上面所述，但是在开发时我们要考虑一些特殊情况，如下：
+urls的长度为0时，results就没有值，此时应该返回空数组 maxNum大于urls的长度时，应该取的是urls的长度，否则则是取maxNum 需要定义一个count计数器来判断是否已全部请求完成 因为没有考虑请求是否请求成功，所以请求成功或报错都应把结果保存在results集合中 results中的顺序需和urls中的保持一致 好，我的设计思路就是这样的，下面就要来开始开发工作啦~
+开发 具体代码如下（代码中已备注有注释）：
+// 并发请求函数 const concurrencyRequest = (urls, maxNum) =&amp;gt; { return new Promise((resolve) =&amp;gt; { if (urls.length === 0) { resolve([]); return; } const results = []; let index = 0; // 下一个请求的下标 let count = 0; // 当前请求完成的数量 // 发送请求 async function request() { if (index === urls.</description>
+    </item>
+    
+    <item>
+      <title>控制台 console.log() 的乐趣</title>
+      <link>/posts/288/</link>
+      <pubDate>Mon, 19 Dec 2022 21:53:01 +0800</pubDate>
+      
+      <guid>/posts/288/</guid>
+      <description>这篇文章简要概述了可用于提升console.log(console)日志记录体验的 10 大技巧。
+table console.table() 方法将对象/数组打印为格式整齐的表。
+console.table({ 时间戳: new Date().getTime(), 操作系统: navigator[&amp;#34;platform&amp;#34;], 浏览器: navigator[&amp;#34;appCodeName&amp;#34;], 语言: navigator[&amp;#34;language&amp;#34;], }); group 使用console.group()将相关的控制台语句与可折叠部分组合在一起。
+你可以选择通过传递字符串作为参数来为节指定标题。也可以在控制台中折叠和展开，但默认情况下也可以使用 groupCollapsed 而不是 group 来折叠节。你也可以在节中嵌套子节，但一定要记住用 groupEnd 结束每个组。
+以下示例将输出一个打开的部分，其中包含一些信息
+console.group(&amp;#34;URL信息&amp;#34;); console.log(&amp;#34;协议&amp;#34;, window.location.protocol); console.log(&amp;#34;主机&amp;#34;, window.origin); console.log(&amp;#34;路径&amp;#34;, window.location.pathname); console.groupCollapsed(&amp;#34;Meta信息&amp;#34;); console.log(&amp;#34;提取日期&amp;#34;, new Date().getTime()); console.log(&amp;#34;操作系统&amp;#34;, navigator[&amp;#34;platform&amp;#34;]); console.log(&amp;#34;浏览器&amp;#34;, navigator[&amp;#34;appCodeName&amp;#34;]); console.log(&amp;#34;语言&amp;#34;, navigator[&amp;#34;language&amp;#34;]); console.groupEnd(); console.groupEnd(); 带样式的日志 可以使用一些基本的 CSS 来设置日志输出的样式，例如颜色、字体、文本样式和大小。请注意，浏览器对此的支持变化很大。
+例如，尝试运行以下命令：
+console.log( &amp;#34;%cHello World!&amp;#34;, &amp;#34;color: #f709bb; font-family: sans-serif; text-decoration: underline;&amp;#34; ); 可以得到以下输出：
+挺好看的吧？还可以做更多的事情，改变字体，样式，背景颜色，添加一些阴影和一些曲线等等&amp;hellip;&amp;hellip;
+console.log( `\n%c海拥摸鱼小游戏🎮很好玩!🚀`, &amp;#34;color:#0dd8d8; background:#0b1021; font-size:1.5rem; padding:0.15rem 0.25rem; margin: 1rem auto; font-family: Rockwell; border: 2px solid #0dd8d8; border-radius: 4px;font-weight: bold; text-shadow: 1px 1px 1px #00af87bf;&amp;#34; ); 还有更多样式原作者在开发人员仪表板中使用的类似内容，代码在这里</description>
+    </item>
+    
+    <item>
+      <title>原来 Canvas 也能直接绘制圆角矩形了</title>
+      <link>/posts/287/</link>
+      <pubDate>Mon, 19 Dec 2022 21:33:08 +0800</pubDate>
+      
+      <guid>/posts/287/</guid>
+      <description>很多时候，在使用 Canvas 绘制圆角矩形都是一件比较麻烦的事，因为之前并没有直接的方法，只能通过直线和圆弧间接组合而成，下面是一个常规绘制方式
+ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); 这里x、y、w、h、r分别代表x 坐标、y 坐标、宽度、高度、圆角。
+这段代码应该是最精简的了，虽然不是特别复杂，但是应该很少有人能直接手写，主要是不够语义化，比较繁琐。
+而圆角矩形又是一个非常常见的功能需求，为此，Canvas 在Chrome 99悄悄推出了一个新的方法：roundRect()[1]，花一分钟了解一下
+一、roundRect 语法 roundRect，顾名思义，就是圆角矩形，和 rect[2]用法一致，只是参数上多了一个圆角radii
+image-20221218183223938
+这里x、y、w、h就不介绍了，重点介绍一下这个圆角radii。
+圆角radii有以下几种取值
+all-corners ，只有 1 一个值的时候，表示所有 4 个圆角 [all-corners]，也可以是数组，当只有 1 一个值的时候，也表示 4 个圆角 [top-left-and-bottom-right, top-right-and-bottom-left]，数组为 2 个值的时候，表示 左上、右下 圆角 和 右上、左下 圆角 [top-left, top-right-and-bottom-left, bottom-right]，数组为 3 个值的时候，表示 左上 圆角、右上、左下 圆角 和 右下 圆角 [top-left, top-right, bottom-right, bottom-left]，数组为 4 个值的时候，表示 左上 圆角、右上 圆角 、 右下 圆角和 左下 圆角 看似麻烦，其实就是和 CSS 中的圆角规则是一致的，稍微看一眼就能明白</description>
+    </item>
+    
     <item>
       <title>react 中 Context 的使用</title>
       <link>/posts/286/</link>
