@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>玩转 React Hooks 的单元测试 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="在网上我们可以搜到很多React的单元测试，但有关React Hooks的单元测试却很少，或者说并不全面，所以今天就来详细讲讲有关React Hooks如何进行单元测试。
+如果你希望做为一个开源的产品，那么你的代码必须具备单元测试，所以这是进阶React的必经之路，所以本节内容通过具体的例子来讲解React Hooks，这样可以告别繁琐的知识点，又能融会贯通，岂不美哉？
+跟以往一样，先来一张知识图，还请各位小伙伴多多支持～
+自定义 Hooks 该如何测试？ 疑问？ 我们知道 react hooks的本质是 纯函数，那么我们可不可以通过测试纯函数来测试react hooks呢 ？
+我们先看这样一个例子：
+import { useState } from &#34;react&#34;; function useCounter(initialValue = 0) { const [current, setCurrent] = useState(initialValue); const add = (number = 1) =&gt; setCurrent((v) =&gt; v &#43; number); const dec = (number = 1) =&gt; setCurrent((v) =&gt; v - number); const set = (number = 1) =&gt; setCurrent(number); return [ current, { add, dec, set, }, ] as const; } export default useCounter; 我定义了一个简单的useCounter， 功能也是很简单，有增加、减少和设置三个功能" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="玩转 React Hooks 的单元测试" />
+<meta property="og:description" content="在网上我们可以搜到很多React的单元测试，但有关React Hooks的单元测试却很少，或者说并不全面，所以今天就来详细讲讲有关React Hooks如何进行单元测试。
+如果你希望做为一个开源的产品，那么你的代码必须具备单元测试，所以这是进阶React的必经之路，所以本节内容通过具体的例子来讲解React Hooks，这样可以告别繁琐的知识点，又能融会贯通，岂不美哉？
+跟以往一样，先来一张知识图，还请各位小伙伴多多支持～
+自定义 Hooks 该如何测试？ 疑问？ 我们知道 react hooks的本质是 纯函数，那么我们可不可以通过测试纯函数来测试react hooks呢 ？
+我们先看这样一个例子：
+import { useState } from &#34;react&#34;; function useCounter(initialValue = 0) { const [current, setCurrent] = useState(initialValue); const add = (number = 1) =&gt; setCurrent((v) =&gt; v &#43; number); const dec = (number = 1) =&gt; setCurrent((v) =&gt; v - number); const set = (number = 1) =&gt; setCurrent(number); return [ current, { add, dec, set, }, ] as const; } export default useCounter; 我定义了一个简单的useCounter， 功能也是很简单，有增加、减少和设置三个功能" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/230/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-11-06T11:31:09+08:00" />
+<meta property="article:modified_time" content="2022-11-06T11:31:09+08:00" />
+
+  
+  <meta itemprop="name" content="玩转 React Hooks 的单元测试">
+<meta itemprop="description" content="在网上我们可以搜到很多React的单元测试，但有关React Hooks的单元测试却很少，或者说并不全面，所以今天就来详细讲讲有关React Hooks如何进行单元测试。
+如果你希望做为一个开源的产品，那么你的代码必须具备单元测试，所以这是进阶React的必经之路，所以本节内容通过具体的例子来讲解React Hooks，这样可以告别繁琐的知识点，又能融会贯通，岂不美哉？
+跟以往一样，先来一张知识图，还请各位小伙伴多多支持～
+自定义 Hooks 该如何测试？ 疑问？ 我们知道 react hooks的本质是 纯函数，那么我们可不可以通过测试纯函数来测试react hooks呢 ？
+我们先看这样一个例子：
+import { useState } from &#34;react&#34;; function useCounter(initialValue = 0) { const [current, setCurrent] = useState(initialValue); const add = (number = 1) =&gt; setCurrent((v) =&gt; v &#43; number); const dec = (number = 1) =&gt; setCurrent((v) =&gt; v - number); const set = (number = 1) =&gt; setCurrent(number); return [ current, { add, dec, set, }, ] as const; } export default useCounter; 我定义了一个简单的useCounter， 功能也是很简单，有增加、减少和设置三个功能"><meta itemprop="datePublished" content="2022-11-06T11:31:09+08:00" />
+<meta itemprop="dateModified" content="2022-11-06T11:31:09+08:00" />
+<meta itemprop="wordCount" content="1183">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="玩转 React Hooks 的单元测试"/>
+<meta name="twitter:description" content="在网上我们可以搜到很多React的单元测试，但有关React Hooks的单元测试却很少，或者说并不全面，所以今天就来详细讲讲有关React Hooks如何进行单元测试。
+如果你希望做为一个开源的产品，那么你的代码必须具备单元测试，所以这是进阶React的必经之路，所以本节内容通过具体的例子来讲解React Hooks，这样可以告别繁琐的知识点，又能融会贯通，岂不美哉？
+跟以往一样，先来一张知识图，还请各位小伙伴多多支持～
+自定义 Hooks 该如何测试？ 疑问？ 我们知道 react hooks的本质是 纯函数，那么我们可不可以通过测试纯函数来测试react hooks呢 ？
+我们先看这样一个例子：
+import { useState } from &#34;react&#34;; function useCounter(initialValue = 0) { const [current, setCurrent] = useState(initialValue); const add = (number = 1) =&gt; setCurrent((v) =&gt; v &#43; number); const dec = (number = 1) =&gt; setCurrent((v) =&gt; v - number); const set = (number = 1) =&gt; setCurrent(number); return [ current, { add, dec, set, }, ] as const; } export default useCounter; 我定义了一个简单的useCounter， 功能也是很简单，有增加、减少和设置三个功能"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">玩转 React Hooks 的单元测试</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Nov 6, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>在网上我们可以搜到很多<code>React</code>的单元测试，但有关<code>React Hooks</code>的单元测试却很少，或者说并不全面，所以今天就来详细讲讲有关<code>React Hooks</code>如何进行单元测试。</p>
+<p>如果你希望做为一个开源的产品，那么你的代码必须具备单元测试，所以这是<code>进阶React</code>的必经之路，所以本节内容通过具体的例子来讲解<code>React Hooks</code>，这样可以告别繁琐的知识点，又能融会贯通，岂不美哉？</p>
+<p>跟以往一样，先来一张知识图，还请各位小伙伴多多支持～</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0d046651eb8e40d09d0544c197079d0b~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="hooks 单元测试.png"></p>
+<h1 id="自定义-hooks-该如何测试">自定义 Hooks 该如何测试？</h1>
+<h2 id="疑问">疑问？</h2>
+<p>我们知道 <code>react hooks</code>的本质是 <code>纯函数</code>，那么我们可不可以通过测试纯函数来测试<code>react hooks</code>呢 ？</p>
+<p>我们先看这样一个例子：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useState</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">useCounter</span>(<span style="color:#a6e22e">initialValue</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">current</span>, <span style="color:#a6e22e">setCurrent</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#a6e22e">initialValue</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">add</span> <span style="color:#f92672">=</span> (<span style="color:#66d9ef">number</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">=&gt;</span> <span style="color:#a6e22e">setCurrent</span>((<span style="color:#a6e22e">v</span>) <span style="color:#f92672">=&gt;</span> <span style="color:#a6e22e">v</span> <span style="color:#f92672">+</span> <span style="color:#66d9ef">number</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dec</span> <span style="color:#f92672">=</span> (<span style="color:#66d9ef">number</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">=&gt;</span> <span style="color:#a6e22e">setCurrent</span>((<span style="color:#a6e22e">v</span>) <span style="color:#f92672">=&gt;</span> <span style="color:#a6e22e">v</span> <span style="color:#f92672">-</span> <span style="color:#66d9ef">number</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">set</span> <span style="color:#f92672">=</span> (<span style="color:#66d9ef">number</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">=&gt;</span> <span style="color:#a6e22e">setCurrent</span>(<span style="color:#66d9ef">number</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">current</span>,
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">add</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">dec</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">set</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  ] <span style="color:#66d9ef">as</span> <span style="color:#66d9ef">const</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">useCounter</span>;
+</span></span></code></pre></div><p>我定义了一个简单的<code>useCounter</code>， 功能也是很简单，有<code>增加</code>、<code>减少</code>和<code>设置</code>三个功能</p>
+<h2 id="测试结果">测试结果</h2>
+<p>来进行下测试：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">useCounter</span> <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;./index&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">describe</span>(<span style="color:#e6db74">&#34;useCounter 测试&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;数字加1&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">counter</span>, { <span style="color:#a6e22e">add</span> }] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useCounter</span>(<span style="color:#ae81ff">7</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">counter</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">7</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">add</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">counter</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">8</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>乍一看，这么测试并没有什么问题，接下来看看测试结果： <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b6e9fdca466d4d4990bd0911cf4b8105~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="image.png"></p>
+<p>这是因为在<code>useCounter</code>中，我们运用了<code>useState</code>，而<code>React</code>规定<strong>只有</strong>在组件中才能使用<code>Hooks</code>所以会报如下错误，我们可以通过<code>renderHook</code> 和 <code>act</code>解决这个问题</p>
+<h2 id="renderhook-和-act">renderHook 和 act</h2>
+<h3 id="renderhook">renderHook</h3>
+<p><strong>renderHook</strong>：顾名思义，这个函数就是用来渲染<code>hooks</code>，它会帮助我们解决<code>Hooks</code>只能在组件中使用的问题（生成一个专门用来测试的<code>TestComponent</code>)</p>
+<p>用法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">renderHook</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Result</span>, <span style="color:#a6e22e">Props</span><span style="color:#f92672">&gt;</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">render</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">props</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Props</span>) =&gt; <span style="color:#a6e22e">Result</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">options</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">RenderHookOptions</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Props</span><span style="color:#f92672">&gt;</span>,
+</span></span><span style="display:flex;"><span>)<span style="color:#f92672">:</span> <span style="color:#a6e22e">RenderHookResult</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Result</span>, <span style="color:#a6e22e">Props</span><span style="color:#f92672">&gt;</span>
+</span></span></code></pre></div><h4 id="入参">入参</h4>
+<ul>
+<li><strong>render</strong>： <code>callBack</code> 函数，这个函数会在<code>TestComponent</code>每次被重新渲染的时候调用，所以这个函数放入我们想测试的<code>Hooks</code>就行</li>
+<li><strong>options</strong>: 可选的<code>options</code>，有两个属性，分别是<code>initialProps</code>和<code>wrapper</code></li>
+</ul>
+<p>options 的参数：</p>
+<ul>
+<li><strong>initialProps</strong>：<code>TestComponent</code>初始的<code>props</code></li>
+<li><strong>wrapper</strong>：用来指定<code>TestComponent</code>的父级组件<code>（Wrapper Component)</code>,这个组件可以是一些<code>ContextProvider</code>等用来为<code>TestComponent</code>的 hook 提供测试数据的东西</li>
+</ul>
+<h4 id="出参">出参</h4>
+<p><strong>renderHook</strong>：共返回三个参数，分别是：</p>
+<ul>
+<li><strong>result</strong>：结果，是一个对象结构，包含<code>current</code>(保存 <code>TestComponent</code>返回的<code>callback</code>值)和<code>error</code>（所有错误存放的值）</li>
+<li><strong>render</strong>：用来重新渲染<code>TestComponent</code>，并且可以接受一个<code>newProps</code>（参数）传递给<code>TestComponent</code></li>
+<li><strong>unmount</strong>：用来卸载<code>TestComponent</code>， 主要用来覆盖一些<code>useEffect cleanup</code>函数的场景。</li>
+</ul>
+<h3 id="act">act</h3>
+<p><strong>act</strong>：这个函数和<code>React</code>自带的<code>test-utils</code>的<code>act</code>函数是同一个函数，通过这个函数，我们可以将所有会<strong>更新到组件状态的操作</strong> 封装在它的<code>callback</code>下，简单的说，我们如果对<code>TestComponent</code>有操作，改变<code>result</code>的值，就需要放到<strong>act</strong>下</p>
+<h2 id="解决问题">解决问题</h2>
+<p>我们通过上面的<code>renderHook 和 act</code>进行下改装</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">act</span>, <span style="color:#a6e22e">renderHook</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;@testing-library/react&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">describe</span>(<span style="color:#e6db74">&#34;useCounter 测试&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;数字加1&#34;</span>, <span style="color:#66d9ef">async</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">result</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">renderHook</span>(() <span style="color:#f92672">=&gt;</span> <span style="color:#a6e22e">useCounter</span>(<span style="color:#ae81ff">7</span>));
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>[<span style="color:#ae81ff">0</span>]).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">7</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">act</span>(() <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>[<span style="color:#ae81ff">1</span>].<span style="color:#a6e22e">add</span>();
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>[<span style="color:#ae81ff">0</span>]).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">8</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>结果：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/066dd2fe6f0346489443f7304da1cc0c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="image.png"></p>
+<p>至于测试的报告，就看写的测试用例覆盖度了，当所有情况都涉及上就会显示<code>100%</code></p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ab70a307b6474a4a96627bea1a58c458~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="image.png"></p>
+<h1 id="实战演练">实战演练</h1>
+<h2 id="useeventlistener">useEventListener</h2>
+<p>上述的例子中，我们已经了解了<code>renderHook</code>的<code>result</code>，接下来我们来看看<code>render</code>和<code>unmount</code>的用法。</p>
+<p>在之前我们详细讲过<code>useEventListener</code>的实现，这里就不做过多的介绍（有感兴趣的可以看一下具体的实现：<a href="https://juejin.cn/post/7101486767336849421#heading-23" title="https://juejin.cn/post/7101486767336849421#heading-23">搞懂这 12 个 Hooks，保证让你玩转 React-useEventListener</a>）</p>
+<p>为了更好的进行单元测试，我在原先的基础上去除<code>SSR</code>的部分，做个简单的优化和改动，代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useEffect</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useLatest</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;../useLatest&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">useEventListener</span> <span style="color:#f92672">=</span> (
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">event</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">handler</span><span style="color:#f92672">:</span> (...<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span>) =&gt; <span style="color:#66d9ef">void</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">target</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span> <span style="color:#f92672">=</span> window
+</span></span><span style="display:flex;"><span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handlerRef</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useLatest</span>(<span style="color:#a6e22e">handler</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 支持useRef 和 DOM节点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">targetElement</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">target</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">targetElement</span> <span style="color:#f92672">=</span> window;
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#e6db74">&#34;current&#34;</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">target</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">targetElement</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">current</span>;
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">targetElement</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">target</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//  防止没有 addEventListener 这个属性
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">targetElement</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">addEventListener</span>) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">useEventListener</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">event</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Event</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">handlerRef</span>.<span style="color:#a6e22e">current</span>(<span style="color:#a6e22e">event</span>);
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">targetElement</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#a6e22e">event</span>, <span style="color:#a6e22e">useEventListener</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> () =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">targetElement</span>.<span style="color:#a6e22e">removeEventListener</span>(<span style="color:#a6e22e">event</span>, <span style="color:#a6e22e">useEventListener</span>);
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>  }, [<span style="color:#a6e22e">event</span>, <span style="color:#a6e22e">target</span>]);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">useEventListener</span>;
+</span></span></code></pre></div><h3 id="测试点击事件">测试点击事件</h3>
+<p>我们想要测试<code>useEventListener</code>，首先需要创建一个<code>DOM节点</code>，用来模拟点击事件，我们可以用<code>document.createElement('div')</code>来创建一个<code>div</code>并将它绑定在<code>body</code>，然后在绑定到<code>useEventListener</code>上，来进行测试</p>
+<p>所以<code>index.test.ts</code>可以这样书写：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">renderHook</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@testing-library/react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">useEventListener</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">describe</span>(<span style="color:#e6db74">&#34;useEventListener&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;should be defined&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">useEventListener</span>).<span style="color:#a6e22e">toBeDefined</span>();
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">container</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">HTMLDivElement</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">beforeEach</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;div&#34;</span>); <span style="color:#75715e">// 创建一个div
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">container</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">afterEach</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">removeChild</span>(<span style="color:#a6e22e">container</span>); <span style="color:#75715e">// 卸载
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;测试监听点击事件&#34;</span>, <span style="color:#66d9ef">async</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">count</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">number</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onClick</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">count</span><span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">rerender</span>, <span style="color:#a6e22e">unmount</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">renderHook</span>(() =&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">useEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, <span style="color:#a6e22e">onClick</span>, <span style="color:#a6e22e">container</span>)
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 点击 document应该无效
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 点击 container count + 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rerender</span>(); <span style="color:#75715e">// 重新渲染
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 点击 container count + 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">unmount</span>(); <span style="color:#75715e">// 卸载
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 点击 container 应该无效
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>做个简单的解释：</p>
+<ol>
+<li>通过<code>beforeEach</code>和<code>afterEach</code>创建<code>DOM</code>元素（container）并卸载</li>
+<li>用<code>renderHook</code>监听对应的元素的点击事件，如果点击了，<code>count + 1</code></li>
+<li>首先在<code>body</code>上进行点击，不应该触发<code>click</code>事件，<code>count = 0</code></li>
+<li>然后点击<code>container</code>，触发<code>click</code>事件，<code>count = 1</code></li>
+<li>通过<code>rerender()</code>将<code>hooks</code>重新渲染一遍，再点<code>container</code>，看看会不会有影响，此时会触发<code>click</code>事件，<code>count = 2</code></li>
+<li>最后<code>unmount</code>卸载函数，再点击 <code>container</code>，此时已经卸载，所以无法出发，触发<code>click</code>事件，<code>count</code> 应该等于<code>2</code></li>
+</ol>
+<h3 id="覆盖率报告">覆盖率报告</h3>
+<p>之后我们可以看一下覆盖率报告：</p>
+<p>文件位置：<code>coverage/lcov-report/index.html</code>，我们可以打开这个页面，看到对应的数据，如：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0b4dad578b444426b7865215aba4ba27~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="image.png"></p>
+<p>对应的代码为：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b138b8224c3d4fe58f36e27bda1ec6f7~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="image.png"></p>
+<p>其中标红的代表未执行的语句（在<code>coverage/lcov-report</code>）也会生成对应的<code>useEventListener</code>文件，同时<code>vscode</code>也可以看到为执行的代码，只是觉得<code>index.html</code>更加直观</p>
+<p>接下来，我们逐一解决未执行的代码，和一些遇到的问题</p>
+<h3 id="全局点击">全局点击</h3>
+<p>我们只要不传入第三个参数，就能解决，所以</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;全局点击&#34;</span>, <span style="color:#66d9ef">async</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">count</span>: <span style="color:#66d9ef">number</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onClick</span> <span style="color:#f92672">=</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">count</span><span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">renderHook</span>(() <span style="color:#f92672">=&gt;</span> <span style="color:#a6e22e">useEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, <span style="color:#a6e22e">onClick</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 点击 container count + 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 点击 container count + 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h3 id="useref-的解决">useRef 的解决</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> (<span style="color:#e6db74">&#34;current&#34;</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">target</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">targetElement</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">current</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面这段代码处理的是<code>useRef</code>的对象，那么我们在测试的时候是不是要利用<code>useRef</code>，在通过<code>ref</code>对象绑定到对应的<code>DOM</code>节点上呢？</p>
+<p>实际上，并不用，因为我们<code>useRef</code>存储的对象都在<code>current</code>下，所以我们只需要进行对应的模拟就 OK 了</p>
+<p>如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">containerRef</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">beforeEach</span>(() <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">containerRef</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">current</span>: <span style="color:#66d9ef">container</span>,
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#39;模拟useRef点击事件&#39;</span>, <span style="color:#66d9ef">async</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">count</span>: <span style="color:#66d9ef">number</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onClick</span> <span style="color:#f92672">=</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">count</span><span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">rerender</span>, <span style="color:#a6e22e">unmount</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">renderHook</span>(() <span style="color:#f92672">=&gt;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">useEventListener</span>(<span style="color:#e6db74">&#39;click&#39;</span>, <span style="color:#a6e22e">onClick</span>, <span style="color:#a6e22e">containerRef</span>),
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 点击 document应该无效
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 点击 container count + 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rerender</span>(); <span style="color:#75715e">// 重新渲染
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 点击 container count + 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">unmount</span>(); <span style="color:#75715e">// 卸载
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 点击 container 应该无效
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span></code></pre></div><h3 id="覆盖率报告-1">覆盖率报告</h3>
+<p>第三个也是同理，就不列举了，只要全部覆盖到就测试完毕了，如：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/25a58507ae264c0cb57e5321957e504c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="image.png"></p>
+<h2 id="usehover">useHover</h2>
+<h3 id="效果演示">效果演示</h3>
+<p>我们根据<code>useEventListener</code>再延伸一个<code>useHover</code></p>
+<p><code>useHover</code>：监听 DOM 元素是否有鼠标悬停。</p>
+<p>代码也非常简单：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useState</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">useEventListener</span> <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;../useEventListener&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">Options</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onEnter</span><span style="color:#f92672">?:</span> () <span style="color:#f92672">=&gt;</span> <span style="color:#66d9ef">void</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onLeave</span><span style="color:#f92672">?:</span> () <span style="color:#f92672">=&gt;</span> <span style="color:#66d9ef">void</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onChange</span><span style="color:#f92672">?:</span> (<span style="color:#a6e22e">isHover</span>: <span style="color:#66d9ef">boolean</span>) <span style="color:#f92672">=&gt;</span> <span style="color:#66d9ef">void</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">useHover</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">target</span>: <span style="color:#66d9ef">any</span>, <span style="color:#a6e22e">options?</span>: <span style="color:#66d9ef">Options</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">onEnter</span>, <span style="color:#a6e22e">onLeave</span>, <span style="color:#a6e22e">onChange</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">options</span> <span style="color:#f92672">||</span> {};
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">isHover</span>, <span style="color:#a6e22e">setHover</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>&lt;<span style="color:#f92672">boolean</span>&gt;(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEventListener</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;mouseenter&#34;</span>,
+</span></span><span style="display:flex;"><span>    () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">onEnter</span><span style="color:#f92672">?</span>.();
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">onChange</span><span style="color:#f92672">?</span>.(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setHover</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">target</span>
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEventListener</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;mouseleave&#34;</span>,
+</span></span><span style="display:flex;"><span>    () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">onLeave</span><span style="color:#f92672">?</span>.();
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">onChange</span><span style="color:#f92672">?</span>.(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setHover</span>(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">target</span>
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">isHover</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">useHover</span>;
+</span></span></code></pre></div><p>效果：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d0a3b1655283473aa20a689156d4759a~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="img6.gif"></p>
+<h3 id="renderfireevent-测试">render、fireEvent 测试</h3>
+<p>我们在测试<code>useEventListener</code>的时候通过<code>document.createElement</code>创建元素，除了这种方式，我们可以通过测试组件的方式来测试，这里使用<code>'@testing-library/react'</code>测试</p>
+<p>可能有许多小伙伴喜欢用<code>enzyme</code>做单元测试，但<code>enzyme</code>测试也有很多问题（如：组件触发后，但触发后不能改变组件<code>useState</code>的值），所以还是使用官方推荐的<code>'@testing-library/react'</code>测试比较好</p>
+<p>在这里主要介绍下 <code>'@testing-library/react'</code> 的<code>render</code>和<code>fireEvent</code>的方法，掌握这两个，一般的单元测试就<code>OK</code>了</p>
+<h4 id="render">render</h4>
+<p><code>render</code>主要返回三类分别是：<code>getBy...</code>、<code>queryBy...</code>、<code>findBy...</code></p>
+<ul>
+<li><code>getBy...</code>：用于定位页面<code>已经存在</code>的 DOM 元素，如果不存在，则抛出异常</li>
+<li><code>queryBy...</code>：用于定位页面<code>不存在</code>的 DOM 元素，如果不存在，则返回 null，不会抛出异常</li>
+<li><code>findBy...</code>：定位页面中的<code>异常元素</code>，如果不存在，则抛出异常</li>
+</ul>
+<p>三者的方法都一样，这里以<code>getBt...</code>为例：</p>
+<ol>
+<li><strong>getByText</strong>: 按元素查找文本内容</li>
+<li><strong>getByRole</strong>: 按角色去查找</li>
+<li><strong>getByLabelText</strong>: 按标签或 aria 标签文本内容查找</li>
+<li><strong>getByPlaceholderText</strong>: 按输入 placeholder 查找</li>
+<li><strong>getByAltText</strong>: 按 img 的 alt 属性查找</li>
+<li><strong>getByTitle</strong>: 按标题属性或 svg 标题标记查找</li>
+<li><strong>getByDisplayValue</strong>: 按表单元素查找当前值</li>
+<li><strong>getByTestId</strong>: 按数据测试查找属性</li>
+</ol>
+<p>一般而言，会用到<code>getByText</code>和<code>getByRole</code>来获取对应的元素</p>
+<h4 id="fireevent">fireEvent</h4>
+<p><strong>fireEvent</strong>：用于实际的操作，也就是模拟点击、键盘、表单等操作</p>
+<p>用法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 两种写法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">fireEvent</span>(<span style="color:#a6e22e">node</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">HTMLElement</span>, <span style="color:#a6e22e">event</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Event</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fireEvent</span>[<span style="color:#a6e22e">eventName</span>](<span style="color:#a6e22e">node</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">HTMLElement</span>, <span style="color:#a6e22e">eventProperties</span><span style="color:#f92672">:</span> Object)
+</span></span></code></pre></div><p>接下来看看 <code>fireEvent</code>拥有哪些方法</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">EventType</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;keyDown&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;keyPress&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;keyUp&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;focus&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;blur&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;change&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;input&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;invalid&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;submit&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;reset&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;click&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;drag&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;dragEnd&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;dragEnter&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;dragExit&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;dragLeave&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;dragOver&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;dragStart&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;drop&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;mouseDown&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;mouseEnter&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;mouseLeave&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;mouseMove&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;mouseOut&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;mouseOver&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;mouseUp&#39;</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#39;scroll&#39;</span>
+</span></span><span style="display:flex;"><span> ...
+</span></span></code></pre></div><p>通常这样使用：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>  <span style="color:#a6e22e">fireEvent</span>.<span style="color:#a6e22e">click</span>(<span style="color:#a6e22e">getByText</span>(<span style="color:#e6db74">&#39;Hover&#39;</span>), () =&gt; {
+</span></span><span style="display:flex;"><span>      ....
+</span></span><span style="display:flex;"><span>  });
+</span></span></code></pre></div><h3 id="测试用例">测试用例</h3>
+<p>通过上面的了解，我们写<code>useHover</code>的测试用例就简单了许多，首先用<code>render</code> 创建一个按钮，然后用<code>fireEvent</code>模拟<code>移入</code>和<code>移出</code>效果即可</p>
+<p>值得注意一点，我们这里测试的是组件，所以我们应该用<code>index.test.jex</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">render</span>, <span style="color:#a6e22e">fireEvent</span>, <span style="color:#a6e22e">renderHook</span>, <span style="color:#a6e22e">act</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@testing-library/react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">useHover</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;.&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">describe</span>(<span style="color:#e6db74">&#34;useHover&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;should be defined&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">useHover</span>).<span style="color:#a6e22e">toBeDefined</span>();
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;测试Hover&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">getByText</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">render</span>(&lt;<span style="color:#f92672">button</span>&gt;<span style="color:#a6e22e">Hover</span>&lt;/<span style="color:#f92672">button</span>&gt;);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">result</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">renderHook</span>(() =&gt; <span style="color:#a6e22e">useHover</span>(<span style="color:#a6e22e">getByText</span>(<span style="color:#e6db74">&#34;Hover&#34;</span>)));
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">act</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fireEvent</span>.<span style="color:#a6e22e">mouseEnter</span>(<span style="color:#a6e22e">getByText</span>(<span style="color:#e6db74">&#34;Hover&#34;</span>), () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>[<span style="color:#ae81ff">0</span>]).<span style="color:#a6e22e">toBe</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">act</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fireEvent</span>.<span style="color:#a6e22e">mouseLeave</span>(<span style="color:#a6e22e">getByText</span>(<span style="color:#e6db74">&#34;Hover&#34;</span>), () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>[<span style="color:#ae81ff">0</span>]).<span style="color:#a6e22e">toBe</span>(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;测试功能&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">getByText</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">render</span>(&lt;<span style="color:#f92672">button</span>&gt;<span style="color:#a6e22e">Hover</span>&lt;/<span style="color:#f92672">button</span>&gt;);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">count</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">flag</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">result</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">renderHook</span>(() =&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">useHover</span>(<span style="color:#a6e22e">getByText</span>(<span style="color:#e6db74">&#34;Hover&#34;</span>), {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">onEnter</span><span style="color:#f92672">:</span> () =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">count</span><span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">onChange</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">flag</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">flag</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">flag</span>;
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">onLeave</span><span style="color:#f92672">:</span> () =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">count</span><span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>      })
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>).<span style="color:#a6e22e">toBe</span>(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">act</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fireEvent</span>.<span style="color:#a6e22e">mouseEnter</span>(<span style="color:#a6e22e">getByText</span>(<span style="color:#e6db74">&#34;Hover&#34;</span>), () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>).<span style="color:#a6e22e">toBe</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toBe</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">flag</span>).<span style="color:#a6e22e">toBe</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">act</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fireEvent</span>.<span style="color:#a6e22e">mouseLeave</span>(<span style="color:#a6e22e">getByText</span>(<span style="color:#e6db74">&#34;Hover&#34;</span>), () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>).<span style="color:#a6e22e">toBe</span>(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">toBe</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">flag</span>).<span style="color:#a6e22e">toBe</span>(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h2 id="usemouse">useMouse</h2>
+<p>接下来，我们在通过<code>useEventListener</code>来延伸一个<code>useMouse</code></p>
+<p><strong>useMouse</strong>: 获取鼠标的位置,这块代码也非常简单，具体来看看测试用例</p>
+<p>js 代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useState</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">useEventListener</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;../useEventListener&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">initState</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">screenX</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">screenY</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">clientX</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">clientY</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">pageX</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">pageY</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">elementX</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">elementY</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">elementH</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">elementW</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">elementPosX</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">elementPosY</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> (<span style="color:#a6e22e">target</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">any</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">setState</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#a6e22e">initState</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEventListener</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;mousemove&#34;</span>,
+</span></span><span style="display:flex;"><span>    (<span style="color:#a6e22e">event</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">MouseEvent</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">screenX</span>, <span style="color:#a6e22e">screenY</span>, <span style="color:#a6e22e">clientX</span>, <span style="color:#a6e22e">clientY</span>, <span style="color:#a6e22e">pageX</span>, <span style="color:#a6e22e">pageY</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">event</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">newState</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">screenX</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">screenY</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">clientX</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">clientY</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">pageX</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">pageY</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">elementX</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">elementY</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">elementH</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">elementW</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">elementPosX</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">elementPosY</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">NaN</span>,
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setState</span>(<span style="color:#a6e22e">newState</span>);
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">target</span><span style="color:#f92672">:</span> document,
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">state</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><h3 id="dispatchevent-问题">dispatchEvent 问题</h3>
+<p>我们也可以通过<code>document.dispatchEvent</code> 去模拟一些事件，比如说鼠标移动</p>
+<p>但使用 <code>dispatchEvent</code>无法模拟出具体的鼠标位置，如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">moveMosuse</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">x</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">number</span>, <span style="color:#a6e22e">y</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">number</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">act</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      document.<span style="color:#a6e22e">dispatchEvent</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MouseEvent</span>(<span style="color:#e6db74">&#39;mousemove&#39;</span>, {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">clientX</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">x</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">clientY</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">y</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">screenX</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">x</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">screenY</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">y</span>,
+</span></span><span style="display:flex;"><span>        }),
+</span></span><span style="display:flex;"><span>      );
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#39;鼠标移动&#39;</span>, <span style="color:#66d9ef">async</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">result</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">renderHook</span>(() =&gt; <span style="color:#a6e22e">useMouse</span>(<span style="color:#a6e22e">container</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">pageX</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#66d9ef">NaN</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">pageY</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#66d9ef">NaN</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">moveMosuse</span>(<span style="color:#ae81ff">210</span>, <span style="color:#ae81ff">210</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result</span>, <span style="color:#e6db74">&#39;111&#39;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  });
+</span></span></code></pre></div><p>但很惊奇的发现，获取不到结果：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c39aa774182f4f1b83da94eb6789dbe7~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="image.png"></p>
+<p>第一反应是异步引起的，所以加入了<code>waiteFor</code>，但<code>watiFor</code>内也获取不到</p>
+<p><code>renderHook</code>的 <code>waitForNextUpdate</code>也获取不到（这里的<code>renderHook</code> 是<code>@testing-library/react-hooks</code>）</p>
+<p>找了半天也没有找到原因，最后的猜想是 <code>document.dispatchEvent</code> 是真实的 DOM 事件，而我们的环境是模拟的<code>js-dom</code>，所以在<code>Jest</code>中可能并没有实际的触发，所以导致获取不到（有知道原因的，麻烦在评论区留言告知～）</p>
+<h3 id="使用-fireevent-解决">使用 fireEvent 解决</h3>
+<p>最终还是通过<code>fireEvent</code>去模拟事件，达到测试效果，这里就不做过多的介绍，直接上下代码～</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;鼠标移动&#34;</span>, <span style="color:#66d9ef">async</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">result</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">renderHook</span>(() <span style="color:#f92672">=&gt;</span> <span style="color:#a6e22e">useMouse</span>());
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">pageX</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#66d9ef">NaN</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">pageY</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#66d9ef">NaN</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">fireEvent</span>.<span style="color:#a6e22e">mouseMove</span>(document, {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clientX</span>: <span style="color:#66d9ef">50</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clientY</span>: <span style="color:#66d9ef">70</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">screenX</span>: <span style="color:#66d9ef">50</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">screenY</span>: <span style="color:#66d9ef">70</span>,
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">clientX</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">clientY</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">70</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">screenX</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">screenY</span>).<span style="color:#a6e22e">toEqual</span>(<span style="color:#ae81ff">70</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h1 id="总结">总结</h1>
+<h2 id="环境问题">环境问题</h2>
+<p><code>jest</code>默认的环境为<code>node</code>，我们测试<code>hooks</code>的环境是<strong>浏览器</strong>环境，所以我们需要设置<code>&quot;testEnvironment&quot;: &quot;jsdom&quot;</code></p>
+<h2 id="renderhook-的问题">renderHook 的问题</h2>
+<p>在上述的例子中，直接从<code>@testing-library/react</code>拿出的，这是因为<code>@testing-library/react@13.1.0</code>以上，把<code>renderHook</code>内置了</p>
+<p>并且这个版本，必须要配合 <strong>react18</strong>一起使用才行</p>
+<p>如果你的<code>react</code>版本在 18 版本以下，可以单独使用 <code>@testing-library/react-hooks</code></p>
+<h2 id="测试-dom-的方法">测试 Dom 的方法</h2>
+<p>在本文中主要讲解了两种方式来模拟<code>DOM</code>元素，分别是利用<code>document.createElement</code>和<code>@testing-library/react</code>中的<code>render</code></p>
+<p>实际上两种方式不太相同，<code>render</code>的方式更加像测试组件的方法，并且两者的文件名不同，分别是<code>ts</code>和<code>tsx</code></p>
+<p>其次，我们应该善用模拟的数据来进行测试，总的来说，还是应该多加练习</p>
+<h2 id="调试-bug">调试 bug</h2>
+<p>我们在写测试用例的时候，可能会出现各种各样的问题，我们需要打印些数据来帮助我们(如一开始的<code>result</code>)，原本的 cli 并不会打印出<code>console</code>，我们需要在命令行上加入<code>--debug</code>，就 ok 了，如：<code>npx jest --debug</code></p>
+<p>可以直接使用<code>vscode</code>的插件，也是种不错的选择～</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f2507a381d1647118049f013c2406d74~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="image.png"></p>
+<h1 id="end">End</h1>
+<p>关于 <code>Hooks</code> 和<code>Jest</code>的同款文章可以看看, 助你玩转<code>React</code>：</p>
+<ul>
+<li><a href="https://juejin.cn/post/7145269660635070495">花一个小时，迅速掌握 Jest 的全部知识点~</a></li>
+<li><a href="https://juejin.cn/post/7101486767336849421">搞懂这 12 个 Hooks，保证让你玩转 React</a></li>
+</ul>
+<h2 id="参考">参考</h2>
+<ul>
+<li><a href="https://testing-library.com/">Testing Library</a></li>
+</ul>
+<h2 id="结语">结语</h2>
+<p>本文讲解如何通过<code>Jest</code>测试自定义<code>hooks</code>，合理的利用<code>renderHook</code>，利用<code>render</code>或<code>document.createElement</code>创建<code>dom</code>元素，通过<code>fireEvent</code>去模拟事件，相信在测试<code>hooks</code>就足够了</p>
+<p>通过本文的介绍，可以看出<code>Jest</code>是一个非常大的模块，掌握的秘诀还是多加练习，有感兴趣的同学可以自己尝试尝试</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/231/"
+      ><span class="mr-1.5">←</span><span>浏览器如何评判网站性能</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/229/"
+      ><span>迅速掌握 Jest 的全部知识点~</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

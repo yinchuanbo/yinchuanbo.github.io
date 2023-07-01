@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>如何打造一款标准前端 JS-SDK ？？？ - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="0 前言 本文主要介绍如何基于 JavaScript 来开发 SDK，任何基于 JS 的场景都可以用类似的思路来解决，无论是移动端 H5 还是服务端纯 NodeJS。文中会提及一些设计原则以及实现技巧，并结合 岳鹰全景监控平台 SDK 这个实际案例来展示如何应用它们。
+1 SDK 是什么 SDK 全称是“Software Development Kit”，直译就是软件开发工具集。说的再通俗点就是一个面向开发者，针对特定领域的软件包。比如 Java SDK（JDK），就是一个 Java 领域的软件包。基于它，开发人员就可以快速构建自己的 Java 应用。比较规范的 SDK 一般都会包含若干的 API、开发工具集和说明文档。
+JS-SDK 也无外于此，不过鉴于 JS 语言本身的特性，基于 Ta 封装的 SDK 更多常见于 UI 组件库、统计分析、web 服务接口封装、前端稳定性和性能监控等场景。上一小节提到的 岳鹰全景监控平台 SDK 即属于前端稳定性和性能监控这一领域范畴的 SDK。
+2 设计原则 如何设计 SDK，其实更多取决于你的场景，或者 SDK 最终的用途。比如实现一个给网页调用的 SDK 与用于服务端的 SDK 就有明显的差异，但这之间确实存在着一些共通的原则，或者方法论：
+最小可用性原则，即用最少的代码，如无必要勿增实体 最少依赖原则，即最低限度的外部依赖，如无必要勿增依赖 进一步阐述，即我们打造的 SDK 要符合以下的要求 2.1 满足功能需求 SDK 一般都是偏于面向某个领域，所以，同时在设计和实现的时候明确职责和边界很重要，同时还应该足够精简，专注领域内的业务。
+2.2 足够稳定 绝不能导致宿主应用崩溃，这是最基础也是最严格的要求 较好的性能，比如 SDK 体积应尽量小，运行速度尽量快 可测试，保障每一次变更 向后兼容，不轻易出现 Breakchange 2." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="如何打造一款标准前端 JS-SDK ？？？" />
+<meta property="og:description" content="0 前言 本文主要介绍如何基于 JavaScript 来开发 SDK，任何基于 JS 的场景都可以用类似的思路来解决，无论是移动端 H5 还是服务端纯 NodeJS。文中会提及一些设计原则以及实现技巧，并结合 岳鹰全景监控平台 SDK 这个实际案例来展示如何应用它们。
+1 SDK 是什么 SDK 全称是“Software Development Kit”，直译就是软件开发工具集。说的再通俗点就是一个面向开发者，针对特定领域的软件包。比如 Java SDK（JDK），就是一个 Java 领域的软件包。基于它，开发人员就可以快速构建自己的 Java 应用。比较规范的 SDK 一般都会包含若干的 API、开发工具集和说明文档。
+JS-SDK 也无外于此，不过鉴于 JS 语言本身的特性，基于 Ta 封装的 SDK 更多常见于 UI 组件库、统计分析、web 服务接口封装、前端稳定性和性能监控等场景。上一小节提到的 岳鹰全景监控平台 SDK 即属于前端稳定性和性能监控这一领域范畴的 SDK。
+2 设计原则 如何设计 SDK，其实更多取决于你的场景，或者 SDK 最终的用途。比如实现一个给网页调用的 SDK 与用于服务端的 SDK 就有明显的差异，但这之间确实存在着一些共通的原则，或者方法论：
+最小可用性原则，即用最少的代码，如无必要勿增实体 最少依赖原则，即最低限度的外部依赖，如无必要勿增依赖 进一步阐述，即我们打造的 SDK 要符合以下的要求 2.1 满足功能需求 SDK 一般都是偏于面向某个领域，所以，同时在设计和实现的时候明确职责和边界很重要，同时还应该足够精简，专注领域内的业务。
+2.2 足够稳定 绝不能导致宿主应用崩溃，这是最基础也是最严格的要求 较好的性能，比如 SDK 体积应尽量小，运行速度尽量快 可测试，保障每一次变更 向后兼容，不轻易出现 Breakchange 2." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/628/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-05-30T09:38:13+08:00" />
+<meta property="article:modified_time" content="2023-05-30T09:38:13+08:00" />
+
+  
+  <meta itemprop="name" content="如何打造一款标准前端 JS-SDK ？？？">
+<meta itemprop="description" content="0 前言 本文主要介绍如何基于 JavaScript 来开发 SDK，任何基于 JS 的场景都可以用类似的思路来解决，无论是移动端 H5 还是服务端纯 NodeJS。文中会提及一些设计原则以及实现技巧，并结合 岳鹰全景监控平台 SDK 这个实际案例来展示如何应用它们。
+1 SDK 是什么 SDK 全称是“Software Development Kit”，直译就是软件开发工具集。说的再通俗点就是一个面向开发者，针对特定领域的软件包。比如 Java SDK（JDK），就是一个 Java 领域的软件包。基于它，开发人员就可以快速构建自己的 Java 应用。比较规范的 SDK 一般都会包含若干的 API、开发工具集和说明文档。
+JS-SDK 也无外于此，不过鉴于 JS 语言本身的特性，基于 Ta 封装的 SDK 更多常见于 UI 组件库、统计分析、web 服务接口封装、前端稳定性和性能监控等场景。上一小节提到的 岳鹰全景监控平台 SDK 即属于前端稳定性和性能监控这一领域范畴的 SDK。
+2 设计原则 如何设计 SDK，其实更多取决于你的场景，或者 SDK 最终的用途。比如实现一个给网页调用的 SDK 与用于服务端的 SDK 就有明显的差异，但这之间确实存在着一些共通的原则，或者方法论：
+最小可用性原则，即用最少的代码，如无必要勿增实体 最少依赖原则，即最低限度的外部依赖，如无必要勿增依赖 进一步阐述，即我们打造的 SDK 要符合以下的要求 2.1 满足功能需求 SDK 一般都是偏于面向某个领域，所以，同时在设计和实现的时候明确职责和边界很重要，同时还应该足够精简，专注领域内的业务。
+2.2 足够稳定 绝不能导致宿主应用崩溃，这是最基础也是最严格的要求 较好的性能，比如 SDK 体积应尽量小，运行速度尽量快 可测试，保障每一次变更 向后兼容，不轻易出现 Breakchange 2."><meta itemprop="datePublished" content="2023-05-30T09:38:13+08:00" />
+<meta itemprop="dateModified" content="2023-05-30T09:38:13+08:00" />
+<meta itemprop="wordCount" content="378">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="如何打造一款标准前端 JS-SDK ？？？"/>
+<meta name="twitter:description" content="0 前言 本文主要介绍如何基于 JavaScript 来开发 SDK，任何基于 JS 的场景都可以用类似的思路来解决，无论是移动端 H5 还是服务端纯 NodeJS。文中会提及一些设计原则以及实现技巧，并结合 岳鹰全景监控平台 SDK 这个实际案例来展示如何应用它们。
+1 SDK 是什么 SDK 全称是“Software Development Kit”，直译就是软件开发工具集。说的再通俗点就是一个面向开发者，针对特定领域的软件包。比如 Java SDK（JDK），就是一个 Java 领域的软件包。基于它，开发人员就可以快速构建自己的 Java 应用。比较规范的 SDK 一般都会包含若干的 API、开发工具集和说明文档。
+JS-SDK 也无外于此，不过鉴于 JS 语言本身的特性，基于 Ta 封装的 SDK 更多常见于 UI 组件库、统计分析、web 服务接口封装、前端稳定性和性能监控等场景。上一小节提到的 岳鹰全景监控平台 SDK 即属于前端稳定性和性能监控这一领域范畴的 SDK。
+2 设计原则 如何设计 SDK，其实更多取决于你的场景，或者 SDK 最终的用途。比如实现一个给网页调用的 SDK 与用于服务端的 SDK 就有明显的差异，但这之间确实存在着一些共通的原则，或者方法论：
+最小可用性原则，即用最少的代码，如无必要勿增实体 最少依赖原则，即最低限度的外部依赖，如无必要勿增依赖 进一步阐述，即我们打造的 SDK 要符合以下的要求 2.1 满足功能需求 SDK 一般都是偏于面向某个领域，所以，同时在设计和实现的时候明确职责和边界很重要，同时还应该足够精简，专注领域内的业务。
+2.2 足够稳定 绝不能导致宿主应用崩溃，这是最基础也是最严格的要求 较好的性能，比如 SDK 体积应尽量小，运行速度尽量快 可测试，保障每一次变更 向后兼容，不轻易出现 Breakchange 2."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">如何打造一款标准前端 JS-SDK ？？？</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>May 30, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="0-前言">0 前言</h2>
+<p>本文主要介绍如何基于 JavaScript 来开发 SDK，任何基于 JS 的场景都可以用类似的思路来解决，无论是移动端 H5 还是服务端纯 NodeJS。文中会提及一些设计原则以及实现技巧，并结合 岳鹰全景监控平台 SDK 这个实际案例来展示如何应用它们。</p>
+<h2 id="1-sdk-是什么">1 SDK 是什么</h2>
+<p>SDK 全称是“Software Development Kit”，直译就是软件开发工具集。说的再通俗点就是一个面向开发者，针对特定领域的软件包。比如 Java SDK（JDK），就是一个 Java 领域的软件包。基于它，开发人员就可以快速构建自己的 Java 应用。比较规范的 SDK 一般都会包含若干的 API、开发工具集和说明文档。</p>
+<p>JS-SDK 也无外于此，不过鉴于 JS 语言本身的特性，基于 Ta 封装的 SDK 更多常见于 UI 组件库、统计分析、web 服务接口封装、前端稳定性和性能监控等场景。上一小节提到的 岳鹰全景监控平台 SDK 即属于前端稳定性和性能监控这一领域范畴的 SDK。</p>
+<h2 id="2-设计原则">2 设计原则</h2>
+<p>如何设计 SDK，其实更多取决于你的场景，或者 SDK 最终的用途。比如实现一个给网页调用的 SDK 与用于服务端的 SDK 就有明显的差异，但这之间确实存在着一些共通的原则，或者方法论：</p>
+<ul>
+<li>最小可用性原则，即用最少的代码，如无必要勿增实体</li>
+<li>最少依赖原则，即最低限度的外部依赖，如无必要勿增依赖 进一步阐述，即我们打造的 SDK 要符合以下的要求</li>
+</ul>
+<h3 id="21-满足功能需求">2.1 满足功能需求</h3>
+<p>SDK 一般都是偏于面向某个领域，所以，同时在设计和实现的时候明确职责和边界很重要，同时还应该足够精简，专注领域内的业务。</p>
+<h3 id="22-足够稳定">2.2 足够稳定</h3>
+<ul>
+<li>绝不能导致宿主应用崩溃，这是最基础也是最严格的要求</li>
+<li>较好的性能，比如 SDK 体积应尽量小，运行速度尽量快</li>
+<li>可测试，保障每一次变更</li>
+<li>向后兼容，不轻易出现 Breakchange</li>
+</ul>
+<h3 id="23-少依赖易扩展">2.3 少依赖，易扩展</h3>
+<ul>
+<li>最小程度的第三方依赖，尽可能自行实现，确实无法避免则最小化引入</li>
+<li>插件化，最大限度支持扩展</li>
+<li>Hook 机制，满足个性化诉求</li>
+</ul>
+<h2 id="3-如何实现">3 如何实现</h2>
+<p>下面我们将通过剖析 岳鹰前端监控 SDK 的设计过程，来看看上述的设计原则是如何应用到实际的开发过程中的。</p>
+<h3 id="31-明职责定边界">3.1 明职责，定边界</h3>
+<p>前面章节提到， 岳鹰前端监控 SDK 是前端稳定性和性能监控的 SDK，主要面向前端 H5 领域。因此，稍加分析即可得出以下结论</p>
+<h4 id="前端领域稳定性方面主要的关注点">前端领域，稳定性方面主要的关注点</h4>
+<ul>
+<li>JS 异常</li>
+<li>资源加载异常</li>
+<li>API 请求异常</li>
+<li>白屏异常</li>
+</ul>
+<h4 id="性能方面核心的关注点">性能方面，核心的关注点</h4>
+<ul>
+<li>白屏时间</li>
+<li>可交互时间（TTI）</li>
+<li>首屏时间</li>
+<li>FP / FMP / FCP 等 上述监控内容实际上都相对独立，因此我们可以把 Ta 们横向划分为如下几大部分：</li>
+</ul>
+<img src="/imgs/28/14.png" />
+<p>明确了 SDK 的边界以及各部分的职责，结合前端监控的特性，我们可以开始设计 SDK 的整体框架了。</p>
+<h3 id="32-筑框架夯基础">3.2 筑框架，夯基础</h3>
+<p>俗话说千里之行始于足下，因此筑牢基础十分重要。总得来说，我们需要做好下面几点</p>
+<ul>
+<li>首先确定 SDK 的引用形式 SDK 整体而言是一个大模块，前端模块有多种表现形式：ES Module、CommonJS、AMD/CMD/UMD，而在引用方面则大体分 CDN 和 NPM 两种。即无论我们实现的是哪种形式的模块，最终都是通过 CDN 或者 NPM 的方式提供给用户引用。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">wpkReporter</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;wpkReporter&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// CommonJS
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">wpkReporter</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;wpkReporter&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// AMD,requireJS引用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">require</span>.<span style="color:#a6e22e">config</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">paths</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">wpk</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;https://g.alicdn.com/woodpeckerx/jssdk/wpkReporter.js&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">require</span>([<span style="color:#e6db74">&#34;wpk&#34;</span>, <span style="color:#e6db74">&#34;test&#34;</span>], <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">wpk</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// do your business
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>});
+</span></span></code></pre></div><p>乍看有点眼花，但事实上今时今日的前端工程领域，已有很多利器可以帮助我们达到目的。比如 webpack，通过简单的配置就可以构建出一个 UMD 的 bundle。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">output</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;[name].js&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">path</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">__dirname</span><span style="color:#e6db74">}</span><span style="color:#e6db74">/dist`</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">globalObject</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;this&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">library</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;[name]&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">libraryTarget</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;umd&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>综上，我们可以通过 webpack 将 SDK 构建为一个 UMD bundle，这样可以自动适配所有形式的模块。同时我们也将同时提供 CDN 和 NPM 两种引用方式，给用户更多选择。</p>
+<ul>
+<li>确定 SDK 的版本管理机制 现有较成熟的版本管理机制当属 语义化版本号 ，表现形式为 {主版本}.{次版本}.{补丁版本}，简单易记好管理。</li>
+</ul>
+<p>一般重大的变更才会触发主版本号的更替，而且很可能新旧版本不兼容。次版本主要对应新特性或者较大的调整，因此也有可能出现 breakchange。其他小的优化或 bugfix 就基本都是在补丁版本号体现。看到此处，是否有点似曾相识的感觉？没错，所有 NPM 模块都遵循语义化版本规范，因此结合第一点，我们可以将 SDK 初始化为一个 NPM 模块，结合 webpack 的能力就可以实现基础的版本管理及模块构建。</p>
+<ul>
+<li>确定 SDK 的基础接口 接口是 SDK 和用户沟通的桥梁，每一个接口对应着一个独立的 SDK 功能，并且有明确的输入和输出。我们可以先来看看岳鹰前端监控 SDK 的核心接口有哪些？</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">wpk</span>.<span style="color:#a6e22e">report</span>(<span style="color:#a6e22e">logData</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">wpk</span>.<span style="color:#a6e22e">reportJSError</span>(<span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">wpk</span>.<span style="color:#a6e22e">reportAPIError</span>(<span style="color:#a6e22e">apiData</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 配置变更
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">wpk</span>.<span style="color:#a6e22e">setConfig</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// SDK诊断
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">wpk</span>.<span style="color:#a6e22e">diagnose</span>();
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加插件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">wpk</span>.<span style="color:#a6e22e">addPlugin</span>(<span style="color:#a6e22e">plugin</span>);
+</span></span></code></pre></div><p>总结接口的设计原则，如下</p>
+<ul>
+<li>职责单一</li>
+</ul>
+<p>一个接口只做一件事情</p>
+<ul>
+<li>命名简单清晰，参数尽量少但可扩展</li>
+</ul>
+<p>好的接口命名就是最好的注释，一看即明其用处</p>
+<ul>
+<li>参数尽可能适用 Object 封装</li>
+</ul>
+<p>做好参数校验和逻辑保护</p>
+<h3 id="33-领域分析模块划分">3.3 领域分析，模块划分</h3>
+<p>定边界的时候，我们已经清楚划分了 SDK 的几个关键的部分：全局异常、API 异常、页面性能和白屏，实际上监控 SDK 通常也会内置对页面流量的监控，以方便用户对异常的影响面做出评估。这几个核心的关键组成部分，每一块都对应一个专业的领域，因此对应到 SDK 也是每一个独立的模块。</p>
+<p>除了这些核心的偏领域的模块，SDK 还需要有更基础的与领域无关的模块，包括 SDK 内核(构造方法、插件机制、与下游服务的交互、上报队列机制、不同环境的管理等等)和工具类库。</p>
+<p>我们可以先看一下岳鹰前端监控 SDK 最后的整体模块划分：</p>
+<img src="/imgs/28/15.png" />
+<ul>
+<li>SDK 底层提供基础的能力，包括上面提到的内核、插件机制的实现、工具类库以及暴露给用户的基础 API</li>
+<li>可以看到，我们前面提到的所有模块都以插件的形式存在，即各领域的功能都各自松散的做实现，这样使得底层能力更具通用性，同时扩展能力也更强，用户甚至也可以封装自己的插件。</li>
+<li>Biz 部分更多是对于不同宿主环境的多入口适配，当前支持浏览器、Weex 以及 NodeJS。</li>
+</ul>
+<h3 id="34-测试覆盖线上无忧">3.4 测试覆盖，线上无忧</h3>
+<p>SDK 是一个基础服务，相对于前台业务而言可能更底层些。其影响面跟应用的范围是正比的关系，更多的用户意味着更大的责任。所以 SDK 的质量保障也是很重要的一个环节。岳鹰前端监控 SDK 的质量保障策略很简单，只有两条</p>
+<ul>
+<li>核心接口 100%的单元测试覆盖率</li>
+<li>发布卡点：再小的版本发布也需要走集成测试回归 事实上，除了核心接口，工具类库的所有功能我们都实现了 100%的单元测试覆盖，我们采用的前端测试工具是轻量好用的 Jest 。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">test</span>(<span style="color:#e6db74">&#34;isError: real error&#34;</span>, <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;this is an error&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">util</span>.<span style="color:#a6e22e">isError</span>(<span style="color:#a6e22e">err</span>)).<span style="color:#a6e22e">toBeTruthy</span>();
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h3 id="35-细节打磨极致体验">3.5 细节打磨，极致体验</h3>
+<p>快捷引入</p>
+<ul>
+<li>极尽所能提高用户引用的效率</li>
+<li>一行代码，快速引入，享用监控全家桶功能</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">!</span>(<span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">b</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">h</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">i</span>.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;script&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">f</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">i</span>.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;script&#34;</span>)[<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">h</span>.<span style="color:#a6e22e">type</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;text/javascript&#34;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">h</span>.<span style="color:#a6e22e">crossorigin</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">h</span>.<span style="color:#a6e22e">onload</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">c</span>[<span style="color:#a6e22e">b</span>] <span style="color:#f92672">||</span> (<span style="color:#a6e22e">c</span>[<span style="color:#a6e22e">b</span>] <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">wpkReporter</span>({ <span style="color:#a6e22e">bid</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dta_1_203933078&#34;</span> }));
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">c</span>[<span style="color:#a6e22e">b</span>].<span style="color:#a6e22e">installAll</span>();
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">f</span>.<span style="color:#a6e22e">parentNode</span>.<span style="color:#a6e22e">insertBefore</span>(<span style="color:#a6e22e">h</span>, <span style="color:#a6e22e">f</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">h</span>.<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>;
+</span></span><span style="display:flex;"><span>  })(
+</span></span><span style="display:flex;"><span>    window,
+</span></span><span style="display:flex;"><span>    document,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;https://g.alicdn.com/woodpeckerx/jssdk/wpkReporter.js&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;__wpk&#34;</span>
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p>动态采样</p>
+<ul>
+<li>即通过云端下发数据采样率的方式，控制客户端上报数据的频率</li>
+<li>更好的保护监控下游 自我诊断</li>
+<li>除了接口，SDK 整体对用户而言就是一个黑盒，因此用户在遇到问题时很容易蒙圈 (如：为啥没有上报数据)</li>
+<li>SDK 可以提供一个自我诊断的接口，快速排除基础问题</li>
+</ul>
+<p>比如，SDK 是否已正常初始化、关键参数是否正常设置等 增加调试模式，输出更详细的过程日志，方便定位问题</p>
+<p>渐进式的指引文档</p>
+<ul>
+<li>图文并茂，循序渐进</li>
+<li>入门，一步步引导用户初识 SDK，领略概貌，学会基本的使用</li>
+<li>进阶，安利 SDK 的深度用法，帮助用户更好的使用 SDK</li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/629/"
+      ><span class="mr-1.5">←</span><span>这个库让你轻松搞定复杂动画！</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/627/"
+      ><span>你可能不需要微前端，但你一定会需要微内核</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

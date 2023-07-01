@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>WebSocket 的极致封装 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="我们在使用WebSocket的时候，最头疼的一件事莫过于在处理onmessage事件，通常我们会遇到这样的情况，向后端发送一个请求，后端返回一个结果；
+我们如何将这个指令返回的数据，对应到这个指令上？这个时候大家都想了很多办法，比如在发送的时候，将指令和数据一起发送，后端返回的时候，将指令和数据一起返回，这样就可以通过指令来对应数据了；
+可能有的小伙伴就说了这种情况为啥不直接用http请求呢？当然是因为需求呀，不讲故事也不说废话，开始干货。
+先看效果，不要太在意样式，懒得写，随便弄了点；
+问题 标题是Websocket，但是其实不只是Websocket有这个问题，还有其他的可能都有这个问题，先看代码：
+const ws = new WebSocket(&#34;ws://localhost:3000&#34;); ws.onopen = function () { // 发送消息 ws.send(&#34;hello&#34;); }; // 接收消息 ws.onmessage = function (e) { console.log(e.data); }; 这个代码是一个最简单的Websocket的使用，不难发现我们发送消息和接收消息并不在同一个作用域里面，这样就会导致我们无法将发送的消息和接收的消息对应起来；
+更绝的是，我们这个没有任何标识，例如我这个例子里面，我发送了hello，后端会返回world；
+模拟环境 上面是一个Websocket的示例，其实我们还会有很多领域可能会出现这个问题，例如我写这个解决方案的时候，并不是为了解决Websocket的问题，而是为了解决串口通信的问题；
+我这里就模拟一个环境，因为我没办法提供Websocket的服务，也不能提供串口的服务，所以我就模拟一个环境，也让大家更好的理解这个问题。
+class Mock { constructor() { let count = 0; setInterval(() =&gt; { this.onmessage(&#34;hello world&#34; &#43; count); count&#43;&#43;; }, 10000); } send(data) { // 随机延迟 const delay = Math.random() * 1000; setTimeout(() =&gt; { switch (data) { case &#34;hello&#34;: this." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="WebSocket 的极致封装" />
+<meta property="og:description" content="我们在使用WebSocket的时候，最头疼的一件事莫过于在处理onmessage事件，通常我们会遇到这样的情况，向后端发送一个请求，后端返回一个结果；
+我们如何将这个指令返回的数据，对应到这个指令上？这个时候大家都想了很多办法，比如在发送的时候，将指令和数据一起发送，后端返回的时候，将指令和数据一起返回，这样就可以通过指令来对应数据了；
+可能有的小伙伴就说了这种情况为啥不直接用http请求呢？当然是因为需求呀，不讲故事也不说废话，开始干货。
+先看效果，不要太在意样式，懒得写，随便弄了点；
+问题 标题是Websocket，但是其实不只是Websocket有这个问题，还有其他的可能都有这个问题，先看代码：
+const ws = new WebSocket(&#34;ws://localhost:3000&#34;); ws.onopen = function () { // 发送消息 ws.send(&#34;hello&#34;); }; // 接收消息 ws.onmessage = function (e) { console.log(e.data); }; 这个代码是一个最简单的Websocket的使用，不难发现我们发送消息和接收消息并不在同一个作用域里面，这样就会导致我们无法将发送的消息和接收的消息对应起来；
+更绝的是，我们这个没有任何标识，例如我这个例子里面，我发送了hello，后端会返回world；
+模拟环境 上面是一个Websocket的示例，其实我们还会有很多领域可能会出现这个问题，例如我写这个解决方案的时候，并不是为了解决Websocket的问题，而是为了解决串口通信的问题；
+我这里就模拟一个环境，因为我没办法提供Websocket的服务，也不能提供串口的服务，所以我就模拟一个环境，也让大家更好的理解这个问题。
+class Mock { constructor() { let count = 0; setInterval(() =&gt; { this.onmessage(&#34;hello world&#34; &#43; count); count&#43;&#43;; }, 10000); } send(data) { // 随机延迟 const delay = Math.random() * 1000; setTimeout(() =&gt; { switch (data) { case &#34;hello&#34;: this." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/474/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-12T19:17:32+08:00" />
+<meta property="article:modified_time" content="2023-04-12T19:17:32+08:00" />
+
+  
+  <meta itemprop="name" content="WebSocket 的极致封装">
+<meta itemprop="description" content="我们在使用WebSocket的时候，最头疼的一件事莫过于在处理onmessage事件，通常我们会遇到这样的情况，向后端发送一个请求，后端返回一个结果；
+我们如何将这个指令返回的数据，对应到这个指令上？这个时候大家都想了很多办法，比如在发送的时候，将指令和数据一起发送，后端返回的时候，将指令和数据一起返回，这样就可以通过指令来对应数据了；
+可能有的小伙伴就说了这种情况为啥不直接用http请求呢？当然是因为需求呀，不讲故事也不说废话，开始干货。
+先看效果，不要太在意样式，懒得写，随便弄了点；
+问题 标题是Websocket，但是其实不只是Websocket有这个问题，还有其他的可能都有这个问题，先看代码：
+const ws = new WebSocket(&#34;ws://localhost:3000&#34;); ws.onopen = function () { // 发送消息 ws.send(&#34;hello&#34;); }; // 接收消息 ws.onmessage = function (e) { console.log(e.data); }; 这个代码是一个最简单的Websocket的使用，不难发现我们发送消息和接收消息并不在同一个作用域里面，这样就会导致我们无法将发送的消息和接收的消息对应起来；
+更绝的是，我们这个没有任何标识，例如我这个例子里面，我发送了hello，后端会返回world；
+模拟环境 上面是一个Websocket的示例，其实我们还会有很多领域可能会出现这个问题，例如我写这个解决方案的时候，并不是为了解决Websocket的问题，而是为了解决串口通信的问题；
+我这里就模拟一个环境，因为我没办法提供Websocket的服务，也不能提供串口的服务，所以我就模拟一个环境，也让大家更好的理解这个问题。
+class Mock { constructor() { let count = 0; setInterval(() =&gt; { this.onmessage(&#34;hello world&#34; &#43; count); count&#43;&#43;; }, 10000); } send(data) { // 随机延迟 const delay = Math.random() * 1000; setTimeout(() =&gt; { switch (data) { case &#34;hello&#34;: this."><meta itemprop="datePublished" content="2023-04-12T19:17:32+08:00" />
+<meta itemprop="dateModified" content="2023-04-12T19:17:32+08:00" />
+<meta itemprop="wordCount" content="983">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="WebSocket 的极致封装"/>
+<meta name="twitter:description" content="我们在使用WebSocket的时候，最头疼的一件事莫过于在处理onmessage事件，通常我们会遇到这样的情况，向后端发送一个请求，后端返回一个结果；
+我们如何将这个指令返回的数据，对应到这个指令上？这个时候大家都想了很多办法，比如在发送的时候，将指令和数据一起发送，后端返回的时候，将指令和数据一起返回，这样就可以通过指令来对应数据了；
+可能有的小伙伴就说了这种情况为啥不直接用http请求呢？当然是因为需求呀，不讲故事也不说废话，开始干货。
+先看效果，不要太在意样式，懒得写，随便弄了点；
+问题 标题是Websocket，但是其实不只是Websocket有这个问题，还有其他的可能都有这个问题，先看代码：
+const ws = new WebSocket(&#34;ws://localhost:3000&#34;); ws.onopen = function () { // 发送消息 ws.send(&#34;hello&#34;); }; // 接收消息 ws.onmessage = function (e) { console.log(e.data); }; 这个代码是一个最简单的Websocket的使用，不难发现我们发送消息和接收消息并不在同一个作用域里面，这样就会导致我们无法将发送的消息和接收的消息对应起来；
+更绝的是，我们这个没有任何标识，例如我这个例子里面，我发送了hello，后端会返回world；
+模拟环境 上面是一个Websocket的示例，其实我们还会有很多领域可能会出现这个问题，例如我写这个解决方案的时候，并不是为了解决Websocket的问题，而是为了解决串口通信的问题；
+我这里就模拟一个环境，因为我没办法提供Websocket的服务，也不能提供串口的服务，所以我就模拟一个环境，也让大家更好的理解这个问题。
+class Mock { constructor() { let count = 0; setInterval(() =&gt; { this.onmessage(&#34;hello world&#34; &#43; count); count&#43;&#43;; }, 10000); } send(data) { // 随机延迟 const delay = Math.random() * 1000; setTimeout(() =&gt; { switch (data) { case &#34;hello&#34;: this."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">WebSocket 的极致封装</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 12, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>我们在使用<code>WebSocket</code>的时候，最头疼的一件事莫过于在处理<code>onmessage</code>事件，通常我们会遇到这样的情况，向后端发送一个请求，后端返回一个结果；</p>
+<p>我们如何将这个指令返回的数据，对应到这个指令上？这个时候大家都想了很多办法，比如在发送的时候，将指令和数据一起发送，后端返回的时候，将指令和数据一起返回，这样就可以通过指令来对应数据了；</p>
+<p>可能有的小伙伴就说了这种情况为啥不直接用<code>http</code>请求呢？当然是因为需求呀，不讲故事也不说废话，开始干货。</p>
+<blockquote>
+<p>先看效果，不要太在意样式，懒得写，随便弄了点；</p>
+</blockquote>
+<iframe class="code-editor-frame" data-code="code-editor-element" data-code-id="7220261019937931301" data-src="https://code.juejin.cn/pen/7220261019937931301" style="display: block;" loading="lazy" src="https://code.juejin.cn/pen/7220261019937931301" width="100%" height="400"></iframe>
+<h2 id="问题">问题</h2>
+<p>标题是<code>Websocket</code>，但是其实不只是<code>Websocket</code>有这个问题，还有其他的可能都有这个问题，先看代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ws</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">WebSocket</span>(<span style="color:#e6db74">&#34;ws://localhost:3000&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">onopen</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 发送消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">send</span>(<span style="color:#e6db74">&#34;hello&#34;</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 接收消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>这个代码是一个最简单的<code>Websocket</code>的使用，不难发现我们发送消息和接收消息并不在同一个作用域里面，这样就会导致我们无法将发送的消息和接收的消息对应起来；</p>
+<p>更绝的是，我们这个没有任何标识，例如我这个例子里面，我发送了<code>hello</code>，后端会返回<code>world</code>；</p>
+<h2 id="模拟环境">模拟环境</h2>
+<p>上面是一个<code>Websocket</code>的示例，其实我们还会有很多领域可能会出现这个问题，例如我写这个解决方案的时候，并不是为了解决<code>Websocket</code>的问题，而是为了解决串口通信的问题；</p>
+<p>我这里就模拟一个环境，因为我没办法提供<code>Websocket</code>的服务，也不能提供串口的服务，所以我就模拟一个环境，也让大家更好的理解这个问题。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Mock</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">count</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setInterval</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">onmessage</span>(<span style="color:#e6db74">&#34;hello world&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">count</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">count</span><span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>    }, <span style="color:#ae81ff">10000</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">data</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 随机延迟
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">delay</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#ae81ff">1000</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">switch</span> (<span style="color:#a6e22e">data</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;hello&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">onmessage</span>(<span style="color:#e6db74">&#34;world&#34;</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;world&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">onmessage</span>(<span style="color:#e6db74">&#34;hello&#34;</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;你好&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 随机是否返回
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#66d9ef">if</span> (Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0.5</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">onmessage</span>(<span style="color:#e6db74">&#34;好个der&#34;</span>);
+</span></span><span style="display:flex;"><span>          }
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">onmessage</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }, <span style="color:#a6e22e">delay</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">data</span>) =&gt; {};
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这个<code>Mock</code>类，就是一个模拟的<code>Websocket</code>，我们可以通过<code>send</code>方法来发送数据，通过<code>onmessage</code>方法来接收数据；</p>
+<p>上面的<code>mock</code>环境非常简单，就是你在发送消息的时候，立即会返回一个消息，但是会有延时，上面的模拟环境有下面几种情况：</p>
+<ol>
+<li>我们发送<code>hello</code>，后端返回<code>world</code>；</li>
+<li>我们发送<code>world</code>，后端返回<code>hello</code>；</li>
+<li>我们发送<code>你好</code>，后端返回<code>好个der</code>，但是这个返回是随机的，有可能不返回，模拟丢包的情况；</li>
+<li>每过 10 秒，后端返回<code>hello world${count}</code>；</li>
+</ol>
+<h2 id="解决方案">解决方案</h2>
+<p>先上代码，后面讲解：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MockHelper</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 用于存储消息处理器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 模拟消息发送（websocket）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">mock</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Mock</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 模拟消息接收
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">mock</span>.<span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 熔断器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">fusing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fused</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">fusing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 执行消息处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handler</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>[<span style="color:#a6e22e">i</span>];
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 执行消息处理器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">handler</span>.<span style="color:#a6e22e">handle</span>(<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">fused</span>);
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 消息处理器执行失败
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">handler</span>.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">e</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">splice</span>(<span style="color:#a6e22e">i</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">i</span><span style="color:#f92672">--</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 熔断
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">fusing</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">splice</span>(<span style="color:#a6e22e">i</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">handler</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 返回一个 Promise
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>, <span style="color:#a6e22e">reject</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 创建消息处理器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">messageHandler</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MessageHandler</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">callback</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">handler</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">resolve</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">resolve</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">reject</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">reject</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">data</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">data</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 设置超时，3s
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">timer</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">reject</span>(<span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;timeout&#34;</span>));
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">splice</span>(
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">indexOf</span>(<span style="color:#a6e22e">messageHandler</span>),
+</span></span><span style="display:flex;"><span>          <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>        );
+</span></span><span style="display:flex;"><span>      }, <span style="color:#ae81ff">3000</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 添加到消息处理器列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">messageHandler</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 发送消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">mock</span>.<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 消息处理器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MessageHandler</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callback</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">reject</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">data</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 处理消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">handle</span>(<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">fused</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 消息处理结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">result</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">sendData</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">data</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">receiveData</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">data</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">handleData</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 熔断器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">fusing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">_fused</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 收到熔断信号，清除定时器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">clearTimeout</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 标记为熔断
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">fusing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 执行上层的熔断函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">fused</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 执行 resolve
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 这里需要等待回调函数执行完毕，才能执行 resolve，这样才能拿到 handleData
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        Promise.<span style="color:#a6e22e">resolve</span>().<span style="color:#a6e22e">then</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">result</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>        });
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 执行回调函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">typeof</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callback</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;function&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">handleData</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callback</span>(<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">_fused</span>);
+</span></span><span style="display:flex;"><span>      } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">e</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">e</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="mockhelper">MockHelper</h3>
+<p>上面我们定义了一个<code>MockHelper</code>类，这个类可以理解为对<code>Websocket</code>的封装，其他类似的处理机制都可以用这种方式来封装；</p>
+<p>在实例化的过程中，会对<code>Websocket</code>进行创建，然后监听对应的消息响应事件，当收到消息的时候，会执行对应的消息处理器：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 模拟消息接收
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">mock</span>.<span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 熔断器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">fusing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fused</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fusing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 执行消息处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handler</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>[<span style="color:#a6e22e">i</span>];
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 执行消息处理器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">handler</span>.<span style="color:#a6e22e">handle</span>(<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">fused</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 消息处理器执行失败
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">handler</span>.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">e</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">splice</span>(<span style="color:#a6e22e">i</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">i</span><span style="color:#f92672">--</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 熔断
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">fusing</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">splice</span>(<span style="color:#a6e22e">i</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>方法很简单，每行代码都有注释，主要是思想，我们通过一个<code>fusing</code>变量来标记是否熔断；</p>
+<p>熔断的意思就是结束后续的处理流程，执行熔断器之后，就代表这个消息已经被处理了，后续的消息处理器就不需要再处理了；</p>
+<p>消息执行出现异常会被捕获，并且执行<code>reject</code>，然后从消息处理器列表中移除，这里不会被熔断，因为这个消息处理器已经执行失败了，可能是因为消息处理器的逻辑有问题，并不代表这个消息已经被处理了；</p>
+<h4 id="send">send</h4>
+<p><code>send</code>方法是用来发送消息的，这个方法返回一个<code>Promise</code>，这个<code>Promise</code>的<code>resolve</code>和<code>reject</code>是在消息处理器中执行的；</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * 发送消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param data                  发送的消息内容
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param handler               对消息的处理函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @return {Promise&lt;unknown&gt;}   返回一个 Promise
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> */</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">handler</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 返回一个 Promise
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>, <span style="color:#a6e22e">reject</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 创建消息处理器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">messageHandler</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MessageHandler</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">callback</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">handler</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">resolve</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">resolve</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">reject</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">reject</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">data</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">data</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 设置超时，3s
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">timer</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">messageHandler</span>.<span style="color:#a6e22e">reject</span>(<span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;timeout&#34;</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">splice</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">indexOf</span>(<span style="color:#a6e22e">messageHandler</span>),
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>      );
+</span></span><span style="display:flex;"><span>    }, <span style="color:#ae81ff">3000</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 添加到消息处理器列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">messageHandlers</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">messageHandler</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 发送消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">mock</span>.<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><code>send</code>方法接收两个参数，第一个参数是发送的消息内容，第二个参数是对消息的处理函数；</p>
+<p>发送的消息内容就不多说了，对消息的处理函数就是我们自定义对返回的消息进行处理的逻辑；</p>
+<p><code>send</code>方法的内容还是很简单的，最开始初始化一个<code>MessageHandler</code>对象，并且设置一个超时定时器，如果出现超时就将这个处理器从<code>this.messageHandlers</code>中删除；</p>
+<p>然后，将这个处理器添加到<code>this.messageHandlers</code>中，<code>this.messageHandlers</code>最后会在<code>onmessage</code>中使用，这样就就形成了一闭环；</p>
+<h3 id="messagehandler">MessageHandler</h3>
+<p>在<code>send</code>中传入的处理函数，最后会被封装成一个<code>MessageHandler</code>对象，这个对象就是消息处理器；</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 消息处理器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MessageHandler</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callback</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">reject</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">data</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 处理消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">handle</span>(<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">fused</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 消息处理结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">result</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">sendData</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">data</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">receiveData</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">data</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">handleData</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 熔断器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">fusing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">_fused</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 收到熔断信号，清除定时器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">clearTimeout</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 标记为熔断
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">fusing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 执行上层的熔断函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">fused</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 执行 resolve
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 这里需要等待回调函数执行完毕，才能执行 resolve，这样才能拿到 handleData
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        Promise.<span style="color:#a6e22e">resolve</span>().<span style="color:#a6e22e">then</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">result</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>        });
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 执行回调函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">typeof</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callback</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;function&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">handleData</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callback</span>(<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">_fused</span>);
+</span></span><span style="display:flex;"><span>      } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">e</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">e</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><code>MessageHandler</code>对象中有五个属性，<code>callback</code>是对消息的处理函数，<code>timer</code>是用来设置超时的定时器，<code>resolve</code>和<code>reject</code>是用来执行<code>Promise</code>的，<code>data</code>是发送的消息内容；</p>
+<p><code>handle</code>方法是用来处理消息的，这个方法接收两个参数，第一个参数是接收到的消息内容，第二个参数是熔断器；</p>
+<p>这里的核心还是熔断器，上面的<code>onmessage</code>的熔断器很简单，就是设置一个标记，然后在<code>onmessage</code>中判断这个标记，如果是熔断状态，就不再执行后面的逻辑；</p>
+<p>这里面的熔断器会执行一系列的逻辑：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 熔断器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">fusing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">_fused</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 收到熔断信号，清除定时器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clearTimeout</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 标记为熔断
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">fusing</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 执行上层的熔断函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">fused</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 执行 resolve
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 这里需要等待回调函数执行完毕，才能执行 resolve，这样才能拿到 handleData
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    Promise.<span style="color:#a6e22e">resolve</span>().<span style="color:#a6e22e">then</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">result</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resolve</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>首先，收到熔断信号，清除定时器，这样就不会再执行超时的逻辑；</p>
+<p>然后，标记为熔断，并且执行上层的熔断器，这样在<code>onmessage</code>中就不会再执行后面的逻辑；</p>
+<p>最后，执行<code>resolve</code>，这里将<code>resolve</code>放到了<code>Promise.resolve().then()</code>中，这样就可以等待回调函数执行完毕，再执行<code>resolve</code>，这样才能拿到<code>handleData</code>；</p>
+<h3 id="使用">使用</h3>
+<p>使用很简单，直接看代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 实例化
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">mockHelper</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MockHelper</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 直接发送消息，并传入消息处理函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">mockHelper</span>
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">send</span>(<span style="color:#e6db74">&#34;hello&#34;</span>, (<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">fused</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">data</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;world&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fused</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;hello world&#34;</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 这里可以拿到 发送的消息内容，接收的消息内容，处理后的消息内容
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;then&#34;</span>, <span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>  .<span style="color:#66d9ef">catch</span>((<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;catch&#34;</span>, <span style="color:#a6e22e">e</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span></code></pre></div><p>看到这里不知道你会不会有一堆的疑问，比如：</p>
+<ul>
+<li>为什么要在<code>send</code>中传入消息处理函数？我直接在这个消息处理函数中处理消息不就行了吗？</li>
+<li>为什么要用<code>Promise</code>来封装呢？你这里都有回调了，感觉没必要啊？</li>
+<li>你这个最后还不是会有一堆的<code>if</code>判断吗？而且我如果要发两次相同的消息，这个代码我还要写两遍吗？</li>
+<li>其他的问题&hellip;</li>
+</ul>
+<p>这当然是为了方便大家使用，按照现在的封装，我们只需要在<code>send</code>中传入消息处理函数，然后在这个函数中处理消息，就可以了；</p>
+<p>但是实际情况下我们还是要尽可以的对代码进行复用，光说不练假把式，我们来看看怎么复用这个代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 实例化
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">mockHelper</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MockHelper</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 发送 hello 消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">sendHello</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">mockHelper</span>.<span style="color:#a6e22e">send</span>(<span style="color:#e6db74">&#34;hello&#34;</span>, (<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">fused</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">data</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;world&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fused</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;hello world&#34;</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 发送 world 消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">sendWorld</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">mockHelper</span>.<span style="color:#a6e22e">send</span>(<span style="color:#e6db74">&#34;world&#34;</span>, (<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">fused</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">data</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;hello&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fused</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;hello world&#34;</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 使用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">sendHello</span>().<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">sendHello</span>().<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">sendHello</span>().<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">sendWorld</span>().<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">sendWorld</span>().<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">sendWorld</span>().<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ...其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 最后才是直接使用 send
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">mockHelper</span>
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">send</span>(<span style="color:#e6db74">&#34;xxx&#34;</span>, (<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">fused</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">data</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;xxx&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fused</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;...&#34;</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span></code></pre></div><h3 id="对比">对比</h3>
+<blockquote>
+<p>在我最开始没有想到这种封装的时候，我就是用下面这种方式来封装的，屎山！！！</p>
+</blockquote>
+<p>按照最开始没有封装的时候的逻辑，我们需要在<code>onmessage</code>事件中，可能会写一堆的<code>if</code>判断，然后再执行对应的回调函数，比如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">WebsocketWrap</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">options</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">options</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ws</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">connect</span>();
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">connect</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ws</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">WebSocket</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">url</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">event</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">onmessage</span>(<span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 逻辑处理 a
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">data</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;a&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>[<span style="color:#e6db74">&#34;onA&#34;</span>](<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 逻辑处理 b
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">xxx</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;xxx&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>[<span style="color:#e6db74">&#34;onXxx&#34;</span>](<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 逻辑处理 c
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">yyy</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;yyy&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>[<span style="color:#e6db74">&#34;onYyy&#34;</span>](<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 各种其他自定义处理...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">data</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 使用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ws</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">WebsocketWrap</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ws://localhost:8080&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onA</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;onA&#34;</span>, <span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onXxx</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;onXxx&#34;</span>, <span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onYyy</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;onYyy&#34;</span>, <span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>这样的代码，如果逻辑处理的函数比较多，那么<code>onmessage</code>函数就会很长，而且不好维护，也不好扩展；</p>
+<p>如果现在来了一个新的需求，我们就需要在<code>onmessage</code>函数中，再添加一个<code>if</code>判断，然后再添加一个对应的处理函数，这样的代码就会变得越来越难维护；</p>
+<p>而我上面的封装就是解决了这个问题，我将<code>onmessage</code>事件中的<code>if</code>进行了封装，在<code>send</code>方法中传入的处理函数，就是对消息的处理函数，也就是这个<code>if</code>判断的逻辑；</p>
+<p>最后消息处理完毕，执行熔断器，然后将处理后的消息通过<code>resolve</code>返回出去，这样就可以在<code>then</code>中拿到处理后的消息了；</p>
+<h3 id="总结">总结</h3>
+<p>上面只是一个很简单的封装，主要介绍的还是思想，其实里面还有很多可以优化的地方，比如：</p>
+<ol>
+<li>如果发送的消息并没有回应应该怎么修改？</li>
+<li>这里服务端主动推送的消息全都被丢弃了，应该怎么修改？</li>
+<li>是否可以增加一些配置，比如超时时间，重试次数等等？</li>
+<li>其他&hellip;</li>
+</ol>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/475/"
+      ><span class="mr-1.5">←</span><span>10分钟轻松搞定前端甘特图</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/473/"
+      ><span>宏任务和微任务</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

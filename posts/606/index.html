@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>Webpack 从入门到放弃 - 高级篇 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="今天继续由我来为大家总结一些有关 Webpack 的高级使用方式。所谓的高级，其实就是进行 Webpack 优化，让我们代码在编译/运行时性能更好，我们将会涉及提升开发体验、提升打包构建速度、减少代码体积、优化代码运行性能等几个方面来讲解，放心，一切讲解小秃都将尽可能细致，从 为什么，是什么，怎么用三方面力求达到保姆级讲解(如果达不到，读者老爷们也轻喷哈 😜)，话不多说，坐稳扶好，我们发车！！！
+温馨提示：本文章针对 Webpack5 进行讲解，部分配置可能不适用于 Webpack4 哦~，另外，篇幅有亿丢丢长，建议 PC 端阅读，滑动右侧目录按需浏览效率更高哦，希望可以帮到大家~~
+提升开发体验&mdash;-Source Map 为什么？
+开发模式下，我们打包编译后的代码是这个样子的： 生产模式下，打包后是这样子的： 很容易发现，无论是生产模式下还是开发模式下，由于 Webpack 都不同程度的对代码进行了处理，这导致代码的位置（行与列）实际上是无法与自己的源代码相对应的，但我们知道最终执行的代码一定是编译后的，这就导致我们在开发时或者日后的修复 Bug 时存在非常大的不便，因此我们引入了SourceMap来处理这一问题。 是什么？
+SourceMap（源代码映射） 是一个用来生成源代码与构建后代码一一映射的文件的方案。 它会生成一个 xxx.map 文件，里面包含源代码和构建后代码每一行、每一列的映射关系。当构建后代码出错了，会通过 xxx.map 文件，从构建后代码出错位置找到映射后源代码出错位置，从而让浏览器提示源代码文件出错位置，帮助我们更快的找到错误根源。 怎么用？
+通过查看Webpack DevTool 文档可知，SourceMap 的值有很多种情况. 但实际开发时我们只需要关注两种情况即可：
+开发模式：cheap-module-source-map 优点：打包编译速度快，只包含行映射
+缺点：没有列映射
+module.exports = { // 其他省略 mode: &#34;development&#34;, devtool: &#34;cheap-module-source-map&#34;, }; 生产模式：source-map 优点：包含行/列映射
+缺点：打包编译速度更慢
+module.exports = { // 其他省略 mode: &#34;production&#34;, devtool: &#34;source-map&#34;, }; 提升打包构建速度 如果各位同学实际使用脚手架开发过完整的项目，应该可以感觉到随着项目的代码量以及引入的包的日渐增多，我们每次使用npm run build的构建速度是在减慢的，那么针对这一点，其实在 Webpack 中我们有很多种方式可以进行优化。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="Webpack 从入门到放弃 - 高级篇" />
+<meta property="og:description" content="今天继续由我来为大家总结一些有关 Webpack 的高级使用方式。所谓的高级，其实就是进行 Webpack 优化，让我们代码在编译/运行时性能更好，我们将会涉及提升开发体验、提升打包构建速度、减少代码体积、优化代码运行性能等几个方面来讲解，放心，一切讲解小秃都将尽可能细致，从 为什么，是什么，怎么用三方面力求达到保姆级讲解(如果达不到，读者老爷们也轻喷哈 😜)，话不多说，坐稳扶好，我们发车！！！
+温馨提示：本文章针对 Webpack5 进行讲解，部分配置可能不适用于 Webpack4 哦~，另外，篇幅有亿丢丢长，建议 PC 端阅读，滑动右侧目录按需浏览效率更高哦，希望可以帮到大家~~
+提升开发体验&mdash;-Source Map 为什么？
+开发模式下，我们打包编译后的代码是这个样子的： 生产模式下，打包后是这样子的： 很容易发现，无论是生产模式下还是开发模式下，由于 Webpack 都不同程度的对代码进行了处理，这导致代码的位置（行与列）实际上是无法与自己的源代码相对应的，但我们知道最终执行的代码一定是编译后的，这就导致我们在开发时或者日后的修复 Bug 时存在非常大的不便，因此我们引入了SourceMap来处理这一问题。 是什么？
+SourceMap（源代码映射） 是一个用来生成源代码与构建后代码一一映射的文件的方案。 它会生成一个 xxx.map 文件，里面包含源代码和构建后代码每一行、每一列的映射关系。当构建后代码出错了，会通过 xxx.map 文件，从构建后代码出错位置找到映射后源代码出错位置，从而让浏览器提示源代码文件出错位置，帮助我们更快的找到错误根源。 怎么用？
+通过查看Webpack DevTool 文档可知，SourceMap 的值有很多种情况. 但实际开发时我们只需要关注两种情况即可：
+开发模式：cheap-module-source-map 优点：打包编译速度快，只包含行映射
+缺点：没有列映射
+module.exports = { // 其他省略 mode: &#34;development&#34;, devtool: &#34;cheap-module-source-map&#34;, }; 生产模式：source-map 优点：包含行/列映射
+缺点：打包编译速度更慢
+module.exports = { // 其他省略 mode: &#34;production&#34;, devtool: &#34;source-map&#34;, }; 提升打包构建速度 如果各位同学实际使用脚手架开发过完整的项目，应该可以感觉到随着项目的代码量以及引入的包的日渐增多，我们每次使用npm run build的构建速度是在减慢的，那么针对这一点，其实在 Webpack 中我们有很多种方式可以进行优化。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/606/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-05-17T14:57:03+08:00" />
+<meta property="article:modified_time" content="2023-05-17T14:57:03+08:00" />
+
+  
+  <meta itemprop="name" content="Webpack 从入门到放弃 - 高级篇">
+<meta itemprop="description" content="今天继续由我来为大家总结一些有关 Webpack 的高级使用方式。所谓的高级，其实就是进行 Webpack 优化，让我们代码在编译/运行时性能更好，我们将会涉及提升开发体验、提升打包构建速度、减少代码体积、优化代码运行性能等几个方面来讲解，放心，一切讲解小秃都将尽可能细致，从 为什么，是什么，怎么用三方面力求达到保姆级讲解(如果达不到，读者老爷们也轻喷哈 😜)，话不多说，坐稳扶好，我们发车！！！
+温馨提示：本文章针对 Webpack5 进行讲解，部分配置可能不适用于 Webpack4 哦~，另外，篇幅有亿丢丢长，建议 PC 端阅读，滑动右侧目录按需浏览效率更高哦，希望可以帮到大家~~
+提升开发体验&mdash;-Source Map 为什么？
+开发模式下，我们打包编译后的代码是这个样子的： 生产模式下，打包后是这样子的： 很容易发现，无论是生产模式下还是开发模式下，由于 Webpack 都不同程度的对代码进行了处理，这导致代码的位置（行与列）实际上是无法与自己的源代码相对应的，但我们知道最终执行的代码一定是编译后的，这就导致我们在开发时或者日后的修复 Bug 时存在非常大的不便，因此我们引入了SourceMap来处理这一问题。 是什么？
+SourceMap（源代码映射） 是一个用来生成源代码与构建后代码一一映射的文件的方案。 它会生成一个 xxx.map 文件，里面包含源代码和构建后代码每一行、每一列的映射关系。当构建后代码出错了，会通过 xxx.map 文件，从构建后代码出错位置找到映射后源代码出错位置，从而让浏览器提示源代码文件出错位置，帮助我们更快的找到错误根源。 怎么用？
+通过查看Webpack DevTool 文档可知，SourceMap 的值有很多种情况. 但实际开发时我们只需要关注两种情况即可：
+开发模式：cheap-module-source-map 优点：打包编译速度快，只包含行映射
+缺点：没有列映射
+module.exports = { // 其他省略 mode: &#34;development&#34;, devtool: &#34;cheap-module-source-map&#34;, }; 生产模式：source-map 优点：包含行/列映射
+缺点：打包编译速度更慢
+module.exports = { // 其他省略 mode: &#34;production&#34;, devtool: &#34;source-map&#34;, }; 提升打包构建速度 如果各位同学实际使用脚手架开发过完整的项目，应该可以感觉到随着项目的代码量以及引入的包的日渐增多，我们每次使用npm run build的构建速度是在减慢的，那么针对这一点，其实在 Webpack 中我们有很多种方式可以进行优化。"><meta itemprop="datePublished" content="2023-05-17T14:57:03+08:00" />
+<meta itemprop="dateModified" content="2023-05-17T14:57:03+08:00" />
+<meta itemprop="wordCount" content="2285">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Webpack 从入门到放弃 - 高级篇"/>
+<meta name="twitter:description" content="今天继续由我来为大家总结一些有关 Webpack 的高级使用方式。所谓的高级，其实就是进行 Webpack 优化，让我们代码在编译/运行时性能更好，我们将会涉及提升开发体验、提升打包构建速度、减少代码体积、优化代码运行性能等几个方面来讲解，放心，一切讲解小秃都将尽可能细致，从 为什么，是什么，怎么用三方面力求达到保姆级讲解(如果达不到，读者老爷们也轻喷哈 😜)，话不多说，坐稳扶好，我们发车！！！
+温馨提示：本文章针对 Webpack5 进行讲解，部分配置可能不适用于 Webpack4 哦~，另外，篇幅有亿丢丢长，建议 PC 端阅读，滑动右侧目录按需浏览效率更高哦，希望可以帮到大家~~
+提升开发体验&mdash;-Source Map 为什么？
+开发模式下，我们打包编译后的代码是这个样子的： 生产模式下，打包后是这样子的： 很容易发现，无论是生产模式下还是开发模式下，由于 Webpack 都不同程度的对代码进行了处理，这导致代码的位置（行与列）实际上是无法与自己的源代码相对应的，但我们知道最终执行的代码一定是编译后的，这就导致我们在开发时或者日后的修复 Bug 时存在非常大的不便，因此我们引入了SourceMap来处理这一问题。 是什么？
+SourceMap（源代码映射） 是一个用来生成源代码与构建后代码一一映射的文件的方案。 它会生成一个 xxx.map 文件，里面包含源代码和构建后代码每一行、每一列的映射关系。当构建后代码出错了，会通过 xxx.map 文件，从构建后代码出错位置找到映射后源代码出错位置，从而让浏览器提示源代码文件出错位置，帮助我们更快的找到错误根源。 怎么用？
+通过查看Webpack DevTool 文档可知，SourceMap 的值有很多种情况. 但实际开发时我们只需要关注两种情况即可：
+开发模式：cheap-module-source-map 优点：打包编译速度快，只包含行映射
+缺点：没有列映射
+module.exports = { // 其他省略 mode: &#34;development&#34;, devtool: &#34;cheap-module-source-map&#34;, }; 生产模式：source-map 优点：包含行/列映射
+缺点：打包编译速度更慢
+module.exports = { // 其他省略 mode: &#34;production&#34;, devtool: &#34;source-map&#34;, }; 提升打包构建速度 如果各位同学实际使用脚手架开发过完整的项目，应该可以感觉到随着项目的代码量以及引入的包的日渐增多，我们每次使用npm run build的构建速度是在减慢的，那么针对这一点，其实在 Webpack 中我们有很多种方式可以进行优化。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">Webpack 从入门到放弃 - 高级篇</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>May 17, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>今天继续由我来为大家总结一些有关 Webpack 的<strong>高级使用方式</strong>。所谓的高级，其实就是<strong>进行 Webpack 优化，让我们代码在编译/运行时性能更好</strong>，我们将会涉及<strong>提升开发体验</strong>、<strong>提升打包构建速度</strong>、<strong>减少代码体积</strong>、<strong>优化代码运行性能</strong>等几个方面来讲解，放心，一切讲解小秃都将尽可能细致，从 <strong>为什么</strong>，<strong>是什么</strong>，<strong>怎么用</strong>三方面力求达到保姆级讲解(如果达不到，读者老爷们也轻喷哈 😜)，话不多说，坐稳扶好，我们发车！！！</p>
+<p><strong>温馨提示：本文章针对 Webpack5 进行讲解，部分配置可能不适用于 Webpack4 哦~，另外，篇幅有亿丢丢长，建议 PC 端阅读，滑动右侧目录按需浏览效率更高哦，希望可以帮到大家~~</strong></p>
+<h2 id="提升开发体验----source-map">提升开发体验&mdash;-Source Map</h2>
+<p><em>为什么？</em></p>
+<p><strong>开发模式下</strong>，我们打包编译后的代码是这个样子的： <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e967684713d14528a5051033fc99953f~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"> <strong>生产模式下</strong>，打包后是这样子的： <img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0936aad2b33c45b68ed71ec3822adbe4~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"> 很容易发现，无论是生产模式下还是开发模式下，由于 Webpack 都不同程度的对代码进行了处理，这导致<strong>代码的位置（行与列）实际上是无法与自己的源代码相对应的</strong>，但我们知道最终执行的代码一定是编译后的，这就导致我们在开发时或者日后的修复 Bug 时存在非常大的不便，因此我们引入了<strong>SourceMap</strong>来处理这一问题。 <em>是什么？</em></p>
+<p><strong>SourceMap（源代码映射）</strong> 是一个用来生成源代码与构建后代码一一映射的文件的方案。 它会生成一个 xxx.map 文件，里面包含源代码和构建后代码每一行、每一列的映射关系。当构建后代码出错了，会通过 xxx.map 文件，<strong>从构建后代码出错位置找到映射后源代码出错位置</strong>，从而让浏览器提示源代码文件出错位置，帮助我们更快的找到错误根源。 <em>怎么用？</em></p>
+<p>通过查看<a href="https://webpack.docschina.org/configuration/devtool/">Webpack DevTool 文档</a>可知，SourceMap 的值有很多种情况. 但实际开发时我们只需要关注两种情况即可：</p>
+<ol>
+<li>开发模式：<code>cheap-module-source-map</code></li>
+</ol>
+<ul>
+<li>
+<p>优点：打包编译速度快，只包含行映射</p>
+</li>
+<li>
+<p>缺点：没有列映射</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 其他省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">mode</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;development&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">devtool</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;cheap-module-source-map&#34;</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><ol start="2">
+<li>生产模式：<code>source-map</code></li>
+</ol>
+<ul>
+<li>
+<p>优点：包含行/列映射</p>
+</li>
+<li>
+<p>缺点：打包编译速度更慢</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 其他省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">mode</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;production&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">devtool</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;source-map&#34;</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><h2 id="提升打包构建速度">提升打包构建速度</h2>
+<p>如果各位同学实际使用脚手架开发过完整的项目，应该可以感觉到随着项目的代码量以及引入的包的日渐增多，我们每次使用<code>npm run build</code>的构建速度是在减慢的，那么针对这一点，其实在 Webpack 中我们有很多种方式可以进行优化。</p>
+<h3 id="hotmodulereplacement">HotModuleReplacement</h3>
+<p><em>为什么？</em></p>
+<p>开发时我们修改了其中一个模块代码，Webpack 默认会将所有模块全部重新打包编译，速度很慢。所以我们需要做到修改某个模块代码，就只有这个模块代码需要重新打包编译，其他模块不变，这样打包速度就能很快。</p>
+<p><em>是什么?</em></p>
+<p><strong>HotModuleReplacement（HMR/热模块替换）</strong>：在程序运行中，替换、添加或删除模块，而无需重新加载整个页面。</p>
+<p><em>怎么用?</em></p>
+<ol>
+<li>基本配置 其实从<strong>Webpack4</strong>开始，HMR 是默认开启的</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 其他省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">devServer</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">host</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;localhost&#34;</span>, <span style="color:#75715e">// 启动服务器域名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">port</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;3000&#34;</span>, <span style="color:#75715e">// 启动服务器端口号
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">open</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">// 是否自动打开浏览器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">hot</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">// 开启HMR功能（只能用于开发环境，生产环境不需要了）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p><strong>此时 css 样式经过 style-loader 处理，已经具备 HMR 功能了。 但是 js 还不行。</strong> 我们需要在入口文件<code>main.js</code>中书写一段代码</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 判断是否支持HMR功能
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">hot</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">hot</span>.<span style="color:#a6e22e">accept</span>(<span style="color:#e6db74">&#34;./js/count.js&#34;</span>, <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">count</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result1</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">count</span>(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result1</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">hot</span>.<span style="color:#a6e22e">accept</span>(<span style="color:#e6db74">&#34;./js/sum.js&#34;</span>, <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">sum</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result2</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result2</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>当然，这是针对使用 Webpack<strong>从 0 到 1</strong>搭建项目开发环境是需要做的，上面这样写会很麻烦，所以实际开发我们会使用其他 loader 来解决。 比如：<a href="https://github.com/vuejs/vue-loader">vue-loader</a>, <a href="https://github.com/gaearon/react-hot-loader">react-hot-loader</a>。</p>
+<h3 id="oneof">oneOf</h3>
+<p><em>为什么？</em></p>
+<p>打包时每个文件都会经过所有 loader 处理，虽然因为  <code>test</code>  正则原因实际没有处理上，但是都要过一遍。比较慢。</p>
+<p><em>是什么?</em></p>
+<p>顾名思义就是只能匹配上一个 loader, 剩下的就不匹配了,这就类似于<code>if</code>、<code>else if</code>和<code>else</code>的关系，命中某一个之后就不会再检测其他的了</p>
+<p><em>怎么用？</em></p>
+<p>还记得我们在<a href="https://juejin.cn/post/7233004121682477114">基础篇</a>中提到的 webpack 配置的<strong>五大概念</strong>吗，<strong>oneOf</strong>其实就是<strong>module</strong>下每个 loader 的一个配置属性</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> [{
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">//oneOf只会匹配一个loader
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">oneOf</span><span style="color:#f92672">:</span> [{
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 用来匹配 .css 结尾的文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.css$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// use 数组里面 Loader 执行顺序是从右到左
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;style-loader&#34;</span>, <span style="color:#e6db74">&#34;css-loader&#34;</span>],
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.less$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;style-loader&#34;</span>, <span style="color:#e6db74">&#34;css-loader&#34;</span>, <span style="color:#e6db74">&#34;less-loader&#34;</span>],
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.s[ac]ss$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;style-loader&#34;</span>, <span style="color:#e6db74">&#34;css-loader&#34;</span>, <span style="color:#e6db74">&#34;sass-loader&#34;</span>],
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.styl$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;style-loader&#34;</span>, <span style="color:#e6db74">&#34;css-loader&#34;</span>, <span style="color:#e6db74">&#34;stylus-loader&#34;</span>],
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        ],
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>},
+</span></span></code></pre></div><p>以上代码的配置中，针对各种后缀名的样式文件，使用 oneOf 之后只会命中一个。</p>
+<h3 id="includeexclude">Include/Exclude</h3>
+<p><em>为什么?</em></p>
+<p>开发时我们需要使用第三方的库或插件，所有文件都下载到 <code>node_modules</code> 中了。而这些文件是不需要编译可以直接使用的。所以我们在对 js 文件处理时，要排除 node*modules 下面的文件。</p>
+<p><em>是什么?</em></p>
+<ul>
+<li>
+<p><strong>include</strong>：包含，只处理 xxx 文件</p>
+</li>
+<li>
+<p><strong>exclude</strong>：排除，除了 xxx 文件以外其他文件都处理</p>
+</li>
+</ul>
+<p><em>怎么用？</em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> [{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.js$/</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// exclude: /node_modules/, // 排除node_modules代码不编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">include</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../src&#34;</span>),
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 也可以用包含
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;babel-loader&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>},
+</span></span></code></pre></div><h3 id="cache缓存">Cache(缓存)</h3>
+<p><em>为什么?</em></p>
+<p>每次打包时 js 文件都要经过 Eslint 检查 和 Babel 编译，速度比较慢。我们可以缓存之前的 Eslint 检查 和 Babel 编译结果，这样第二次打包时速度就会更快了。</p>
+<p><em>是什么?</em></p>
+<p>对 Eslint 检查 和 Babel 编译结果进行缓存。</p>
+<p><em>怎么用？</em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> [{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.js$/</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// exclude: /node_modules/, // 排除node_modules代码不编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">include</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../src&#34;</span>),
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 也可以用包含
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;babel-loader&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">options</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">cacheDirectory</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 开启babel编译缓存
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">cacheCompression</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 缓存文件不要压缩
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        },
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>},
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//其他配置……
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [<span style="color:#66d9ef">new</span> <span style="color:#a6e22e">ESLintWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 指定检查文件的根目录
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">context</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../src&#34;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">exclude</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;node_modules&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 默认值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cache</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 开启缓存
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 缓存目录
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cacheLocation</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../node_modules/.cache/.eslintcache&#34;</span>),
+</span></span><span style="display:flex;"><span>}), ],
+</span></span></code></pre></div><h3 id="thead多进程">Thead(多进程)</h3>
+<p><em>为什么?</em></p>
+<p>当项目越来越庞大时，打包速度越来越慢，甚至于需要一个下午才能打包出来代码。这个速度是比较慢的。我们想要继续提升打包速度，其实就是要提升 js 的打包速度，因为其他文件都比较少。而对 js 文件处理主要就是 <strong>eslint</strong>、<strong>babel</strong>、<strong>Terser</strong> 三个工具，所以我们要提升它们的运行速度。我们可以开启多进程同时处理 js 文件，这样速度就比之前的单进程打包更快了。</p>
+<p><em>是什么?</em></p>
+<p><strong>多进程打包</strong>：开启电脑的多个进程同时干一件事，速度更快。</p>
+<p><strong>需要注意：请仅在特别耗时的操作中使用，因为每个进程启动就有大约为 600ms 左右开销。</strong></p>
+<p><em>怎么用?</em></p>
+<p>我们启动进程的数量就是我们 CPU 的核数。</p>
+<ol>
+<li>如何获取 CPU 的核数，因为每个电脑都不一样。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// nodejs核心模块，直接使用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">os</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;os&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// cpu核数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">threads</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">cpus</span>().<span style="color:#a6e22e">length</span>;
+</span></span></code></pre></div><ol start="2">
+<li>下载包</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm i thread-loader -D
+</span></span></code></pre></div><p>3.配置</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">TerserPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;terser-webpack-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// cpu核数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">threads</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">cpus</span>().<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//其他配置……
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> [{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.js$/</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// exclude: /node_modules/, // 排除node_modules代码不编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">include</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../src&#34;</span>),
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 也可以用包含
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [{
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;thread-loader&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 开启多进程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">options</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">workers</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">threads</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e">// 数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            },
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;babel-loader&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">options</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">cacheDirectory</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e">// 开启babel编译缓存
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            },
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        ],
+</span></span><span style="display:flex;"><span>    }],
+</span></span><span style="display:flex;"><span>},
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [<span style="color:#66d9ef">new</span> <span style="color:#a6e22e">ESLintWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 指定检查文件的根目录
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">context</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../src&#34;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">exclude</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;node_modules&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 默认值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cache</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 开启缓存
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 缓存目录
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cacheLocation</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../node_modules/.cache/.eslintcache&#34;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">threads</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 开启多进程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}), ],
+</span></span></code></pre></div><p>以上呢就是关于<strong>提升打包构建速度</strong>方面的相关配置讲解，主要介绍了几个配置项<strong>HotModuleReplacement</strong>、<strong>oneOf</strong>、<strong>include/exclude</strong>、<strong>Cache</strong>、<strong>Thead</strong>，还是那句话哦，我们在这里介绍的其实只是一些比较常用的，俗称<strong>冰山一角</strong>，所以各位同学有兴趣，还是可以去官网文档里研究一番哦~</p>
+<h2 id="减少代码体积">减少代码体积</h2>
+<p>这个就不需要多解释了哦，作为一个优秀的程序员，我们总是希望以最少的代码完成任务嘛</p>
+<h3 id="tree-shaking">Tree Shaking</h3>
+<p><em>为什么?</em></p>
+<p>开发时我们定义了一些工具函数库，或者引用第三方工具函数库或组件库,如果没有特殊处理的话我们打包时会引入整个库，但是实际上可能我们可能只用上极小部分的功能,这样将整个库都打包进来，体积就太大了。</p>
+<p><em>是什么?</em></p>
+<p><code>Tree Shaking</code>  是一个术语，通常用于描述移除 JavaScript 中的没有使用上的代码。 <strong>注意：它依赖  <code>ES Module</code></strong></p>
+<p><em>怎么用？</em></p>
+<p>Webpack 已经默认开启了这个功能，无需其他配置。</p>
+<h3 id="babel">Babel</h3>
+<p><em>为什么?</em></p>
+<p>Babel 为编译的每个文件都插入了辅助代码，使代码体积过大！Babel 对一些公共方法使用了非常小的辅助代码，比如  <code>_extend</code>。默认情况下会被添加到每一个需要它的文件中,你可以将这些辅助代码作为一个独立模块，来避免重复引入。</p>
+<p><em>是什么？</em></p>
+<p><code>@babel/plugin-transform-runtime</code>: 禁用了 Babel 自动对每个文件的 runtime 注入，而是入  <code>@babel/plugin-transform-runtime</code>  并且使所有辅助代码从这里引用。</p>
+<p><em>怎么用?</em></p>
+<ol>
+<li>下载包</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm i @babel/plugin-transform-runtime -D
+</span></span></code></pre></div><ol start="2">
+<li>配置</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> [{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.js$/</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// exclude: /node_modules/, // 排除node_modules代码不编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">include</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../src&#34;</span>),
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 也可以用包含
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [{
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;thread-loader&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 开启多进程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">options</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">workers</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">threads</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e">// 数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            },
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;babel-loader&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">options</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">cacheDirectory</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e">// 开启babel编译缓存
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#a6e22e">cacheCompression</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e">// 缓存文件不要压缩
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;@babel/plugin-transform-runtime&#34;</span>],
+</span></span><span style="display:flex;"><span>                <span style="color:#75715e">// 减少代码体积
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            },
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        ],
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="优化代码运行性能">优化代码运行性能</h2>
+<h3 id="code-split">Code Split</h3>
+<p><em>为什么?</em></p>
+<p>打包代码时会<strong>将所有 js 文件打包到一个文件中</strong>，体积太大了。我们如果只要渲染首页，就应该只加载首页的 js 文件，其他文件不应该加载。所以我们需要将打包生成的文件进行代码分割，生成多个 js 文件，渲染哪个页面就只加载某个 js 文件，这样加载的资源就少，速度就更快。</p>
+<p><em>是什么?</em></p>
+<p>代码分割（Code Split）主要做了两件事：</p>
+<ol>
+<li>
+<p>分割文件：将打包生成的文件进行分割，生成多个 js 文件。</p>
+</li>
+<li>
+<p>按需加载：需要哪个文件就加载哪个文件。</p>
+</li>
+</ol>
+<p><em>怎么用?</em></p>
+<p>代码分割实现方式有很多种方式，为了更加方便体现它们之间的差异，我们会分别创建新的文件来演示</p>
+<h5 id="一多入口">一、多入口</h5>
+<ol>
+<li>文件目录</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>├── public
+</span></span><span style="display:flex;"><span>├── src
+</span></span><span style="display:flex;"><span>|   ├── app.js
+</span></span><span style="display:flex;"><span>|   └── main.js
+</span></span><span style="display:flex;"><span>├── package.json
+</span></span><span style="display:flex;"><span>└── webpack.config.js
+</span></span></code></pre></div><ol start="2">
+<li>下载包</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm i webpack webpack-cli html-webpack-plugin -D
+</span></span></code></pre></div><ol start="3">
+<li>新建文件 内容无关紧要，主要观察打包输出的结果</li>
+</ol>
+<ul>
+<li>app.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello app&#34;</span>);
+</span></span></code></pre></div><ul>
+<li>main.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello main&#34;</span>);
+</span></span></code></pre></div><ol start="4">
+<li>配置（仔细阅读注释哦~）</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// webpack.config.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;path&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">HtmlWebpackPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;html-webpack-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 单入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// entry: &#39;./src/main.js&#39;,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 多入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">entry</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">main</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./src/main.js&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">app</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./src/app.js&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">output</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">path</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;./dist&#34;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// [name]是webpack命名规则，使用chunk的name作为输出的文件名。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 什么是chunk？打包的资源就是chunk，输出出去叫bundle。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// chunk的name是啥呢？ 比如： entry中xxx: &#34;./src/xxx.js&#34;, name就是xxx。注意是前面的xxx，和文件名无关。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 为什么需要这样命名呢？如果还是之前写法main.js，那么打包生成两个js文件都会叫做main.js会发生覆盖。(实际上会直接报错的)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;js/[name].js&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clear</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">HtmlWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">template</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./public/index.html&#34;</span>,
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">mode</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;production&#34;</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>此时当我们执行<code>npx webpack</code>时，在 dist 目录我们能看到输出了两个 js 文件。实际上，<strong>配置了几个入口，至少输出几个 js 文件</strong>。</p>
+<h5 id="二提取重复代码">二、提取重复代码</h5>
+<p>如果多入口文件中都引用了同一份代码，我们不希望这份代码被打包到两个文件中，导致代码重复，体积更大。我们需要提取多入口的重复代码，只打包生成一个 js 文件，其他文件引用它就好。</p>
+<ol>
+<li>修改文件</li>
+</ol>
+<ul>
+<li>app.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">sum</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./math&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello app&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">sum</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>));
+</span></span></code></pre></div><ul>
+<li>main.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">sum</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./math&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello main&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">sum</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>));
+</span></span></code></pre></div><ul>
+<li>math.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> (...<span style="color:#a6e22e">args</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">args</span>.<span style="color:#a6e22e">reduce</span>((<span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">c</span>) =&gt; <span style="color:#a6e22e">p</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">c</span>, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><ol start="2">
+<li>修改配置文件(<em>注意看注释，很详细哦~</em>)</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// webpack.config.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;path&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">HtmlWebpackPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;html-webpack-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 单入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// entry: &#39;./src/main.js&#39;,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 多入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">entry</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">main</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./src/main.js&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">app</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./src/app.js&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">output</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">path</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;./dist&#34;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// [name]是webpack命名规则，使用chunk的name作为输出的文件名。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 什么是chunk？打包的资源就是chunk，输出出去叫bundle。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// chunk的name是啥呢？ 比如： entry中xxx: &#34;./src/xxx.js&#34;, name就是xxx。注意是前面的xxx，和文件名无关。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 为什么需要这样命名呢？如果还是之前写法main.js，那么打包生成两个js文件都会叫做main.js会发生覆盖。(实际上会直接报错的)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;js/[name].js&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clean</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">HtmlWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">template</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./public/index.html&#34;</span>,
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">mode</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;production&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">optimization</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 代码分割配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">splitChunks</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">chunks</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;all&#34;</span>, <span style="color:#75715e">// 对所有模块都进行分割
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// 以下是默认值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// minSize: 20000, // 分割代码最小的大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// minRemainingSize: 0, // 类似于minSize，最后确保提取的文件大小不能为0
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// minChunks: 1, // 至少被引用的次数，满足条件才会代码分割
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// maxAsyncRequests: 30, // 按需加载时并行加载的文件的最大数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// maxInitialRequests: 30, // 入口js文件最大并行请求数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// enforceSizeThreshold: 50000, // 超过50kb一定会单独打包（此时会忽略minRemainingSize、maxAsyncRequests、maxInitialRequests）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// cacheGroups: { // 组，哪些模块要打包到一个组
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//   defaultVendors: { // 组名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//     test: /[\/]node_modules[\/]/, // 需要打包到一起的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//     priority: -10, // 权重（越大越高）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//     reuseExistingChunk: true, // 如果当前 chunk 包含已从主 bundle 中拆分出的模块，则它将被重用，而不是生成新的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//   },
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//   default: { // 其他没有写的配置会使用上面的默认值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//     minChunks: 2, // 这里的minChunks权重更大
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//     priority: -20,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//     reuseExistingChunk: true,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//   },
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// },
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// 修改配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">cacheGroups</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 组，哪些模块要打包到一个组
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// defaultVendors: { // 组名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">//   test: /[\/]node_modules[\/]/, // 需要打包到一起的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">//   priority: -10, // 权重（越大越高）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">//   reuseExistingChunk: true, // 如果当前 chunk 包含已从主 bundle 中拆分出的模块，则它将被重用，而不是生成新的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// },
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 其他没有写的配置会使用上面的默认值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">minSize</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>, <span style="color:#75715e">// 我们定义的文件体积太小了，所以要改打包的最小文件体积
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">minChunks</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">2</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">priority</span><span style="color:#f92672">:</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">20</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">reuseExistingChunk</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>运行指令之后我们发现，此时我们会发现生成 3 个 js 文件，其中有一个就是提取的公共模块。</p>
+<h5 id="三按需加载模块">三、按需加载模块</h5>
+<p>即按需加载，动态导入。</p>
+<p>想要实现按需加载，动态导入模块。还需要额外配置：</p>
+<ol>
+<li>修改文件</li>
+</ol>
+<ul>
+<li>main.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello main&#34;</span>);
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;btn&#34;</span>).<span style="color:#a6e22e">onclick</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 动态导入 --&gt; 实现按需加载
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 即使只被引用了一次，也会代码分割
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">import</span>(<span style="color:#e6db74">&#34;./math.js&#34;</span>).<span style="color:#a6e22e">then</span>(({ <span style="color:#a6e22e">sum</span> }) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">alert</span>(<span style="color:#a6e22e">sum</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>));
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><ul>
+<li>app.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello app&#34;</span>);
+</span></span></code></pre></div><ul>
+<li>public/index.html</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">http-equiv</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;X-UA-Compatible&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;IE=edge&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;viewport&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;width=device-width, initial-scale=1.0&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;Code Split&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">h1</span>&gt;hello webpack&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;btn&#34;</span>&gt;计算&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p>我们可以发现，一旦通过 import 动态导入语法导入模块，模块就被代码分割，同时也能按需加载了。 看到这里，使用过前端框架路由（比如<strong>Vue-Router</strong>）的，一定会想到<strong>路由懒加载</strong>，其实他就是利用了 webpack 这一性质。</p>
+<h5 id="实际开发代码分割配置方案">实际开发代码分割配置方案</h5>
+<p>最终我们会使用<strong>单入口+代码分割+动态导入</strong>方式来进行配置。更新之前的配置文件。</p>
+<p>因为这里的配置项在之前已经全部讲过，所以此处指贴出配置代码，如果有不太懂的，各位同学对前面的讲解进行阅读哦~</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// webpack.prod.js----开发模式下的配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">os</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;os&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;path&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ESLintWebpackPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;eslint-webpack-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">HtmlWebpackPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;html-webpack-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">MiniCssExtractPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;mini-css-extract-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">CssMinimizerPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;css-minimizer-webpack-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">TerserPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;terser-webpack-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ImageMinimizerPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;image-minimizer-webpack-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// cpu核数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">threads</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">cpus</span>().<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 获取处理样式的Loaders
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">getStyleLoaders</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">preProcessor</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">MiniCssExtractPlugin</span>.<span style="color:#a6e22e">loader</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;css-loader&#34;</span>,
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;postcss-loader&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">options</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">postcssOptions</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;postcss-preset-env&#34;</span>, <span style="color:#75715e">// 能解决大多数样式兼容性问题
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          ],
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">preProcessor</span>,
+</span></span><span style="display:flex;"><span>  ].<span style="color:#a6e22e">filter</span>(Boolean);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">entry</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./src/main.js&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">output</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">path</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../dist&#34;</span>), <span style="color:#75715e">// 生产模式需要输出
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/js/main.js&#34;</span>, <span style="color:#75715e">// 将 js 文件输出到 static/js 目录中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">clean</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">module</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>      {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">oneOf</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>          {
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 用来匹配 .css 结尾的文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.css$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// use 数组里面 Loader 执行顺序是从右到左
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">getStyleLoaders</span>(),
+</span></span><span style="display:flex;"><span>          },
+</span></span><span style="display:flex;"><span>          {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.less$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">getStyleLoaders</span>(<span style="color:#e6db74">&#34;less-loader&#34;</span>),
+</span></span><span style="display:flex;"><span>          },
+</span></span><span style="display:flex;"><span>          {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.s[ac]ss$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">getStyleLoaders</span>(<span style="color:#e6db74">&#34;sass-loader&#34;</span>),
+</span></span><span style="display:flex;"><span>          },
+</span></span><span style="display:flex;"><span>          {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.styl$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">getStyleLoaders</span>(<span style="color:#e6db74">&#34;stylus-loader&#34;</span>),
+</span></span><span style="display:flex;"><span>          },
+</span></span><span style="display:flex;"><span>          {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.(png|jpe?g|gif|svg)$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;asset&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">parser</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>              <span style="color:#a6e22e">dataUrlCondition</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">maxSize</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">10</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">1024</span>, <span style="color:#75715e">// 小于10kb的图片会被base64处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>              },
+</span></span><span style="display:flex;"><span>            },
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">generator</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>              <span style="color:#75715e">// 将图片文件输出到 static/imgs 目录中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>              <span style="color:#75715e">// 将图片文件命名 [hash:8][ext][query]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>              <span style="color:#75715e">// [hash:8]: hash值取8位
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>              <span style="color:#75715e">// [ext]: 使用之前的文件扩展名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>              <span style="color:#75715e">// [query]: 添加之前的query参数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>              <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/imgs/[hash:8][ext][query]&#34;</span>,
+</span></span><span style="display:flex;"><span>            },
+</span></span><span style="display:flex;"><span>          },
+</span></span><span style="display:flex;"><span>          {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.(ttf|woff2?)$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;asset/resource&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">generator</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>              <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/media/[hash:8][ext][query]&#34;</span>,
+</span></span><span style="display:flex;"><span>            },
+</span></span><span style="display:flex;"><span>          },
+</span></span><span style="display:flex;"><span>          {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.js$/</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// exclude: /node_modules/, // 排除node_modules代码不编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">include</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../src&#34;</span>), <span style="color:#75715e">// 也可以用包含
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>              {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;thread-loader&#34;</span>, <span style="color:#75715e">// 开启多进程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#a6e22e">options</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>                  <span style="color:#a6e22e">workers</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">threads</span>, <span style="color:#75715e">// 数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                },
+</span></span><span style="display:flex;"><span>              },
+</span></span><span style="display:flex;"><span>              {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;babel-loader&#34;</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">options</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>                  <span style="color:#a6e22e">cacheDirectory</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">// 开启babel编译缓存
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                  <span style="color:#a6e22e">cacheCompression</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>, <span style="color:#75715e">// 缓存文件不要压缩
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;@babel/plugin-transform-runtime&#34;</span>], <span style="color:#75715e">// 减少代码体积
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                },
+</span></span><span style="display:flex;"><span>              },
+</span></span><span style="display:flex;"><span>            ],
+</span></span><span style="display:flex;"><span>          },
+</span></span><span style="display:flex;"><span>        ],
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">ESLintWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 指定检查文件的根目录
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">context</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../src&#34;</span>),
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">exclude</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;node_modules&#34;</span>, <span style="color:#75715e">// 默认值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">cache</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">// 开启缓存
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// 缓存目录
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">cacheLocation</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">__dirname</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;../node_modules/.cache/.eslintcache&#34;</span>
+</span></span><span style="display:flex;"><span>      ),
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">threads</span>, <span style="color:#75715e">// 开启多进程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }),
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">HtmlWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 以 public/index.html 为模板创建文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// 新的html文件有两个特点：1. 内容和源文件一致 2. 自动引入打包生成的js等资源
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">template</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../public/index.html&#34;</span>),
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 提取css成单独文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MiniCssExtractPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 定义输出文件名和目录
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/css/main.css&#34;</span>,
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// css压缩
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// new CssMinimizerPlugin(),
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">optimization</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">minimizer</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// css压缩也可以写到optimization.minimizer里面，效果一样的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">CssMinimizerPlugin</span>(),
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 当生产模式会默认开启TerserPlugin，但是我们需要进行其他配置，就要重新写了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">TerserPlugin</span>({
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">parallel</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">threads</span>, <span style="color:#75715e">// 开启多进程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      }),
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 代码分割配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">splitChunks</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">chunks</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;all&#34;</span>, <span style="color:#75715e">// 对所有模块都进行分割
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// 其他内容用默认配置即可
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// devServer: {
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">//   host: &#34;localhost&#34;, // 启动服务器域名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">//   port: &#34;3000&#34;, // 启动服务器端口号
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">//   open: true, // 是否自动打开浏览器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// },
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">mode</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;production&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">devtool</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;source-map&#34;</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><h5 id="文件命名问题">文件命名问题</h5>
+<p>实际开发中，我们打包之后的文件可能相当繁杂，那么对于我们后续追溯 Bug，以及确定文件位置有很大影响，所以我们应该在打包时对文件名进行处理<br>
+<em>一、给动态导入文件取名称</em></p>
+<ol>
+<li>修改文件</li>
+</ol>
+<ul>
+<li>main.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;btn&#34;</span>).<span style="color:#a6e22e">onClick</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// eslint会对动态导入语法报错，需要修改eslint配置文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// webpackChunkName: &#34;math&#34;：这是webpack动态导入模块命名的方式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// &#34;math&#34;将来就会作为[name]的值显示。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">import</span>(<span style="color:#75715e">/* webpackChunkName: &#34;math&#34; */</span> <span style="color:#e6db74">&#34;./js/math.js&#34;</span>).<span style="color:#a6e22e">then</span>(({ <span style="color:#a6e22e">count</span> }) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">count</span>(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>));
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><ol start="2">
+<li>eslint 配置</li>
+</ol>
+<ul>
+<li>下载包</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm i eslint-plugin-import -D
+</span></span></code></pre></div><ul>
+<li>配置</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// .eslintrc.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 继承 Eslint 规则
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">extends</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;eslint:recommended&#34;</span>],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">env</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">node</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">// 启用node中全局变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">browser</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">// 启用浏览器中全局变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;import&#34;</span>], <span style="color:#75715e">// 解决动态导入import语法报错问题 --&gt; 实际使用eslint-plugin-import的规则解决的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">parserOptions</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ecmaVersion</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">6</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sourceType</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;module&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;no-var&#34;</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">2</span>, <span style="color:#75715e">// 不能使用 var 定义变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p><em>二、统一命名配置</em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/js/[name].js&#34;</span>, <span style="color:#75715e">// 入口文件打包输出资源命名方式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">chunkFilename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/js/[name].chunk.js&#34;</span>, <span style="color:#75715e">// 动态导入输出资源命名方式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">assetModuleFilename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/media/[name].[hash][ext]&#34;</span>, <span style="color:#75715e">// 图片、字体等资源命名方式（注意用hash）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//其他配置……
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 提取css成单独文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MiniCssExtractPlugin</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 定义输出文件名和目录
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/css/[name].css&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">chunkFilename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/css/[name].chunk.css&#34;</span>,
+</span></span><span style="display:flex;"><span>}),
+</span></span></code></pre></div><p>注意：<strong>配置了 assetModuleFilename 之后之前讲述的<code>generator</code> 选项可以删除了</strong></p>
+<p>以上我们首先配置了<code>output</code>选项中的输出文件名，然后是动态导入的文件名称<code>[name].chunk.js</code>,然后资源文件命名<code>[name].[hash][ext]</code>,同时针对样式资源文件中可能引入的另外的样式文件（这部分也会被单独打包）进行重命名<code>[name].chunk.css</code></p>
+<h3 id="preload--prefetch">Preload / Prefetch</h3>
+<p><em>为什么？</em></p>
+<p>我们前面已经做了代码分割，同时会使用 import 动态导入语法来进行代码按需加载（我们也叫<strong>懒加载</strong>，比如<strong>路由懒加载</strong>就是这样实现的）。但是加载速度还不够好，比如：<strong>是用户点击按钮时才加载这个资源的，如果资源体积很大，那么用户会感觉到明显卡顿效果。</strong> 我们想在浏览器空闲时间，加载后续需要使用的资源。我们就需要用上  <code>Preload</code>  或  <code>Prefetch</code>  技术。 <em>是什么?</em>\</p>
+<ul>
+<li>
+<p><code>Preload</code>：告诉浏览器立即加载资源。</p>
+</li>
+<li>
+<p><code>Prefetch</code>：告诉浏览器在空闲时才开始加载资源。</p>
+</li>
+</ul>
+<p>共同点：</p>
+<ul>
+<li>
+<p>都只会加载资源，并不执行。</p>
+</li>
+<li>
+<p>都有缓存。</p>
+</li>
+</ul>
+<p>它们区别：</p>
+<ul>
+<li>
+<p><code>Preload</code>加载优先级高，<code>Prefetch</code>加载优先级低。</p>
+</li>
+<li>
+<p><code>Preload</code>只能加载当前页面需要使用的资源，<code>Prefetch</code>可以加载当前页面资源，也可以加载下一个页面需要使用的资源。</p>
+</li>
+</ul>
+<p>总结：</p>
+<ul>
+<li>
+<p>当前页面优先级高的资源用  <code>Preload</code>  加载。</p>
+</li>
+<li>
+<p>下一个页面需要使用的资源用  <code>Prefetch</code>  加载。</p>
+</li>
+</ul>
+<p>它们的问题：<strong>兼容性较差。</strong></p>
+<p>我们可以去  <a href="https://caniuse.com/">Can I Use</a>  网站查询 API 的兼容性问题。</p>
+<p><strong>preload</strong>: <img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0fb7d0b6378944c299fd79e6f347e600~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="7ae6563d0e91caebf798139c29cfc91.png"></p>
+<p><strong>prefetch</strong>: <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0596a5000f1947b990742adb063bed38~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="dd884049b15af8c52b4d4d24feccdd8.png"></p>
+<p>根据以上兼容性表所示以上二者的兼容性都存在不同程度的问题，其中<strong>prefetch</strong>的兼容性更差，对市面上的浏览器兼容率<strong>只有不到 80%</strong>，并且完全不支持<strong>Safari</strong>浏览器</p>
+<p><em>怎么用?</em></p>
+<ol>
+<li>下载包</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm i @vue/preload-webpack-plugin -D
+</span></span></code></pre></div><ol start="2">
+<li>配置 webpack.prod.js</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">PreloadWebpackPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;@vue/preload-webpack-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [<span style="color:#66d9ef">new</span> <span style="color:#a6e22e">PreloadWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rel</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;preload&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// preload兼容性更好
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">as</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;script&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// rel: &#39;prefetch&#39; // prefetch兼容性更差
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}), ],
+</span></span></code></pre></div><h3 id="network-cache">Network Cache</h3>
+<p><em>为什么?</em></p>
+<p>将来开发时我们对静态资源会使用缓存来优化，这样浏览器第二次请求资源就能读取缓存了，速度很快。但是这样的话就会有一个问题, <strong>因为前后输出的文件名是一样的，都叫 main.js，一旦将来发布新版本，因为文件名没有变化导致浏览器会直接读取缓存，不会加载新资源，项目也就没法更新了。</strong> 所以我们从文件名入手，确保更新前后文件名不一样，这样就可以做缓存了。</p>
+<p><em>是什么</em></p>
+<p>它们都会生成一个唯一的 hash 值。</p>
+<ul>
+<li>
+<p><em>fullhash</em>（webpack4 是 hash）</p>
+<p>每次修改任何一个文件，所有文件名的 hash 至都将改变。所以一旦修改了任何一个文件，整个项目的文件缓存都将失效。</p>
+</li>
+<li>
+<p><em>chunkhash</em></p>
+<p>根据不同的入口文件(Entry)进行依赖文件解析、构建对应的 chunk，生成对应的哈希值。我们 js 和 css 是同一个引入，会共享一个 hash 值。</p>
+</li>
+<li>
+<p><em>contenthash</em></p>
+<p>根据文件内容生成 hash 值，只有文件内容变化了，hash 值才会变化。所有文件 hash 值是独享且不同的。</p>
+</li>
+</ul>
+<p><em>怎么用?</em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">output</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">path</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;../dist&#34;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 生产模式需要输出
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// [contenthash:8]使用contenthash，取8位长度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/js/[name].[contenthash:8].js&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 入口文件打包输出资源命名方式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">chunkFilename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/js/[name].[contenthash:8].chunk.js&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 动态导入输出资源命名方式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">assetModuleFilename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/media/[name].[hash][ext]&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 图片、字体等资源命名方式（注意用hash）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">clean</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>},
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//其他配置。。。。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 提取css成单独文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MiniCssExtractPlugin</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 定义输出文件名和目录
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/css/[name].[contenthash:8].css&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">chunkFilename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;static/css/[name].[contenthash:8].chunk.css&#34;</span>,
+</span></span><span style="display:flex;"><span>}),
+</span></span></code></pre></div><p>注意，<strong>这里存在一个问题</strong>：</p>
+<p>当我们修改 math.js 文件再重新打包的时候，因为 contenthash 原因，math.js 文件 hash 值发生了变化（<em>这是正常的</em>）,但是 <strong>main.js 文件的 hash 值也发生了变化</strong> ，这会<strong>导致 main.js 的缓存失效</strong>。明明我们只修改 math.js, 为什么 main.js 也会变身变化呢？</p>
+<ul>
+<li>
+<p><em>原因</em>：</p>
+</li>
+<li>
+<p>更新前：math.xxx.js, main.js 引用的 math.xxx.js</p>
+</li>
+<li>
+<p>更新后：math.yyy.js, main.js 引用的 math.yyy.js, 文件名发生了变化，间接导致 main.js 也发生了变化</p>
+</li>
+<li>
+<p><em>解决</em>：</p>
+</li>
+</ul>
+<blockquote>
+<p>将 hash 值单独保管在一个 runtime 文件中。我们最终输出三个文件：main、math、runtime。当 math 文件发生变化，变化的是 math 和 runtime 文件，main 不变。runtime 文件只保存文件的 hash 值和它们与文件关系，整个文件体积就比较小，所以变化重新请求的代价也小。</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">optimization</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 代码分割配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">splitChunks</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">chunks</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;all&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 对所有模块都进行分割
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// 其他内容用默认配置即可
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 提取runtime文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">runtimeChunk</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">entrypoint</span>) <span style="color:#f92672">=</span> <span style="color:#f92672">&gt;</span><span style="color:#e6db74">`$ {
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            entrypoint.name
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        }.runtime`</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// runtime文件命名规则
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    },
+</span></span><span style="display:flex;"><span>},
+</span></span></code></pre></div><h3 id="core-js">Core-js</h3>
+<p><em>为什么?</em></p>
+<p>过去我们使用 babel 对 js 代码进行了兼容性处理，其中使用@babel/preset-env 智能预设来处理兼容性问题。它能将 ES6 的一些语法进行编译转换，比如箭头函数、扩展运算符等。但是如果是<code>async</code>函数、<code>promise</code>对象、数组的一些方法（<code>includes</code>）等，它没办法处理。所以此时我们 js 代码仍然存在兼容性问题，一旦遇到低版本浏览器会直接报错。所以我们想要将 js 兼容性问题彻底解决</p>
+<p><em>是什么?</em></p>
+<p><code>core-js</code>  是专门用来做 ES6 以及以上 API 的  <code>polyfill</code>。 <code>polyfill</code>翻译过来叫做<strong>垫片/补丁</strong>。就是用社区上提供的一段代码，让我们在不兼容某些新特性的浏览器上，使用该新特性。</p>
+<p><em>怎么用</em></p>
+<ol>
+<li>修改 main.js</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">count</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./js/count&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">sum</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./js/sum&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 引入资源，Webpack才会对其打包
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./css/iconfont.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./css/index.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./less/index.less&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./sass/index.sass&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./sass/index.scss&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./styl/index.styl&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result1</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">count</span>(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result1</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result2</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result2</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加promise代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">promise</span> <span style="color:#f92672">=</span> Promise.<span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">promise</span>.<span style="color:#a6e22e">then</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello promise&#34;</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><ol start="2">
+<li>修改配置文件</li>
+</ol>
+<ul>
+<li>下载包</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm i @babel/eslint-parser -D
+</span></span></code></pre></div><ul>
+<li>.eslintrc.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 继承 Eslint 规则
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">extends</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;eslint:recommended&#34;</span>],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">parser</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;@babel/eslint-parser&#34;</span>, <span style="color:#75715e">// 支持最新的最终 ECMAScript 标准
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">env</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">node</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">// 启用node中全局变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">browser</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">// 启用浏览器中全局变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;import&#34;</span>], <span style="color:#75715e">// 解决动态导入import语法报错问题 --&gt; 实际使用eslint-plugin-import的规则解决的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">parserOptions</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ecmaVersion</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">6</span>, <span style="color:#75715e">// es6
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">sourceType</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;module&#34;</span>, <span style="color:#75715e">// es module
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;no-var&#34;</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">2</span>, <span style="color:#75715e">// 不能使用 var 定义变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><ol start="3">
+<li>运行指令</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm run build
+</span></span></code></pre></div><p>此时观察打包输出的 js 文件，我们发现 Promise 语法并没有编译转换，所以我们需要使用  <code>core-js</code>  来进行  <code>polyfill</code>。 4. 使用<code>core-js</code></p>
+<ul>
+<li>下载包</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm i core-js
+</span></span></code></pre></div><ul>
+<li><em>手动全部引入</em></li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;core-js&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">count</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./js/count&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">sum</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./js/sum&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 引入资源，Webpack才会对其打包
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./css/iconfont.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./css/index.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./less/index.less&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./sass/index.sass&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./sass/index.scss&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./styl/index.styl&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result1</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">count</span>(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result1</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result2</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result2</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加promise代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">promise</span> <span style="color:#f92672">=</span> Promise.<span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">promise</span>.<span style="color:#a6e22e">then</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello promise&#34;</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>这样引入<strong>会将所有兼容性代码全部引入，体积太大了</strong>。我们只想引入 promise 的  <code>polyfill</code>。</p>
+<ul>
+<li><em>手动按需引入</em></li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;core-js/es/promise&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">count</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./js/count&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">sum</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./js/sum&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 引入资源，Webpack才会对其打包
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./css/iconfont.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./css/index.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./less/index.less&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./sass/index.sass&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./sass/index.scss&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./styl/index.styl&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result1</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">count</span>(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result1</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result2</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result2</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加promise代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">promise</span> <span style="color:#f92672">=</span> Promise.<span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">promise</span>.<span style="color:#a6e22e">then</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello promise&#34;</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>只引入打包 promise 的  <code>polyfill</code>，打包体积更小。<strong>但是将来如果还想使用其他语法，我需要手动引入库很麻烦。</strong></p>
+<ul>
+<li>
+<p><em>自动按需引入</em></p>
+</li>
+<li>
+<p>main.js</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">count</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./js/count&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">sum</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./js/sum&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 引入资源，Webpack才会对其打包
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./css/iconfont.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./css/index.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./less/index.less&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./sass/index.sass&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./sass/index.scss&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./styl/index.styl&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result1</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">count</span>(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result1</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result2</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result2</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加promise代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">promise</span> <span style="color:#f92672">=</span> Promise.<span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">promise</span>.<span style="color:#a6e22e">then</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello promise&#34;</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><ul>
+<li>babel.config.js</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 智能预设：能够编译ES6语法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">presets</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    [
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;@babel/preset-env&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 按需加载core-js的polyfill
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      { <span style="color:#a6e22e">useBuiltIns</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;usage&#34;</span>, <span style="color:#a6e22e">corejs</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">version</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;3&#34;</span>, <span style="color:#a6e22e">proposals</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> } },
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>此时就会自动根据我们代码中使用的语法，来<strong>按需加载</strong>相应的  <code>polyfill</code>  了。</p>
+<h3 id="pwa">PWA</h3>
+<p><em>为什么?</em></p>
+<p>开发 Web App 项目，项目一旦处于网络离线情况，就没法访问了。我们希望给项目提供<strong>离线体验</strong>。</p>
+<p><em>是什么?</em></p>
+<p><strong>渐进式网络应用程序(progressive web application - PWA)</strong>：是一种可以提供类似于 native app(原生应用程序) 体验的 Web App 的技术。其中最重要的是，<strong>在离线(offline)时应用程序能够继续运行功能。</strong> 内部通过<strong>Service Workers</strong>技术实现的。</p>
+<p><em>怎么用?</em></p>
+<ol>
+<li>下载包</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm i workbox-webpack-plugin -D
+</span></span></code></pre></div><ol start="2">
+<li>修改配置文件</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">WorkboxPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;workbox-webpack-plugin&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [<span style="color:#66d9ef">new</span> <span style="color:#a6e22e">WorkboxPlugin</span>.<span style="color:#a6e22e">GenerateSW</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 这些选项帮助快速启用 ServiceWorkers
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 不允许遗留任何“旧的” ServiceWorkers
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">clientsClaim</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">skipWaiting</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>}), ],
+</span></span></code></pre></div><ol start="3">
+<li>修改 main.js</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">count</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./js/count&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">sum</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./js/sum&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 引入资源，Webpack才会对其打包
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./css/iconfont.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./css/index.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./less/index.less&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./sass/index.sass&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./sass/index.scss&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./styl/index.styl&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result1</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">count</span>(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result1</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result2</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">result2</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加promise代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">promise</span> <span style="color:#f92672">=</span> Promise.<span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">promise</span>.<span style="color:#a6e22e">then</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;hello promise&#34;</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">arr</span> <span style="color:#f92672">=</span> [<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>];
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#ae81ff">5</span>));
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 因为存在兼容性问题所以需要判断一下才可以使用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">if</span> (<span style="color:#e6db74">&#34;serviceWorker&#34;</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">navigator</span>) {
+</span></span><span style="display:flex;"><span>  window.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;load&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">navigator</span>.<span style="color:#a6e22e">serviceWorker</span>
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">register</span>(<span style="color:#e6db74">&#34;/service-worker.js&#34;</span>)
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">registration</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;SW registered: &#34;</span>, <span style="color:#a6e22e">registration</span>);
+</span></span><span style="display:flex;"><span>      })
+</span></span><span style="display:flex;"><span>      .<span style="color:#66d9ef">catch</span>((<span style="color:#a6e22e">registrationError</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;SW registration failed: &#34;</span>, <span style="color:#a6e22e">registrationError</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ol start="4">
+<li>运行指令</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm run build
+</span></span></code></pre></div><p>注意：前提是你提前在 package.json 中已经配置了该命令，如何配置详见<a href="https://juejin.cn/post/7233004121682477114">基础篇</a> 此时如果直接通过 VSCode 访问打包后页面，在浏览器控制台会发现  <code>SW registration failed</code>。 因为我们打开的访问路径是：<code>http://127.0.0.1:5500/dist/index.html</code>。此时页面会去请求  <code>service-worker.js</code>  文件，请求路径是：<code>http://127.0.0.1:5500/service-worker.js</code>，这样找不到会 404。 实际  <code>service-worker.js</code>  文件路径是：<code>http://127.0.0.1:5500/dist/service-worker.js</code>。 5. 解决路径问题</p>
+<ul>
+<li>下载包</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm i serve -g
+</span></span></code></pre></div><p>serve 也是用来启动开发服务器来部署代码查看效果的。</p>
+<ul>
+<li>运行指令</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>serve dist
+</span></span></code></pre></div><p>此时通过 serve 启动的服务器我们 service-worker 就能注册成功了。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b1d71a950e0241f9bfc5cba9359ee816~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>如果你使用的是<code>Edge浏览器</code>那么你可以在调试控制台的网络中设置<strong>脱机</strong>（<code>chrome</code>在<code>Network</code>中），会发现页面同样是可以正常显示的。</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4d3c4203fc7d42e18527e3f299580dcd~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>点开<strong>应用程序</strong>选项我们可以在<strong>Service Workers</strong>中看到配置信息。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b976cbf6814d48cbbd5cd8b88af68317~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>所有的缓存资源放置在缓存储存中（<code>chrome</code>是在<code>Cache Storage</code>）中。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6f529c84a76d45108c34c872d5838d14~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h2 id="总结">总结</h2>
+<p>我们从 4 个角度对 webpack 和代码进行了优化：</p>
+<ol>
+<li>提升开发体验</li>
+</ol>
+<ul>
+<li>使用  <code>Source Map</code>  让开发或上线时代码报错能有更加准确的错误提示。</li>
+</ul>
+<ol start="2">
+<li>提升 webpack 提升打包构建速度</li>
+</ol>
+<ul>
+<li>
+<p>使用  <code>HotModuleReplacement</code>  让开发时只重新编译打包更新变化了的代码，不变的代码使用缓存，从而使更新速度更快。</p>
+</li>
+<li>
+<p>使用  <code>OneOf</code>  让资源文件一旦被某个 loader 处理了，就不会继续遍历了，打包速度更快。</p>
+</li>
+<li>
+<p>使用  <code>Include/Exclude</code>  排除或只检测某些文件，处理的文件更少，速度更快。</p>
+</li>
+<li>
+<p>使用  <code>Cache</code>  对 eslint 和 babel 处理的结果进行缓存，让第二次打包速度更快。</p>
+</li>
+<li>
+<p>使用  <code>Thead</code>  多进程处理 eslint 和 babel 任务，速度更快。（需要注意的是，进程启动通信都有开销的，要在比较多代码处理时使用才有效果）</p>
+</li>
+</ul>
+<ol start="3">
+<li>减少代码体积</li>
+</ol>
+<ul>
+<li>
+<p>使用  <code>Tree Shaking</code>  剔除了没有使用的多余代码，让代码体积更小。</p>
+</li>
+<li>
+<p>使用  <code>@babel/plugin-transform-runtime</code>  插件对 babel 进行处理，让辅助代码从中引入，而不是每个文件都生成辅助代码，从而体积更小。</p>
+</li>
+</ul>
+<ol start="4">
+<li>优化代码运行性能</li>
+</ol>
+<ul>
+<li>
+<p>使用  <code>Code Split</code>  对代码进行分割成多个 js 文件，从而使单个文件体积更小，并行加载 js 速度更快。并通过 import 动态导入语法进行按需加载，从而达到需要使用时才加载该资源，不用时不加载资源。</p>
+</li>
+<li>
+<p>使用  <code>Preload / Prefetch</code>  对代码进行提前加载，等未来需要使用时就能直接使用，从而用户体验更好。</p>
+</li>
+<li>
+<p>使用  <code>Network Cache</code>  能对输出资源文件进行更好的命名，将来好做缓存，从而用户体验更好。</p>
+</li>
+<li>
+<p>使用  <code>Core-js</code>  对 js 进行兼容性处理，让我们代码能运行在低版本浏览器。</p>
+</li>
+<li>
+<p>使用  <code>PWA</code>  能让代码离线也能访问，从而提升用户体验。</p>
+</li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/607/"
+      ><span class="mr-1.5">←</span><span>使用 Vite 打包项目用的 JS 和 CSS 文件，改善开发体验</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/605/"
+      ><span>关于获取文字渲染实际宽度的问题</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

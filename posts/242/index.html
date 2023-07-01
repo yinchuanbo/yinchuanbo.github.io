@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>纯 JS 实现语雀的划词高亮功能 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="实现效果 话不多说，先看看最终实现的效果：
+当然这个只是实现了核心功能的 demo，更多的交互和 UI 细节也可以基于这个功能进行实现。
+实现思路 主要思路：生成一个 canvas 元素，让 canvas 元素与需要划词高亮功能的文本容器元素等宽高，并且重叠在文本容器上，划词的时候获取划词区域的文本节点相对于文本容器的位置信息，然后通过这些位置信息进行高亮背景的渲染。
+虽然思路看起来很简单，但是具体实现的过程还是有许多注意点的，接下来我就总结一下一些实现过程中的注意点和细节。
+实现细节 1. 让 canvas 与文本容器元素重叠 让 canvas 与文本容器元素重叠最好的实现方式就是将 canvas 做为文本容器的直接子节点，然后设置文本容易为相对定位，将 canvas 设置为绝对定位，然后将 top、left、right、bottom 都设置为 0，这样就可以时刻保证 canvas 元素与文本容器元素始终等宽高，且 canvas 重叠在文本容器上。
+不过这种实现方式也有一个问题，我们把 canvas 的层级提高了，盖住了文本容器中的其他文本节点，这样就没办法进行划词了，所以这时候我们需要给 canvas 再添加一个 css 属性：pointerEvents: &#39;none&#39;，这样就可以让 canvas 不响应鼠标事件，从而让底部文本节点可以正常划词了。
+2. 获取划词区域文本节点的位置信息 获取划词区域信息需要使用 document.getSelection().getRangeAt(0) 来获得当前划词区域的 range 对象，在这个对象上可以获取到划词区域的起始和终止文本节点以及偏移量信息。
+const { startContainer, // 起始节点 startOffset, // 起始节点偏移量 endContainer, // 终止节点 endOffset, // 终止节点偏移量 } = document.getSelection().getRangeAt(0); 虽然我们拿到了节点信息，但是怎么获得具体的位置信息呢？这时候就需要借助 Range 对象的强大功能了。
+// 创建一个 range 对象 const range = document." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="纯 JS 实现语雀的划词高亮功能" />
+<meta property="og:description" content="实现效果 话不多说，先看看最终实现的效果：
+当然这个只是实现了核心功能的 demo，更多的交互和 UI 细节也可以基于这个功能进行实现。
+实现思路 主要思路：生成一个 canvas 元素，让 canvas 元素与需要划词高亮功能的文本容器元素等宽高，并且重叠在文本容器上，划词的时候获取划词区域的文本节点相对于文本容器的位置信息，然后通过这些位置信息进行高亮背景的渲染。
+虽然思路看起来很简单，但是具体实现的过程还是有许多注意点的，接下来我就总结一下一些实现过程中的注意点和细节。
+实现细节 1. 让 canvas 与文本容器元素重叠 让 canvas 与文本容器元素重叠最好的实现方式就是将 canvas 做为文本容器的直接子节点，然后设置文本容易为相对定位，将 canvas 设置为绝对定位，然后将 top、left、right、bottom 都设置为 0，这样就可以时刻保证 canvas 元素与文本容器元素始终等宽高，且 canvas 重叠在文本容器上。
+不过这种实现方式也有一个问题，我们把 canvas 的层级提高了，盖住了文本容器中的其他文本节点，这样就没办法进行划词了，所以这时候我们需要给 canvas 再添加一个 css 属性：pointerEvents: &#39;none&#39;，这样就可以让 canvas 不响应鼠标事件，从而让底部文本节点可以正常划词了。
+2. 获取划词区域文本节点的位置信息 获取划词区域信息需要使用 document.getSelection().getRangeAt(0) 来获得当前划词区域的 range 对象，在这个对象上可以获取到划词区域的起始和终止文本节点以及偏移量信息。
+const { startContainer, // 起始节点 startOffset, // 起始节点偏移量 endContainer, // 终止节点 endOffset, // 终止节点偏移量 } = document.getSelection().getRangeAt(0); 虽然我们拿到了节点信息，但是怎么获得具体的位置信息呢？这时候就需要借助 Range 对象的强大功能了。
+// 创建一个 range 对象 const range = document." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/242/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-11-13T05:45:39+08:00" />
+<meta property="article:modified_time" content="2022-11-13T05:45:39+08:00" />
+
+  
+  <meta itemprop="name" content="纯 JS 实现语雀的划词高亮功能">
+<meta itemprop="description" content="实现效果 话不多说，先看看最终实现的效果：
+当然这个只是实现了核心功能的 demo，更多的交互和 UI 细节也可以基于这个功能进行实现。
+实现思路 主要思路：生成一个 canvas 元素，让 canvas 元素与需要划词高亮功能的文本容器元素等宽高，并且重叠在文本容器上，划词的时候获取划词区域的文本节点相对于文本容器的位置信息，然后通过这些位置信息进行高亮背景的渲染。
+虽然思路看起来很简单，但是具体实现的过程还是有许多注意点的，接下来我就总结一下一些实现过程中的注意点和细节。
+实现细节 1. 让 canvas 与文本容器元素重叠 让 canvas 与文本容器元素重叠最好的实现方式就是将 canvas 做为文本容器的直接子节点，然后设置文本容易为相对定位，将 canvas 设置为绝对定位，然后将 top、left、right、bottom 都设置为 0，这样就可以时刻保证 canvas 元素与文本容器元素始终等宽高，且 canvas 重叠在文本容器上。
+不过这种实现方式也有一个问题，我们把 canvas 的层级提高了，盖住了文本容器中的其他文本节点，这样就没办法进行划词了，所以这时候我们需要给 canvas 再添加一个 css 属性：pointerEvents: &#39;none&#39;，这样就可以让 canvas 不响应鼠标事件，从而让底部文本节点可以正常划词了。
+2. 获取划词区域文本节点的位置信息 获取划词区域信息需要使用 document.getSelection().getRangeAt(0) 来获得当前划词区域的 range 对象，在这个对象上可以获取到划词区域的起始和终止文本节点以及偏移量信息。
+const { startContainer, // 起始节点 startOffset, // 起始节点偏移量 endContainer, // 终止节点 endOffset, // 终止节点偏移量 } = document.getSelection().getRangeAt(0); 虽然我们拿到了节点信息，但是怎么获得具体的位置信息呢？这时候就需要借助 Range 对象的强大功能了。
+// 创建一个 range 对象 const range = document."><meta itemprop="datePublished" content="2022-11-13T05:45:39+08:00" />
+<meta itemprop="dateModified" content="2022-11-13T05:45:39+08:00" />
+<meta itemprop="wordCount" content="568">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="纯 JS 实现语雀的划词高亮功能"/>
+<meta name="twitter:description" content="实现效果 话不多说，先看看最终实现的效果：
+当然这个只是实现了核心功能的 demo，更多的交互和 UI 细节也可以基于这个功能进行实现。
+实现思路 主要思路：生成一个 canvas 元素，让 canvas 元素与需要划词高亮功能的文本容器元素等宽高，并且重叠在文本容器上，划词的时候获取划词区域的文本节点相对于文本容器的位置信息，然后通过这些位置信息进行高亮背景的渲染。
+虽然思路看起来很简单，但是具体实现的过程还是有许多注意点的，接下来我就总结一下一些实现过程中的注意点和细节。
+实现细节 1. 让 canvas 与文本容器元素重叠 让 canvas 与文本容器元素重叠最好的实现方式就是将 canvas 做为文本容器的直接子节点，然后设置文本容易为相对定位，将 canvas 设置为绝对定位，然后将 top、left、right、bottom 都设置为 0，这样就可以时刻保证 canvas 元素与文本容器元素始终等宽高，且 canvas 重叠在文本容器上。
+不过这种实现方式也有一个问题，我们把 canvas 的层级提高了，盖住了文本容器中的其他文本节点，这样就没办法进行划词了，所以这时候我们需要给 canvas 再添加一个 css 属性：pointerEvents: &#39;none&#39;，这样就可以让 canvas 不响应鼠标事件，从而让底部文本节点可以正常划词了。
+2. 获取划词区域文本节点的位置信息 获取划词区域信息需要使用 document.getSelection().getRangeAt(0) 来获得当前划词区域的 range 对象，在这个对象上可以获取到划词区域的起始和终止文本节点以及偏移量信息。
+const { startContainer, // 起始节点 startOffset, // 起始节点偏移量 endContainer, // 终止节点 endOffset, // 终止节点偏移量 } = document.getSelection().getRangeAt(0); 虽然我们拿到了节点信息，但是怎么获得具体的位置信息呢？这时候就需要借助 Range 对象的强大功能了。
+// 创建一个 range 对象 const range = document."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">纯 JS 实现语雀的划词高亮功能</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Nov 13, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="实现效果">实现效果</h2>
+<p>话不多说，先看看最终实现的效果：</p>
+<img src="/imgs/12/01.gif" />
+<p>当然这个只是实现了核心功能的 demo，更多的交互和 UI 细节也可以基于这个功能进行实现。</p>
+<h2 id="实现思路">实现思路</h2>
+<p>主要思路：生成一个 canvas 元素，让 canvas 元素与需要划词高亮功能的文本容器元素等宽高，并且重叠在文本容器上，划词的时候获取划词区域的文本节点相对于文本容器的位置信息，然后通过这些位置信息进行高亮背景的渲染。</p>
+<p>虽然思路看起来很简单，但是具体实现的过程还是有许多注意点的，接下来我就总结一下一些实现过程中的注意点和细节。</p>
+<h2 id="实现细节">实现细节</h2>
+<h3 id="1-让-canvas-与文本容器元素重叠">1. 让 canvas 与文本容器元素重叠</h3>
+<p>让 canvas 与文本容器元素重叠最好的实现方式就是将 canvas 做为文本容器的直接子节点，然后设置文本容易为相对定位，将 canvas 设置为绝对定位，然后将 top、left、right、bottom 都设置为 0，这样就可以时刻保证 canvas 元素与文本容器元素始终等宽高，且 canvas 重叠在文本容器上。</p>
+<p>不过这种实现方式也有一个问题，我们把 canvas 的层级提高了，盖住了文本容器中的其他文本节点，这样就没办法进行划词了，所以这时候我们需要给 canvas 再添加一个 css 属性：<code>pointerEvents: 'none'</code>，这样就可以让 canvas 不响应鼠标事件，从而让底部文本节点可以正常划词了。</p>
+<h3 id="2-获取划词区域文本节点的位置信息">2. 获取划词区域文本节点的位置信息</h3>
+<p>获取划词区域信息需要使用  <code>document.getSelection().getRangeAt(0)</code>  来获得当前划词区域的 range 对象，在这个对象上可以获取到划词区域的起始和终止文本节点以及偏移量信息。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">startContainer</span>, <span style="color:#75715e">// 起始节点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">startOffset</span>, <span style="color:#75715e">// 起始节点偏移量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">endContainer</span>, <span style="color:#75715e">// 终止节点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">endOffset</span>, <span style="color:#75715e">// 终止节点偏移量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>} <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getSelection</span>().<span style="color:#a6e22e">getRangeAt</span>(<span style="color:#ae81ff">0</span>);
+</span></span></code></pre></div><p>虽然我们拿到了节点信息，但是怎么获得具体的位置信息呢？这时候就需要借助  <code>Range</code>  对象的强大功能了。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 创建一个 range 对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">range</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createRange</span>();
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 设置需要获取位置信息的文本节点以及偏移量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">setStart</span>(<span style="color:#a6e22e">startContainer</span>, <span style="color:#a6e22e">startOffset</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">setEnd</span>(<span style="color:#a6e22e">startContainer</span>, <span style="color:#a6e22e">startContainer</span>.<span style="color:#a6e22e">textContent</span>.<span style="color:#a6e22e">length</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 通过 getBoundingClientRect 获取位置信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">rect</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">getBoundingClientRect</span>();
+</span></span></code></pre></div><p>通过创建 range 对象我们可以获得任何一个文本节点中的任何一段文本相对与整个页面的位置信息，然后再通过减去文本容器元素相对于整个页面的位置信息，我们就可以得到划词区域文本相对与文本容器的位置信息了。</p>
+<h3 id="3-获取头尾中间的文本节点">3. 获取头尾中间的文本节点</h3>
+<p>虽然我们通过  <code>document.getSelection().getRangeAt(0)</code>  获得了划词头尾节点的信息，但是头尾中间如果有其他的文本节点我们也需要进行背景高亮，那么中间的文本节点我们该怎么获得呢？</p>
+<p>这里我想到的办法是从头节点开始进行深度优先遍历，遍历到尾节点为止，然后收集遍历过程中的所有文本节点，这样我们就得到了整个划词区域内的所有文本节点，然后通过上面第 2 点的办法我们也可以得到所有文本节点的位置信息。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 获取 start 到 end 深度优先遍历之间的所有 Text Node 节点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getTextNodesByDfs</span>(<span style="color:#a6e22e">start</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Text</span>, <span style="color:#a6e22e">end</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Text</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">start</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">end</span>) <span style="color:#66d9ef">return</span> [];
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">iterator</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">nodeDfsGenerator</span>(<span style="color:#a6e22e">start</span>, <span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">textNodes</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Text</span>[] <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">iterator</span>.<span style="color:#a6e22e">next</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">iterator</span>.<span style="color:#a6e22e">next</span>().<span style="color:#a6e22e">value</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span> (<span style="color:#a6e22e">value</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">value</span> <span style="color:#f92672">!==</span> <span style="color:#a6e22e">end</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">nodeType</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">3</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">textNodes</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">value</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">iterator</span>.<span style="color:#a6e22e">next</span>().<span style="color:#a6e22e">value</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">value</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> [];
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">textNodes</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 返回节点的深度优先迭代器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 对于有子节点的 Node 会遍历到两次，不过 Text Node 肯定没有子节点，所以不会重复统计到
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span><span style="color:#f92672">*</span> <span style="color:#a6e22e">nodeDfsGenerator</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">node</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Node</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">isGoBack</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>)<span style="color:#f92672">:</span> <span style="color:#a6e22e">Generator</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Node</span>, <span style="color:#66d9ef">void</span>, <span style="color:#a6e22e">Node</span><span style="color:#f92672">&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">yield</span> <span style="color:#a6e22e">node</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// isGoBack 用于判断是否属于子节点遍历结束回退到父节点，如果是那么该节点不再遍历其子节点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">isGoBack</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">childNodes</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">yield</span><span style="color:#f92672">*</span> <span style="color:#a6e22e">nodeDfsGenerator</span>(<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">childNodes</span>[<span style="color:#ae81ff">0</span>], <span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">nextSibling</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">yield</span><span style="color:#f92672">*</span> <span style="color:#a6e22e">nodeDfsGenerator</span>(<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">nextSibling</span>, <span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">parentNode</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">yield</span><span style="color:#f92672">*</span> <span style="color:#a6e22e">nodeDfsGenerator</span>(<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">parentNode</span>, <span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="4-处理跨行文本节点的位置信息">4. 处理跨行文本节点的位置信息</h3>
+<p>其实我们之前第 2 点获取划词区域文本节点的位置信息的方案还有缺陷，对于跨行的文本节点我们如果仍然采用一个 range 去获取位置信息，那么得到的就是下面这种情况：</p>
+<img src="/imgs/12/02.gif" />
+<p>没错，位置信息是错误的，因为很明显 range 只能是一个矩形，并没有办法表示我们跨行选中时的不规则图形的位置信息。</p>
+<p>既然一个 range 不行，那么多个呢？所以我们的解决思路就是将一个跨行的 range 拆分成多个不跨行的 range。</p>
+<p>怎么拆呢？我使用的办法是通过二分法的方式去找到每一行的最后一个文本节点去拆分，怎么判断两个字符是否在同一行采用的创建一个单位长度的 range，比较 range 位置信息中的 top 是否相同来进行判断。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 将一个跨行的 range 切割为多个不跨行的 range
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">splitRange</span>(<span style="color:#a6e22e">node</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">Text</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">startOffset</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">number</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">endOffset</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">number</span>)<span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">Range</span>[] {
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">const</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">range</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span>document.<span style="color:#a6e22e">createRange</span>()
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">const</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">rowTop</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">getCharTop</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">startOffset</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#75715e">// 字符数小于两个不用判断是否跨行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#75715e">// 头尾高度一致说明在同一行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">if</span><span style="color:#960050;background-color:#1e0010"> </span>((<span style="color:#a6e22e">endOffset</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">-</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">startOffset</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#ae81ff">2</span>)<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">||</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">rowTop</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">===</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">getCharTop</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">endOffset</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">-</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#ae81ff">1</span>))<span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">setStart</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">startOffset</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">setEnd</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">endOffset</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#66d9ef">return</span><span style="color:#960050;background-color:#1e0010"> </span>[<span style="color:#a6e22e">range</span>]
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span>}<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#66d9ef">else</span><span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#66d9ef">const</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">last</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">findRowLastChar</span>(<span style="color:#a6e22e">rowTop</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">startOffset</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">endOffset</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">-</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">setStart</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">startOffset</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">setEnd</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">last</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">+</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#66d9ef">const</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">others</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">splitRange</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">last</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">+</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#ae81ff">1</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">endOffset</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#66d9ef">return</span><span style="color:#960050;background-color:#1e0010"> </span>[<span style="color:#a6e22e">range</span>,<span style="color:#960050;background-color:#1e0010"> </span>...<span style="color:#a6e22e">others</span>]
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span>}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 二分法找到 range 某一行的最右字符
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">findRowLastChar</span>(<span style="color:#a6e22e">top</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">number</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">node</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">Text</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">start</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">number</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">end</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">number</span>)<span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">number</span> {
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">if</span><span style="color:#960050;background-color:#1e0010"> </span>(<span style="color:#a6e22e">end</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">-</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">start</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">===</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#ae81ff">1</span>)<span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#66d9ef">return</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">getCharTop</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">end</span>)<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">===</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">top</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">?</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">end</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">start</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">const</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">mid</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span>(<span style="color:#a6e22e">end</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">+</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">start</span>)<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">&gt;&gt;</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">return</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">getCharTop</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">mid</span>)<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">===</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">top</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#f92672">?</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">findRowLastChar</span>(<span style="color:#a6e22e">top</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">mid</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">end</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">findRowLastChar</span>(<span style="color:#a6e22e">top</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">start</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">mid</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 获取 range 某个字符位置的 top 值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">getCharTop</span>(<span style="color:#a6e22e">node</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">Text</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">offset</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">number</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">return</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">getCharRect</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">offset</span>).<span style="color:#a6e22e">top</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 获取 range 某个字符位置的 DOMRect
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">getCharRect</span>(<span style="color:#a6e22e">node</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">Text</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">offset</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">number</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">const</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">range</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span>document.<span style="color:#a6e22e">createRange</span>()
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">setStart</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">offset</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">setEnd</span>(<span style="color:#a6e22e">node</span>,<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">offset</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">+</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#ae81ff">1</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">&gt;</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">textContent</span><span style="color:#f92672">!</span>.<span style="color:#a6e22e">length</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">?</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">offset</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">offset</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">+</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">return</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">getBoundingClientRect</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这样位置信息的问题我们就彻底解决了，接下来我们就可以使用这些信息去我们的 canvas 上渲染我们想要的高亮背景效果了。</p>
+<h3 id="5-划词信息持久化与返显">5. 划词信息持久化与返显</h3>
+<p>虽然我们实现了高亮的功能，但是设想如果我们做的是划词评论功能，那么肯定还涉及到将划词信息保存到后端，但是我们这一切的开头都是从系统提供的一个 range 对象开始的，但是 range 对象上的 startContainer 和 endContainer 是保存着 DOM 节点的引用，这肯定没办法序列化存储到后端的，所以我们需要一种方式能让我们准确的找到我们想要的文本节点。</p>
+<p>这里一开始我是参考了语雀的实现方式，但是发现语雀中的每一个文本标签都有一个固定的 id，这样他们实现起来就很简单了，只需要保存对应的 id 就行，但是采用这种方式就需要你对页面的每个文本标签都设置一个文本 id，这样显然与我们最初与页面文本结构解耦的想法不符了，</p>
+<p>所以这里我采用的是类似 XPath 的方式进行储存，对于头尾节点，我们保存一个路径数组，里面储存的是从文本容器通过 childNodes 属性遍历下去找到该节点的信息，这样对于任何的页面结构我们都可以使用了。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 获取从文本容器到文本节点的路径信息，用于存储
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">getPath</span>(<span style="color:#a6e22e">textNode</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">Text</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">const</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">path</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span>[<span style="color:#ae81ff">0</span>]
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">let</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">parentNode</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">textNode</span>.<span style="color:#a6e22e">parentNode</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">let</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">cur</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">Node</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">textNode</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">while</span><span style="color:#960050;background-color:#1e0010"> </span>(<span style="color:#a6e22e">parentNode</span>)<span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#66d9ef">if</span><span style="color:#960050;background-color:#1e0010"> </span>(<span style="color:#a6e22e">cur</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">===</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">parentNode</span>.<span style="color:#a6e22e">firstChild</span>)<span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">      </span><span style="color:#75715e">// this.root 为文本容器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">      </span><span style="color:#66d9ef">if</span><span style="color:#960050;background-color:#1e0010"> </span>(<span style="color:#a6e22e">parentNode</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">===</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">root</span>)<span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">        </span><span style="color:#66d9ef">break</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">      </span>}<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#66d9ef">else</span><span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">        </span><span style="color:#a6e22e">cur</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">parentNode</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">        </span><span style="color:#a6e22e">parentNode</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">cur</span>.<span style="color:#a6e22e">parentNode</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">        </span><span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">unshift</span>(<span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">      </span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span>}<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#66d9ef">else</span><span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">      </span><span style="color:#a6e22e">cur</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">cur</span>.<span style="color:#a6e22e">previousSibling</span><span style="color:#f92672">!</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">      </span><span style="color:#a6e22e">path</span>[<span style="color:#ae81ff">0</span>]<span style="color:#f92672">++</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">return</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">parentNode</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">?</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">path</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 根据路径信息获取文本节点，用于返显
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">getNodeByPath</span>(<span style="color:#a6e22e">path</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">number</span>[]) {
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#75715e">// this.root 为文本容器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">let</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">node</span><span style="color:#f92672">:</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">Node</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">root</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">for</span><span style="color:#960050;background-color:#1e0010"> </span>(<span style="color:#66d9ef">let</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">i</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#ae81ff">0</span>;<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">i</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">length</span>;<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>)<span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span><span style="color:#66d9ef">if</span><span style="color:#960050;background-color:#1e0010"> </span>(<span style="color:#a6e22e">node</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">&amp;&amp;</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">childNodes</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">&amp;&amp;</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">childNodes</span>[<span style="color:#a6e22e">path</span>[<span style="color:#a6e22e">i</span>]])<span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">      </span><span style="color:#a6e22e">node</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#f92672">=</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">childNodes</span>[<span style="color:#a6e22e">path</span>[<span style="color:#a6e22e">i</span>]]
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span>}<span style="color:#960050;background-color:#1e0010"> </span><span style="color:#66d9ef">else</span><span style="color:#960050;background-color:#1e0010"> </span>{
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">      </span><span style="color:#66d9ef">return</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">    </span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">  </span><span style="color:#66d9ef">return</span><span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">node</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="源码地址">源码地址</h2>
+<p>虽然是一个小小的功能，但是其实实现起来也是挺复杂的，所以我将这个功能封装成了一个工具库：canvas-highlighter[1]</p>
+<p>里面也提供了使用这个库的一些用法的在线演示[2]，有不能实现的功能点大家也可以提 issue。</p>
+<h3 id="参考资料-h">参考资料 h</h3>
+<p>[1] canvas-highlighter: https://github.com/DLillard0/canvas-highlighter</p>
+<p>[2] 在线演示: https://dlillard0.github.io/canvas-highlighter/yuque.html</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/243/"
+      ><span class="mr-1.5">←</span><span>前端缓存</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/241/"
+      ><span>30 个 Javascript 知识点总结</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>详解 JS 中的 Proxy(代理)和 Reflect(反射) - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="持续创作，加速成长！这是我参与「掘金日新计划 · 10 月更文挑战」的第 5 天，点击查看活动详情
+详解 JS 中的 Proxy(代理)和 Reflect(反射) 总所周知，Vue2 =&gt; Vue3 时，数据响应式方法从Object.defineProperty()方法变成了Proxy()，所以今天与大家 Proxy(代理)和 Reflect(反射)的知识。
+讲解 Proxy 和 Reflect 前，我们需要先了解属性描述符的作用，所以我们线简单解释一下属性描述符的知识。
+1.属性描述符 属性描述符(Property Descriptor) 本质上是一个 JavaScript 普通对象，用于描述一个属性的相关信息，共有下面这几种属性。
+value：属性值 configurable：该属性的描述符是否可以修改 enumerable：该属性是否可以被枚举 writable：该属性是否可以被重新赋值 存取器属性：属性描述符中如果配置了 get 和 set 中的任何一个，则该属性不再是一个普通属性，而变成了存取器属性。 get()读值函数：如果一个属性是存取器属性，则读取该属性时，会运行 get 方法，并将 get 方法得到的返回值作为属性值 set(newVal)存值函数：如果给该属性赋值，则会运行 set 方法，newVal 参数为赋值的值。 存取器属性最大的意义，在于可以控制属性的读取和赋值，在函数里可以进行各种操作。
+Vue2 数据响应式就是使用了这一点，在 getter 和 setter 函数中进行了数据绑定与派发更新。
+注意点：value 和 writable 属性不能与 get 和 set 属性二者不可共存，二者只能选其一。
+查看某个对象的属性描述符，使用以下这两种方法：
+Object.getOwnPropertyDescriptor(对象, 属性名); //得到一个对象的某个属性的属性描述符 Object.getOwnPropertyDescriptors(对象); //得到某个对象的所有属性描述符 为某个对象添加属性时 或 修改属性时，配置其属性描述符，使用以下这两种方法:" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="详解 JS 中的 Proxy(代理)和 Reflect(反射)" />
+<meta property="og:description" content="持续创作，加速成长！这是我参与「掘金日新计划 · 10 月更文挑战」的第 5 天，点击查看活动详情
+详解 JS 中的 Proxy(代理)和 Reflect(反射) 总所周知，Vue2 =&gt; Vue3 时，数据响应式方法从Object.defineProperty()方法变成了Proxy()，所以今天与大家 Proxy(代理)和 Reflect(反射)的知识。
+讲解 Proxy 和 Reflect 前，我们需要先了解属性描述符的作用，所以我们线简单解释一下属性描述符的知识。
+1.属性描述符 属性描述符(Property Descriptor) 本质上是一个 JavaScript 普通对象，用于描述一个属性的相关信息，共有下面这几种属性。
+value：属性值 configurable：该属性的描述符是否可以修改 enumerable：该属性是否可以被枚举 writable：该属性是否可以被重新赋值 存取器属性：属性描述符中如果配置了 get 和 set 中的任何一个，则该属性不再是一个普通属性，而变成了存取器属性。 get()读值函数：如果一个属性是存取器属性，则读取该属性时，会运行 get 方法，并将 get 方法得到的返回值作为属性值 set(newVal)存值函数：如果给该属性赋值，则会运行 set 方法，newVal 参数为赋值的值。 存取器属性最大的意义，在于可以控制属性的读取和赋值，在函数里可以进行各种操作。
+Vue2 数据响应式就是使用了这一点，在 getter 和 setter 函数中进行了数据绑定与派发更新。
+注意点：value 和 writable 属性不能与 get 和 set 属性二者不可共存，二者只能选其一。
+查看某个对象的属性描述符，使用以下这两种方法：
+Object.getOwnPropertyDescriptor(对象, 属性名); //得到一个对象的某个属性的属性描述符 Object.getOwnPropertyDescriptors(对象); //得到某个对象的所有属性描述符 为某个对象添加属性时 或 修改属性时，配置其属性描述符，使用以下这两种方法:" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/159/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-11T21:45:32+08:00" />
+<meta property="article:modified_time" content="2022-10-11T21:45:32+08:00" />
+
+  
+  <meta itemprop="name" content="详解 JS 中的 Proxy(代理)和 Reflect(反射)">
+<meta itemprop="description" content="持续创作，加速成长！这是我参与「掘金日新计划 · 10 月更文挑战」的第 5 天，点击查看活动详情
+详解 JS 中的 Proxy(代理)和 Reflect(反射) 总所周知，Vue2 =&gt; Vue3 时，数据响应式方法从Object.defineProperty()方法变成了Proxy()，所以今天与大家 Proxy(代理)和 Reflect(反射)的知识。
+讲解 Proxy 和 Reflect 前，我们需要先了解属性描述符的作用，所以我们线简单解释一下属性描述符的知识。
+1.属性描述符 属性描述符(Property Descriptor) 本质上是一个 JavaScript 普通对象，用于描述一个属性的相关信息，共有下面这几种属性。
+value：属性值 configurable：该属性的描述符是否可以修改 enumerable：该属性是否可以被枚举 writable：该属性是否可以被重新赋值 存取器属性：属性描述符中如果配置了 get 和 set 中的任何一个，则该属性不再是一个普通属性，而变成了存取器属性。 get()读值函数：如果一个属性是存取器属性，则读取该属性时，会运行 get 方法，并将 get 方法得到的返回值作为属性值 set(newVal)存值函数：如果给该属性赋值，则会运行 set 方法，newVal 参数为赋值的值。 存取器属性最大的意义，在于可以控制属性的读取和赋值，在函数里可以进行各种操作。
+Vue2 数据响应式就是使用了这一点，在 getter 和 setter 函数中进行了数据绑定与派发更新。
+注意点：value 和 writable 属性不能与 get 和 set 属性二者不可共存，二者只能选其一。
+查看某个对象的属性描述符，使用以下这两种方法：
+Object.getOwnPropertyDescriptor(对象, 属性名); //得到一个对象的某个属性的属性描述符 Object.getOwnPropertyDescriptors(对象); //得到某个对象的所有属性描述符 为某个对象添加属性时 或 修改属性时，配置其属性描述符，使用以下这两种方法:"><meta itemprop="datePublished" content="2022-10-11T21:45:32+08:00" />
+<meta itemprop="dateModified" content="2022-10-11T21:45:32+08:00" />
+<meta itemprop="wordCount" content="785">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="详解 JS 中的 Proxy(代理)和 Reflect(反射)"/>
+<meta name="twitter:description" content="持续创作，加速成长！这是我参与「掘金日新计划 · 10 月更文挑战」的第 5 天，点击查看活动详情
+详解 JS 中的 Proxy(代理)和 Reflect(反射) 总所周知，Vue2 =&gt; Vue3 时，数据响应式方法从Object.defineProperty()方法变成了Proxy()，所以今天与大家 Proxy(代理)和 Reflect(反射)的知识。
+讲解 Proxy 和 Reflect 前，我们需要先了解属性描述符的作用，所以我们线简单解释一下属性描述符的知识。
+1.属性描述符 属性描述符(Property Descriptor) 本质上是一个 JavaScript 普通对象，用于描述一个属性的相关信息，共有下面这几种属性。
+value：属性值 configurable：该属性的描述符是否可以修改 enumerable：该属性是否可以被枚举 writable：该属性是否可以被重新赋值 存取器属性：属性描述符中如果配置了 get 和 set 中的任何一个，则该属性不再是一个普通属性，而变成了存取器属性。 get()读值函数：如果一个属性是存取器属性，则读取该属性时，会运行 get 方法，并将 get 方法得到的返回值作为属性值 set(newVal)存值函数：如果给该属性赋值，则会运行 set 方法，newVal 参数为赋值的值。 存取器属性最大的意义，在于可以控制属性的读取和赋值，在函数里可以进行各种操作。
+Vue2 数据响应式就是使用了这一点，在 getter 和 setter 函数中进行了数据绑定与派发更新。
+注意点：value 和 writable 属性不能与 get 和 set 属性二者不可共存，二者只能选其一。
+查看某个对象的属性描述符，使用以下这两种方法：
+Object.getOwnPropertyDescriptor(对象, 属性名); //得到一个对象的某个属性的属性描述符 Object.getOwnPropertyDescriptors(对象); //得到某个对象的所有属性描述符 为某个对象添加属性时 或 修改属性时，配置其属性描述符，使用以下这两种方法:"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">详解 JS 中的 Proxy(代理)和 Reflect(反射)</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Oct 11, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/36e139b334f941ca88364ad0e9214a62~tplv-k3u1fbpfcp-zoom-crop-mark:3024:3024:3024:1702.awebp?" alt="详解 JS 中的 Proxy(代理)和 Reflect(反射)"></p>
+<p>持续创作，加速成长！这是我参与「掘金日新计划 · 10 月更文挑战」的第 5 天，<a href="https://juejin.cn/post/7147654075599978532">点击查看活动详情</a></p>
+<h1 id="详解-js-中的-proxy代理和-reflect反射">详解 JS 中的 Proxy(代理)和 Reflect(反射)</h1>
+<p>总所周知，Vue2 =&gt; Vue3 时，数据响应式方法从<code>Object.defineProperty()</code>方法变成了<code>Proxy()</code>，所以今天与大家 Proxy(代理)和 Reflect(反射)的知识。</p>
+<p>讲解 Proxy 和 Reflect 前，我们需要先了解<strong>属性描述符</strong>的作用，所以我们线简单解释一下属性描述符的知识。</p>
+<h2 id="1属性描述符">1.属性描述符</h2>
+<p>属性描述符(Property Descriptor) 本质上是一个 JavaScript 普通对象，用于描述一个属性的相关信息，共有下面这几种属性。</p>
+<ul>
+<li>value：属性值</li>
+<li>configurable：该属性的描述符是否可以修改</li>
+<li>enumerable：该属性是否可以被枚举</li>
+<li>writable：该属性是否可以被重新赋值</li>
+<li>存取器属性：属性描述符中如果配置了 get 和 set 中的任何一个，则该属性不再是一个普通属性，而变成了<strong>存取器属性</strong>。
+<ul>
+<li>get()读值函数：如果一个属性是存取器属性，则读取该属性时，会运行 get 方法，并将 get 方法得到的返回值作为属性值</li>
+<li>set(newVal)存值函数：如果给该属性赋值，则会运行 set 方法，newVal 参数为赋值的值。</li>
+</ul>
+</li>
+</ul>
+<p>存取器属性最大的意义，在于可以控制属性的读取和赋值，在函数里可以进行各种操作。</p>
+<p>Vue2 数据响应式就是使用了这一点，在 getter 和 setter 函数中进行了数据绑定与派发更新。</p>
+<p><strong>注意点</strong>：value 和 writable 属性不能与 get 和 set 属性二者不可共存，二者只能选其一。</p>
+<p>查看某个对象的属性描述符，使用以下这两种方法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>Object.<span style="color:#a6e22e">getOwnPropertyDescriptor</span>(<span style="color:#a6e22e">对象</span>, <span style="color:#a6e22e">属性名</span>); <span style="color:#75715e">//得到一个对象的某个属性的属性描述符
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>Object.<span style="color:#a6e22e">getOwnPropertyDescriptors</span>(<span style="color:#a6e22e">对象</span>); <span style="color:#75715e">//得到某个对象的所有属性描述符
+</span></span></span></code></pre></div><p>为某个对象添加属性时 或 修改属性时，配置其属性描述符，使用以下这两种方法:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>Object.<span style="color:#a6e22e">defineProperty</span>(<span style="color:#a6e22e">对象</span>, <span style="color:#a6e22e">属性名</span>, <span style="color:#a6e22e">描述符</span>); <span style="color:#75715e">//设置一个对象的某个属性
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>Object.<span style="color:#a6e22e">defineProperties</span>(<span style="color:#a6e22e">对象</span>, <span style="color:#a6e22e">多个属性的描述符</span>); <span style="color:#75715e">//设置一个对象的多个属性
+</span></span></span></code></pre></div><h2 id="2reflect">2.Reflect</h2>
+<ol>
+<li>
+<p>Reflect 是什么？ Reflect 是一个内置的 JS 对象，它提供了一系列方法，可以让开发者通过调用这些方法，访问一些 JS 底层功能。</p>
+<p>由于它类似于其他语言的<strong>反射</strong>，因此取名为 Reflect。</p>
+</li>
+<li>
+<p>它可以做什么？ 使用 Reflect 可以实现诸如：属性的赋值与取值、调用普通函数、调用构造函数、判断属性是否存在与对象中 等等功能。</p>
+</li>
+<li>
+<p>这些功能不是已经存在了吗？为什么还需要用 Reflect 实现一次？ 有一个重要的理念，在 ES5 就被提出：减少魔法、让代码更加纯粹（语言的方法使用 API 实现，而不使用特殊语法实现），这种理念很大程度上是受到函数式编程的影响。 ES6 进一步贯彻了这种理念，它认为，对属性内存的控制、原型链的修改、函数的调用等等，这些都属于底层实现，属于一种魔法，因此，需要将它们提取出来，形成一个正常的 API，并高度聚合到某个对象中，于是就造就了 Reflect 对象。 因此，你可以看到 Reflect 对象中有很多的 API 都可以使用过去的某种语法或其他 API 实现。</p>
+</li>
+<li>
+<p>Reflect 里面提供了哪些 API 呢？</p>
+</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Reflect API</th>
+<th>用处</th>
+<th>等同于</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reflect.get(target, propertyKey)</td>
+<td>读取对象 target 的属性 propertyKey</td>
+<td>对象的属性值读取操作</td>
+</tr>
+<tr>
+<td>Reflect.set(target, propertyKey, value)</td>
+<td>设置对象 target 的属性 propertyKey 的值为 value</td>
+<td>对象的属性赋值操作</td>
+</tr>
+<tr>
+<td>Reflect.has(target, propertyKey)</td>
+<td>判断一个对象是否拥有一个属性</td>
+<td>in 操作符</td>
+</tr>
+<tr>
+<td>Reflect.defineProperty(target, propertyKey, attributes)</td>
+<td>类似于 Object.defineProperty，不同的是如果配置出现问题，返回 false 而不是报错</td>
+<td>Object.defineProperty</td>
+</tr>
+<tr>
+<td>Reflect.deleteProperty(target, propertyKey)</td>
+<td>删除一个对象的属性</td>
+<td>delete 操作符</td>
+</tr>
+<tr>
+<td>Reflect.apply(target, thisArgument, argumentsList)</td>
+<td>调用一个指定的函数，并绑定 this 和参数列表</td>
+<td>函数调用操作</td>
+</tr>
+<tr>
+<td>Reflect.construct(target, argumentsList)</td>
+<td>用构造函数的方式创建一个对象</td>
+<td>new 操作符</td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Reflect">其他更多的 Reflect API</a></p>
+<h2 id="3proxy">3.Proxy</h2>
+<p>ECMAScript 6 新增的代理和反射<strong>为开发者提供了拦截并向基本操作嵌入额外行为的能力</strong>。</p>
+<p>具体地说，可以给<strong>目标对象</strong>(target)定义一个<strong>关联的代理对象</strong>，而这个代理对象可<strong>当作一个抽象的目标对象来使用</strong>。</p>
+<p>因此在对目标对象的各种操作影响到目标对象之前，我们可以在代理对象中对这些操作加以控制，并且最终也可能会改变操作返回的结果。</p>
+<p>所以我的理解是：代理(Proxy)能使我们开发者拥有一种间接修改底层方法的能力，从而控制用户的操作。</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/53ea02f2ff984d50a1c21818c4706282~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="proxy的作用.png"></p>
+<h3 id="31-创建空代理">3.1 创建空代理</h3>
+<p>最简单的代理是空代理，即除了作为一个抽象的目标对象，什么也不做。 默认情况下，在代理对象上执行的所有操作都会无障碍地传播到目标对象。因此，在任何可以使用目标对象的地方，都可以通过同样的方式来使用与之关联的代理对象。</p>
+<p>代理是使用 Proxy 构造函数创建的，这个构造函数接收两个参数：目标对象和处理程序对象。缺 少其中任何一个参数都会抛出 TypeError。返回一个代理对象 如：<code>new Proxy(target, handler);</code></p>
+<p>要创建空代理，可以传一个简单的对象字面量作为处理程序对象，从而让所有操作畅通无阻地抵达目标对象。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">target</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span> <span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;target&#39;</span>
+</span></span><span style="display:flex;"><span>}; <span style="color:#75715e">//target：目标对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handler</span> <span style="color:#f92672">=</span> {}; <span style="color:#75715e">//handler：是一个普通对象，其中可以重写底层实现
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//创建空对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">proxy</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Proxy(<span style="color:#a6e22e">target</span>, <span style="color:#a6e22e">handler</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// id 属性会访问同一个值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">id</span>); <span style="color:#75715e">// target
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">id</span>); <span style="color:#75715e">// target
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 给目标属性赋值会反映在两个对象上 因为两个对象访问的是同一个值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">id</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;foo&#39;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">id</span>); <span style="color:#75715e">// foo
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">id</span>); <span style="color:#75715e">// foo
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 给代理属性赋值会反映在两个对象上 因为这个赋值会转移到目标对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">id</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;bar&#39;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">id</span>); <span style="color:#75715e">// bar
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">id</span>); <span style="color:#75715e">// bar
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// hasOwnProperty()方法在两个地方  也都会应用到目标对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">hasOwnProperty</span>(<span style="color:#e6db74">&#39;id&#39;</span>)); <span style="color:#75715e">// true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">hasOwnProperty</span>(<span style="color:#e6db74">&#39;id&#39;</span>)); <span style="color:#75715e">// true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Proxy.prototype 是 undefined   因此不能使用 instanceof 操作符
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">target</span> <span style="color:#66d9ef">instanceof</span> Proxy); <span style="color:#75715e">// TypeError: Function has non-object prototype
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#e6db74">&#39;undefined&#39;</span> <span style="color:#66d9ef">in</span> <span style="color:#66d9ef">instanceof</span> <span style="color:#a6e22e">check</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">proxy</span> <span style="color:#66d9ef">instanceof</span> Proxy); <span style="color:#75715e">// TypeError: Function has non-object prototype
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#e6db74">&#39;undefined&#39;</span> <span style="color:#66d9ef">in</span> <span style="color:#66d9ef">instanceof</span> <span style="color:#a6e22e">check</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 严格相等可以用来区分代理和目标
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">target</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">proxy</span>); <span style="color:#75715e">// false
+</span></span></span></code></pre></div><h3 id="32-定义捕获器">3.2 定义捕获器</h3>
+<p>使用代理的主要目的是可以定义捕获器（trap）。捕获器就是在处理程序对象中定义的“基本操作的拦截器”。</p>
+<p>每个处理程序对象可以包含零个或多个捕获器，每个捕获器都对应一种基本操作，可以直接或间接在代理对象上调用。</p>
+<p>每次在代理对象上调用这些基本操作时，代理可以在这些操作传播到目标对象之前先调用捕获器函数，从而拦截并修改相应的行为。</p>
+<p>所有捕获器都可以访问相应的参数，基于这些参数可以重建被捕获方法的原始行为。比如，get()捕获器会接收到<strong>目标对象</strong>、<strong>要查询的属性</strong>和<strong>代理对象</strong>三个参数。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">target</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">foo</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;bar&#34;</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handler</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 捕获器在处理程序对象中以方法名为键
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">trapTarget</span>, <span style="color:#a6e22e">property</span>, <span style="color:#a6e22e">receiver</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//trapTarget - 目标对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//property   - 要查询的属性
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//receiver   - 代理对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;handler override&#34;</span>;
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">proxy</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Proxy(<span style="color:#a6e22e">target</span>, <span style="color:#a6e22e">handler</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">foo</span>); <span style="color:#75715e">// bar
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">foo</span>); <span style="color:#75715e">// handler override
+</span></span></span></code></pre></div><h3 id="33-捕获器不变式">3.3 捕获器不变式</h3>
+<p>使用捕获器几乎可以改变所有基本方法的行为，但也不是没有限制。</p>
+<p>根据 ECMAScript 规范，每个捕获的方法都知道目标对象上下文、捕获函数签名，而捕获处理程序的行为必须遵循“捕获器不变式”（trap invariant）。捕获器不变式因方法不同而异，但通常都会防止捕获器定义出现过于反常的行为。</p>
+<p>比如，如果目标对象有一个不可配置且不可写的数据属性，那么在捕获器返回一个与该属性不同的值时，会抛出 TypeError：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">target</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span>Object.<span style="color:#a6e22e">defineProperty</span>(<span style="color:#a6e22e">target</span>, <span style="color:#e6db74">&#34;foo&#34;</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">configurable</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">writable</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">value</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;bar&#34;</span>,
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handler</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">get</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;qux&#34;</span>;
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">proxy</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Proxy(<span style="color:#a6e22e">target</span>, <span style="color:#a6e22e">handler</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">foo</span>); <span style="color:#75715e">// TypeError
+</span></span></span></code></pre></div><h3 id="34-可撤销代理">3.4 可撤销代理</h3>
+<p>有时候可能需要中断代理对象与目标对象之间的联系。</p>
+<p>Proxy 也暴露了 <strong>revocable()方法</strong>，这个方法支持撤销代理对象与目标对象的关联。</p>
+<p>后续可直接调用<strong>撤销函数 revoke()</strong> 来撤销代理。</p>
+<p>撤销代理之后再调用代理会抛出 TypeError，撤销函数和代理对象是在实例化时同时生成的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">target</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">foo</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;bar&#34;</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handler</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">get</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;intercepted&#34;</span>;
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">proxy</span>, <span style="color:#a6e22e">revoke</span> } <span style="color:#f92672">=</span> Proxy.<span style="color:#a6e22e">revocable</span>(<span style="color:#a6e22e">target</span>, <span style="color:#a6e22e">handler</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">foo</span>); <span style="color:#75715e">// intercepted
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">foo</span>); <span style="color:#75715e">// bar
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">revoke</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">foo</span>); <span style="color:#75715e">// TypeError
+</span></span></span></code></pre></div><h2 id="4代理捕获器与反射方法">4.代理捕获器与反射方法</h2>
+<h3 id="41-get">4.1 get()</h3>
+<p>get()捕获器会在获取属性值的操作中被调用。对应的反射 API 方法为 Reflect.get()</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">myTarget</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">proxy</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Proxy(<span style="color:#a6e22e">myTarget</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">target</span>, <span style="color:#a6e22e">property</span>, <span style="color:#a6e22e">receiver</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;get()&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">Reflect</span>.<span style="color:#a6e22e">get</span>(...<span style="color:#a6e22e">arguments</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">foo</span>; <span style="color:#75715e">// 触发get()捕获器
+</span></span></span></code></pre></div><ol>
+<li>返回值 返回值无限制。</li>
+<li>拦截的操作
+<ul>
+<li>proxy.property</li>
+<li>proxy[property]</li>
+<li>Object.create(proxy)[property]</li>
+<li>Reflect.get(proxy, property, receiver)</li>
+</ul>
+</li>
+<li>捕获器处理程序参数
+<ul>
+<li>target：目标对象。</li>
+<li>property：引用的目标对象上的字符串键属性。① - receiver：代理对象或继承代理对象的对象。</li>
+</ul>
+</li>
+<li>捕获器不变式 如果 target.property 不可写且不可配置，则处理程序返回的值必须与 target.property 匹配。 如果 target.property 不可配置且[[Get]]特性为 undefined，处理程序的返回值也必须是 undefined。</li>
+</ol>
+<h3 id="42-set">4.2 set()</h3>
+<p>set()捕获器会在设置属性值的操作中被调用。对应的反射 API 方法为 Reflect.set()。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">myTarget</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">proxy</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Proxy(<span style="color:#a6e22e">myTarget</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">set</span>(<span style="color:#a6e22e">target</span>, <span style="color:#a6e22e">property</span>, <span style="color:#a6e22e">value</span>, <span style="color:#a6e22e">receiver</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;set()&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">Reflect</span>.<span style="color:#a6e22e">set</span>(...<span style="color:#a6e22e">arguments</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">foo</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;bar&#34;</span>; <span style="color:#75715e">// 触发set()捕获器
+</span></span></span></code></pre></div><ol>
+<li>返回值 返回 true 表示成功；返回 false 表示失败，严格模式下会抛出 TypeError。</li>
+<li>拦截的操作
+<ul>
+<li>proxy.property = value</li>
+<li>proxy[property] = value</li>
+<li>Object.create(proxy)[property] = value</li>
+<li>Reflect.set(proxy, property, value, receiver)</li>
+</ul>
+</li>
+<li>捕获器处理程序参数
+<ul>
+<li>target：目标对象。</li>
+<li>property：引用的目标对象上的字符串键属性。</li>
+<li>value：要赋给属性的值。</li>
+<li>receiver：接收最初赋值的对象。</li>
+</ul>
+</li>
+<li>捕获器不变式 如果 target.property 不可写且不可配置，则不能修改目标属性的值。 如果 target.property 不可配置且[[Set]]特性为 undefined，则不能修改目标属性的值。 在严格模式下，处理程序中返回 false 会抛出 TypeError。</li>
+</ol>
+<h3 id="43-has">4.3 has()</h3>
+<p>has()捕获器会在 in 操作符中被调用。对应的反射 API 方法为 Reflect.has()。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">myTarget</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">proxy</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Proxy(<span style="color:#a6e22e">myTarget</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">has</span>(<span style="color:#a6e22e">target</span>, <span style="color:#a6e22e">property</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;has()&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">Reflect</span>.<span style="color:#a6e22e">has</span>(...<span style="color:#a6e22e">arguments</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;foo&#34;</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">proxy</span>; <span style="color:#75715e">//触发 has()捕获器
+</span></span></span></code></pre></div><ol>
+<li>返回值 has()必须返回布尔值，表示属性是否存在。返回非布尔值会被转型为布尔值。</li>
+<li>拦截的操作
+<ul>
+<li>property in proxy</li>
+<li>property in Object.create(proxy)</li>
+<li>with(proxy) {(property);}</li>
+<li>Reflect.has(proxy, property)</li>
+</ul>
+</li>
+<li>捕获器处理程序参数
+<ul>
+<li>target：目标对象。</li>
+<li>property：引用的目标对象上的字符串键属性。</li>
+</ul>
+</li>
+<li>捕获器不变式 如果 target.property 存在且不可配置，则处理程序必须返回 true。 如果 target.property 存在且目标对象不可扩展，则处理程序必须返回 true。</li>
+</ol>
+<h3 id="44-deleteproperty">4.4 deleteProperty()</h3>
+<p>deleteProperty()捕获器会在 delete 操作符中被调用。对应的反射 API 方法为 Reflect.deleteProperty()。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">myTarget</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">proxy</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Proxy(<span style="color:#a6e22e">myTarget</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">deleteProperty</span>(<span style="color:#a6e22e">target</span>, <span style="color:#a6e22e">property</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;deleteProperty()&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">Reflect</span>.<span style="color:#a6e22e">deleteProperty</span>(...<span style="color:#a6e22e">arguments</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">delete</span> <span style="color:#a6e22e">proxy</span>.<span style="color:#a6e22e">foo</span>; <span style="color:#75715e">// 触发deleteProperty()捕获器
+</span></span></span></code></pre></div><ol>
+<li>返回值 deleteProperty()必须返回布尔值，表示删除属性是否成功。返回非布尔值会被转型为布尔值。</li>
+<li>拦截的操作
+<ul>
+<li>delete proxy.property</li>
+<li>delete proxy[property]</li>
+<li>Reflect.deleteProperty(proxy, property)</li>
+</ul>
+</li>
+<li>捕获器处理程序参数
+<ul>
+<li>target：目标对象。</li>
+<li>property：引用的目标对象上的字符串键属性。</li>
+</ul>
+</li>
+<li>捕获器不变式 如果自有的 target.property 存在且不可配置，则处理程序不能删除这个属性。</li>
+</ol>
+<h3 id="45-apply">4.5 apply()</h3>
+<p>apply()捕获器会在调用函数时中被调用。对应的反射 API 方法为 Reflect.apply()。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">myTarget</span> <span style="color:#f92672">=</span> () =&gt; {};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">proxy</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Proxy(<span style="color:#a6e22e">myTarget</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">apply</span>(<span style="color:#a6e22e">target</span>, <span style="color:#a6e22e">thisArg</span>, ...<span style="color:#a6e22e">argumentsList</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;apply()&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">Reflect</span>.<span style="color:#a6e22e">apply</span>(...<span style="color:#a6e22e">arguments</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">proxy</span>(); <span style="color:#75715e">// 触发apply()捕获器
+</span></span></span></code></pre></div><ol>
+<li>返回值 返回值无限制。</li>
+<li>拦截的操作
+<ul>
+<li>proxy(&hellip;argumentsList)</li>
+<li>Function.prototype.apply(thisArg, argumentsList)</li>
+<li>Function.prototype.call(thisArg, &hellip;argumentsList)</li>
+<li>Reflect.apply(target, thisArgument, argumentsList)</li>
+</ul>
+</li>
+<li>捕获器处理程序参数
+<ul>
+<li>target：目标对象。</li>
+<li>thisArg：调用函数时的 this 参数。</li>
+<li>argumentsList：调用函数时的参数列表</li>
+</ul>
+</li>
+<li>捕获器不变式 target 必须是一个函数对象。</li>
+</ol>
+<h3 id="46-construct">4.6 construct()</h3>
+<p>construct()捕获器会在 new 操作符中被调用。对应的反射 API 方法为 Reflect.construct()。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">myTarget</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">proxy</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Proxy(<span style="color:#a6e22e">myTarget</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">construct</span>(<span style="color:#a6e22e">target</span>, <span style="color:#a6e22e">argumentsList</span>, <span style="color:#a6e22e">newTarget</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;construct()&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">Reflect</span>.<span style="color:#a6e22e">construct</span>(...<span style="color:#a6e22e">arguments</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">new</span> <span style="color:#a6e22e">proxy</span>(); <span style="color:#75715e">// 触发construct()捕获器
+</span></span></span></code></pre></div><ol>
+<li>返回值 construct()必须返回一个对象。</li>
+<li>拦截的操作
+<ul>
+<li>new proxy(&hellip;argumentsList)</li>
+<li>Reflect.construct(target, argumentsList, newTarget)</li>
+</ul>
+</li>
+<li>捕获器处理程序参数
+<ul>
+<li>target：目标构造函数</li>
+<li>argumentsList：传给目标构造函数的参数列表。</li>
+<li>newTarget：最初被调用的构造函数。</li>
+</ul>
+</li>
+<li>捕获器不变式 target 必须可以用作构造函数。</li>
+</ol>
+<p>还有另外七种捕获器：</p>
+<ul>
+<li>defineProperty()捕获器会在 Object.defineProperty()中被调用。</li>
+<li>getOwnPropertyDescriptor()捕获器会在 Object.getOwnPropertyDescriptor()中被调 用。</li>
+<li>ownKeys()捕获器会在 Object.keys()及类似方法中被调用。</li>
+<li>getPrototypeOf()捕获器会在 Object.getPrototypeOf()中被调用。</li>
+<li>setPrototypeOf()捕获器会在 Object.setPrototypeOf()中被调用。</li>
+<li>isExtensible()捕获器会在 Object.isExtensible()中被调用。</li>
+<li>preventExtensions()捕获器会在 Object.preventExtensions()中被调用。</li>
+</ul>
+<p>这七种捕获器详细介绍可参考<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy">MDN - Proxy</a>。</p>
+<h2 id="参考博客">参考博客</h2>
+<ul>
+<li>《Javascript 高级程序设计(第 4 版)》（JS 红宝书）</li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy">MDN - Proxy</a></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Reflect">MDN - Reflect</a></li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/160/"
+      ><span class="mr-1.5">←</span><span>CSS 实现爱心跟随鼠标效果</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/158/"
+      ><span>半透明边框</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

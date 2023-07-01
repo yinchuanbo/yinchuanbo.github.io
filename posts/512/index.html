@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>进阶React开发技巧：如何灵活运用useImperativeHandle - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="我们昨天在《提升 React 组件灵活性：深入了解 forwardRef API 的妙用》一文中深入了解了 React 的 forwardRef API。当我们需要操作子组件中的某个 DOM 节点时，forwardRef 能很好的满足我们的需求。但是，如果我们要操作子组件中的某些方法或属性该怎么办呢？
+你可能马上会想到使用回调函数，将子组件中需要暴露的方法或属性通过回调函数暴露给父组件。比如下面的代码：
+import React from &#34;react&#34;; // 子组件 function ChildComponent(props) { const otherOperate = () =&gt; { // some code... }; const handleClick = () =&gt; { if (props.onClick) { // 父组件传递过来的回调函数 props.onClick({ otherOperate }); } }; return &lt;button onClick={handleClick}&gt;点我!&lt;/button&gt;; } // 父组件 function ParentComponent() { const handleClick = (propsFromChild) =&gt; { console.log(&#34;Button clicked!&#34;, propsFromChild); }; return ( &lt;div&gt; &lt;ChildComponent onClick={handleClick} /&gt; &lt;/div&gt; ); } export default ParentComponent; 在上面的示例中，我们将 handleClick 函数作为 onClick 属性传递给 ChildComponent 子组件。当 ChildComponent 中的按钮被点击时，handleClick 函数就会被调用，同时将子组件中的 otherOperate 方法暴露给了父组件。这样当我们点击子组件的按钮时，父组件便可访问子组件暴露出来的方法，从而实现了父子组件之间的通信。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="进阶React开发技巧：如何灵活运用useImperativeHandle" />
+<meta property="og:description" content="我们昨天在《提升 React 组件灵活性：深入了解 forwardRef API 的妙用》一文中深入了解了 React 的 forwardRef API。当我们需要操作子组件中的某个 DOM 节点时，forwardRef 能很好的满足我们的需求。但是，如果我们要操作子组件中的某些方法或属性该怎么办呢？
+你可能马上会想到使用回调函数，将子组件中需要暴露的方法或属性通过回调函数暴露给父组件。比如下面的代码：
+import React from &#34;react&#34;; // 子组件 function ChildComponent(props) { const otherOperate = () =&gt; { // some code... }; const handleClick = () =&gt; { if (props.onClick) { // 父组件传递过来的回调函数 props.onClick({ otherOperate }); } }; return &lt;button onClick={handleClick}&gt;点我!&lt;/button&gt;; } // 父组件 function ParentComponent() { const handleClick = (propsFromChild) =&gt; { console.log(&#34;Button clicked!&#34;, propsFromChild); }; return ( &lt;div&gt; &lt;ChildComponent onClick={handleClick} /&gt; &lt;/div&gt; ); } export default ParentComponent; 在上面的示例中，我们将 handleClick 函数作为 onClick 属性传递给 ChildComponent 子组件。当 ChildComponent 中的按钮被点击时，handleClick 函数就会被调用，同时将子组件中的 otherOperate 方法暴露给了父组件。这样当我们点击子组件的按钮时，父组件便可访问子组件暴露出来的方法，从而实现了父子组件之间的通信。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/512/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-18T10:39:31+08:00" />
+<meta property="article:modified_time" content="2023-04-18T10:39:31+08:00" />
+
+  
+  <meta itemprop="name" content="进阶React开发技巧：如何灵活运用useImperativeHandle">
+<meta itemprop="description" content="我们昨天在《提升 React 组件灵活性：深入了解 forwardRef API 的妙用》一文中深入了解了 React 的 forwardRef API。当我们需要操作子组件中的某个 DOM 节点时，forwardRef 能很好的满足我们的需求。但是，如果我们要操作子组件中的某些方法或属性该怎么办呢？
+你可能马上会想到使用回调函数，将子组件中需要暴露的方法或属性通过回调函数暴露给父组件。比如下面的代码：
+import React from &#34;react&#34;; // 子组件 function ChildComponent(props) { const otherOperate = () =&gt; { // some code... }; const handleClick = () =&gt; { if (props.onClick) { // 父组件传递过来的回调函数 props.onClick({ otherOperate }); } }; return &lt;button onClick={handleClick}&gt;点我!&lt;/button&gt;; } // 父组件 function ParentComponent() { const handleClick = (propsFromChild) =&gt; { console.log(&#34;Button clicked!&#34;, propsFromChild); }; return ( &lt;div&gt; &lt;ChildComponent onClick={handleClick} /&gt; &lt;/div&gt; ); } export default ParentComponent; 在上面的示例中，我们将 handleClick 函数作为 onClick 属性传递给 ChildComponent 子组件。当 ChildComponent 中的按钮被点击时，handleClick 函数就会被调用，同时将子组件中的 otherOperate 方法暴露给了父组件。这样当我们点击子组件的按钮时，父组件便可访问子组件暴露出来的方法，从而实现了父子组件之间的通信。"><meta itemprop="datePublished" content="2023-04-18T10:39:31+08:00" />
+<meta itemprop="dateModified" content="2023-04-18T10:39:31+08:00" />
+<meta itemprop="wordCount" content="397">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="进阶React开发技巧：如何灵活运用useImperativeHandle"/>
+<meta name="twitter:description" content="我们昨天在《提升 React 组件灵活性：深入了解 forwardRef API 的妙用》一文中深入了解了 React 的 forwardRef API。当我们需要操作子组件中的某个 DOM 节点时，forwardRef 能很好的满足我们的需求。但是，如果我们要操作子组件中的某些方法或属性该怎么办呢？
+你可能马上会想到使用回调函数，将子组件中需要暴露的方法或属性通过回调函数暴露给父组件。比如下面的代码：
+import React from &#34;react&#34;; // 子组件 function ChildComponent(props) { const otherOperate = () =&gt; { // some code... }; const handleClick = () =&gt; { if (props.onClick) { // 父组件传递过来的回调函数 props.onClick({ otherOperate }); } }; return &lt;button onClick={handleClick}&gt;点我!&lt;/button&gt;; } // 父组件 function ParentComponent() { const handleClick = (propsFromChild) =&gt; { console.log(&#34;Button clicked!&#34;, propsFromChild); }; return ( &lt;div&gt; &lt;ChildComponent onClick={handleClick} /&gt; &lt;/div&gt; ); } export default ParentComponent; 在上面的示例中，我们将 handleClick 函数作为 onClick 属性传递给 ChildComponent 子组件。当 ChildComponent 中的按钮被点击时，handleClick 函数就会被调用，同时将子组件中的 otherOperate 方法暴露给了父组件。这样当我们点击子组件的按钮时，父组件便可访问子组件暴露出来的方法，从而实现了父子组件之间的通信。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">进阶React开发技巧：如何灵活运用useImperativeHandle</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 18, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>我们昨天在《<a href="https://mp.weixin.qq.com/s?__biz=MzIzMDM4MzE3Mw==&amp;mid=2247485147&amp;idx=1&amp;sn=d0948ec534dd2fbdabea15fc051edef4&amp;chksm=e8b50df1dfc284e729f0d52fc986f40e9b7d8f40290d412f37cf0ac647ea262fd0595b1133c9&amp;token=1904127190&amp;lang=zh_CN#rd">提升 React 组件灵活性：深入了解 forwardRef API 的妙用</a>》一文中深入了解了 React 的  <code>forwardRef</code> API。当我们需要操作子组件中的某个 DOM 节点时，<code>forwardRef</code>  能很好的满足我们的需求。但是，如果我们要操作子组件中的某些方法或属性该怎么办呢？</p>
+<p>你可能马上会想到使用回调函数，将子组件中需要暴露的方法或属性通过回调函数暴露给父组件。比如下面的代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">React</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 子组件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">ChildComponent</span>(<span style="color:#a6e22e">props</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">otherOperate</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// some code...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleClick</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">onClick</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 父组件传递过来的回调函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">onClick</span>({ <span style="color:#a6e22e">otherOperate</span> });
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">handleClick</span>}&gt;<span style="color:#a6e22e">点我</span><span style="color:#f92672">!</span>&lt;/<span style="color:#f92672">button</span>&gt;;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 父组件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">ParentComponent</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleClick</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">propsFromChild</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;Button clicked!&#34;</span>, <span style="color:#a6e22e">propsFromChild</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">ChildComponent</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">handleClick</span>} /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">ParentComponent</span>;
+</span></span></code></pre></div><p>在上面的示例中，我们将  <code>handleClick</code>  函数作为  <code>onClick</code>  属性传递给  <code>ChildComponent</code>  子组件。当  <code>ChildComponent</code>  中的按钮被点击时，<code>handleClick</code>  函数就会被调用，同时将子组件中的  <code>otherOperate</code>  方法暴露给了父组件。这样当我们点击子组件的按钮时，父组件便可访问子组件暴露出来的方法，从而实现了父子组件之间的通信。</p>
+<p>通过回调函数的方式进行父子组件之间的通信，父组件只能调用子组件暴露出来的方法，而无法直接访问子组件的内部状态和属性。 <em>（熟练运用回调函数的能力是非常重要的，文末免费为大家准备了一本 JS 方面的大部头电子书，稍后记得领取哦）</em></p>
+<p>那有没有方法可以在父组件中访问子组件的内部状态和属性呢？</p>
+<p>下面，就让我们来认识一下 React 为中的一个非常强大的钩子函数吧。</p>
+<h2 id="初识useimperativehandle">初识<code>useImperativeHandle</code></h2>
+<p><code>useImperativeHandle</code>  是 React 中的一个钩子函数，它可以暴露一个组件的 ref，从而使得父组件可以调用子组件的某些方法和属性。</p>
+<p><code>useImperativeHandle</code>  钩子函数有着非常广泛的用途，灵活运用这个钩子函数能为我们开发带来极大的便利。比如，我们在子组件中封装了一个播放器，父组件可能需要控制播放器的播放、暂停、停止等操作，这时就可以使用  <code>useImperativeHandle</code>  将这些操作暴露给父组件。</p>
+<p>再比如上面通过回调函数暴露子组件中  <code>otherOperate</code>  的示例，我们完全可以使用  <code>useImperativeHandle</code>  来实现，同时父组件还能直接访问子组件的内部状态和属性。</p>
+<p>介绍了这么多，应该怎么用  <code>useImperativeHandle</code>  呢？</p>
+<h2 id="useimperativehandle-的基本用法"><code>useImperativeHandle</code>  的基本用法</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">useImperativeHandle</span>(<span style="color:#a6e22e">ref</span>, <span style="color:#a6e22e">createHandle</span>, [<span style="color:#a6e22e">deps</span>]);
+</span></span></code></pre></div><p><code>useImperativeHandle</code>  接受三个参数：</p>
+<ul>
+<li><code>ref</code>：一个 Ref 对象，通常来说，是从父组件传递过来的。</li>
+<li><code>createHandle</code>：一个回调函数，该函数返回一个对象，这个对象的属性和方法会被暴露给父组件。</li>
+<li><code>[deps]</code>：可选参数，一个数组，用于指定回调函数的依赖项。当这些依赖项发生变化时，回调函数会被重新执行。如果不指定依赖项，则回调函数只会在组件首次渲染时执行一次。</li>
+</ul>
+<p>在子组件中使用  <code>useImperativeHandle</code>  钩子函数时，我们需要将 ref 从父组件传递过来，并在回调函数中返回一个对象。这个对象中的属性和方法会被暴露给父组件以供使用。需要注意的是，只有在回调函数中返回的对象属性和方法才会暴露出去，而子组件中的其他属性和方法则不会。</p>
+<p>在使用  <code>useImperativeHandle</code>  时，我们还可以通过  <code>[deps]</code>  参数指定回调函数的依赖项，从而避免不必要的重复渲染。当这些依赖项发生变化时，回调函数才会被重新执行。而如果不指定依赖项，则回调函数只会在组件首次渲染时执行一次。</p>
+<p>下面我们通过一个计数器的例子来演示如何使用  <code>useImperativeHandle</code>。</p>
+<h2 id="计数器示例">计数器示例</h2>
+<p>首先，我们编写计数器组件，代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">React</span>, { <span style="color:#a6e22e">forwardRef</span>, <span style="color:#a6e22e">useImperativeHandle</span>, <span style="color:#a6e22e">useState</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 使用 forwardRef 函数创建一个 Counter 组件，并将 ref 参数传递下去
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Counter</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">forwardRef</span>((<span style="color:#a6e22e">props</span>, <span style="color:#a6e22e">ref</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 使用 useState 创建一个名为 count 的状态，初始值为 0
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">count</span>, <span style="color:#a6e22e">setCount</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 创建 increase 函数，用于增加计数器的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">increase</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setCount</span>(<span style="color:#a6e22e">count</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 创建函数 decrease，用于减少计数器的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">decrease</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setCount</span>(<span style="color:#a6e22e">count</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 使用useImperativeHandle hook，将ref暴露给父组件，并返回一个对象，对
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 象中包含了increase和decrease两个方法，使得父组件可以直接调用这两个方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 来修改计数器的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">useImperativeHandle</span>(<span style="color:#a6e22e">ref</span>, () =&gt; ({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">increase</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">decrease</span>,
+</span></span><span style="display:flex;"><span>  }));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 返回一个包含当前计数器值的div元素
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">div</span>&gt;{<span style="color:#a6e22e">count</span>}&lt;/<span style="color:#f92672">div</span>&gt;;
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 导出 Counter 组件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">Counter</span>;
+</span></span></code></pre></div><p>在上面的代码中，我们使用了  <code>useImperativeHandle</code>  来暴露  <code>increase</code>  和  <code>decrease</code>  两个方法，使得父组件可以直接调用这两个方法来修改计数器的值。注意，在回调函数中返回的对象属性和方法才会被暴露出来，而其他属性和方法则不会。在这里，我们只暴露了  <code>increase</code>  和  <code>decrease</code>  两个方法，而  <code>count</code>  状态则没有被暴露出来。</p>
+<p>接下来，在父组件中引用这个计数器组件  <code>Counter</code>，并演示如何调用它暴露的方法来操作计数器的值。代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">React</span>, { <span style="color:#a6e22e">useRef</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Counter</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./Counter&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">App</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 使用 useRef hook 创建一个名为 counterRef 的引用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">counterRef</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useRef</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 创建一个名为 handleIncrease 的函数，用于增加计数器的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleIncrease</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 通过 counterRef.current 获取 Counter 组件实例，并调用它暴露的 increase 方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">counterRef</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">increase</span>();
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 创建一个名为 handleDecrease 的函数，用于减少计数器的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleDecrease</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 通过 counterRef.current 获取 Counter 组件实例，并调用它暴露的 decrease 方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">counterRef</span>.<span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">decrease</span>();
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 返回一个包含 Counter 组件和两个按钮的 div 元素，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 点击按钮会触发子组件暴露出来的 handleIncrease 和 handleDecrease 函数，从而操作计数器的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Counter</span> <span style="color:#a6e22e">ref</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">counterRef</span>} /&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">handleIncrease</span>}&gt;<span style="color:#a6e22e">Increase</span>&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">handleDecrease</span>}&gt;<span style="color:#a6e22e">Decrease</span>&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><p>在上面的代码中，我们使用  <code>useRef</code>  创建了一个 Ref 对象  <code>counterRef</code>，并将它传递给了  <code>Counter</code>  组件。接着，我们定义了  <code>handleIncrease</code>  和  <code>handleDecrease</code>  两个函数，函数内部通过  <code>counterRef.current</code>  分别调用计数器组件暴露出来的  <code>increase</code>  和  <code>decrease</code>  方法。这样，我们就可以通过父组件中的这两个按钮来增加或减少子组件计数器的值了。</p>
+<p>怎么样，和用回调函数的方式相比是不是这种方法更加灵活呢。其实用回调函数有许多弊端，如果一个子组件接收好多个回调函数，我么维护起来会非常难受的。而使用  <code>useImperativeHandle</code>  钩子函数就能避免给子组件传入多个回调函数。再者，回调函数只能在触发特定的事件后才能访问到子组件暴露出来的某些方法或属性，而  <code>useImperativeHandle</code>  则可以随时让我们访问到子组件中的方法和属性。因此，总的来说，如果遇到需要在父组件中访问子组件中方法和属性的场景，直接上  <code>useImperativeHandle</code>  肯定没错。</p>
+<h2 id="总结">总结</h2>
+<p>滑到这里的都是真爱 😘 看完后有没有发现自己 get 到了新技能 ^_^</p>
+<p>对了，要更好的运用  <code>useImperativeHandle</code>  离不开  <code>forwardRef</code>  和  <code>useRef</code>  的灵活运用。还不了解这两个知识点的童鞋快去看看下面这两篇文章吧：</p>
+<ul>
+<li><a href="https://mp.weixin.qq.com/s?__biz=MzIzMDM4MzE3Mw==&amp;mid=2247485147&amp;idx=1&amp;sn=d0948ec534dd2fbdabea15fc051edef4&amp;chksm=e8b50df1dfc284e729f0d52fc986f40e9b7d8f40290d412f37cf0ac647ea262fd0595b1133c9&amp;token=1904127190&amp;lang=zh_CN#rd">提升 React 组件灵活性：深入了解 forwardRef API 的妙用</a></li>
+<li><a href="https://mp.weixin.qq.com/s?__biz=MzIzMDM4MzE3Mw==&amp;mid=2247485109&amp;idx=1&amp;sn=91eeea7f7b53e0d8a136d4877ad65fea&amp;chksm=e8b50d9fdfc284894782520d9ae159e0debf47a30a5d3a810f9ec3435799c4c10dd4e9983090#rd">仅此一文，让你全完掌握 React 中的 useRef 钩子函数</a></li>
+</ul>
+<p>熟练掌握  <code>useImperativeHandle</code>  钩子函数可以让我们很方便地暴露子组件中的方法和属性，从而让父组件更加灵活的操作子组件。在实际项目中，大家可以根据需要暴露不同的方法和属性来实现更加灵活、高效的组件设计哦~</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/513/"
+      ><span class="mr-1.5">←</span><span>JS WeakMap应该什么时候使用</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/511/"
+      ><span>EventSource VS WebSocket</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

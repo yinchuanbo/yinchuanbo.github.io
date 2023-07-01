@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>一文搞懂页面白屏检测 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 前端页面白屏,是影响用户浏览体验的常见问题之一。它会导致页面长时间空白。尤其是对于 SPA 项目。
+什么是页面白屏 页面白屏指页面在加载过程中长时间无法正常展示内容,用户处于等待状态的现象。 通常表现为:
+页面空白,没有任何内容 页面仅显示背景色,没有文本、图片、页面元件等内容 页面处于加载中状态,但长时间无法完成加载 etc. 页面白屏的主要原因 资源加载失败页面依赖的关键资源(CSS、JS、图片等)加载失败,导致页面无法正常渲染。 //例如我们在React项目中引入了不存在的css资源，导致资源加载失败，就会造成页面无法正常渲染，导致白屏。 //这是React 会在加载页面资源阶段就渲染 DOM 节点,但如果所依赖的资源(如图片)加载失败,则不会进行任何更新,导致用户长时间面对一个空白页面,产生白屏现象。 import &#34;./demo.css&#34;; function App() { return &lt;div className=&#34;App&#34;&gt;app&lt;/div&gt;; } export default App; 资源加载延迟资源加载延迟(或阻塞),导致页面长时间等待资源加载完成,出现空白。 //例如我们在这里,App 组件在挂载后会使用 setTimeout 模拟资源加载延迟 8 秒。 //在资源加载完成前,imageURL 为空,因此不会渲染 &lt;img&gt; 标签。 //这就导致了用户在加载数秒内只看到一个空白页面(除非有其他内容),产生长时间空白导致的白屏现象。 import { useState, useEffect } from &#34;react&#34;; function App() { const [imageURL, setImageURL] = useState(null); useEffect(() =&gt; { setTimeout(() =&gt; { setImageURL(&#34;../test.jpg&#34;); }, 8000); // 模拟资源加载 8 秒 }, []); return ( &lt;div className=&#34;App&#34;&gt;{imageURL &amp;&amp; &lt;img src={imageURL} alt=&#34;logo&#34; /&gt;}&lt;/div&gt; ); } export default App; 对于上述这种情况，我们可以采用如下方式优化：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="一文搞懂页面白屏检测" />
+<meta property="og:description" content="前言 前端页面白屏,是影响用户浏览体验的常见问题之一。它会导致页面长时间空白。尤其是对于 SPA 项目。
+什么是页面白屏 页面白屏指页面在加载过程中长时间无法正常展示内容,用户处于等待状态的现象。 通常表现为:
+页面空白,没有任何内容 页面仅显示背景色,没有文本、图片、页面元件等内容 页面处于加载中状态,但长时间无法完成加载 etc. 页面白屏的主要原因 资源加载失败页面依赖的关键资源(CSS、JS、图片等)加载失败,导致页面无法正常渲染。 //例如我们在React项目中引入了不存在的css资源，导致资源加载失败，就会造成页面无法正常渲染，导致白屏。 //这是React 会在加载页面资源阶段就渲染 DOM 节点,但如果所依赖的资源(如图片)加载失败,则不会进行任何更新,导致用户长时间面对一个空白页面,产生白屏现象。 import &#34;./demo.css&#34;; function App() { return &lt;div className=&#34;App&#34;&gt;app&lt;/div&gt;; } export default App; 资源加载延迟资源加载延迟(或阻塞),导致页面长时间等待资源加载完成,出现空白。 //例如我们在这里,App 组件在挂载后会使用 setTimeout 模拟资源加载延迟 8 秒。 //在资源加载完成前,imageURL 为空,因此不会渲染 &lt;img&gt; 标签。 //这就导致了用户在加载数秒内只看到一个空白页面(除非有其他内容),产生长时间空白导致的白屏现象。 import { useState, useEffect } from &#34;react&#34;; function App() { const [imageURL, setImageURL] = useState(null); useEffect(() =&gt; { setTimeout(() =&gt; { setImageURL(&#34;../test.jpg&#34;); }, 8000); // 模拟资源加载 8 秒 }, []); return ( &lt;div className=&#34;App&#34;&gt;{imageURL &amp;&amp; &lt;img src={imageURL} alt=&#34;logo&#34; /&gt;}&lt;/div&gt; ); } export default App; 对于上述这种情况，我们可以采用如下方式优化：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/523/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-19T19:24:08+08:00" />
+<meta property="article:modified_time" content="2023-04-19T19:24:08+08:00" />
+
+  
+  <meta itemprop="name" content="一文搞懂页面白屏检测">
+<meta itemprop="description" content="前言 前端页面白屏,是影响用户浏览体验的常见问题之一。它会导致页面长时间空白。尤其是对于 SPA 项目。
+什么是页面白屏 页面白屏指页面在加载过程中长时间无法正常展示内容,用户处于等待状态的现象。 通常表现为:
+页面空白,没有任何内容 页面仅显示背景色,没有文本、图片、页面元件等内容 页面处于加载中状态,但长时间无法完成加载 etc. 页面白屏的主要原因 资源加载失败页面依赖的关键资源(CSS、JS、图片等)加载失败,导致页面无法正常渲染。 //例如我们在React项目中引入了不存在的css资源，导致资源加载失败，就会造成页面无法正常渲染，导致白屏。 //这是React 会在加载页面资源阶段就渲染 DOM 节点,但如果所依赖的资源(如图片)加载失败,则不会进行任何更新,导致用户长时间面对一个空白页面,产生白屏现象。 import &#34;./demo.css&#34;; function App() { return &lt;div className=&#34;App&#34;&gt;app&lt;/div&gt;; } export default App; 资源加载延迟资源加载延迟(或阻塞),导致页面长时间等待资源加载完成,出现空白。 //例如我们在这里,App 组件在挂载后会使用 setTimeout 模拟资源加载延迟 8 秒。 //在资源加载完成前,imageURL 为空,因此不会渲染 &lt;img&gt; 标签。 //这就导致了用户在加载数秒内只看到一个空白页面(除非有其他内容),产生长时间空白导致的白屏现象。 import { useState, useEffect } from &#34;react&#34;; function App() { const [imageURL, setImageURL] = useState(null); useEffect(() =&gt; { setTimeout(() =&gt; { setImageURL(&#34;../test.jpg&#34;); }, 8000); // 模拟资源加载 8 秒 }, []); return ( &lt;div className=&#34;App&#34;&gt;{imageURL &amp;&amp; &lt;img src={imageURL} alt=&#34;logo&#34; /&gt;}&lt;/div&gt; ); } export default App; 对于上述这种情况，我们可以采用如下方式优化："><meta itemprop="datePublished" content="2023-04-19T19:24:08+08:00" />
+<meta itemprop="dateModified" content="2023-04-19T19:24:08+08:00" />
+<meta itemprop="wordCount" content="897">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="一文搞懂页面白屏检测"/>
+<meta name="twitter:description" content="前言 前端页面白屏,是影响用户浏览体验的常见问题之一。它会导致页面长时间空白。尤其是对于 SPA 项目。
+什么是页面白屏 页面白屏指页面在加载过程中长时间无法正常展示内容,用户处于等待状态的现象。 通常表现为:
+页面空白,没有任何内容 页面仅显示背景色,没有文本、图片、页面元件等内容 页面处于加载中状态,但长时间无法完成加载 etc. 页面白屏的主要原因 资源加载失败页面依赖的关键资源(CSS、JS、图片等)加载失败,导致页面无法正常渲染。 //例如我们在React项目中引入了不存在的css资源，导致资源加载失败，就会造成页面无法正常渲染，导致白屏。 //这是React 会在加载页面资源阶段就渲染 DOM 节点,但如果所依赖的资源(如图片)加载失败,则不会进行任何更新,导致用户长时间面对一个空白页面,产生白屏现象。 import &#34;./demo.css&#34;; function App() { return &lt;div className=&#34;App&#34;&gt;app&lt;/div&gt;; } export default App; 资源加载延迟资源加载延迟(或阻塞),导致页面长时间等待资源加载完成,出现空白。 //例如我们在这里,App 组件在挂载后会使用 setTimeout 模拟资源加载延迟 8 秒。 //在资源加载完成前,imageURL 为空,因此不会渲染 &lt;img&gt; 标签。 //这就导致了用户在加载数秒内只看到一个空白页面(除非有其他内容),产生长时间空白导致的白屏现象。 import { useState, useEffect } from &#34;react&#34;; function App() { const [imageURL, setImageURL] = useState(null); useEffect(() =&gt; { setTimeout(() =&gt; { setImageURL(&#34;../test.jpg&#34;); }, 8000); // 模拟资源加载 8 秒 }, []); return ( &lt;div className=&#34;App&#34;&gt;{imageURL &amp;&amp; &lt;img src={imageURL} alt=&#34;logo&#34; /&gt;}&lt;/div&gt; ); } export default App; 对于上述这种情况，我们可以采用如下方式优化："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">一文搞懂页面白屏检测</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 19, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h1 id="前言">前言</h1>
+<p>前端页面白屏,是影响用户浏览体验的常见问题之一。它会导致页面长时间空白。尤其是对于 SPA 项目。</p>
+<h1 id="什么是页面白屏">什么是页面白屏</h1>
+<p>页面白屏指页面在加载过程中长时间无法正常展示内容,用户处于等待状态的现象。 通常表现为:</p>
+<ol>
+<li>页面空白,没有任何内容</li>
+<li>页面仅显示背景色,没有文本、图片、页面元件等内容</li>
+<li>页面处于加载中状态,但长时间无法完成加载</li>
+<li>etc.</li>
+</ol>
+<h1 id="页面白屏的主要原因">页面白屏的主要原因</h1>
+<ol>
+<li>资源加载失败页面依赖的关键资源(CSS、JS、图片等)加载失败,导致页面无法正常渲染。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">//例如我们在React项目中引入了不存在的css资源，导致资源加载失败，就会造成页面无法正常渲染，导致白屏。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//这是React 会在加载页面资源阶段就渲染 DOM 节点,但如果所依赖的资源(如图片)加载失败,则不会进行任何更新,导致用户长时间面对一个空白页面,产生白屏现象。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;./demo.css&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">App</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;App&#34;</span>&gt;<span style="color:#a6e22e">app</span>&lt;/<span style="color:#f92672">div</span>&gt;;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><ol start="2">
+<li>资源加载延迟资源加载延迟(或阻塞),导致页面长时间等待资源加载完成,出现空白。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">//例如我们在这里,App 组件在挂载后会使用 setTimeout 模拟资源加载延迟 8 秒。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//在资源加载完成前,imageURL 为空,因此不会渲染 &lt;img&gt; 标签。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//这就导致了用户在加载数秒内只看到一个空白页面(除非有其他内容),产生长时间空白导致的白屏现象。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useState</span>, <span style="color:#a6e22e">useEffect</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">App</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">imageURL</span>, <span style="color:#a6e22e">setImageURL</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#66d9ef">null</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setImageURL</span>(<span style="color:#e6db74">&#34;../test.jpg&#34;</span>);
+</span></span><span style="display:flex;"><span>    }, <span style="color:#ae81ff">8000</span>); <span style="color:#75715e">// 模拟资源加载 8 秒
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }, []);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;App&#34;</span>&gt;{<span style="color:#a6e22e">imageURL</span> <span style="color:#f92672">&amp;&amp;</span> &lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">imageURL</span>} <span style="color:#a6e22e">alt</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;logo&#34;</span> /&gt;}&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><p>对于上述这种情况，我们可以采用如下方式优化：</p>
+<ul>
+<li>加一个 Loading 指示器</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">imageURL</span> <span style="color:#f92672">?</span> &lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">imageURL</span>} <span style="color:#a6e22e">alt</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;logo&#34;</span> /&gt; <span style="color:#f92672">:</span> &lt;<span style="color:#f92672">Loading</span> /&gt;;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ul>
+<li>等待资源加载完成后再渲染页面</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">//不在渲染时导入资源,而是在 useEffect 中导入,等待资源加载完成后再进行页面渲染
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">logo</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">import</span>(<span style="color:#e6db74">&#39;./logo.png&#39;</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setImageURL</span>(<span style="color:#a6e22e">logo</span>)
+</span></span><span style="display:flex;"><span>}, [])
+</span></span></code></pre></div><ul>
+<li>骨架屏</li>
+<li>&hellip;.</li>
+</ul>
+<ol start="3">
+<li>JavaScript 执行错误,导致页面功能无法正常工作,出现空白。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">//比如我们这里arr其实并未定义，这样执行就会报错，导致页面白屏
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">App</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;App&#34;</span>&gt;{<span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">item</span>) =&gt; <span style="color:#a6e22e">item</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>)}&lt;/<span style="color:#f92672">div</span>&gt;;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><ol start="4">
+<li>渲染时间过长   页面过于复杂,渲染时间超出预期,导致用户长时间处于等待状态。</li>
+<li>第三方问题第三方服务或资源出现问题,导致页面功能依赖无法正常工作,出现白屏。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">//App 组件从第三方 API 获取数据并渲染。如果 API 服务出现问题导致数据获取失
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//败,useEffect 将永远处于 pending 状态,页面将只渲染一个 &lt;Loader /&gt;。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//这将导致用户长时间面对加载指示器,产生依赖第三方服务问题导致的白屏现象。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useState</span>, <span style="color:#a6e22e">useEffect</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">App</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">setData</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#66d9ef">null</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fetch</span>(<span style="color:#e6db74">&#34;http://xxxxxxxxx/data&#34;</span>)
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">res</span>) =&gt; <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">json</span>())
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">then</span>(<span style="color:#a6e22e">setData</span>);
+</span></span><span style="display:flex;"><span>  }, []);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">data</span>) <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">Loader</span> /&gt;;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;App&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">h1</span>&gt;{<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">title</span>}&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">p</span>&gt;{<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">content</span>}&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><p>6. 其它异常   如网络异常、缓存问题、CDN 问题等也会导致页面白屏。</p>
+<p>所以,总结来说,页面白屏是指:由于资源加载问题、执行错误、渲染时间过长等技术异常,导致页面长时间无法正常展示与响应的现象。它严重影响用户体验,因此我们需要采取有效措施来避免与修复页面白屏问题,保证 PAGE 体验质量。</p>
+<h1 id="如何监测页面白屏">如何监测页面白屏</h1>
+<h2 id="方案一检测根节点是否渲染onerror-监听">方案一：检测根节点是否渲染+onerror 监听</h2>
+<p>原理很简单，在当前主流 SPA 框架下，DOM 一般挂载在一个根节点之下（比如  <code>&lt;div id=&quot;app&quot;&gt;&lt;/div&gt;</code> ），发生白屏后通常是根节点下所有 DOM 被卸载。该方案就是通过监听全局的  <code>onerror</code>  事件，在异常发生时去检测根节点下是否挂载 DOM，若无则证明白屏。</p>
+<p>这种方案，简单直接，直接检测根节点是否渲染完成即可。适用于 SPA。SPA 页面主要内容通过根节点下的组件渲染,所以监测根节点渲染情况可以判断 SPA 页面主要内容是否正常渲染。</p>
+<p>这是简单明了且有效的方案。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">//main.jsx
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">React</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">ReactDOM</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react-dom/client&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">App</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./App&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// JS 错误监听
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>window.<span style="color:#a6e22e">onerror</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">msg</span>, <span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">lineNo</span>, <span style="color:#a6e22e">columnNo</span>, <span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">rootElement</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;#root&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">rootElement</span>.<span style="color:#a6e22e">firstChild</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;#root节点不存在内容,判断为白屏!&#34;</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ReactDOM</span>.<span style="color:#a6e22e">createRoot</span>(document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;root&#34;</span>)).<span style="color:#a6e22e">render</span>(
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">React.StrictMode</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">App</span> /&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">React.StrictMode</span>&gt;
+</span></span><span style="display:flex;"><span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//App.jsx
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">React</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">App</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">App</span>,
+</span></span><span style="display:flex;"><span>      {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">app</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">i</span>) =&gt; <span style="color:#a6e22e">i</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>) <span style="color:#75715e">//我们这里app未定义，执行报错导致白屏
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      }
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><h2 id="方案二mutation-observer-监听-dom-变化">方案二：Mutation Observer 监听 DOM 变化</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">timeoutId</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">observer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MutationObserver</span>(<span style="color:#a6e22e">callback</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">callback</span>(<span style="color:#a6e22e">mutationsList</span>, <span style="color:#a6e22e">observer</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 有 DOM 变化，说明页面还没有白屏，重置一个定时器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">clearTimeout</span>(<span style="color:#a6e22e">timeoutId</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">timeoutId</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 一段时间内没有任何 DOM 变化，说明页面已经白屏
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;页面白屏&#34;</span>);
+</span></span><span style="display:flex;"><span>  }, <span style="color:#ae81ff">3000</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">targetNode</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">body</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">config</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">childList</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">attributes</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">subtree</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">characterData</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">observer</span>.<span style="color:#a6e22e">observe</span>(<span style="color:#a6e22e">targetNode</span>, <span style="color:#a6e22e">config</span>);
+</span></span></code></pre></div><p>使用 Mutation Observer 来监听 DOM 变化，从而判断页面是否白屏。需要注意的是，判断页面是否白屏的阈值时间应该根据页面的实际情况来确定，如果设置时间太短可能会误判，设置时间太长可能会影响页面性能。</p>
+<p>同时如果用户长时间未操作 DOM，Mutation Observer 监听到一定时间内没有 DOM 变化，就可能会误判为页面白屏。</p>
+<p>实际应用中，可以通过一些手段来增加 DOM 的变化，从而避免误判。比如，在页面初始化时，可以在页面中插入一些隐藏的元素，然后定时更新这些元素的样式或内容，从而让 Mutation Observer 监听到 DOM 的变化。另外，一些自动化的数据推送、广告展示等行为也会引起 DOM 的变化，这些行为也可以被 Mutation Observer 监听到，从而避免误判。</p>
+<p>相比于监测根节点是否渲染的方式，Mutation Observe 有可判断渲染问题，不受资源加载影响，支持问题回溯等优势。</p>
+<ul>
+<li>问题回溯</li>
+</ul>
+<p>Mutation Record 提供具体的 DOM 变更记录,可以支持白屏问题的回溯与定位。而检测根节点渲染无法提供问题的详细诊断信息。例如,如果一段时间内 DOM 变化只有删除元素操作,几乎没有新增或更新操作,可以判断可能存在删除逻辑错误导致白屏,这可以作为问题回溯的参考信息。 那如何利用 Mutation Observe 进行问题回溯呢？</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">observer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MutationObserver</span>((<span style="color:#a6e22e">mutations</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">mutations</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">mutation</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">switch</span> (<span style="color:#a6e22e">mutation</span>.<span style="color:#a6e22e">type</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;childList&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">mutation</span>.<span style="color:#a6e22e">addedNodes</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">node</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">nodeName</span>); <span style="color:#75715e">// 新增节点名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        });
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">mutation</span>.<span style="color:#a6e22e">removedNodes</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">node</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">nodeName</span>); <span style="color:#75715e">// 移除节点名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        });
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;attributes&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">mutation</span>.<span style="color:#a6e22e">attributeName</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">mutation</span>.<span style="color:#a6e22e">oldValue</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">mutation</span>.<span style="color:#a6e22e">newValue</span>
+</span></span><span style="display:flex;"><span>        );
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 打印出变化的属性名与新旧值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">observer</span>.<span style="color:#a6e22e">observe</span>(document, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">childList</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">attributes</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">subtree</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><ul>
+<li>可判断渲染问题</li>
+</ul>
+<p>通过监听 DOM 添加、移除、更新等变化情况,可以判断 DOM 渲染是否正常进行,是否出现长时间不变化的情况。
+而检测根节点渲染只能判断根节点是否已渲染完成,无法判断渲染过程中是否出现问题。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// Mutation Observer
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">lastTime</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">observer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MutationObserver</span>((<span style="color:#a6e22e">mutations</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">lastTime</span>) <span style="color:#a6e22e">lastTime</span> <span style="color:#f92672">=</span> Date.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (Date.<span style="color:#a6e22e">now</span>() <span style="color:#f92672">-</span> <span style="color:#a6e22e">lastTime</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">1000</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 1 秒内无任何 DOM 变化,判断为渲染逻辑错误导致白屏
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">observer</span>.<span style="color:#a6e22e">observe</span>(document, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">childList</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">attributes</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 检测根节点渲染
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">root</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;#root&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">setInterval</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">root</span>.<span style="color:#a6e22e">children</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 根节点有子元素,判断渲染完成,无法判断渲染过程问题
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}, <span style="color:#ae81ff">200</span>);
+</span></span></code></pre></div><ul>
+<li>不受资源加载影响</li>
+</ul>
+<p>Mutation Observer 判断白屏不依赖资源是否加载完成,可以判断出资源加载失败导致的白屏。 
+而检测根节点渲染需要资源正常加载完成,无法判断资源失败导致根节点无法渲染的白屏。例如,如果页面 CSS 文件加载失败,导致页面无法渲染,Mutation Observer 可以判断为白屏,而检测根节点渲染无法判断此问题。</p>
+<p>这是因为，通过监听 DOM 变更判断页面是否正常工作,即使资源加载失败,也可以发现页面长时间没有渲染出新内容的问题。而检测根节点渲染的方式,无法判断资源加载失败的情况。同时它可以判断出某类型节点(如 img)长时间没有被添加的情况。例如,如果页面长时间没有新增 img 节点,这可能意味着图片资源加载失败,导致 img 节点无法渲染。而检测根节点渲染同样无法判断具体哪些资源加载失败。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">imgCount</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">time</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">observer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MutationObserver</span>(<span style="color:#a6e22e">mutations</span> =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">mutations</span>.<span style="color:#a6e22e">forEach</span>(<span style="color:#a6e22e">mutation</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">mutation</span>.<span style="color:#a6e22e">addedNodes</span>.<span style="color:#a6e22e">find</span>(<span style="color:#a6e22e">n</span> =&gt; <span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">nodeName</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#39;IMG&#39;</span>)) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">imgCount</span><span style="color:#f92672">++</span> <span style="color:#75715e">// 有 img 节点新增,重置时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">time</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  })
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">observer</span>.<span style="color:#a6e22e">observe</span>(document, { <span style="color:#a6e22e">childList</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#a6e22e">subtree</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> })
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">setInterval</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">time</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">200</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">在回调中判断</span>,<span style="color:#a6e22e">如果一定时间</span>(<span style="color:#a6e22e">如</span> <span style="color:#ae81ff">3</span> <span style="color:#a6e22e">秒</span>)<span style="color:#a6e22e">内</span> <span style="color:#a6e22e">imgCount</span> <span style="color:#a6e22e">数为</span> <span style="color:#ae81ff">0</span>,<span style="color:#a6e22e">则判断图片资源加载失败</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">time</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">3000</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">imgCount</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 3 秒内无 img 节点新增,判断图片资源加载失败
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}, <span style="color:#ae81ff">200</span>)
+</span></span></code></pre></div><p>同理，可以判断其他资源(如 JS、CSS 文件)加载失败。</p>
+<h2 id="方案三关键点采样对比">方案三：关键点采样对比</h2>
+<p>所谓关键点采样就是在我们的屏幕中，随机取几个固定的点，利用 document.elementsFromPoint（x,y）该函数返还在特定坐标点下的 HTML 元素数组。</p>
+<p>关键点的选取我们一般采用：<strong>垂直选取</strong></p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/55ca939fce784ae6bee24d63dc905b73~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>假设，要在 X，Y 轴上各埋 9 个点，每个点的距离相等，那么 X 轴上的点坐标就是（i/10 * 屏幕的宽度，1/2 * 屏幕的高度, i 代表第几个点。那么 Y 轴上的坐标就是（1/2 * 屏幕的宽度，i / 10 * 屏幕的高度）。</p>
+<p>除了垂直选取，还有<strong>交叉选取</strong>，以及<strong>垂直交叉选取</strong>。</p>
+<p><strong>交叉选取：</strong></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7c42cfb0feda426b9a0ebbf21c685eb2~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><strong>垂直交叉选取：</strong></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1b3d10e274cb4c8ea5a96e81bb770013~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>语法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">elements</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">elementsFromPoint</span>(<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">y</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// x:坐标点的水平坐标值,y：坐标点的垂向坐标值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//返回值是一个包含[`element`](https://developer.mozilla.org/zh-CN/docs/Web/API/Element) 对象的数组。
+</span></span></span></code></pre></div><p>具体使用：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">http-equiv</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;X-UA-Compatible&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;IE=edge&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;viewport&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;width=device-width, initial-scale=1.0&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;Document&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">style</span>&gt;
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">content</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">width</span>: <span style="color:#ae81ff">100</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">100</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">style</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;content&#34;</span>&gt;&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">ele</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">elementsFromPoint</span>(<span style="color:#ae81ff">50</span>, <span style="color:#ae81ff">50</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;ele&#34;</span>, <span style="color:#a6e22e">ele</span>[<span style="color:#ae81ff">0</span>]);
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e247f5edaf51407a9cb17a140c4c22c2~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>采样对比代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">http-equiv</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;X-UA-Compatible&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;IE=edge&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;viewport&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;width=device-width, initial-scale=1.0&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;Document&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;main&#34;</span>&gt;&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">onload</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (document.<span style="color:#a6e22e">readyState</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;complete&#34;</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">whiteScreen</span>();
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>          window.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;load&#34;</span>, <span style="color:#a6e22e">whiteScreen</span>);
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">wrapperElements</span> <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#34;html&#34;</span>, <span style="color:#e6db74">&#34;body&#34;</span>, <span style="color:#e6db74">&#34;.content&#34;</span>]; <span style="color:#75715e">//首先定义容器列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">emptyPoints</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">//空白点数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getSelector</span>(<span style="color:#a6e22e">element</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">//获取节点的容器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">id</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;#&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">id</span>;
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">className</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">//content main==&gt; .content.main  主要为了处理类名是多个的情况
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;.&#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">className</span>
+</span></span><span style="display:flex;"><span>              .<span style="color:#a6e22e">split</span>(<span style="color:#e6db74">&#34; &#34;</span>)
+</span></span><span style="display:flex;"><span>              .<span style="color:#a6e22e">filter</span>((<span style="color:#a6e22e">item</span>) =&gt; <span style="color:#f92672">!!</span><span style="color:#a6e22e">item</span>)
+</span></span><span style="display:flex;"><span>              .<span style="color:#a6e22e">join</span>(<span style="color:#e6db74">&#34;.&#34;</span>)
+</span></span><span style="display:flex;"><span>          );
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">nodeName</span>.<span style="color:#a6e22e">toLowerCase</span>();
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">isWrapper</span>(<span style="color:#a6e22e">element</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">//判断关键点是否在wrapperElements定义的容器内
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">selector</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">getSelector</span>(<span style="color:#a6e22e">element</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">wrapperElements</span>.<span style="color:#a6e22e">indexOf</span>(<span style="color:#a6e22e">selector</span>) <span style="color:#f92672">!=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">emptyPoints</span><span style="color:#f92672">++</span>; <span style="color:#75715e">//如果采样的关键点是在wrapperElements容器内，则说明此关键点是空白点，则数量加1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        }
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">whiteScreen</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">9</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">xElement</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">elementsFromPoint</span>(
+</span></span><span style="display:flex;"><span>            (window.<span style="color:#a6e22e">innerWidth</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">i</span>) <span style="color:#f92672">/</span> <span style="color:#ae81ff">10</span>,
+</span></span><span style="display:flex;"><span>            window.<span style="color:#a6e22e">innerHeight</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>          ); <span style="color:#75715e">//在x轴方向上，取10个点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">yElement</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">elementsFromPoint</span>(
+</span></span><span style="display:flex;"><span>            window.<span style="color:#a6e22e">innerWidth</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>,
+</span></span><span style="display:flex;"><span>            (window.<span style="color:#a6e22e">innerHeight</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">i</span>) <span style="color:#f92672">/</span> <span style="color:#ae81ff">10</span>
+</span></span><span style="display:flex;"><span>          ); <span style="color:#75715e">//在y轴方向上，取10个点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">isWrapper</span>(<span style="color:#a6e22e">xElement</span>[<span style="color:#ae81ff">0</span>]);
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">isWrapper</span>(<span style="color:#a6e22e">yElement</span>[<span style="color:#ae81ff">0</span>]);
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">emptyPoints</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">18</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">//如果18个点不都是空白点，则说明页面正常显示
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">clearInterval</span>(window.<span style="color:#a6e22e">loopFun</span>);
+</span></span><span style="display:flex;"><span>          window.<span style="color:#a6e22e">loopFun</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;页面白屏了&#34;</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>window.<span style="color:#a6e22e">loopFun</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">loop</span>();
+</span></span><span style="display:flex;"><span>          }
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      window.<span style="color:#a6e22e">loopFun</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">loop</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (window.<span style="color:#a6e22e">loopFun</span>) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>        window.<span style="color:#a6e22e">loopFun</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">setInterval</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">emptyPoints</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">whiteScreen</span>();
+</span></span><span style="display:flex;"><span>        }, <span style="color:#ae81ff">2000</span>);
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">onload</span>();
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">content</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;.main&#34;</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;500px&#34;</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;500px&#34;</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">backgroundColor</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;red&#34;</span>;
+</span></span><span style="display:flex;"><span>      }, <span style="color:#ae81ff">4000</span>);
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><h1 id="总结">总结：</h1>
+<p>这是我自己的第一篇文章，对于页面白屏的一些看法，希望大佬们多多指正，写的不好见谅。</p>
+<p>参考：</p>
+<p><a href="https://juejin.cn/post/7176206226903007292#heading-15">前端白屏的检测方案，让你知道自己的页面白了</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/524/"
+      ><span class="mr-1.5">←</span><span>实现滚动条向下滚动，网页却横向移动</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/522/"
+      ><span>pnpm：是时候对npm说再见了</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

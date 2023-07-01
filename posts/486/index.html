@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>前端正确处理“文字溢出”的思路 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言： 最近在项目中需要做到类似于 Mac 下这种，当屏幕宽度足以容下当前文件名称的时候，文件名称全部展示，不做省略。
+然而当用户缩放浏览器显示的尺寸时，我们需要做到省略中间的文字，选择保留后缀这种方案。如下图所示：
+我个人也是感觉这个方案是最好的，因为大部分情况下，用户更关心的是这个文件的类型，而后缀名的保留往往是最佳的选择。我个人也查阅了很多相关文章，并且借鉴了一些已有轮子的代码思路，实现了一个符合我们项目中需求的一个组件。
+一.组件效果预览 单行文字溢出时自动省略，并且不保留后缀。 单行文字溢出时自动省略，并且保留后缀。 多行文字溢出时，然后再开始省略。这个情况是我们项目中比较特殊的场景。简单来说就是假设我现在想让文字显示两行，如果两行的时候没有溢出，那么正常显示。如果两行情况下还是溢出了，那么我再去处理溢出的文字。 假设这是没有做任何操作的的效果: 使用我们的组件以后的效果： （tips：不一定必须是两行，三行，四行都是可以的。我们接下来实现的组件会让你高度自定义去处理文字溢出的场景。）
+如果你想自己先尝试一下效果，那么你可以快速使用 npm 安装一下。
+npm i auto-ellipsis-text pnpm i auto-ellipsis-text yarn add auto-ellipsis-text 原仓库地址： AutoEllipsisTxt 自动省略文字
+使用起来也非常简单，你只需要包裹住你的文字即可 话回正题，接下来我会一步一步讲解我实现这个组件的思路，我写的这个组件不一定是最优的，你需要做到知其然并知其所以然，然后完善我写的组件的不足之处，你可以实现自己的自动省略文本方案，才是本文的目的。
+二. 单行溢出的处理 我们先只考虑单行的情况。通常我们在自己的应用中展示很多文件信息的时候，往往选择的布局方式就是高度是一定的，说白了就是高度其实我们是定死的，宽度我们不确定，因为用户有可能会在某些情况下拖动浏览器，造成宽度发生变化，但是总会给宽度一个最小值和一个最大值来保障排版的统一性。
+样式方面，在这里我使用的是 UnoCSS ，将样式內联在了标签里，如果你还不了解这种写法，你可以点击下方的文章学习。不过即使你之前从未了解过 UnoCSS ，也不会影响你下面的阅读，因为样式不是本文的重点，并不影响整体阅读。
+手把手教你如何创建一个代码仓库 让我们先创造一个简单的溢出场景，代码很简单，容器是一个 width 最大值为 200px，height 为固定 30px 的 div。
+现在页面上的效果如下图：
+可以很清晰的看出，由于我们文字在容器内放不下，但是我们又没对溢出这一特殊场景做出处理，所以就造成了当前页面的效果。先别急，我们一步一步来。 最开始我去查阅 MDN 的时候，查阅到了一个 “确认过眼神，你就是我要找到人” 的属性。
+什么？text-overflow，我们要找到不就是文字溢出时候的处理吗？我兴奋的赶快添加到了我的组件上。
+效果如下：
+然后看着毫无变化的页面，开始怀疑我自己是不是单词拼错了，然后一个字母字母的比对，排除了单词打错字的情况，但页面还是没有变化。🤔 于是我又返回 MDN 去查看自己是否遗漏了哪些东西，发现了这样一段文字。
+这里直接说结论，其实 text-overflow 这个属性不会为了让文字省略而去创造省略的场景。它其实是在你处理过溢出场景之后，帮你做对于文字溢出的的二次特殊处理。当你对于页面溢出做没有任何操作时，这个属性其实是无效的。 （注意：它仅仅只处理文字溢出的场景。） 既然你说了，让我们添加额外的属性：overflow-hidden 和 white-space，那么我们就自己添加。我们先只添加一个 overflow-hidden 来看看会发生什么。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="前端正确处理“文字溢出”的思路" />
+<meta property="og:description" content="前言： 最近在项目中需要做到类似于 Mac 下这种，当屏幕宽度足以容下当前文件名称的时候，文件名称全部展示，不做省略。
+然而当用户缩放浏览器显示的尺寸时，我们需要做到省略中间的文字，选择保留后缀这种方案。如下图所示：
+我个人也是感觉这个方案是最好的，因为大部分情况下，用户更关心的是这个文件的类型，而后缀名的保留往往是最佳的选择。我个人也查阅了很多相关文章，并且借鉴了一些已有轮子的代码思路，实现了一个符合我们项目中需求的一个组件。
+一.组件效果预览 单行文字溢出时自动省略，并且不保留后缀。 单行文字溢出时自动省略，并且保留后缀。 多行文字溢出时，然后再开始省略。这个情况是我们项目中比较特殊的场景。简单来说就是假设我现在想让文字显示两行，如果两行的时候没有溢出，那么正常显示。如果两行情况下还是溢出了，那么我再去处理溢出的文字。 假设这是没有做任何操作的的效果: 使用我们的组件以后的效果： （tips：不一定必须是两行，三行，四行都是可以的。我们接下来实现的组件会让你高度自定义去处理文字溢出的场景。）
+如果你想自己先尝试一下效果，那么你可以快速使用 npm 安装一下。
+npm i auto-ellipsis-text pnpm i auto-ellipsis-text yarn add auto-ellipsis-text 原仓库地址： AutoEllipsisTxt 自动省略文字
+使用起来也非常简单，你只需要包裹住你的文字即可 话回正题，接下来我会一步一步讲解我实现这个组件的思路，我写的这个组件不一定是最优的，你需要做到知其然并知其所以然，然后完善我写的组件的不足之处，你可以实现自己的自动省略文本方案，才是本文的目的。
+二. 单行溢出的处理 我们先只考虑单行的情况。通常我们在自己的应用中展示很多文件信息的时候，往往选择的布局方式就是高度是一定的，说白了就是高度其实我们是定死的，宽度我们不确定，因为用户有可能会在某些情况下拖动浏览器，造成宽度发生变化，但是总会给宽度一个最小值和一个最大值来保障排版的统一性。
+样式方面，在这里我使用的是 UnoCSS ，将样式內联在了标签里，如果你还不了解这种写法，你可以点击下方的文章学习。不过即使你之前从未了解过 UnoCSS ，也不会影响你下面的阅读，因为样式不是本文的重点，并不影响整体阅读。
+手把手教你如何创建一个代码仓库 让我们先创造一个简单的溢出场景，代码很简单，容器是一个 width 最大值为 200px，height 为固定 30px 的 div。
+现在页面上的效果如下图：
+可以很清晰的看出，由于我们文字在容器内放不下，但是我们又没对溢出这一特殊场景做出处理，所以就造成了当前页面的效果。先别急，我们一步一步来。 最开始我去查阅 MDN 的时候，查阅到了一个 “确认过眼神，你就是我要找到人” 的属性。
+什么？text-overflow，我们要找到不就是文字溢出时候的处理吗？我兴奋的赶快添加到了我的组件上。
+效果如下：
+然后看着毫无变化的页面，开始怀疑我自己是不是单词拼错了，然后一个字母字母的比对，排除了单词打错字的情况，但页面还是没有变化。🤔 于是我又返回 MDN 去查看自己是否遗漏了哪些东西，发现了这样一段文字。
+这里直接说结论，其实 text-overflow 这个属性不会为了让文字省略而去创造省略的场景。它其实是在你处理过溢出场景之后，帮你做对于文字溢出的的二次特殊处理。当你对于页面溢出做没有任何操作时，这个属性其实是无效的。 （注意：它仅仅只处理文字溢出的场景。） 既然你说了，让我们添加额外的属性：overflow-hidden 和 white-space，那么我们就自己添加。我们先只添加一个 overflow-hidden 来看看会发生什么。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/486/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-14T10:19:58+08:00" />
+<meta property="article:modified_time" content="2023-04-14T10:19:58+08:00" />
+
+  
+  <meta itemprop="name" content="前端正确处理“文字溢出”的思路">
+<meta itemprop="description" content="前言： 最近在项目中需要做到类似于 Mac 下这种，当屏幕宽度足以容下当前文件名称的时候，文件名称全部展示，不做省略。
+然而当用户缩放浏览器显示的尺寸时，我们需要做到省略中间的文字，选择保留后缀这种方案。如下图所示：
+我个人也是感觉这个方案是最好的，因为大部分情况下，用户更关心的是这个文件的类型，而后缀名的保留往往是最佳的选择。我个人也查阅了很多相关文章，并且借鉴了一些已有轮子的代码思路，实现了一个符合我们项目中需求的一个组件。
+一.组件效果预览 单行文字溢出时自动省略，并且不保留后缀。 单行文字溢出时自动省略，并且保留后缀。 多行文字溢出时，然后再开始省略。这个情况是我们项目中比较特殊的场景。简单来说就是假设我现在想让文字显示两行，如果两行的时候没有溢出，那么正常显示。如果两行情况下还是溢出了，那么我再去处理溢出的文字。 假设这是没有做任何操作的的效果: 使用我们的组件以后的效果： （tips：不一定必须是两行，三行，四行都是可以的。我们接下来实现的组件会让你高度自定义去处理文字溢出的场景。）
+如果你想自己先尝试一下效果，那么你可以快速使用 npm 安装一下。
+npm i auto-ellipsis-text pnpm i auto-ellipsis-text yarn add auto-ellipsis-text 原仓库地址： AutoEllipsisTxt 自动省略文字
+使用起来也非常简单，你只需要包裹住你的文字即可 话回正题，接下来我会一步一步讲解我实现这个组件的思路，我写的这个组件不一定是最优的，你需要做到知其然并知其所以然，然后完善我写的组件的不足之处，你可以实现自己的自动省略文本方案，才是本文的目的。
+二. 单行溢出的处理 我们先只考虑单行的情况。通常我们在自己的应用中展示很多文件信息的时候，往往选择的布局方式就是高度是一定的，说白了就是高度其实我们是定死的，宽度我们不确定，因为用户有可能会在某些情况下拖动浏览器，造成宽度发生变化，但是总会给宽度一个最小值和一个最大值来保障排版的统一性。
+样式方面，在这里我使用的是 UnoCSS ，将样式內联在了标签里，如果你还不了解这种写法，你可以点击下方的文章学习。不过即使你之前从未了解过 UnoCSS ，也不会影响你下面的阅读，因为样式不是本文的重点，并不影响整体阅读。
+手把手教你如何创建一个代码仓库 让我们先创造一个简单的溢出场景，代码很简单，容器是一个 width 最大值为 200px，height 为固定 30px 的 div。
+现在页面上的效果如下图：
+可以很清晰的看出，由于我们文字在容器内放不下，但是我们又没对溢出这一特殊场景做出处理，所以就造成了当前页面的效果。先别急，我们一步一步来。 最开始我去查阅 MDN 的时候，查阅到了一个 “确认过眼神，你就是我要找到人” 的属性。
+什么？text-overflow，我们要找到不就是文字溢出时候的处理吗？我兴奋的赶快添加到了我的组件上。
+效果如下：
+然后看着毫无变化的页面，开始怀疑我自己是不是单词拼错了，然后一个字母字母的比对，排除了单词打错字的情况，但页面还是没有变化。🤔 于是我又返回 MDN 去查看自己是否遗漏了哪些东西，发现了这样一段文字。
+这里直接说结论，其实 text-overflow 这个属性不会为了让文字省略而去创造省略的场景。它其实是在你处理过溢出场景之后，帮你做对于文字溢出的的二次特殊处理。当你对于页面溢出做没有任何操作时，这个属性其实是无效的。 （注意：它仅仅只处理文字溢出的场景。） 既然你说了，让我们添加额外的属性：overflow-hidden 和 white-space，那么我们就自己添加。我们先只添加一个 overflow-hidden 来看看会发生什么。"><meta itemprop="datePublished" content="2023-04-14T10:19:58+08:00" />
+<meta itemprop="dateModified" content="2023-04-14T10:19:58+08:00" />
+<meta itemprop="wordCount" content="428">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="前端正确处理“文字溢出”的思路"/>
+<meta name="twitter:description" content="前言： 最近在项目中需要做到类似于 Mac 下这种，当屏幕宽度足以容下当前文件名称的时候，文件名称全部展示，不做省略。
+然而当用户缩放浏览器显示的尺寸时，我们需要做到省略中间的文字，选择保留后缀这种方案。如下图所示：
+我个人也是感觉这个方案是最好的，因为大部分情况下，用户更关心的是这个文件的类型，而后缀名的保留往往是最佳的选择。我个人也查阅了很多相关文章，并且借鉴了一些已有轮子的代码思路，实现了一个符合我们项目中需求的一个组件。
+一.组件效果预览 单行文字溢出时自动省略，并且不保留后缀。 单行文字溢出时自动省略，并且保留后缀。 多行文字溢出时，然后再开始省略。这个情况是我们项目中比较特殊的场景。简单来说就是假设我现在想让文字显示两行，如果两行的时候没有溢出，那么正常显示。如果两行情况下还是溢出了，那么我再去处理溢出的文字。 假设这是没有做任何操作的的效果: 使用我们的组件以后的效果： （tips：不一定必须是两行，三行，四行都是可以的。我们接下来实现的组件会让你高度自定义去处理文字溢出的场景。）
+如果你想自己先尝试一下效果，那么你可以快速使用 npm 安装一下。
+npm i auto-ellipsis-text pnpm i auto-ellipsis-text yarn add auto-ellipsis-text 原仓库地址： AutoEllipsisTxt 自动省略文字
+使用起来也非常简单，你只需要包裹住你的文字即可 话回正题，接下来我会一步一步讲解我实现这个组件的思路，我写的这个组件不一定是最优的，你需要做到知其然并知其所以然，然后完善我写的组件的不足之处，你可以实现自己的自动省略文本方案，才是本文的目的。
+二. 单行溢出的处理 我们先只考虑单行的情况。通常我们在自己的应用中展示很多文件信息的时候，往往选择的布局方式就是高度是一定的，说白了就是高度其实我们是定死的，宽度我们不确定，因为用户有可能会在某些情况下拖动浏览器，造成宽度发生变化，但是总会给宽度一个最小值和一个最大值来保障排版的统一性。
+样式方面，在这里我使用的是 UnoCSS ，将样式內联在了标签里，如果你还不了解这种写法，你可以点击下方的文章学习。不过即使你之前从未了解过 UnoCSS ，也不会影响你下面的阅读，因为样式不是本文的重点，并不影响整体阅读。
+手把手教你如何创建一个代码仓库 让我们先创造一个简单的溢出场景，代码很简单，容器是一个 width 最大值为 200px，height 为固定 30px 的 div。
+现在页面上的效果如下图：
+可以很清晰的看出，由于我们文字在容器内放不下，但是我们又没对溢出这一特殊场景做出处理，所以就造成了当前页面的效果。先别急，我们一步一步来。 最开始我去查阅 MDN 的时候，查阅到了一个 “确认过眼神，你就是我要找到人” 的属性。
+什么？text-overflow，我们要找到不就是文字溢出时候的处理吗？我兴奋的赶快添加到了我的组件上。
+效果如下：
+然后看着毫无变化的页面，开始怀疑我自己是不是单词拼错了，然后一个字母字母的比对，排除了单词打错字的情况，但页面还是没有变化。🤔 于是我又返回 MDN 去查看自己是否遗漏了哪些东西，发现了这样一段文字。
+这里直接说结论，其实 text-overflow 这个属性不会为了让文字省略而去创造省略的场景。它其实是在你处理过溢出场景之后，帮你做对于文字溢出的的二次特殊处理。当你对于页面溢出做没有任何操作时，这个属性其实是无效的。 （注意：它仅仅只处理文字溢出的场景。） 既然你说了，让我们添加额外的属性：overflow-hidden 和 white-space，那么我们就自己添加。我们先只添加一个 overflow-hidden 来看看会发生什么。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">前端正确处理“文字溢出”的思路</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 14, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/aaae6ac2a7534c2cbbb93592d9cf9b21~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="前端正确处理“文字溢出”的思路"></p>
+<p><strong>前言：</strong> 最近在项目中需要做到类似于 <strong>Mac</strong> 下这种，当屏幕宽度足以容下当前文件名称的时候，文件名称全部展示，不做省略。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c6a3971e38fd4484848483bcb0941370~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+然而当用户缩放浏览器显示的尺寸时，我们需要做到省略中间的文字，选择保留后缀这种方案。如下图所示：<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/51b9f2b9ef3e45c0ad0dd3916eccb8a4~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="1.gif"></p>
+<p>我个人也是感觉这个方案是最好的，因为大部分情况下，用户更关心的是这个文件的类型，而后缀名的保留往往是最佳的选择。我个人也查阅了很多相关文章，并且借鉴了一些已有轮子的代码思路，实现了一个符合我们项目中需求的一个组件。</p>
+<h2 id="一组件效果预览">一.组件效果预览</h2>
+<ol>
+<li>
+<p>单行文字溢出时自动省略，并且<strong>不保留</strong>后缀。
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7116b5ce21cd4188bbbb7cab325bf760~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+</li>
+<li>
+<p>单行文字溢出时自动省略，并且<strong>保留</strong>后缀。
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d7f0c8439759429c85ee691b9e36e35f~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+</li>
+<li>
+<p>多行文字溢出时，然后再开始省略。这个情况是我们项目中比较特殊的场景。简单来说就是假设我现在想让文字显示<strong>两行</strong>，如果<strong>两行</strong>的时候没有溢出，那么正常显示。如果两行情况下还是溢出了，那么我再去处理溢出的文字。 假设这是没有做任何操作的的效果:
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8a964e94c3c64778b6f5c5ecdccc290c~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png">
+使用我们的组件以后的效果：
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4ac1e822501246b4a66a1e5116ce6087~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png">
+<strong>（tips：不一定必须是两行，三行，四行都是可以的。我们接下来实现的组件会让你高度自定义去处理文字溢出的场景。）</strong></p>
+</li>
+<li>
+<p>如果你想自己先尝试一下效果，那么你可以快速使用 <strong>npm</strong> 安装一下。</p>
+<ul>
+<li><code>npm i auto-ellipsis-text</code></li>
+<li><code>pnpm i auto-ellipsis-text</code></li>
+<li><code>yarn add auto-ellipsis-text</code></li>
+</ul>
+<p>原仓库地址： <a href="https://github.com/hanzhenfang/auto-ellipsis-text">AutoEllipsisTxt 自动省略文字</a></p>
+</li>
+<li>
+<p>使用起来也非常简单，你只需要包裹住你的文字即可 <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/12b85f3bc19d47d38d776864bad55ae5~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"> <img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d8c637075cf64f9e9a141bd2062ac096~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+</li>
+<li>
+<p>话回正题，接下来我会一步一步讲解我实现这个组件的思路，我写的这个组件不一定是最优的，你需要做到<strong>知其然并知其所以然</strong>，然后完善我写的组件的不足之处，你可以实现自己的<strong>自动省略文本方案</strong>，才是本文的目的。</p>
+</li>
+</ol>
+<h2 id="二-单行溢出的处理">二. 单行溢出的处理</h2>
+<ol>
+<li>我们先只考虑<strong>单行</strong>的情况。通常我们在自己的应用中展示很多文件信息的时候，往往选择的布局方式就是高度是一定的，说白了就是高度其实我们是定死的，宽度我们不确定，因为用户有可能会在某些情况下拖动浏览器，造成宽度发生变化，但是总会给宽度一个<strong>最小值</strong>和一个<strong>最大值</strong>来保障排版的统一性。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/77ff8e6aca7a4876979b97367bc9b206~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>样式方面，在这里我使用的是 <code>UnoCSS</code> ，将样式內联在了标签里，如果你还不了解这种写法，你可以点击下方的文章学习。不过即使你之前从未了解过 <code>UnoCSS</code> ，也不会影响你下面的阅读，因为样式不是本文的重点，并不影响整体阅读。<br>
+<a href="https://juejin.cn/post/7178130338240020539" title="https://juejin.cn/post/7178130338240020539">手把手教你如何创建一个代码仓库</a></li>
+<li>让我们先创造一个简单的溢出场景，代码很简单，容器是一个 <strong>width</strong> 最大值为 <strong>200px</strong>，<strong>height</strong> 为固定 <strong>30px</strong> 的 <strong>div</strong>。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/351ddf99603d45d8b4dda12e1d433c95~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+现在页面上的效果如下图：<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/724074e806bb4d67ad305251b07d84d2~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>可以很清晰的看出，由于我们文字在容器内放不下，但是我们又没对<strong>溢出</strong>这一特殊场景做出处理，所以就造成了当前页面的效果。先别急，我们一步一步来。</li>
+<li>最开始我去查阅 <strong>MDN</strong> 的时候，查阅到了一个 <strong>“确认过眼神，你就是我要找到人”</strong> 的属性。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cbc5ea682cd549049f697fdf7cd8f353~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>什么？<strong>text-overflow</strong>，我们要找到不就是文字溢出时候的处理吗？我兴奋的赶快添加到了我的组件上。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6d973559eef84589932104af0daca21d~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+效果如下：<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c4425ac09da349daa747824a50caac1b~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+然后看着毫无变化的页面，开始怀疑我自己是不是单词拼错了，然后一个字母字母的比对，排除了单词打错字的情况，但页面还是没有变化。🤔</li>
+<li>于是我又返回 <strong>MDN</strong> 去查看自己是否遗漏了哪些东西，发现了这样一段文字。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/586c542f47b745e28d78db20aaa9d135~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+这里直接说结论，其实 <strong>text-overflow</strong> 这个属性不会为了让文字省略而去创造省略的场景。它其实是在你处理过<strong>溢出</strong>场景之后，帮你做对于<strong>文字溢出</strong>的的二次特殊处理。当你对于页面溢出做没有任何操作时，这个属性其实是无效的。 <strong>（注意：它仅仅只处理文字溢出的场景。）</strong></li>
+<li>既然你说了，让我们添加额外的属性：<code>overflow-hidden</code> 和 <code>white-space</code>，那么我们就自己添加。我们先只添加一个 <code>overflow-hidden</code> 来看看会发生什么。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/dafcb7f6173945139c1ca8f91baa848e~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+我们发现，下面多出去的文字倒是被省略了，但是我们的省略号呢？？我就不卖官子了，其实造成这个的原因的答案就是下面这句话:<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4bd8d17c4ea743ce8c06fcd86602d646~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>我们仔细看上面我们溢出的场景。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/03ed6084390a480c82415122cbfd5aa1~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+我们下面两行文字其实是<strong>溢出</strong>在了<strong>盒子下方</strong>，正好对应了上面 <code>text-overflow</code> 的介绍，<strong>“无法在盒子下面溢出”</strong> 这句话。</li>
+<li>在这里我们就需要制造一个让<strong>文字强制不换行</strong>的场景。那么就需要用到我们另外一个十分重要的属性，<code>white-space</code>。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/75d9a4c3b0b44971981c4fbaba92ff04~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+我们本节只需要关系 <code>nowrap</code> 这一个值即可。剩下的值如果读者有兴趣可以自行了解，我们不过多解释。</li>
+<li>首先你要知道，其实我们 <strong>web</strong> 页面的换行，并不是毫无意义的自己就换行了，而是都有一个隐藏的换行符，你可以把这个隐藏的换行符浅浅的理解为 <code>white-space(空格)</code>。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/12d885ec2af148b3b048e8a0a588f4d5~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>理解了上面那段话，那我们的属性 <code>white-space:nowrap</code> 的中文含义就十分明显了。<code>white-space</code>对应<strong>空格</strong>，<code>no-wrap</code> 代表不换行。连起来的意思就是，遇到<strong>空格不换行</strong>。而我们的换行其实有一个隐藏的 <code>white-space</code> ，那么我们添加这个属性以后，就会造成一个不会换行的场景。</li>
+<li>让我们先把 <code>text-ellipsis</code> 和 <code>overflow-hidden</code> 属性删除，只添加 <code>white-space:nowrap</code> 看看页面效果会是怎么样。<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ad1df08da1e44dedb2483c0a89ef96bf~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+效果如下：<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d8d145d4db2b4dec937b3619ea266a4f~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+可以看到，我们省略了那个隐藏的<strong>换行符</strong>，所以文字不会自动换行了，那么整段文字都显示到了一行上。此时我们再加上我们的两个属性，<code>overflow-hidden</code> 和 <code>text-ellipsis</code>，神奇的一幕就发生了。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/47c842c693f7476dbcebf9d2442c3100~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+我们仅仅只使用了几个 <strong>CSS</strong> 属性就完成了单行情况下<strong>不保留后缀</strong>的文字溢出处理。</li>
+</ol>
+<h2 id="三-前期准备">三. 前期准备</h2>
+<ol>
+<li>首先你需要准备一个 <code>autoEllipsis.vue</code> 文件，首先写出下面的代码，来和我一起完成这个组件。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-vue" data-lang="vue"><span style="display:flex;"><span>&lt;<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;autoEllipsisWrapper&#34;</span> <span style="color:#a6e22e">ref</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;container&#34;</span> <span style="color:#f92672">v-bind</span><span style="color:#e6db74">=&#34;$attrs&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">ref</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;text&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">slot</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">template</span>&gt;
+</span></span></code></pre></div><ol start="2">
+<li>请注意这个 <strong>id</strong> 叫做 <code>container</code> 的 <strong>div</strong> 元素将在接下来的内容中起到至关重要的作用。</li>
+<li>接下来使用 <code>ref</code> 分别去拿到这两个 <strong>dom</strong> 元素。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2dafb940dd17479e9ca3250009cca5d5~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>最后我们需要设计一个函数，在组件挂载以后，让它去正确处理我们文字溢出的场景。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e4cf673d74eb49428a985311bc550711~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>接下来的需求就是，这个 <code>autoEllipsis</code> 函数如何去实现。别着急写代码，我知道你现在有可能还是一头雾水无从下手，让我先带你理清思路然后再开始写代码。</li>
+</ol>
+<h2 id="四-理清思路">四. 理清思路</h2>
+<ol>
+<li>首先我们因为要做到通用性所以， <code>container</code> 的宽度是不能确定的，它的宽度需要根据它外层的父元素来决定，也就是上文中我们提到的有一个最大值最小值宽度的元素。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/402ef255cb6348389f7a2491a3668d0a~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"><br>
+换句话说，我们这个 <strong>container</strong> 要去动态的拿到外层父元素的宽度。</li>
+<li>我们先不讲代码如何实现，我们假设现在我们已经拿到了，就叫做 <code>fatherWidth</code>。然后我们再通过刚刚的 <code>ref</code> 获取到的 <code>text</code> <strong>dom</strong> 元素去拿到外面传进来的文字内容。通过拿到这个 <code>span</code> 元素的 <strong>offsetWidth</strong> ，就可以拿到文字的长度。通过判断文字的 <strong>offsetWidth</strong> 是否大于 <strong>fatherWidth</strong> 。然后我们通过两个<strong>宽度</strong>相减，可以得出我们到底溢出的文字宽度为多少。<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e039ae9bd1f44f01b95c6a7742293ed9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>拿到溢出的宽度以后，那么我们就可以用溢出宽度来除以文字大小，<strong>(overWidth/fontSize)</strong> ，就可以算出我们到底溢出了多少文字。</li>
+<li>假设现在我们现在<strong>溢出</strong>宽度为 <strong>200px</strong>。我们的文字大小为 <code>20px</code>，那么 <strong>200/20</strong> 就算出我们现在溢出了 <strong>10</strong> 个字。</li>
+<li>我们并且一开始就拿到了总的文字内容，假如我们之前的文字总数为 <strong>30</strong> 个。那么在这个情况下我们屏幕上只展示了 <strong>20</strong> 个文字，因为有 <strong>10</strong> 个字溢出被我们忽略了。</li>
+<li>到这里之后，我们要做的事情就非常简单了，我们只需要从原来 30 个字的中间开始做切割。一边去掉 5 个，那么此时容器恰好可以容下 20 个字。中间我们再手动加上 <strong>“&hellip;”</strong> 省略号不就完美达成了吗？</li>
+<li>上面想表达的意思用大白话来讲，其实也就是去掉中间的<strong>10</strong>个文字，然后随便再找一个字替换成字符串三个点 <code>...</code> 。</li>
+</ol>
+<h2 id="五-完成-autoellipsis-函数">五. 完成 autoEllipsis 函数</h2>
+<ol>
+<li>第一步就是为了拿到我们放入的文字宽度。注释已经写的很清楚了，就不过多赘述。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/efcd9e92b59f44a18340c261ee56208d~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>然后我们再去拿外面父元素的宽度。此时会出现第一个分支， <code>container</code> 的宽度<strong>小于</strong>父元素的宽度，很容易可以猜到现在我们的文字内容是完全可以容纳的，不需要做特殊处理。<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0cb69123c7d94236b4832e2a2aa21e5a~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>第二个分支，当我们的 <strong>container</strong> 宽度大于了父亲元素的宽度，那么我们可以通过传递 props 来区分是否需要保留后缀，如果不需要保留后缀，我们直接给 <code>container</code>设置我们<strong>第二个标题</strong>讲解的知识就 OK 了。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fb6dc872139749c28d24674ecbb027d0~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+</ol>
+<h2 id="六-保留后缀的实现">六. 保留后缀的实现</h2>
+<ol>
+<li>如果看到这里，你还没有正确的保留后缀思路，我建议你重新去观看一下<strong>标题四</strong>，这里我们大致的思路就是为了拿到父元素可以容纳多少文字。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/381cb4de2cdd48abb3835b0d790a7271~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>这里我们的思路其实就是计算出得出我们<strong>需要删除多少个文字</strong>。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2f77ddb43fb049dd9bd8bd0ab0dfd6b2~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>很简单的思路，就是字符串使用 <code>slice</code> 切割我们上面计算得出的，两边需要删除多少文字。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b12f59a588884a15b4a709123e599455~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+<li>最后的关键一步，我们需要把 <code>container</code> 的 <code>white-space</code> 属性设置为 <code>normal</code>，因为我们已经正确的处理了文字数量，现在的 <code>container</code> 已经不会溢出了。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c3f26c8c976f461a9ec06d9cb16a2582~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></li>
+</ol>
+<h2 id="七-源码">七. 源码</h2>
+<p>下面是本组件的核心代码 <code>autoEllipsis</code> 函数的源码</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">autoEllipsis</span>(<span style="color:#a6e22e">container</span>: <span style="color:#66d9ef">HTMLElement</span>, <span style="color:#a6e22e">textNode</span>: <span style="color:#66d9ef">HTMLSpanElement</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">str</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">premitiveText</span>; <span style="color:#75715e">//1.拿到的所有文字信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">textNode</span>.<span style="color:#a6e22e">textContent</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">str</span>; <span style="color:#75715e">//2.将所有文字放入到我们的 span 标签中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">whiteSpace</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;nowrap&#34;</span>; <span style="color:#75715e">//3.先将文字全部放入到《一行》中，为了计算整体宽度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;fit-content&#34;</span>; <span style="color:#75715e">//4. 给 container 设置 fit-content 属性，就可以拿到正确的内容宽度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">containerWidth</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">clientWidth</span>; <span style="color:#75715e">//5. 拿到了 container 的宽度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">parent</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">parentElement</span>; <span style="color:#75715e">// 拿到外部父元素的宽度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">parentWidth</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">parent</span><span style="color:#f92672">!</span>.<span style="color:#a6e22e">clientWidth</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">parent</span><span style="color:#f92672">!</span>.<span style="color:#a6e22e">offsetWidth</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">containerWidth</span> <span style="color:#f92672">&lt;=</span> <span style="color:#a6e22e">parentWidth</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//如果container 的宽度《小于》父元素的宽度，不做任何处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">textNode</span>.<span style="color:#a6e22e">textContent</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">str</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">cssEntirely</span>.<span style="color:#a6e22e">value</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">parentWidth</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;px&#34;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">whiteSpace</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;nowrap&#34;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">textOverflow</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;ellipsis&#34;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">overflow</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;hidden&#34;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">textWidth</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">textNode</span>.<span style="color:#a6e22e">offsetWidth</span>; <span style="color:#75715e">//1. 拿到文字节点的宽度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">strNumer</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">str</span>.<span style="color:#a6e22e">length</span>; <span style="color:#75715e">//2. 拿到文字的数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">avgStrWidth</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">textWidth</span> <span style="color:#f92672">/</span> <span style="color:#a6e22e">strNumer</span>; <span style="color:#75715e">//3. 拿到平均每个文字多少宽度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">canFitStrNumber</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>(
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">parentWidth</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">startEllipsisLine</span>) <span style="color:#f92672">/</span> <span style="color:#a6e22e">avgStrWidth</span> <span style="color:#75715e">//4. 根据父元素的宽度来计算出可以容纳多少文字
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">shouldDelNumber</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">strNumer</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">canFitStrNumber</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1.5</span>; <span style="color:#75715e">//1. 算出需要删除几个文字（1.5是为了省略号的宽度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">delEachSide</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">shouldDelNumber</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>; <span style="color:#75715e">//2. 因为要保留中间,所以我们不能只从开头删除，也需要从两头删除
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">endLeft</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>(<span style="color:#a6e22e">strNumer</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">delEachSide</span>); <span style="color:#75715e">//3. 因为下面要用到 slice 所以需要计算出 index
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">startRight</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">ceil</span>(<span style="color:#a6e22e">strNumer</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">delEachSide</span>); <span style="color:#75715e">//4. 和上面同理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">switch</span> (<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">suffix</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">case</span> <span style="color:#66d9ef">true</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">textNode</span>.<span style="color:#a6e22e">textContent</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">str</span>.<span style="color:#a6e22e">slice</span>(<span style="color:#ae81ff">0</span>, <span style="color:#a6e22e">endLeft</span>) <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;...&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">str</span>.<span style="color:#a6e22e">slice</span>(<span style="color:#a6e22e">startRight</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">case</span> <span style="color:#66d9ef">false</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">textNode</span>.<span style="color:#a6e22e">textContent</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">str</span>.<span style="color:#a6e22e">slice</span>(<span style="color:#ae81ff">0</span>, <span style="color:#f92672">-</span><span style="color:#a6e22e">shouldDelNumber</span>) <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;...&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">wordBreak</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;break-all&#34;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">whiteSpace</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;normal&#34;</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="八-优化点">八. 优化点</h2>
+<p>这个组件目前在 <code>...</code> 省略号的文字占用上，并不能准确的根据文字大小调整所需的字数。也就是下面的 <strong>1.5</strong> 这个数字无法精确的算出，但是目前我们项目的文字大小是确定的，所以我也就没有再优化了，还希望各位可以提交 <strong>Pr</strong> 来一起完善这个组件。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/27a049f9252247dbaf78cc830728b632~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>原仓库地址： <a href="https://link.juejin.cn/?target=https%3A%2F%2Fgithub.com%2Fhanzhenfang%2Fauto-ellipsis-text" title="https://github.com/hanzhenfang/auto-ellipsis-text">AutoEllipsisTxt 自动省略文字</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/487/"
+      ><span class="mr-1.5">←</span><span>ChatAudio 实现语音对话（低仿微信聊天）</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/485/"
+      ><span>如何在react中处理报错</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

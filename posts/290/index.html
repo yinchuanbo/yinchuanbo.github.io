@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>你如何实现大文件上传？ - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="提到大文件上传，在脑海里最先想到的应该就是将图片保存在自己的服务器（如七牛云服务器），保存在数据库，不仅可以当做地址使用，还可以当做资源使用；或者将图片转换成 base64，转换成 buffer 流，但是在 javascript 这门语言中不存在，但是这些只适用于一些小图片，对于大文件还是束手无策。
+问题分析 如果将大文件一次性上传，会发生什么？想必都遇到过在一个大文件上传、转发等操作时，由于要上传大量的数据，导致整个上传过程耗时漫长，更有甚者，上传失败，让你重新上传！这个时候，我已经咬牙切齿了。先不说上传时间长久，毕竟上传大文件也没那么容易，要传输更多的报文，丢包也是常有的事，而且在这个时间段万不可以做什么其他会中断上传的操作；其次，前后端交互肯定是有时间限制的，肯定不允许无限制时间上传，大文件又更容易超时而失败&hellip;.
+解决方案 既然大文件上传不适合一次性上传，那么将文件分片散上传是不是就能减少性能消耗了。
+没错，就是分片上传。分片上传就是将大文件分成一个个小文件（切片），将切片进行上传，等到后端接收到所有切片，再将切片合并成大文件。通过将大文件拆分成多个小文件进行上传，确实就是解决了大文件上传的问题。因为请求时可以并发执行的，这样的话每个请求时间就会缩短，如果某个请求发送失败，也不需要全部重新发送。
+具体实现 前端 （1）读取文件
+准备 HTML 结构，包括：读取本地文件（input类型为file）、上传文件按钮、上传进度。
+&lt;input type=&#34;file&#34; id=&#34;input&#34; /&gt; &lt;button id=&#34;upload&#34;&gt;上传&lt;/button&gt; &lt;!-- 上传进度 --&gt; &lt;div style=&#34;width: 300px&#34; id=&#34;progress&#34;&gt;&lt;/div&gt; JS 实现文件读取：
+监听input的change事件，当选取了本地文件后，打印事件源可得到文件的一些信息：
+let input = document.getElementById(&#39;input&#39;) let upload = document.getElementById(&#39;upload&#39;) let files = {}//创建一个文件对象 let chunkList = []//存放切片的数组 ​ // 读取文件 input.addEventListener(&#39;change&#39;, (e) =&gt; { files = e.target.files[0] console.log(files); //创建切片 //上传切片 }) 观察控制台，打印读取的文件信息如下：
+（2）创建切片
+文件的信息包括文件的名字，文件的大小，文件的类型等信息，接下来可以根据文件的大小来进行切片，例如将文件按照 1MB 或者 2MB 等大小进行切片操作：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="你如何实现大文件上传？" />
+<meta property="og:description" content="提到大文件上传，在脑海里最先想到的应该就是将图片保存在自己的服务器（如七牛云服务器），保存在数据库，不仅可以当做地址使用，还可以当做资源使用；或者将图片转换成 base64，转换成 buffer 流，但是在 javascript 这门语言中不存在，但是这些只适用于一些小图片，对于大文件还是束手无策。
+问题分析 如果将大文件一次性上传，会发生什么？想必都遇到过在一个大文件上传、转发等操作时，由于要上传大量的数据，导致整个上传过程耗时漫长，更有甚者，上传失败，让你重新上传！这个时候，我已经咬牙切齿了。先不说上传时间长久，毕竟上传大文件也没那么容易，要传输更多的报文，丢包也是常有的事，而且在这个时间段万不可以做什么其他会中断上传的操作；其次，前后端交互肯定是有时间限制的，肯定不允许无限制时间上传，大文件又更容易超时而失败&hellip;.
+解决方案 既然大文件上传不适合一次性上传，那么将文件分片散上传是不是就能减少性能消耗了。
+没错，就是分片上传。分片上传就是将大文件分成一个个小文件（切片），将切片进行上传，等到后端接收到所有切片，再将切片合并成大文件。通过将大文件拆分成多个小文件进行上传，确实就是解决了大文件上传的问题。因为请求时可以并发执行的，这样的话每个请求时间就会缩短，如果某个请求发送失败，也不需要全部重新发送。
+具体实现 前端 （1）读取文件
+准备 HTML 结构，包括：读取本地文件（input类型为file）、上传文件按钮、上传进度。
+&lt;input type=&#34;file&#34; id=&#34;input&#34; /&gt; &lt;button id=&#34;upload&#34;&gt;上传&lt;/button&gt; &lt;!-- 上传进度 --&gt; &lt;div style=&#34;width: 300px&#34; id=&#34;progress&#34;&gt;&lt;/div&gt; JS 实现文件读取：
+监听input的change事件，当选取了本地文件后，打印事件源可得到文件的一些信息：
+let input = document.getElementById(&#39;input&#39;) let upload = document.getElementById(&#39;upload&#39;) let files = {}//创建一个文件对象 let chunkList = []//存放切片的数组 ​ // 读取文件 input.addEventListener(&#39;change&#39;, (e) =&gt; { files = e.target.files[0] console.log(files); //创建切片 //上传切片 }) 观察控制台，打印读取的文件信息如下：
+（2）创建切片
+文件的信息包括文件的名字，文件的大小，文件的类型等信息，接下来可以根据文件的大小来进行切片，例如将文件按照 1MB 或者 2MB 等大小进行切片操作：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/290/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-12-19T22:10:45+08:00" />
+<meta property="article:modified_time" content="2022-12-19T22:10:45+08:00" />
+
+  
+  <meta itemprop="name" content="你如何实现大文件上传？">
+<meta itemprop="description" content="提到大文件上传，在脑海里最先想到的应该就是将图片保存在自己的服务器（如七牛云服务器），保存在数据库，不仅可以当做地址使用，还可以当做资源使用；或者将图片转换成 base64，转换成 buffer 流，但是在 javascript 这门语言中不存在，但是这些只适用于一些小图片，对于大文件还是束手无策。
+问题分析 如果将大文件一次性上传，会发生什么？想必都遇到过在一个大文件上传、转发等操作时，由于要上传大量的数据，导致整个上传过程耗时漫长，更有甚者，上传失败，让你重新上传！这个时候，我已经咬牙切齿了。先不说上传时间长久，毕竟上传大文件也没那么容易，要传输更多的报文，丢包也是常有的事，而且在这个时间段万不可以做什么其他会中断上传的操作；其次，前后端交互肯定是有时间限制的，肯定不允许无限制时间上传，大文件又更容易超时而失败&hellip;.
+解决方案 既然大文件上传不适合一次性上传，那么将文件分片散上传是不是就能减少性能消耗了。
+没错，就是分片上传。分片上传就是将大文件分成一个个小文件（切片），将切片进行上传，等到后端接收到所有切片，再将切片合并成大文件。通过将大文件拆分成多个小文件进行上传，确实就是解决了大文件上传的问题。因为请求时可以并发执行的，这样的话每个请求时间就会缩短，如果某个请求发送失败，也不需要全部重新发送。
+具体实现 前端 （1）读取文件
+准备 HTML 结构，包括：读取本地文件（input类型为file）、上传文件按钮、上传进度。
+&lt;input type=&#34;file&#34; id=&#34;input&#34; /&gt; &lt;button id=&#34;upload&#34;&gt;上传&lt;/button&gt; &lt;!-- 上传进度 --&gt; &lt;div style=&#34;width: 300px&#34; id=&#34;progress&#34;&gt;&lt;/div&gt; JS 实现文件读取：
+监听input的change事件，当选取了本地文件后，打印事件源可得到文件的一些信息：
+let input = document.getElementById(&#39;input&#39;) let upload = document.getElementById(&#39;upload&#39;) let files = {}//创建一个文件对象 let chunkList = []//存放切片的数组 ​ // 读取文件 input.addEventListener(&#39;change&#39;, (e) =&gt; { files = e.target.files[0] console.log(files); //创建切片 //上传切片 }) 观察控制台，打印读取的文件信息如下：
+（2）创建切片
+文件的信息包括文件的名字，文件的大小，文件的类型等信息，接下来可以根据文件的大小来进行切片，例如将文件按照 1MB 或者 2MB 等大小进行切片操作："><meta itemprop="datePublished" content="2022-12-19T22:10:45+08:00" />
+<meta itemprop="dateModified" content="2022-12-19T22:10:45+08:00" />
+<meta itemprop="wordCount" content="572">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="你如何实现大文件上传？"/>
+<meta name="twitter:description" content="提到大文件上传，在脑海里最先想到的应该就是将图片保存在自己的服务器（如七牛云服务器），保存在数据库，不仅可以当做地址使用，还可以当做资源使用；或者将图片转换成 base64，转换成 buffer 流，但是在 javascript 这门语言中不存在，但是这些只适用于一些小图片，对于大文件还是束手无策。
+问题分析 如果将大文件一次性上传，会发生什么？想必都遇到过在一个大文件上传、转发等操作时，由于要上传大量的数据，导致整个上传过程耗时漫长，更有甚者，上传失败，让你重新上传！这个时候，我已经咬牙切齿了。先不说上传时间长久，毕竟上传大文件也没那么容易，要传输更多的报文，丢包也是常有的事，而且在这个时间段万不可以做什么其他会中断上传的操作；其次，前后端交互肯定是有时间限制的，肯定不允许无限制时间上传，大文件又更容易超时而失败&hellip;.
+解决方案 既然大文件上传不适合一次性上传，那么将文件分片散上传是不是就能减少性能消耗了。
+没错，就是分片上传。分片上传就是将大文件分成一个个小文件（切片），将切片进行上传，等到后端接收到所有切片，再将切片合并成大文件。通过将大文件拆分成多个小文件进行上传，确实就是解决了大文件上传的问题。因为请求时可以并发执行的，这样的话每个请求时间就会缩短，如果某个请求发送失败，也不需要全部重新发送。
+具体实现 前端 （1）读取文件
+准备 HTML 结构，包括：读取本地文件（input类型为file）、上传文件按钮、上传进度。
+&lt;input type=&#34;file&#34; id=&#34;input&#34; /&gt; &lt;button id=&#34;upload&#34;&gt;上传&lt;/button&gt; &lt;!-- 上传进度 --&gt; &lt;div style=&#34;width: 300px&#34; id=&#34;progress&#34;&gt;&lt;/div&gt; JS 实现文件读取：
+监听input的change事件，当选取了本地文件后，打印事件源可得到文件的一些信息：
+let input = document.getElementById(&#39;input&#39;) let upload = document.getElementById(&#39;upload&#39;) let files = {}//创建一个文件对象 let chunkList = []//存放切片的数组 ​ // 读取文件 input.addEventListener(&#39;change&#39;, (e) =&gt; { files = e.target.files[0] console.log(files); //创建切片 //上传切片 }) 观察控制台，打印读取的文件信息如下：
+（2）创建切片
+文件的信息包括文件的名字，文件的大小，文件的类型等信息，接下来可以根据文件的大小来进行切片，例如将文件按照 1MB 或者 2MB 等大小进行切片操作："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">你如何实现大文件上传？</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Dec 19, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>提到大文件上传，在脑海里最先想到的应该就是将图片保存在自己的服务器（如七牛云服务器），保存在数据库，不仅可以当做地址使用，还可以当做资源使用；或者将图片转换成 base64，转换成 buffer 流，但是在 javascript 这门语言中不存在，但是这些只适用于一些小图片，对于大文件还是束手无策。</p>
+<h3 id="问题分析">问题分析</h3>
+<p>如果将大文件一次性上传，会发生什么？想必都遇到过在一个大文件上传、转发等操作时，由于要上传大量的数据，导致整个上传过程耗时漫长，更有甚者，上传失败，让你重新上传！这个时候，我已经咬牙切齿了。先不说上传时间长久，毕竟上传大文件也没那么容易，要传输更多的报文，丢包也是常有的事，而且在这个时间段万不可以做什么其他会中断上传的操作；其次，前后端交互肯定是有时间限制的，肯定不允许无限制时间上传，大文件又更容易超时而失败&hellip;.</p>
+<h3 id="解决方案">解决方案</h3>
+<p>既然大文件上传不适合一次性上传，那么将文件分片散上传是不是就能减少性能消耗了。</p>
+<p>没错，就是分片上传。分片上传就是将大文件分成一个个小文件（切片），将切片进行上传，等到后端接收到所有切片，再将切片合并成大文件。通过将大文件拆分成多个小文件进行上传，确实就是解决了大文件上传的问题。因为请求时可以并发执行的，这样的话每个请求时间就会缩短，如果某个请求发送失败，也不需要全部重新发送。</p>
+<h3 id="具体实现">具体实现</h3>
+<ol>
+<li>前端</li>
+</ol>
+<p>（1）读取文件</p>
+<p>准备 HTML 结构，包括：读取本地文件（<code>input</code>类型为<code>file</code>）、上传文件按钮、上传进度。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">input</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;file&#34;</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;input&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;upload&#34;</span>&gt;上传&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- 上传进度 --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">style</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;width: 300px&#34;</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;progress&#34;</span>&gt;&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><p>JS 实现文件读取：</p>
+<p>监听<code>input</code>的<code>change</code>事件，当选取了本地文件后，打印事件源可得到文件的一些信息：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">input</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;input&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">upload</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;upload&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">files</span> <span style="color:#f92672">=</span> {}<span style="color:#75715e">//创建一个文件对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">chunkList</span> <span style="color:#f92672">=</span> []<span style="color:#75715e">//存放切片的数组
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 读取文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">input</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#39;change&#39;</span>, (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">files</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">files</span>[<span style="color:#ae81ff">0</span>]
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">files</span>);
+</span></span><span style="display:flex;"><span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span><span style="color:#75715e">//创建切片
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span><span style="color:#75715e">//上传切片
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>})
+</span></span></code></pre></div><p>观察控制台，打印读取的文件信息如下：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/854ffe094389481a90a133db574cfb07~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<p>（2）创建切片</p>
+<p>文件的信息包括文件的名字，文件的大小，文件的类型等信息，接下来可以根据文件的大小来进行切片，例如将文件按照 1MB 或者 2MB 等大小进行切片操作：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 创建切片
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">createChunk</span>(<span style="color:#a6e22e">file</span>, <span style="color:#a6e22e">size</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">1024</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">1024</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//两个形参：file是大文件，size是切片的大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">chunkList</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">cur</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span> (<span style="color:#a6e22e">cur</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">file</span>.<span style="color:#a6e22e">size</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">chunkList</span>.<span style="color:#a6e22e">push</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">file</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">file</span>.<span style="color:#a6e22e">slice</span>(<span style="color:#a6e22e">cur</span>, <span style="color:#a6e22e">cur</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">size</span>), <span style="color:#75715e">//使用slice()进行切片
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    });
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cur</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">size</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">chunkList</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>切片的核心思想是：创建一个空的切片列表数组<code>chunkList</code>，将大文件按照每个切片 2MB 进行切片操作，这里使用的是数组的<code>Array.prototype.slice()</code>方法，那么每个切片都应该在 2MB 大小左右，如上文件的大小是<code>8359021</code>，那么可得到 4 个切片，分别是[0，2MB]、[2MB，4MB]、[4MB,6MB]、[6MB,8MB]。调用<code>createChunk函数</code>，会返回一个切片列表数组，实际上，有几个切片就相当于有几个请求。</p>
+<p>调用创建切片函数：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">//注意调用位置，不是在全局，而是在读取文件的回调里调用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">chunkList</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">createChunk</span>(<span style="color:#a6e22e">files</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">chunkList</span>);
+</span></span></code></pre></div><p>观察控制台打印的结果：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/dda1b745d26645a8b5ae188ec31c346e~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<p>（3）上传切片</p>
+<p>上传切片的个关键的操作：</p>
+<p>第一、数据处理。需要将切片的数据进行维护成一个包括该文件，文件名，切片名的对象，所以采用<code>FormData</code>对象来进行整理数据。<code>FormData 对象</code>用以将数据编译成键值对,可用于发送带键数据，通过调用它的<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/FormData/append"><code>append()</code></a>方法来添加字段，FormData.append()<code>方法会将字段类型为数字类型的转换成字符串（字段类型可以是 Blob、File</code>或者字符串：<strong>如果它的字段类型不是 Blob 也不是 File，则会被转换成字符串类</strong>。</p>
+<p>第二、并发请求。每一个切片都分别作为一个请求，只有当这 4 个切片都传输给后端了，即四个请求都成功发起，才上传成功，使用<code>Promise.all()</code>保证所有的切片都已经传输给后端。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">//数据处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">uploadFile</span>(<span style="color:#a6e22e">list</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">requestList</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">list</span>.<span style="color:#a6e22e">map</span>(({<span style="color:#a6e22e">file</span>,<span style="color:#a6e22e">fileName</span>,<span style="color:#a6e22e">index</span>,<span style="color:#a6e22e">chunkName</span>}) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">formData</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">FormData</span>() <span style="color:#75715e">// 创建表单类型数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">formData</span>.<span style="color:#a6e22e">append</span>(<span style="color:#e6db74">&#39;file&#39;</span>, <span style="color:#a6e22e">file</span>)<span style="color:#75715e">//该文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">formData</span>.<span style="color:#a6e22e">append</span>(<span style="color:#e6db74">&#39;fileName&#39;</span>, <span style="color:#a6e22e">fileName</span>)<span style="color:#75715e">//文件名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">formData</span>.<span style="color:#a6e22e">append</span>(<span style="color:#e6db74">&#39;chunkName&#39;</span>, <span style="color:#a6e22e">chunkName</span>)<span style="color:#75715e">//切片名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span> {<span style="color:#a6e22e">formData</span>,<span style="color:#a6e22e">index</span>}
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>        .<span style="color:#a6e22e">map</span>(({<span style="color:#a6e22e">formData</span>,<span style="color:#a6e22e">index</span>}) =&gt;<span style="color:#a6e22e">axiosRequest</span>({
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">method</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;post&#39;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;http://localhost:3000/upload&#39;</span>,<span style="color:#75715e">//请求接口，要与后端一一一对应
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">formData</span>
+</span></span><span style="display:flex;"><span>        })
+</span></span><span style="display:flex;"><span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span>  .<span style="color:#a6e22e">then</span>(<span style="color:#a6e22e">res</span> =&gt; {
+</span></span><span style="display:flex;"><span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">res</span>);
+</span></span><span style="display:flex;"><span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span>      <span style="color:#75715e">//显示每个切片上传进度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">p</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;p&#39;</span>)
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">innerHTML</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">list</span>[<span style="color:#a6e22e">index</span>].<span style="color:#a6e22e">chunkName</span><span style="color:#e6db74">}</span><span style="color:#e6db74">--</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">message</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>                document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;progress&#39;</span>).<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">p</span>)
+</span></span><span style="display:flex;"><span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span>  })
+</span></span><span style="display:flex;"><span>        )
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> Promise.<span style="color:#a6e22e">all</span>(<span style="color:#a6e22e">requestList</span>)<span style="color:#75715e">//保证所有的切片都已经传输完毕
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//请求函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">axiosRequest</span>({<span style="color:#a6e22e">method</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;post&#34;</span>,<span style="color:#a6e22e">url</span>,<span style="color:#a6e22e">data</span>}) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>, <span style="color:#a6e22e">reject</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">config</span> <span style="color:#f92672">=</span> {<span style="color:#75715e">//设置请求头
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">headers</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;Content-Type:application/x-www-form-urlencoded&#39;</span>,
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span><span style="color:#75715e">//默认是post请求，可更改
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">axios</span>[<span style="color:#a6e22e">method</span>](<span style="color:#a6e22e">url</span>,<span style="color:#a6e22e">data</span>,<span style="color:#a6e22e">config</span>).<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">res</span>) =&gt; {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">res</span>)
+</span></span><span style="display:flex;"><span>        })
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 文件上传
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">upload</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#39;click&#39;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">uploadList</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">chunkList</span>.<span style="color:#a6e22e">map</span>(({<span style="color:#a6e22e">file</span>}, <span style="color:#a6e22e">index</span>) =&gt; ({
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">file</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">size</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">file</span>.<span style="color:#a6e22e">size</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">percent</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">chunkName</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">files</span>.<span style="color:#a6e22e">name</span><span style="color:#e6db74">}</span><span style="color:#e6db74">-</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">index</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">fileName</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">files</span>.<span style="color:#a6e22e">name</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">index</span>
+</span></span><span style="display:flex;"><span>    }))
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//发请求，调用函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">uploadFile</span>(<span style="color:#a6e22e">uploadList</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><ol start="2">
+<li>后端</li>
+</ol>
+<p>（1）接收切片</p>
+<p>主要工作：</p>
+<p>第一：需要引入<code>multiparty</code>中间件，来解析前端传来的<code>FormData</code>对象数据；</p>
+<p>第二：通过<code>path.resolve()</code>在根目录创建一个文件夹&ndash;<code>qiepian</code>，该文件夹将存放另一个文件夹（存放所有的切片）和合并后的文件；</p>
+<p>第三：处理跨域问题。通过<code>setHeader()</code>方法设置所有的请求头和所有的请求源都允许；</p>
+<p>第四：解析数据成功后，拿到文件相关信息，并且在<code>qiepian</code>文件夹创建一个新的文件夹<code>${fileName}-chunks</code>，用来存放接收到的所有切片；</p>
+<p>第五：通过<code>fse.move(filePath,fileName)</code>将切片移入<code>${fileName}-chunks</code>文件夹，最后向前端返回上传成功的信息。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">//app.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">http</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;http&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">multiparty</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;multiparty&#39;</span>)<span style="color:#75715e">// 中间件，处理FormData对象的中间件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;path&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fse</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;fs-extra&#39;</span>)<span style="color:#75715e">//文件处理模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">server</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">createServer</span>()
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">UPLOAD_DIR</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#39;.&#39;</span>, <span style="color:#e6db74">&#39;qiepian&#39;</span>)<span style="color:#75715e">// 读取根目录，创建一个文件夹qiepian存放切片
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">server</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#39;request&#39;</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">req</span>, <span style="color:#a6e22e">res</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 处理跨域问题，允许所有的请求头和请求源
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">setHeader</span>(<span style="color:#e6db74">&#39;Access-Control-Allow-Origin&#39;</span>, <span style="color:#e6db74">&#39;*&#39;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">setHeader</span>(<span style="color:#e6db74">&#39;Access-Control-Allow-Headers&#39;</span>, <span style="color:#e6db74">&#39;*&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">url</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#39;/upload&#39;</span>) { <span style="color:#75715e">//前端访问的地址正确
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">multipart</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">multiparty</span>.<span style="color:#a6e22e">Form</span>() <span style="color:#75715e">// 解析FormData对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">multipart</span>.<span style="color:#a6e22e">parse</span>(<span style="color:#a6e22e">req</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">fields</span>, <span style="color:#a6e22e">files</span>) =&gt; {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">err</span>) { <span style="color:#75715e">//解析失败
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;fields=&#39;</span>, <span style="color:#a6e22e">fields</span>);
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;files=&#39;</span>, <span style="color:#a6e22e">files</span>);
+</span></span><span style="display:flex;"><span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span> <span style="color:#960050;background-color:#1e0010"> </span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">file</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">files</span>.<span style="color:#a6e22e">file</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">fileName</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">fields</span>.<span style="color:#a6e22e">fileName</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">chunkName</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">fields</span>.<span style="color:#a6e22e">chunkName</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">chunkDir</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">UPLOAD_DIR</span>, <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">fileName</span><span style="color:#e6db74">}</span><span style="color:#e6db74">-chunks`</span>)<span style="color:#75715e">//在qiepian文件夹创建一个新的文件夹，存放接收到的所有切片
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">fse</span>.<span style="color:#a6e22e">existsSync</span>(<span style="color:#a6e22e">chunkDir</span>)) { <span style="color:#75715e">//文件夹不存在，新建该文件夹
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">fse</span>.<span style="color:#a6e22e">mkdirs</span>(<span style="color:#a6e22e">chunkDir</span>)
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 把切片移动进chunkDir
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">fse</span>.<span style="color:#a6e22e">move</span>(<span style="color:#a6e22e">file</span>.<span style="color:#a6e22e">path</span>, <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">chunkDir</span><span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">chunkName</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">end</span>(<span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">stringify</span>({ <span style="color:#75715e">//向前端输出
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                <span style="color:#a6e22e">code</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;切片上传成功&#39;</span>
+</span></span><span style="display:flex;"><span>            }))
+</span></span><span style="display:flex;"><span>        })
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">server</span>.<span style="color:#a6e22e">listen</span>(<span style="color:#ae81ff">3000</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;服务已启动&#39;</span>);
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><p>通过<code>node app.js</code>启动后端服务，可在控制台打印<code>fields和files</code>：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/92241d41eba14d6ea2757a8cc35ce687~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<p>（2）合并切片</p>
+<p>第一：前端得到后端返回的上传成功信息后，通知后端合并切片：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// 通知后端去做切片合并
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">merge</span>(<span style="color:#a6e22e">size</span>, <span style="color:#a6e22e">fileName</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">axiosRequest</span>({
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">method</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;post&#39;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;http://localhost:3000/merge&#39;</span>,<span style="color:#75715e">//后端合并请求
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">stringify</span>({
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">size</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">fileName</span>
+</span></span><span style="display:flex;"><span>        }),
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//调用函数，当所有切片上传成功之后，通知后端合并
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">await</span> Promise.<span style="color:#a6e22e">all</span>(<span style="color:#a6e22e">requestList</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">merge</span>(<span style="color:#a6e22e">files</span>.<span style="color:#a6e22e">size</span>, <span style="color:#a6e22e">files</span>.<span style="color:#a6e22e">name</span>)
+</span></span></code></pre></div><p>第二：后端接收到合并的数据，创建新的路由进行合并，合并的关键在于：前端通过<code>POST</code>请求向后端传递的合并数据是通过<code>JSON.stringify()</code>将数据转换成字符串，所以后端合并之前，需要进行以下操作：</p>
+<ul>
+<li>解析 POST 请求传递的参数，自定义函数<code>resolvePost</code>，目的是将每个切片请求传递的数据进行拼接，拼接后的数据仍然是字符串，然后通过<code>JSON.parse()</code>将字符串格式的数据转换为 JSON 对象；</li>
+<li>接下来该去合并了，拿到上个步骤解析成功后的数据进行解构，通过<code>path.resolve</code>获取每个切片所在的路径；</li>
+<li>自定义合并函数<code>mergeFileChunk</code>，只要传入切片路径，切片名字和切片大小，就真的将所有的切片进行合并。在此之前需要将每个切片转换成流<code>stream</code>对象的形式进行合并，自定义函数<code>pipeStream</code>，目的是将切片转换成流对象，在这个函数里面创建可读流，读取所有的切片，监听<code>end</code>事件，所有的切片读取完毕后，销毁其对应的路径，保证每个切片只被读取一次，不重复读取，最后将汇聚所有切片的可读流汇入可写流；</li>
+<li>最后，切片被读取成流对象，可读流被汇入可写流，那么在指定的位置通过<code>createWriteStream</code>创建可写流，同样使用<code>Promise.all()</code>的方法，保证所有切片都被读取，最后调用合并函数进行合并。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">url</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#39;/merge&#39;</span>) { <span style="color:#75715e">// 该去合并切片了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">data</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">resolvePost</span>(<span style="color:#a6e22e">req</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">fileName</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">size</span>
+</span></span><span style="display:flex;"><span>        } <span style="color:#f92672">=</span> <span style="color:#a6e22e">data</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">filePath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">UPLOAD_DIR</span>, <span style="color:#a6e22e">fileName</span>)<span style="color:#75715e">//获取切片路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">mergeFileChunk</span>(<span style="color:#a6e22e">filePath</span>, <span style="color:#a6e22e">fileName</span>, <span style="color:#a6e22e">size</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">end</span>(<span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">stringify</span>({
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">code</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;文件合并成功&#39;</span>
+</span></span><span style="display:flex;"><span>        }))
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 合并
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">mergeFileChunk</span>(<span style="color:#a6e22e">filePath</span>, <span style="color:#a6e22e">fileName</span>, <span style="color:#a6e22e">size</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">chunkDir</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">UPLOAD_DIR</span>, <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">fileName</span><span style="color:#e6db74">}</span><span style="color:#e6db74">-chunks`</span>)
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">chunkPaths</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">fse</span>.<span style="color:#a6e22e">readdir</span>(<span style="color:#a6e22e">chunkDir</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">chunkPaths</span>.<span style="color:#a6e22e">sort</span>((<span style="color:#a6e22e">a</span>, <span style="color:#a6e22e">b</span>) =&gt; <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">split</span>(<span style="color:#e6db74">&#39;-&#39;</span>)[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">-</span> <span style="color:#a6e22e">b</span>.<span style="color:#a6e22e">split</span>(<span style="color:#e6db74">&#39;-&#39;</span>)[<span style="color:#ae81ff">1</span>])
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">arr</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">chunkPaths</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">chunkPath</span>, <span style="color:#a6e22e">index</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">pipeStream</span>(
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">chunkDir</span>, <span style="color:#a6e22e">chunkPath</span>),
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 在指定的位置创建可写流
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">fse</span>.<span style="color:#a6e22e">createWriteStream</span>(<span style="color:#a6e22e">filePath</span>, {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">start</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">index</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">size</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">end</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">index</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">*</span> <span style="color:#a6e22e">size</span>
+</span></span><span style="display:flex;"><span>            })
+</span></span><span style="display:flex;"><span>        )
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> Promise.<span style="color:#a6e22e">all</span>(<span style="color:#a6e22e">arr</span>)<span style="color:#75715e">//保证所有的切片都被读取
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 将切片转换成流进行合并
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">pipeStream</span>(<span style="color:#a6e22e">path</span>, <span style="color:#a6e22e">writeStream</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise(<span style="color:#a6e22e">resolve</span> =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 创建可读流，读取所有切片
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">readStream</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fse</span>.<span style="color:#a6e22e">createReadStream</span>(<span style="color:#a6e22e">path</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">readStream</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#39;end&#39;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">fse</span>.<span style="color:#a6e22e">unlinkSync</span>(<span style="color:#a6e22e">path</span>)<span style="color:#75715e">// 读取完毕后，删除已经读取过的切片路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>        })
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">readStream</span>.<span style="color:#a6e22e">pipe</span>(<span style="color:#a6e22e">writeStream</span>)<span style="color:#75715e">//将可读流流入可写流
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    })
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 解析POST请求传递的参数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">resolvePost</span>(<span style="color:#a6e22e">req</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 解析参数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise(<span style="color:#a6e22e">resolve</span> =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">chunk</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;&#39;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#39;data&#39;</span>, <span style="color:#a6e22e">data</span> =&gt; { <span style="color:#75715e">//req接收到了前端的数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">chunk</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">data</span> <span style="color:#75715e">//将接收到的所有参数进行拼接
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        })
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#39;end&#39;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">parse</span>(<span style="color:#a6e22e">chunk</span>))<span style="color:#75715e">//将字符串转为JSON对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        })
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>还未合并前，文件夹如下图所示：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3c835c0cf4df499faef1d800e9fb8a39~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<p>合并后，文件夹新增了合并后的文件：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a6a5d1966d76465e89d4e486f81ee966~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/291/"
+      ><span class="mr-1.5">←</span><span>精进 JavaScript</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/289/"
+      ><span>如何实现并发请求数量控制？</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

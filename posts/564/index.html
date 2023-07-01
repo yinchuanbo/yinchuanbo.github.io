@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>为什么说前端监控系统离不开 RabbitMQ？ - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前端监控系统是采集用户端的异常、性能、业务埋点等数据上报，在服务端做存储，并支持可视化分析的平台。
+用户量可能很大，采集的数据可能比较多，这时候服务端的并发压力会比较大，要是直接存入数据库，那数据库服务很可能会崩掉。
+那就用现在的数据库，如何保证面对大量并发请求的时候，服务不崩呢？
+答案就是消息队列，比如常用的 RabbitMQ：
+第一个 web 服务接收请求，把消息存入 RabbitMQ，然后另一个 web 服务从 MQ 中取出消息存入数据库。
+有同学说，这不是一样么？
+不一样，MQ 的并发量比数据库高很多。之前 web 服务要等数据库存储完成才能响应，而现在只存入 MQ 就可以响应了。那可以支持的并发量就更多。
+而数据库的并发比较低，我们可以通过 MQ 把消费的上限调低，就能保证数据库服务不崩。
+比如 10w 的消息进来，每次只从中取出 1000 来消费：
+并发量被控制住了，自然就崩不了了，从 MQ 中取出慢慢处理就好了。
+这就是 MQ 的流量削峰的功能。
+而且完全可以加几个 web 服务来同时消费 MQ 中的消息：
+知道了 RabbitMQ 能干啥，那我们就来用一下试试吧！
+我们通过 docker 来跑 RabbitMQ，从官网下一个 docker desktop：
+搜索 rabbitmq 的镜像，选择 3.11-management 的版本：
+这个版本是有 web 管理界面的。
+点击 run：
+映射容器内的 5672、15672 这俩端口到本地的端口。
+15672 是管理界面的，5672 是 mq 服务的端口。
+等 rabbitmq 跑起来之后：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="为什么说前端监控系统离不开 RabbitMQ？" />
+<meta property="og:description" content="前端监控系统是采集用户端的异常、性能、业务埋点等数据上报，在服务端做存储，并支持可视化分析的平台。
+用户量可能很大，采集的数据可能比较多，这时候服务端的并发压力会比较大，要是直接存入数据库，那数据库服务很可能会崩掉。
+那就用现在的数据库，如何保证面对大量并发请求的时候，服务不崩呢？
+答案就是消息队列，比如常用的 RabbitMQ：
+第一个 web 服务接收请求，把消息存入 RabbitMQ，然后另一个 web 服务从 MQ 中取出消息存入数据库。
+有同学说，这不是一样么？
+不一样，MQ 的并发量比数据库高很多。之前 web 服务要等数据库存储完成才能响应，而现在只存入 MQ 就可以响应了。那可以支持的并发量就更多。
+而数据库的并发比较低，我们可以通过 MQ 把消费的上限调低，就能保证数据库服务不崩。
+比如 10w 的消息进来，每次只从中取出 1000 来消费：
+并发量被控制住了，自然就崩不了了，从 MQ 中取出慢慢处理就好了。
+这就是 MQ 的流量削峰的功能。
+而且完全可以加几个 web 服务来同时消费 MQ 中的消息：
+知道了 RabbitMQ 能干啥，那我们就来用一下试试吧！
+我们通过 docker 来跑 RabbitMQ，从官网下一个 docker desktop：
+搜索 rabbitmq 的镜像，选择 3.11-management 的版本：
+这个版本是有 web 管理界面的。
+点击 run：
+映射容器内的 5672、15672 这俩端口到本地的端口。
+15672 是管理界面的，5672 是 mq 服务的端口。
+等 rabbitmq 跑起来之后：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/564/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-24T14:39:20+08:00" />
+<meta property="article:modified_time" content="2023-04-24T14:39:20+08:00" />
+
+  
+  <meta itemprop="name" content="为什么说前端监控系统离不开 RabbitMQ？">
+<meta itemprop="description" content="前端监控系统是采集用户端的异常、性能、业务埋点等数据上报，在服务端做存储，并支持可视化分析的平台。
+用户量可能很大，采集的数据可能比较多，这时候服务端的并发压力会比较大，要是直接存入数据库，那数据库服务很可能会崩掉。
+那就用现在的数据库，如何保证面对大量并发请求的时候，服务不崩呢？
+答案就是消息队列，比如常用的 RabbitMQ：
+第一个 web 服务接收请求，把消息存入 RabbitMQ，然后另一个 web 服务从 MQ 中取出消息存入数据库。
+有同学说，这不是一样么？
+不一样，MQ 的并发量比数据库高很多。之前 web 服务要等数据库存储完成才能响应，而现在只存入 MQ 就可以响应了。那可以支持的并发量就更多。
+而数据库的并发比较低，我们可以通过 MQ 把消费的上限调低，就能保证数据库服务不崩。
+比如 10w 的消息进来，每次只从中取出 1000 来消费：
+并发量被控制住了，自然就崩不了了，从 MQ 中取出慢慢处理就好了。
+这就是 MQ 的流量削峰的功能。
+而且完全可以加几个 web 服务来同时消费 MQ 中的消息：
+知道了 RabbitMQ 能干啥，那我们就来用一下试试吧！
+我们通过 docker 来跑 RabbitMQ，从官网下一个 docker desktop：
+搜索 rabbitmq 的镜像，选择 3.11-management 的版本：
+这个版本是有 web 管理界面的。
+点击 run：
+映射容器内的 5672、15672 这俩端口到本地的端口。
+15672 是管理界面的，5672 是 mq 服务的端口。
+等 rabbitmq 跑起来之后："><meta itemprop="datePublished" content="2023-04-24T14:39:20+08:00" />
+<meta itemprop="dateModified" content="2023-04-24T14:39:20+08:00" />
+<meta itemprop="wordCount" content="1001">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="为什么说前端监控系统离不开 RabbitMQ？"/>
+<meta name="twitter:description" content="前端监控系统是采集用户端的异常、性能、业务埋点等数据上报，在服务端做存储，并支持可视化分析的平台。
+用户量可能很大，采集的数据可能比较多，这时候服务端的并发压力会比较大，要是直接存入数据库，那数据库服务很可能会崩掉。
+那就用现在的数据库，如何保证面对大量并发请求的时候，服务不崩呢？
+答案就是消息队列，比如常用的 RabbitMQ：
+第一个 web 服务接收请求，把消息存入 RabbitMQ，然后另一个 web 服务从 MQ 中取出消息存入数据库。
+有同学说，这不是一样么？
+不一样，MQ 的并发量比数据库高很多。之前 web 服务要等数据库存储完成才能响应，而现在只存入 MQ 就可以响应了。那可以支持的并发量就更多。
+而数据库的并发比较低，我们可以通过 MQ 把消费的上限调低，就能保证数据库服务不崩。
+比如 10w 的消息进来，每次只从中取出 1000 来消费：
+并发量被控制住了，自然就崩不了了，从 MQ 中取出慢慢处理就好了。
+这就是 MQ 的流量削峰的功能。
+而且完全可以加几个 web 服务来同时消费 MQ 中的消息：
+知道了 RabbitMQ 能干啥，那我们就来用一下试试吧！
+我们通过 docker 来跑 RabbitMQ，从官网下一个 docker desktop：
+搜索 rabbitmq 的镜像，选择 3.11-management 的版本：
+这个版本是有 web 管理界面的。
+点击 run：
+映射容器内的 5672、15672 这俩端口到本地的端口。
+15672 是管理界面的，5672 是 mq 服务的端口。
+等 rabbitmq 跑起来之后："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">为什么说前端监控系统离不开 RabbitMQ？</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 24, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/735c4259d6084fa9aa842e06479ce232~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="为什么说前端监控系统离不开 RabbitMQ？"></p>
+<p>前端监控系统是采集用户端的异常、性能、业务埋点等数据上报，在服务端做存储，并支持可视化分析的平台。</p>
+<p>用户量可能很大，采集的数据可能比较多，这时候服务端的并发压力会比较大，要是直接存入数据库，那数据库服务很可能会崩掉。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c5ecdcb680cd4014a13e85c2c9b60b00~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>那就用现在的数据库，如何保证面对大量并发请求的时候，服务不崩呢？</p>
+<p>答案就是消息队列，比如常用的 RabbitMQ：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bbbb2b6a4a8343faaefe616d7106596f~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>第一个 web 服务接收请求，把消息存入 RabbitMQ，然后另一个 web 服务从 MQ 中取出消息存入数据库。</p>
+<p>有同学说，这不是一样么？</p>
+<p>不一样，MQ 的并发量比数据库高很多。之前 web 服务要等数据库存储完成才能响应，而现在只存入 MQ 就可以响应了。那可以支持的并发量就更多。</p>
+<p>而数据库的并发比较低，我们可以通过 MQ 把消费的上限调低，就能保证数据库服务不崩。</p>
+<p>比如 10w 的消息进来，每次只从中取出 1000 来消费：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e28327a1056a465ca536e4936352fad2~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>并发量被控制住了，自然就崩不了了，从 MQ 中取出慢慢处理就好了。</p>
+<p>这就是 MQ 的流量削峰的功能。</p>
+<p>而且完全可以加几个 web 服务来同时消费 MQ 中的消息：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/704ce4c856b14477b876c748f6ac05f5~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>知道了 RabbitMQ 能干啥，那我们就来用一下试试吧！</p>
+<p>我们通过 docker 来跑 RabbitMQ，从<a href="https://www.docker.com/">官网</a>下一个 docker desktop：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7991f0e70ce8427281153fd52824fb97~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>搜索 rabbitmq 的镜像，选择 3.11-management 的版本：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f243a0274dab460e93fca9449bd6eae8~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>这个版本是有 web 管理界面的。</p>
+<p>点击 run：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c676b36fe21145a3bd903519638ee17c~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>映射容器内的 5672、15672 这俩端口到本地的端口。</p>
+<p>15672 是管理界面的，5672 是 mq 服务的端口。</p>
+<p>等 rabbitmq 跑起来之后：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7c9bcc0b2bb64207bd019c51880f6669~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>就可以在浏览器访问 <a href="http://localhost:15672">http://localhost:15672</a> 了：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5ad9966bc5d54e158ec64a1072108c63~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>这就是它的 web 管理界面。</p>
+<p>输入 guest、guest 进入管理页面：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/473961bfb209489e843f6b3ae9c6db0c~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>可以看到 connection、channel、exchange、queue 的分别的管理页面。</p>
+<p>这些都是什么呢？</p>
+<p>写个 demo 就理解了：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;aaa&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">sendToQueue</span>(<span style="color:#e6db74">&#34;aaa&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello&#34;</span>));
+</span></span></code></pre></div><p>安装 amqplib 的包，这个是 rabbitmq 的 node 客户端（amqp 是 rabbitmq 的协议）。</p>
+<p>上面的代码连接了 rabbitmq 服务，创建了一个名字为 aaa 的队列，并向队列中发送了一个消息。</p>
+<p>然后 node 跑一下：</p>
+<p>（这里要用 es module 语法并且支持顶层 await 需要在 packege.json 里设置 type 为 module）</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/887379f89b7b463dbc5d422874e37dd0~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>之后就可以在管理界面看到这个队列了：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a80df3dbbbe2437790c034618ac7a0c3~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>然后我们再写一个消费端：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">queue</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;aaa&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">consume</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">queue</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">msg</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">toString</span>());
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">noAck</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><p>assertQueue 是如果没有就创建队列，有的话就直接返回。</p>
+<p>这里取到那个队列，就可以从中消费消息了：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6ddba08a7bd54fb9bf321201b3b8886d~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>这样，我们就完成了第一次 RabbitMQ 的通信，两个服务之间也是这样通信的。</p>
+<p>是不是还挺简单的？</p>
+<p>rabbitmq 使用确实挺简单。</p>
+<p>那怎么控制并发数呢？</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cc4fb3fe4c97488491dfc4dc8e7b7518~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>我们改一下代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;aaa&#34;</span>, { <span style="color:#a6e22e">durable</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span> });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">setInterval</span>(<span style="color:#66d9ef">async</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">msg</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;hello&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">i</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;发送消息：&#34;</span>, <span style="color:#a6e22e">msg</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">sendToQueue</span>(<span style="color:#e6db74">&#34;aaa&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#a6e22e">msg</span>));
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>}, <span style="color:#ae81ff">500</span>);
+</span></span></code></pre></div><p>生产者每 0.5s 发送一次消息。</p>
+<p>消费者每 1s 处理一条消息：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">queue</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;aaa&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">prefetch</span>(<span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">currentTask</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">consume</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">queue</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">msg</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">currentTask</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">msg</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;收到消息：&#34;</span>, <span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">toString</span>());
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">noAck</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">setInterval</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">curMsg</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">currentTask</span>.<span style="color:#a6e22e">pop</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">ack</span>(<span style="color:#a6e22e">curMsg</span>);
+</span></span><span style="display:flex;"><span>}, <span style="color:#ae81ff">1000</span>);
+</span></span></code></pre></div><p>每条消费者收到的消息要确认之后才会在 MQ 里删除。可以收到消息自动确认，也可以手动确认。</p>
+<p>这里我把 noAck 设置为 false 了，也就是不自动确认。</p>
+<p>把收到的消息放入一个数组中，每 1s 确认一次。</p>
+<p>然后我设置了 prefetch 为 3，也就是每次最多取回 3 条消息来处理。</p>
+<p>跑一下试试：</p>
+<p>消息生产端： <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5cb548997f7b4d96ad512958498d1ba9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>消息消费端： <img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/34b9eaae95154945bec2c4facf9e2878~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>可以看到生产者是每 0.5s 往队列里放一条消息。</p>
+<p>消费者一开始取出 3 条，然后每处理完一条取一条，保证最多并发处理 3 条。</p>
+<p>这就是流量削峰的功能。</p>
+<p>不同服务之间的速度差异可以通过 MQ 来缓冲。</p>
+<p>大概了解了 rabbitmq 之后，我们来看看它的整体架构图：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a89ebbdbe9054f698d926b10a1476e0b~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>Producer 和 Consumer 分别是生产者和消费者。</p>
+<p>Connection 是连接，但我们不会每用一次 rabbitmq 就创建一个单独的 Connection，而是在一个 Connection 里做一下划分，叫做 Channel，每个 Channel 做自己的事情。</p>
+<p>而 Queue 就是两端存取消息的地方了。</p>
+<p>整个接收消息和转发消息的服务就叫做 Broker。</p>
+<p>至于 Exchange，我们前面的例子没有用到，这个是把消息放到不同的队列里用的，叫做交换机。</p>
+<p>我们前面生产者和消费者都是直接指定了从哪个队列存取消息，那如果是一对多的场景呢？</p>
+<p>总不能一个个的调用 sendQueue 发消息吧？</p>
+<p>这时候就要找一个 Exchange（交换机） 来帮我们完成把消息按照规则放入不同的 Queue 的工作了。</p>
+<p>Exchange 主要有 4 种：</p>
+<ul>
+<li>fanout：把消息放到这个交换机的所有 Queue</li>
+<li>direct：把消息放到交换机的指定 key 的队列</li>
+<li>topic：把消息放到交换机的指定 key 的队列，支持模糊匹配</li>
+<li>headers：把消息放到交换机的满足某些 header 的队列</li>
+</ul>
+<p>一个个来试下：</p>
+<p>首先是 direct，生产者端：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertExchange</span>(<span style="color:#e6db74">&#34;direct-test-exchange&#34;</span>, <span style="color:#e6db74">&#34;direct&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange&#34;</span>, <span style="color:#e6db74">&#34;aaa&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello1&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange&#34;</span>, <span style="color:#e6db74">&#34;bbb&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello2&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange&#34;</span>, <span style="color:#e6db74">&#34;ccc&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello3&#34;</span>));
+</span></span></code></pre></div><p>不再是直接 sendToQueue 了，而是创建一个 exchange，然后调用 publish 往这个 exchange 发消息。</p>
+<p>其中第二个参数是 routing key，也就是消息路由到哪个队列。</p>
+<p>然后创建两个消费者：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">queue</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;queue1&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">bindQueue</span>(<span style="color:#a6e22e">queue</span>, <span style="color:#e6db74">&#34;direct-test-exchange&#34;</span>, <span style="color:#e6db74">&#34;aaa&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">consume</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">queue</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">msg</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">toString</span>());
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">noAck</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">queue</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;queue2&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">bindQueue</span>(<span style="color:#a6e22e">queue</span>, <span style="color:#e6db74">&#34;direct-test-exchange&#34;</span>, <span style="color:#e6db74">&#34;bbb&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">consume</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">queue</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">msg</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">toString</span>());
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">noAck</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><p>分别创建 queue1 和 queue2 两个队列，绑定到前面创建的 direct-test-exchange 这个交换机上，指定了路由 key 分别是 aaa 和 bbb。</p>
+<p>然后把生产者和两个消费者跑起来。</p>
+<p>就可以看到队列 queue1 和 queue2 分别接收到了对应的消息：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bda9d30c18004d9db0f96e146725f2f6~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>这就是通过 direct 交换机发送消息的过程。</p>
+<p>在管理页面上也可以看到这个交换机的信息：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3258c8cf6c824ffcbe2e7a67f1436fce~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>包括 exchange 下的两个 queue 以及各自的 routing key。</p>
+<p>再来试下 topic 类型的 Exchange。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertExchange</span>(<span style="color:#e6db74">&#34;direct-test-exchange2&#34;</span>, <span style="color:#e6db74">&#34;topic&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange2&#34;</span>, <span style="color:#e6db74">&#34;aaa.1&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello1&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange2&#34;</span>, <span style="color:#e6db74">&#34;aaa.2&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello2&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange2&#34;</span>, <span style="color:#e6db74">&#34;bbb.1&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello3&#34;</span>));
+</span></span></code></pre></div><p>生产者端创建叫 direct-test-exchange2 的 topic 类型的 Exchange，然后发三条消息。</p>
+<p>创建两个消费端：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertExchange</span>(<span style="color:#e6db74">&#34;direct-test-exchange2&#34;</span>, <span style="color:#e6db74">&#34;topic&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">queue</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;queue1&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">bindQueue</span>(<span style="color:#a6e22e">queue</span>, <span style="color:#e6db74">&#34;direct-test-exchange2&#34;</span>, <span style="color:#e6db74">&#34;aaa.*&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">consume</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">queue</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">msg</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">toString</span>());
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">noAck</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertExchange</span>(<span style="color:#e6db74">&#34;direct-test-exchange2&#34;</span>, <span style="color:#e6db74">&#34;topic&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">queue</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;queue2&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">bindQueue</span>(<span style="color:#a6e22e">queue</span>, <span style="color:#e6db74">&#34;direct-test-exchange2&#34;</span>, <span style="color:#e6db74">&#34;bbb.*&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">consume</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">queue</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">msg</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">toString</span>());
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">noAck</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><p>两个消费者端分别创建 queue1 和 queue2 两个队列，绑定到 direct-test-exchange2 的交换机下。</p>
+<p>指定路由 key 分别为 aaa.* 和 bbb.*，这里的 * 是模糊匹配的意思。</p>
+<p>消费者端也 assertExchange 了，如果不存在就创建，保证 exchange 一定存在。</p>
+<p>然后跑一下：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/69749640c4944b69a3a35c8ab507dee6~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>可以看到，两个消费者分别收到了不同 routing key 对应的消息。</p>
+<p>当然，在管理界面这里也是可以发消息的：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/dc3ba57519b544e2b634fb9587147d72~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>消费者端同样可以收到：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3e84f01e1f3d4f0592b698411b203845~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>这就是 topic 类型的交换机，可以根据模糊匹配 routing key 来发消息到不同队列。</p>
+<p>再来试下 fanout 类型的 exchange：</p>
+<p>生产者：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertExchange</span>(<span style="color:#e6db74">&#34;direct-test-exchange3&#34;</span>, <span style="color:#e6db74">&#34;fanout&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange3&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello1&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange3&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello2&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange3&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello3&#34;</span>));
+</span></span></code></pre></div><p>消费者：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertExchange</span>(<span style="color:#e6db74">&#34;direct-test-exchange3&#34;</span>, <span style="color:#e6db74">&#34;fanout&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">queue</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;queue1&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">bindQueue</span>(<span style="color:#a6e22e">queue</span>, <span style="color:#e6db74">&#34;direct-test-exchange3&#34;</span>, <span style="color:#e6db74">&#34;aaa&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">consume</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">queue</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">msg</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">toString</span>());
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">noAck</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertExchange</span>(<span style="color:#e6db74">&#34;direct-test-exchange3&#34;</span>, <span style="color:#e6db74">&#34;fanout&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">queue</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;queue2&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">bindQueue</span>(<span style="color:#a6e22e">queue</span>, <span style="color:#e6db74">&#34;direct-test-exchange3&#34;</span>, <span style="color:#e6db74">&#34;bbb&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">consume</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">queue</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">msg</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">toString</span>());
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">noAck</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><p>fanout 是广播消息到 Exchange 下的所有队列，不需要指定 routing key，计算指定了也会忽略。</p>
+<p>跑起来可以看到，两个消费者都收到了消息：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5dbb1165aa5f441eaf7056f6dc39b762~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>这就是 fanout 类型交换机的特点，广播消息到所有绑定到它的 queue。</p>
+<p>最后再来看下 headers 类型的 Exchange，这个不是根据 routing key 来匹配了，而是根据 headers：</p>
+<p>生产者端：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertExchange</span>(<span style="color:#e6db74">&#34;direct-test-exchange4&#34;</span>, <span style="color:#e6db74">&#34;headers&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange4&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello1&#34;</span>), {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">headers</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;guang&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange4&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello2&#34;</span>), {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">headers</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;guang&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">publish</span>(<span style="color:#e6db74">&#34;direct-test-exchange4&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#a6e22e">Buffer</span>.<span style="color:#a6e22e">from</span>(<span style="color:#e6db74">&#34;hello3&#34;</span>), {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">headers</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dong&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>消费者端：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertExchange</span>(<span style="color:#e6db74">&#34;direct-test-exchange4&#34;</span>, <span style="color:#e6db74">&#34;headers&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">queue</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;queue1&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">bindQueue</span>(<span style="color:#a6e22e">queue</span>, <span style="color:#e6db74">&#34;direct-test-exchange4&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;guang&#34;</span>,
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">consume</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">queue</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">msg</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">toString</span>());
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">noAck</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">amqp</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;amqplib&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">connect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">amqp</span>.<span style="color:#a6e22e">connect</span>(<span style="color:#e6db74">`amqp://localhost:5672`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">connect</span>.<span style="color:#a6e22e">createChannel</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertExchange</span>(<span style="color:#e6db74">&#34;direct-test-exchange4&#34;</span>, <span style="color:#e6db74">&#34;headers&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">queue</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">assertQueue</span>(<span style="color:#e6db74">&#34;queue2&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">await</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">bindQueue</span>(<span style="color:#a6e22e">queue</span>, <span style="color:#e6db74">&#34;direct-test-exchange4&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dong&#34;</span>,
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">consume</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">queue</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">msg</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">toString</span>());
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">noAck</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><p>跑起来是这样的：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/73fd42e8ba24443198296501984c1d76~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt=""></p>
+<p>很容易理解，只是从匹配 routing key 变成了匹配 header。</p>
+<p>这就是 Exchange，当你需要一对多发消息的时候，就可以选择这些类型的交换机。</p>
+<p>回过头来，我们来总结下 rabbitmq 解决了什么问题：</p>
+<ul>
+<li><strong>流量削峰</strong>：可以把很大的流量放到 mq 种按照一定的流量上限来慢慢消费，这样虽然慢一点，但不至于崩溃。</li>
+<li><strong>应用解耦</strong>：应用之间不再直接依赖，就算某个应用挂掉了，也可以再恢复后继续从 mq 中消费消息。并不会一个应用挂掉了，它关联的应用也挂掉。</li>
+</ul>
+<p>比如前端监控系统的后端服务，就很适合使用 mq 来做流量削峰。</p>
+<h2 id="总结">总结</h2>
+<p>前端监控系统会收到很多来自用户端的请求，如果直接存入数据库很容易把数据库服务搞挂掉，所以一般会加一个 RabbitMQ 来缓冲。</p>
+<p>它是生产者往 queue 里放入消息，消费者从里面读消息，之后确认消息收到的流程。</p>
+<p>当一对多的时候，还要加一个 Exchange 交换机来根据不同的规则转发消息：</p>
+<ul>
+<li>direct 交换机：根据 routing key 转发消息到队列</li>
+<li>topic 交换机：根据 routing key 转发消息到队列，支持模糊匹配</li>
+<li>headers 交换机：根据 headers 转发消息到队列</li>
+<li>fanout 交换机：广播消息到交换机下的所有队列</li>
+</ul>
+<p>而且消费者可以设置一个消费的并发上限，这样就可以保证服务不会因并发过高而崩溃。</p>
+<p>这就是流量削峰的功能。</p>
+<p>RabbitMQ 在后端系统中经常能见到，是很常用的中间件。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/565/"
+      ><span class="mr-1.5">←</span><span>React 持久化 Redux Persist</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/563/"
+      ><span>前端实现活体人脸检测</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

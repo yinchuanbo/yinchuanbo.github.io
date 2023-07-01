@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>带你深入理解 CSR，SSR，SSG 等常用渲染模式 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 近期的工作涉及到了CSR, SSR, SSG，这篇文章旨在总结和归纳这些渲染模式。
+SPA、MPA、SSR 和 CSR 这几个词可能在你的工作生涯中经常出现，网上相关文章也很多。如果你对这些概念感到模糊或完全不了解，希望本文能帮助你理解这些渲染模式。
+SPA 与 MPA MPA MPA（multiple page application） 称为多页应用, 指的是有多个页面的应用，从技术手段上来讲，你可以这么粗略地理解。
+首屏速度快：各个页面相互独立，需要单独维护多个 html 页面，每个请求都直接返回 html。
+切换页面比较慢：基于原生浏览器的文档跳转（navigating across documents）。因此每一次的页面更新都是一次页面重载，这将带来巨大的重启性能消耗。
+对 SEO 友好：页面在初始时，就具有全部的页面内容而非 「无状态」，从而达到更好的收录效果。
+SPA SPA（single page application）称为单页应用。通过 js 去感知到 url 的变化，动态的将当前页面的内容清除掉，然后将下一个页面的内容挂载到当前页面上。此时的路由不是后端来做了，而是前端来做，动态显示需要的组件。
+页面切换速度快：路由跳转是基于特定的实现（如 vue-router，react-router 等前端路由），而非原生浏览器的文档跳转，避免了不必要的整个页面重载。
+前后端分离：基于前端路由，SPA 与应用后端解耦，使得前端不再依赖于后端的路由分配。
+首屏时间慢：首屏除了 html 还要额外请求并执行 js 文件，通过 js 在空页面上渲染首屏。
+SEO 不友好：内容都是靠 js 渲染生成出来的，但搜索引擎并不识别这部分内容，导致 SEO 效果差
+CSR（Client Side Rendering） CSR（客户端渲染）是一种在浏览器上执行 JavaScript 以生成 DOM 并显示内容的渲染方法。CSR 更贴近现代前端开发，我们通常使用的 Vue 和 React 默认使用 CSR。其大致流程如下：
+浏览器向前端服务器请求 html 和 js" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="带你深入理解 CSR，SSR，SSG 等常用渲染模式" />
+<meta property="og:description" content="前言 近期的工作涉及到了CSR, SSR, SSG，这篇文章旨在总结和归纳这些渲染模式。
+SPA、MPA、SSR 和 CSR 这几个词可能在你的工作生涯中经常出现，网上相关文章也很多。如果你对这些概念感到模糊或完全不了解，希望本文能帮助你理解这些渲染模式。
+SPA 与 MPA MPA MPA（multiple page application） 称为多页应用, 指的是有多个页面的应用，从技术手段上来讲，你可以这么粗略地理解。
+首屏速度快：各个页面相互独立，需要单独维护多个 html 页面，每个请求都直接返回 html。
+切换页面比较慢：基于原生浏览器的文档跳转（navigating across documents）。因此每一次的页面更新都是一次页面重载，这将带来巨大的重启性能消耗。
+对 SEO 友好：页面在初始时，就具有全部的页面内容而非 「无状态」，从而达到更好的收录效果。
+SPA SPA（single page application）称为单页应用。通过 js 去感知到 url 的变化，动态的将当前页面的内容清除掉，然后将下一个页面的内容挂载到当前页面上。此时的路由不是后端来做了，而是前端来做，动态显示需要的组件。
+页面切换速度快：路由跳转是基于特定的实现（如 vue-router，react-router 等前端路由），而非原生浏览器的文档跳转，避免了不必要的整个页面重载。
+前后端分离：基于前端路由，SPA 与应用后端解耦，使得前端不再依赖于后端的路由分配。
+首屏时间慢：首屏除了 html 还要额外请求并执行 js 文件，通过 js 在空页面上渲染首屏。
+SEO 不友好：内容都是靠 js 渲染生成出来的，但搜索引擎并不识别这部分内容，导致 SEO 效果差
+CSR（Client Side Rendering） CSR（客户端渲染）是一种在浏览器上执行 JavaScript 以生成 DOM 并显示内容的渲染方法。CSR 更贴近现代前端开发，我们通常使用的 Vue 和 React 默认使用 CSR。其大致流程如下：
+浏览器向前端服务器请求 html 和 js" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/609/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-05-17T15:27:45+08:00" />
+<meta property="article:modified_time" content="2023-05-17T15:27:45+08:00" />
+
+  
+  <meta itemprop="name" content="带你深入理解 CSR，SSR，SSG 等常用渲染模式">
+<meta itemprop="description" content="前言 近期的工作涉及到了CSR, SSR, SSG，这篇文章旨在总结和归纳这些渲染模式。
+SPA、MPA、SSR 和 CSR 这几个词可能在你的工作生涯中经常出现，网上相关文章也很多。如果你对这些概念感到模糊或完全不了解，希望本文能帮助你理解这些渲染模式。
+SPA 与 MPA MPA MPA（multiple page application） 称为多页应用, 指的是有多个页面的应用，从技术手段上来讲，你可以这么粗略地理解。
+首屏速度快：各个页面相互独立，需要单独维护多个 html 页面，每个请求都直接返回 html。
+切换页面比较慢：基于原生浏览器的文档跳转（navigating across documents）。因此每一次的页面更新都是一次页面重载，这将带来巨大的重启性能消耗。
+对 SEO 友好：页面在初始时，就具有全部的页面内容而非 「无状态」，从而达到更好的收录效果。
+SPA SPA（single page application）称为单页应用。通过 js 去感知到 url 的变化，动态的将当前页面的内容清除掉，然后将下一个页面的内容挂载到当前页面上。此时的路由不是后端来做了，而是前端来做，动态显示需要的组件。
+页面切换速度快：路由跳转是基于特定的实现（如 vue-router，react-router 等前端路由），而非原生浏览器的文档跳转，避免了不必要的整个页面重载。
+前后端分离：基于前端路由，SPA 与应用后端解耦，使得前端不再依赖于后端的路由分配。
+首屏时间慢：首屏除了 html 还要额外请求并执行 js 文件，通过 js 在空页面上渲染首屏。
+SEO 不友好：内容都是靠 js 渲染生成出来的，但搜索引擎并不识别这部分内容，导致 SEO 效果差
+CSR（Client Side Rendering） CSR（客户端渲染）是一种在浏览器上执行 JavaScript 以生成 DOM 并显示内容的渲染方法。CSR 更贴近现代前端开发，我们通常使用的 Vue 和 React 默认使用 CSR。其大致流程如下：
+浏览器向前端服务器请求 html 和 js"><meta itemprop="datePublished" content="2023-05-17T15:27:45+08:00" />
+<meta itemprop="dateModified" content="2023-05-17T15:27:45+08:00" />
+<meta itemprop="wordCount" content="372">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="带你深入理解 CSR，SSR，SSG 等常用渲染模式"/>
+<meta name="twitter:description" content="前言 近期的工作涉及到了CSR, SSR, SSG，这篇文章旨在总结和归纳这些渲染模式。
+SPA、MPA、SSR 和 CSR 这几个词可能在你的工作生涯中经常出现，网上相关文章也很多。如果你对这些概念感到模糊或完全不了解，希望本文能帮助你理解这些渲染模式。
+SPA 与 MPA MPA MPA（multiple page application） 称为多页应用, 指的是有多个页面的应用，从技术手段上来讲，你可以这么粗略地理解。
+首屏速度快：各个页面相互独立，需要单独维护多个 html 页面，每个请求都直接返回 html。
+切换页面比较慢：基于原生浏览器的文档跳转（navigating across documents）。因此每一次的页面更新都是一次页面重载，这将带来巨大的重启性能消耗。
+对 SEO 友好：页面在初始时，就具有全部的页面内容而非 「无状态」，从而达到更好的收录效果。
+SPA SPA（single page application）称为单页应用。通过 js 去感知到 url 的变化，动态的将当前页面的内容清除掉，然后将下一个页面的内容挂载到当前页面上。此时的路由不是后端来做了，而是前端来做，动态显示需要的组件。
+页面切换速度快：路由跳转是基于特定的实现（如 vue-router，react-router 等前端路由），而非原生浏览器的文档跳转，避免了不必要的整个页面重载。
+前后端分离：基于前端路由，SPA 与应用后端解耦，使得前端不再依赖于后端的路由分配。
+首屏时间慢：首屏除了 html 还要额外请求并执行 js 文件，通过 js 在空页面上渲染首屏。
+SEO 不友好：内容都是靠 js 渲染生成出来的，但搜索引擎并不识别这部分内容，导致 SEO 效果差
+CSR（Client Side Rendering） CSR（客户端渲染）是一种在浏览器上执行 JavaScript 以生成 DOM 并显示内容的渲染方法。CSR 更贴近现代前端开发，我们通常使用的 Vue 和 React 默认使用 CSR。其大致流程如下：
+浏览器向前端服务器请求 html 和 js"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">带你深入理解 CSR，SSR，SSG 等常用渲染模式</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>May 17, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="前言">前言</h2>
+<p>近期的工作涉及到了<code>CSR</code>, <code>SSR</code>, <code>SSG</code>，这篇文章旨在总结和归纳这些渲染模式。</p>
+<p><code>SPA</code>、<code>MPA</code>、<code>SSR</code> 和 <code>CSR</code> 这几个词可能在你的工作生涯中经常出现，网上相关文章也很多。如果你对这些概念感到模糊或完全不了解，希望本文能帮助你理解这些渲染模式。</p>
+<h2 id="spa-与-mpa">SPA 与 MPA</h2>
+<h3 id="mpa">MPA</h3>
+<p>MPA（<code>multiple page application</code>） 称为<strong>多页应用</strong>, 指的是有多个页面的应用，从技术手段上来讲，你可以这么粗略地理解。</p>
+<ul>
+<li>
+<p><strong>首屏速度快</strong>：各个页面相互独立，需要单独维护多个 html 页面，每个请求都直接返回 html。</p>
+</li>
+<li>
+<p><strong>切换页面比较慢</strong>：基于原生浏览器的文档跳转（<code>navigating across documents</code>）。因此每一次的页面更新都是一次页面重载，这将带来巨大的重启性能消耗。</p>
+</li>
+<li>
+<p><strong>对 SEO 友好</strong>：页面在初始时，就具有全部的页面内容而非 「无状态」，从而达到更好的收录效果。</p>
+</li>
+</ul>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c65fba4202f948a59cc8229363964d0f~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="spa">SPA</h3>
+<p>SPA（<code>single page application</code>）称为<strong>单页应用</strong>。通过 js 去感知到 url 的变化，动态的将当前页面的内容清除掉，然后将下一个页面的内容挂载到当前页面上。此时的路由不是后端来做了，而是前端来做，动态显示需要的组件。</p>
+<ul>
+<li>
+<p><strong>页面切换速度快</strong>：路由跳转是基于特定的实现（如 vue-router，react-router 等前端路由），而非原生浏览器的文档跳转，避免了不必要的整个页面重载。</p>
+</li>
+<li>
+<p><strong>前后端分离</strong>：基于前端路由，SPA 与应用后端解耦，使得前端不再依赖于后端的路由分配。</p>
+</li>
+<li>
+<p><strong>首屏时间慢</strong>：首屏除了 html 还要额外请求并执行 js 文件，通过 js 在空页面上渲染首屏。</p>
+</li>
+<li>
+<p><strong>SEO 不友好</strong>：内容都是靠 js 渲染生成出来的，但搜索引擎并不识别这部分内容，导致 SEO 效果差</p>
+</li>
+</ul>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d596ddd67a43450b9577e8a4922511c5~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image (1).png"></p>
+<h2 id="csrclient-side-rendering">CSR（Client Side Rendering）</h2>
+<p>CSR（客户端渲染）是一种在浏览器上执行 JavaScript 以生成 DOM 并显示内容的渲染方法。CSR 更贴近现代前端开发，我们通常使用的 Vue 和 React 默认使用 CSR。其大致流程如下：</p>
+<ol>
+<li>
+<p>浏览器向前端服务器请求 html 和 js</p>
+</li>
+<li>
+<p>html 页面为空，初始加载不显示任何内容，通过执行 js 渲染内容</p>
+</li>
+<li>
+<p>通过后端暴露的 API 进行交互</p>
+</li>
+</ol>
+<p>对于典型的 CSR 应用程序，浏览器仅接收一个用作应用程序容器的 HTML 页面，因此也称为单页应用，所以 CSR 的特点与之前提到的 SPA 类似。</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cf4a4c5c9de543e79243a0043d559237~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image (2).png"></p>
+<h2 id="ssrserver-side-rendering">SSR（Server Side Rendering）</h2>
+<h3 id="概念">概念</h3>
+<p>在早期，开发者喜欢使用 JSP 或其他模板渲染引擎来构建应用，这种方法被称为 SSR（服务器端渲染）。与客户端渲染不同，SSR 输出的是渲染完整的 HTML，整个渲染过程在服务器端进行。</p>
+<p>用户发起请求后，SSR 的流程大致如下：</p>
+<ol>
+<li>
+<p>后端服务通过数据层进行查询用户所需内容</p>
+</li>
+<li>
+<p>处理业务逻辑</p>
+</li>
+<li>
+<p>使用模板拼接页面</p>
+</li>
+<li>
+<p>将渲染好的 HTML 字符串返回给客户端</p>
+</li>
+<li>
+<p>前端渲染并加载 JS 脚本完成剩余交互</p>
+</li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ae8da47f551948daa623cd240a3a5dd9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image (3).png"></p>
+<p>早期的 SSR 在内容更新/跳转，都需要再次请求服务器，重新加载一次页面。但在 React, Vue 等框架的加持下，我们语境中的 SSR 一般指的是<strong>首屏服务端渲染</strong>或<strong>同构渲染（<code>Isomorphic render</code>）</strong>，即新开页面访问 SSR 应用时，首屏会返回完整的 html，浏览器通过<strong>注水</strong>（<code>hydrate</code>）成为 React 或 Vue 应用，后续用户进行跳转等操作时不会再向服务端请求 html，而是以类似单页应用的方式进行。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f604bfd3fd56465c87a58a25d9002d07~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="ssr1 (1).png"></p>
+<p><strong>同构直出</strong></p>
+<p>上文中，我们提到了<code>hydrate</code>这个词，正是通过该操作使静态 html 页面转换成一个 Vue 或 React 应用，这依赖于 React 和 Vue 提供的「同构直出」功能。</p>
+<p>在服务端渲染中，有两种页面渲染的方式：</p>
+<ul>
+<li>
+<p>后端服务器获取数据并组装 HTML 返回给浏览器解析渲染页面</p>
+</li>
+<li>
+<p>浏览器在交互过程中，请求新的数据并动态更新渲染页面</p>
+</li>
+</ul>
+<p>这两种渲染方式的不同点在于运行环境的不同。同一份代码可以在客户端和服务器端运行，两个环境的渲染结果应该保持一致。因此，我们需要实现客户端和服务器端的路由、页面模板和数据共享。</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3593611d24be44e6aef196e97da547cd~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image (4).png"></p>
+<p>我们通过<code>webpack</code>将打包出两份代码，一份在服务端运行。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/abcb82d772bd432a9c0c964709cd07b1~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="vue服务端渲染构建 (1).png"></p>
+<p><strong>整体流程</strong></p>
+<p>以 Nuxt 为例，整体的渲染流程如下所示：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c6d802769b714181abd77beecd799f12~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="SSR (1).png"></p>
+<h3 id="两个重要的概念">两个重要的概念</h3>
+<p><strong>脱水（dehydrate）</strong></p>
+<p>将组件树序列化成静态的 HTML 片段，能直接看到初始视图，不过已经无法与之交互了，但这种便携的形态尤其适合网络传输。这个脱去动态数据，成为风干标本一样的静态快照的过程被称为脱水（dehydrate）。</p>
+<p><strong>注水（hydrate）</strong></p>
+<p>与脱水相反，将这个 html 躯干复活为 Vue 应用的过程称为注水。客户端并不重新生成 HTML 组件，而是重用服务器发送给它的 HTML，并附加「数据」与「交互性」，构建成完整的 Vue 应用，这个过程被称为注水（hydrate）。</p>
+<blockquote>
+<p>Hydration is a process where a frontend framework like React, VueJS re-uses the static HTML structure it receives from the server (that was created at server-side at build time), and instead of re-generating the HTML nodes on the browser, simply “breathes” event handlers and interactivity into it.</p>
+</blockquote>
+<h3 id="ssr-与-csr-的对比">SSR 与 CSR 的对比</h3>
+<p><strong>优点</strong></p>
+<ul>
+<li>
+<p><strong>SEO 友好</strong>：搜索引擎爬虫可以直接抓取到最终页面内容。而 CSR 直接返回的 html 为空壳，对一些不加载执行 js 的低级爬虫来说这个页面的内容就是空的。</p>
+</li>
+<li>
+<p><strong>首屏时间更短</strong>：服务端渲染直接返回带有数据的 HTML 文本，浏览器只需解析 HTML 并构建 DOM 树，无需额外执行 JS 来渲染首屏元素。</p>
+</li>
+</ul>
+<p><strong>缺点</strong></p>
+<ul>
+<li>
+<p><strong>占用服务器资源</strong>：渲染工作从浏览器转移到服务器，新增了数据获取的 IO 和渲染 HTML 的 CPU 占用。</p>
+</li>
+<li>
+<p><strong>代码复杂度增加</strong>：需要同时兼容客户端和服务器端，代码编写时需要考虑两端的执行环境，且某些依赖库只能在客户端运行，增加了编码的复杂性。</p>
+</li>
+</ul>
+<h2 id="ssgstatic-site-generation">SSG（Static Site Generation）</h2>
+<h3 id="概念-1">概念</h3>
+<p>SSG（静态站点生成）与 SSR 的原理非常类似，但不同之处在于 HTML 文件是预先生成的，而不是在服务器实时生成。</p>
+<h3 id="工作流程">工作流程</h3>
+<ol>
+<li>
+<p><strong>构建阶段</strong>：在构建过程中，SSG 将源文件和模板（如 HTML、CSS）结合，生成静态页面。这些页面通常由预定义的布局、组件和样式组成。</p>
+</li>
+<li>
+<p><strong>预渲染</strong>：SSG 在构建过程中会自动执行预渲染。这意味着 SSG 会根据预定义的路由和数据源，在构建时生成静态页面的多个实例。例如，对于一个博客，每篇文章都可以在构建过程中生成一个独立的静态页面。</p>
+</li>
+<li>
+<p><strong>静态输出</strong>：一旦构建完成，SSG 将生成的静态页面输出到目标文件夹中。这些页面包含所有必要的 HTML、CSS 和 JavaScript，以及任何相关的静态资源（如图像、视频等）。</p>
+</li>
+<li>
+<p><strong>部署</strong>：生成的静态页面可以直接部署到任何支持静态文件的 Web 服务器上。因为这些页面不需要动态生成，所以它们可以被高效地缓存和交付给访问者，提供更好的性能和可扩展性。</p>
+</li>
+<li>
+<p><strong>用户访问</strong>：首屏直接解析 html 生成 dom。接着和 SSR 一样通过 hydrate 将整个应用转变成为 React 或 Vue 应用，使用户在交互时与单页应用无异。</p>
+</li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/209eb85cd2054715bf33db8adc05fe7e~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="ssg图示 (1).jpeg"></p>
+<h3 id="特点">特点</h3>
+<p>SSG 的优缺点都非常明显，通常适用于静态页面，例如文档、博客、帮助站点和电子商务产品。</p>
+<p><strong>优点</strong></p>
+<ul>
+<li>
+<p><strong>性能高</strong>：相比 SSR 减轻了服务器压力，还可以将生成的静态资源放到 CDN 上，充分利用缓存。</p>
+</li>
+<li>
+<p><strong>SEO 友好</strong>：搜索引擎爬虫可以直接抓取到最终页面内容</p>
+</li>
+<li>
+<p><strong>易于部署</strong>：生成的静态页面可以直接部署到任何支持静态文件的 Web 服务器上，无需依赖 Node 环境等。</p>
+</li>
+<li>
+<p><strong>高度安全性</strong>：由于服务器不需要运行程序，因此服务器漏洞仅限于操作系统本身，维护也更加方便。</p>
+</li>
+</ul>
+<p><strong>缺点</strong></p>
+<ul>
+<li><strong>静态</strong>：只适用于静态数据，对于经常改动的数据，需要每次重新生成页面。</li>
+</ul>
+<h2 id="isrincremental-static-regeneration">ISR（Incremental Static Regeneration）</h2>
+<h3 id="概念-2">概念</h3>
+<p>ISR（增量式网站渲染）结合了 SSG 和 SSR 的优势。ISR 的核心思想是将部分静态页面在构建时生成，并在用户访问时进行增量更新。</p>
+<p>在 ISR 中，静态页面的构建仍然是在构建时完成的，类似于 SSG。然而，与完全静态的 SSG 不同，ISR 允许某些页面在构建后仍保持动态，并在用户首次访问时进行渲染。一旦渲染完成，生成的静态页面被缓存，并在后续的请求中被直接提供，以提高性能和响应速度。</p>
+<h3 id="工作流程-1">工作流程</h3>
+<ol>
+<li>
+<p>构建阶段：在构建过程中，使用 SSG（静态站点生成器）生成静态页面，并将这些页面上传到 CDN。</p>
+</li>
+<li>
+<p>用户发起页面请求：</p>
+<ul>
+<li>请求静态页面： CDN 直接返回；</li>
+<li>请求 ISR 页面，且该页面未被 CDN 缓存：直接响应 fallback 页面，浏览器接收到该页面后以 CSR 的形式渲染出内容；同时 CDN 会将请求转发到服务端，触发服务端渲染，服务器动态地生成页面内容，并返回给 CDN 进行缓存</li>
+<li>请求 ISR 页面，该页面 CDN 已有缓存且未过期：直接返回缓存的 html 页面</li>
+<li>请求 ISR 页面，该页面 CDN 已有缓存但已经过期：直接返回这份过期的缓存给浏览器，此时用户看到的是缓存已经过期的页面；同时 CDN 会将请求转发到服务端，触发服务端渲染，服务器动态地生成页面内容，并返回给 CDN 将该页面的缓存更新</li>
+</ul>
+</li>
+</ol>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7690b48be4f040c4988de68bf11ba40b~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="ISR (1).png"></p>
+<h3 id="特点-1">特点</h3>
+<p><strong>优点</strong></p>
+<p>ISR 的优势在于它在静态和动态之间找到了一个平衡点。对于不经常变动的内容，可以通过 SSG 生成完全静态的页面，从而实现快速加载和低服务器负载。而对于可能需要频繁更新的部分，如评论区或实时数据，ISR 可以使用 SSR 来动态生成这些内容，并在后续的请求中进行增量更新，从而保持页面的实时性。</p>
+<p><strong>缺点</strong></p>
+<ul>
+<li>
+<p>访问到没被预渲染过的次要内容触发 fallback，需要进行 CSR，加载较慢。</p>
+</li>
+<li>
+<p>访问到之前被预渲染过，但已经过期且未更新的页面，会得到过期的缓存响应。用户刷新一次，才能看到新的数据。</p>
+</li>
+</ul>
+<h3 id="应用场景">应用场景</h3>
+<p>本质上来说，ISR 仍然是 SSG 的范畴，复杂场景仍然无法应对。其典型应用场景包括博客评论、最新文章列表等。通过将这些动态内容与静态页面结合使用，可以在保持高性能和安全性的同时，提供更丰富和实时的用户体验。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/610/"
+      ><span class="mr-1.5">←</span><span>Vue3 中常用 API（v-model、v-memo、useAttrs、defineExpose、computed、watch）</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/607/"
+      ><span>使用 Vite 打包项目用的 JS 和 CSS 文件，改善开发体验</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

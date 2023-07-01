@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>浏览器渲染HTML全过程详解，包括preload，prefetch，defer，async用法 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="HTML 解析过程 解析 HTML 文档，构建 DOM(Document Object Model)树 假如遇到 link 标签(没有其他特殊的属性)，异步下载对应的样式文件，下载完毕开始构建 CSSOM 树，此过程并不会阻塞 DOM 树的构建（但会影响渲染树，即所谓的阻塞渲染） 假如遇到 script 标签(没有其他特殊的属性)，阻塞 DOM 的构建，并在下载完成后直接执行 JS 代码 DOM 树构建完成，DOMContentLoaded 事件触发 结合 DOM 树和 CSSOM 树，形成渲染树 计算布局和绘制元素，呈现页面，window load 事件触发 验证解析过程 所需工具 chrome 浏览器 一个 js 和 css 文件 cdn 链接 场景 1： 验证遇到 Link 标签，会异步下载 css 文件而不阻塞 DOM 树的构建，代码如下 &lt;!DOCTYPE html&gt; &lt;html lang=&#34;en&#34;&gt; &lt;head&gt; &lt;meta charset=&#34;UTF-8&#34; /&gt; &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt; &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34; /&gt; &lt;title&gt;Document&lt;/title&gt; &lt;script&gt; document." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="浏览器渲染HTML全过程详解，包括preload，prefetch，defer，async用法" />
+<meta property="og:description" content="HTML 解析过程 解析 HTML 文档，构建 DOM(Document Object Model)树 假如遇到 link 标签(没有其他特殊的属性)，异步下载对应的样式文件，下载完毕开始构建 CSSOM 树，此过程并不会阻塞 DOM 树的构建（但会影响渲染树，即所谓的阻塞渲染） 假如遇到 script 标签(没有其他特殊的属性)，阻塞 DOM 的构建，并在下载完成后直接执行 JS 代码 DOM 树构建完成，DOMContentLoaded 事件触发 结合 DOM 树和 CSSOM 树，形成渲染树 计算布局和绘制元素，呈现页面，window load 事件触发 验证解析过程 所需工具 chrome 浏览器 一个 js 和 css 文件 cdn 链接 场景 1： 验证遇到 Link 标签，会异步下载 css 文件而不阻塞 DOM 树的构建，代码如下 &lt;!DOCTYPE html&gt; &lt;html lang=&#34;en&#34;&gt; &lt;head&gt; &lt;meta charset=&#34;UTF-8&#34; /&gt; &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt; &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34; /&gt; &lt;title&gt;Document&lt;/title&gt; &lt;script&gt; document." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/422/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-30T22:36:06+08:00" />
+<meta property="article:modified_time" content="2023-03-30T22:36:06+08:00" />
+
+  
+  <meta itemprop="name" content="浏览器渲染HTML全过程详解，包括preload，prefetch，defer，async用法">
+<meta itemprop="description" content="HTML 解析过程 解析 HTML 文档，构建 DOM(Document Object Model)树 假如遇到 link 标签(没有其他特殊的属性)，异步下载对应的样式文件，下载完毕开始构建 CSSOM 树，此过程并不会阻塞 DOM 树的构建（但会影响渲染树，即所谓的阻塞渲染） 假如遇到 script 标签(没有其他特殊的属性)，阻塞 DOM 的构建，并在下载完成后直接执行 JS 代码 DOM 树构建完成，DOMContentLoaded 事件触发 结合 DOM 树和 CSSOM 树，形成渲染树 计算布局和绘制元素，呈现页面，window load 事件触发 验证解析过程 所需工具 chrome 浏览器 一个 js 和 css 文件 cdn 链接 场景 1： 验证遇到 Link 标签，会异步下载 css 文件而不阻塞 DOM 树的构建，代码如下 &lt;!DOCTYPE html&gt; &lt;html lang=&#34;en&#34;&gt; &lt;head&gt; &lt;meta charset=&#34;UTF-8&#34; /&gt; &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt; &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34; /&gt; &lt;title&gt;Document&lt;/title&gt; &lt;script&gt; document."><meta itemprop="datePublished" content="2023-03-30T22:36:06+08:00" />
+<meta itemprop="dateModified" content="2023-03-30T22:36:06+08:00" />
+<meta itemprop="wordCount" content="358">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="浏览器渲染HTML全过程详解，包括preload，prefetch，defer，async用法"/>
+<meta name="twitter:description" content="HTML 解析过程 解析 HTML 文档，构建 DOM(Document Object Model)树 假如遇到 link 标签(没有其他特殊的属性)，异步下载对应的样式文件，下载完毕开始构建 CSSOM 树，此过程并不会阻塞 DOM 树的构建（但会影响渲染树，即所谓的阻塞渲染） 假如遇到 script 标签(没有其他特殊的属性)，阻塞 DOM 的构建，并在下载完成后直接执行 JS 代码 DOM 树构建完成，DOMContentLoaded 事件触发 结合 DOM 树和 CSSOM 树，形成渲染树 计算布局和绘制元素，呈现页面，window load 事件触发 验证解析过程 所需工具 chrome 浏览器 一个 js 和 css 文件 cdn 链接 场景 1： 验证遇到 Link 标签，会异步下载 css 文件而不阻塞 DOM 树的构建，代码如下 &lt;!DOCTYPE html&gt; &lt;html lang=&#34;en&#34;&gt; &lt;head&gt; &lt;meta charset=&#34;UTF-8&#34; /&gt; &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt; &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34; /&gt; &lt;title&gt;Document&lt;/title&gt; &lt;script&gt; document."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">浏览器渲染HTML全过程详解，包括preload，prefetch，defer，async用法</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 30, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h1 id="html-解析过程">HTML 解析过程</h1>
+<ol>
+<li>解析 HTML 文档，构建 DOM(Document Object Model)树</li>
+<li>假如遇到 link 标签(没有其他特殊的属性)，异步下载对应的样式文件，下载完毕开始构建 CSSOM 树，此过程并不会阻塞 DOM 树的构建（但会影响渲染树，即所谓的阻塞渲染）</li>
+<li>假如遇到 script 标签(没有其他特殊的属性)，阻塞 DOM 的构建，并在下载完成后直接执行 JS 代码</li>
+<li>DOM 树构建完成，DOMContentLoaded 事件触发</li>
+<li>结合 DOM 树和 CSSOM 树，形成渲染树</li>
+<li>计算布局和绘制元素，呈现页面，window load 事件触发</li>
+</ol>
+<h1 id="验证解析过程">验证解析过程</h1>
+<h2 id="所需工具">所需工具</h2>
+<ol>
+<li>chrome 浏览器</li>
+<li>一个 js 和 css 文件 cdn 链接</li>
+</ol>
+<h2 id="场景-1-验证遇到-link-标签会异步下载-css-文件而不阻塞-dom-树的构建代码如下">场景 1： 验证遇到 Link 标签，会异步下载 css 文件而不阻塞 DOM 树的构建，代码如下</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">http-equiv</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;X-UA-Compatible&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;IE=edge&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;viewport&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;width=device-width, initial-scale=1.0&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;Document&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      document.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;DOMContentLoaded&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;DOMContentLoaded&#34;</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>      window.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;load&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;load&#34;</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">link</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css&#34;</span>
+</span></span><span style="display:flex;"><span>    /&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;test&#34;</span>&gt;This is the content of the test div&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p>我们在进入页面时，监听了页面的 DOMContentLoad 和 load 事件，同时引入一个 css 文件，接着，我们打开该网页，在 chrome 浏览器中将网速调到 1kb/s。清空缓存刷新网页。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4ba72f925bdb4b5e8f7cf154d7e13979~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="1680074781152.png"></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/18ee7e9d490a478f8a144be7b4e7d91d~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="1680074771174.jpg"></p>
+<p>可以看到当浏览器在下载 css 文件的过程中，DOM 树已经构建完成了，因此 CSS 文件的下载并不会阻塞 DOM 树的构建。</p>
+<h2 id="场景-2script-标签会阻塞-dom-树的构建">场景 2：script 标签会阻塞 DOM 树的构建</h2>
+<p>和场景 1 同样的代码，但将引入的 css 文件换成 js 文件，如</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p>同样的，调低网速，清空缓存刷新网页。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/14c58b1ae036472886bcc61153a9dac2~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="1680075244468.jpg"></p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1b26980d80d64d109baa6b5f7d69830c~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="1680075257105.jpg"></p>
+<p>可以看到，在 js 下载过程中，DOMContentLoaded 事件一直没被触发。此时取消网络限制，让浏览器下载完 JS 文件，可以看到控制台打印信息</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/80a2549093a34fdfb44bb881178a4658~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>此时可以看到 DOMContentLoaded 事件和 load 事件都已经触发了，证明了 script 标签的下载和执行会阻塞 DOM 树的构建。</p>
+<h1 id="css-文件下载同样会影响网页的呈现">css 文件下载同样会影响网页的呈现</h1>
+<p>在场景 1 的例子截图中，我们可以看到在下载 css 文件的过程中，虽然 DOMContetLoaded 事件触发了，但一直没有触发 load 事件，且页面是空白的。这是因为最终页面的呈现是由渲染树决定的，而渲染树又由 DOM 树和 CSSOM 树共同决定，因此在 CSSOM 树构建完成之前，页面就可能出现留白的现象。</p>
+<h1 id="为何推荐将-css-样式放在-head-中而将-js-代码写在-body-之前">为何推荐将 css 样式放在 head 中，而将 js 代码写在 body 之前</h1>
+<p>浏览器在渲染页面过程中，会尽可能先呈现已解析内容，由上面可知，CSSOM 树和 DOM 树的构建是异步的，因此，将样式代码放在 head 标签中，可以让浏览器更早地构建 CSSOM 树和 DOM 树，尽早的呈现完整的页面。</p>
+<p>但由于 JS 代码会阻塞 DOM 树的构建，且会被立刻执行，将其放在后面才能避免操作不到页面最终需要的东西，如：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/964e5c757f554a6e9a0ba4f6e62f3a43~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h1 id="为何说-domcontentloaded-事件执行时还可能存在一些-js-和-css-未被加载">为何说 DOMContentLoaded 事件执行时，还可能存在一些 js 和 css 未被加载</h1>
+<ol>
+<li>存在 css 未被加载情况从场景 1 很容易看出</li>
+<li>本文前面说 script 标签会阻塞 DOM 树的构建，按道理只有页面上的所有脚本都执行完之后，DOMContentLoaded 事件才可能完成，但这只限于未给 script 标签加其他属性的情况，假如给 script 加上 async 属性，情况又有不同。</li>
+</ol>
+<h1 id="preloadprefetchdeferasync">preload,prefetch,defer,async</h1>
+<h2 id="deferasync">defer,async</h2>
+<p>这两个属性都是 script 标签上的属性，其中</p>
+<ol>
+<li>async 表示脚本会被并行请求，并尽快解析和执行。因此假如 scirpt 的下载速度很慢，且有 async 属性，则在 DOMContentLoaded 时候，就可能存在还未执行的 js 文件。如</li>
+</ol>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3e95b6536ab54dcdb17b9ee9747e21c8~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0f98d422e8e94997af6ebf4d05fdf916~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/05587da5f21b44c78b93e7975a1a99aa~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>可见，此时 DOMCotentLoaded 已经触发了，但 async 的 script 资源尚未下载完。</p>
+<ol start="2">
+<li>defer 表示通知浏览器该脚本将在文档完成解析后，触发  <code>DOMContentLoaded</code>  事件前执行。如</li>
+</ol>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c4d6c6bd2c4b410b96b1871ef13ea2d5~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8b89fed63e354cd99e9276a627e03c53~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>可见资源还未下载完时，会阻塞 DOMContentLoaded 事件</p>
+<h2 id="preloadprefetch-同样会让资源下载变成异步">preload,prefetch 同样会让资源下载变成异步</h2>
+<p>preload 和 prefetch 都是优化浏览器加载资源的手段，它们都是 link 标签上的属性，与之相关的还有一个 as 属性，可以用来表示连接的文档内容，as 属性仅在 rel 属性设置了 preload 或 prefetch 有效。</p>
+<ol>
+<li>preload 指示某资源为重要资源，指示浏览器在加载当前页面时必须立即下载资源，它只会指示该资源下载和缓存的优先级而不会加载该 js 文件，如</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;preload&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;style.css&#34;</span> <span style="color:#a6e22e">as</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;style&#34;</span>&gt;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- 它的`as`属性指定了资源类型，以便浏览器可以优化加载。 --&gt;</span>
+</span></span></code></pre></div><p>在使用的时候，还是需要再引入一次</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;style.css&#34;</span>&gt;
+</span></span></code></pre></div><p>让我们用 animate.css 来验证这点,看下面例子</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">http-equiv</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;X-UA-Compatible&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;IE=edge&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;viewport&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;width=device-width, initial-scale=1.0&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;Document&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      document.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;DOMContentLoaded&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;DOMContentLoaded&#34;</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>      window.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;load&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;load&#34;</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">link</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;preload&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">as</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;style&#34;</span>
+</span></span><span style="display:flex;"><span>    /&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">h1</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;animate__animated animate__bounce&#34;</span>&gt;An animated element&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p>假设 preload 只是让浏览器提前下载该文件而不加载，h1 元素在页面加载完的时候就不会抖动。让我们看结果：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9daea3d2274944328c93f4d45890722e~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>确实浏览器下载了该文件，且 h1 元素没有抖动。</p>
+<p>接下来我们在使用普通的 link 引入 animate css，如</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;preload&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">as</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;style&#34;</span>
+</span></span><span style="display:flex;"><span>/&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css&#34;</span>
+</span></span><span style="display:flex;"><span>/&gt;
+</span></span></code></pre></div><p>此时清空缓存再次刷新页面。 可以看到浏览器下载了 animate.css 并且 h1 元素抖动。</p>
+<ol start="2">
+<li>prefetch 用于指示浏览器在将来可能需要使用的资源。如</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;prefetch&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;image.png&#34;</span>&gt;
+</span></span></code></pre></div><p>这告诉浏览器，在当前页面加载完成后，可以预取<code>image.png</code>文件，因为它可能在用户进行后续导航时需要使用。这可以减少页面之间的加载时间。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/423/"
+      ><span class="mr-1.5">←</span><span>谈谈requestAnimationFrame和setInterval该如何选择</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/421/"
+      ><span>JS将图片URL转base64</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

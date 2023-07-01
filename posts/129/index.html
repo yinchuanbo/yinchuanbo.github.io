@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>将微前端做到极致-无界微前端方案 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言：微前端已经是一个非常成熟的领域了，但开发者不管采用哪个现有方案，在适配成本、样式隔离、运行性能、页面白屏、子应用通信、子应用保活、多应用激活、vite 框架支持、应用共享等用户核心诉求都或存在问题，或无法提供支持。本文提供一种基于 iframe 的全新微前端方案，完善的解决了这些核心诉求。
+为什么还要造微前端框架 目前较成熟的微前方案有 qiankun、micro-app、EMP 方案，下面分别分析这三个微前端方案：
+qiankun 方案 qiankun 方案是基于 single-spa 的微前端方案。
+特点
+html entry 的方式引入子应用，相比 js entry 极大的降低了应用改造的成本； 完备的沙箱方案，js 沙箱做了 SnapshotSandbox、LegacySandbox、ProxySandbox 三套渐进增强方案，css 沙箱做了 strictStyleIsolation、experimentalStyleIsolation 两套适用不同场景的方案； 做了静态资源预加载能力； 不足
+适配成本比较高，工程化、生命周期、静态资源路径、路由等都要做一系列的适配工作； css 沙箱采用严格隔离会有各种问题，js 沙箱在某些场景下执行性能下降严重； 无法同时激活多个子应用，也不支持子应用保活； 无法支持 vite 等 esmodule 脚本运行； micro-app 方案 micro-app 是基于 webcomponent &#43; qiankun sandbox 的微前端方案。
+特点
+使用 webcomponet 加载子应用相比 single-spa 这种注册监听方案更加优雅； 复用经过大量项目验证过 qiankun 的沙箱机制也使得框架更加可靠； 组件式的 api 更加符合使用习惯，支持子应用保活； 降低子应用改造的成本，提供静态资源预加载能力； 不足
+接入成本较 qiankun 有所降低，但是路由依然存在依赖；（虚拟路由已解决） 多应用激活后无法保持各子应用的路由状态，刷新后全部丢失；（虚拟路由已解决） css 沙箱依然无法绝对的隔离，js 沙箱做全局变量查找缓存，性能有所优化； 支持 vite 运行，但必须使用 plugin 改造子应用，且 js 代码没办法做沙箱隔离； 对于不支持 webcompnent 的浏览器没有做降级处理； EMP 方案 EMP 方案是基于 webpack 5 module federation 的微前端方案。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="将微前端做到极致-无界微前端方案" />
+<meta property="og:description" content="前言：微前端已经是一个非常成熟的领域了，但开发者不管采用哪个现有方案，在适配成本、样式隔离、运行性能、页面白屏、子应用通信、子应用保活、多应用激活、vite 框架支持、应用共享等用户核心诉求都或存在问题，或无法提供支持。本文提供一种基于 iframe 的全新微前端方案，完善的解决了这些核心诉求。
+为什么还要造微前端框架 目前较成熟的微前方案有 qiankun、micro-app、EMP 方案，下面分别分析这三个微前端方案：
+qiankun 方案 qiankun 方案是基于 single-spa 的微前端方案。
+特点
+html entry 的方式引入子应用，相比 js entry 极大的降低了应用改造的成本； 完备的沙箱方案，js 沙箱做了 SnapshotSandbox、LegacySandbox、ProxySandbox 三套渐进增强方案，css 沙箱做了 strictStyleIsolation、experimentalStyleIsolation 两套适用不同场景的方案； 做了静态资源预加载能力； 不足
+适配成本比较高，工程化、生命周期、静态资源路径、路由等都要做一系列的适配工作； css 沙箱采用严格隔离会有各种问题，js 沙箱在某些场景下执行性能下降严重； 无法同时激活多个子应用，也不支持子应用保活； 无法支持 vite 等 esmodule 脚本运行； micro-app 方案 micro-app 是基于 webcomponent &#43; qiankun sandbox 的微前端方案。
+特点
+使用 webcomponet 加载子应用相比 single-spa 这种注册监听方案更加优雅； 复用经过大量项目验证过 qiankun 的沙箱机制也使得框架更加可靠； 组件式的 api 更加符合使用习惯，支持子应用保活； 降低子应用改造的成本，提供静态资源预加载能力； 不足
+接入成本较 qiankun 有所降低，但是路由依然存在依赖；（虚拟路由已解决） 多应用激活后无法保持各子应用的路由状态，刷新后全部丢失；（虚拟路由已解决） css 沙箱依然无法绝对的隔离，js 沙箱做全局变量查找缓存，性能有所优化； 支持 vite 运行，但必须使用 plugin 改造子应用，且 js 代码没办法做沙箱隔离； 对于不支持 webcompnent 的浏览器没有做降级处理； EMP 方案 EMP 方案是基于 webpack 5 module federation 的微前端方案。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/129/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-06T19:52:07+08:00" />
+<meta property="article:modified_time" content="2022-10-06T19:52:07+08:00" />
+
+  
+  <meta itemprop="name" content="将微前端做到极致-无界微前端方案">
+<meta itemprop="description" content="前言：微前端已经是一个非常成熟的领域了，但开发者不管采用哪个现有方案，在适配成本、样式隔离、运行性能、页面白屏、子应用通信、子应用保活、多应用激活、vite 框架支持、应用共享等用户核心诉求都或存在问题，或无法提供支持。本文提供一种基于 iframe 的全新微前端方案，完善的解决了这些核心诉求。
+为什么还要造微前端框架 目前较成熟的微前方案有 qiankun、micro-app、EMP 方案，下面分别分析这三个微前端方案：
+qiankun 方案 qiankun 方案是基于 single-spa 的微前端方案。
+特点
+html entry 的方式引入子应用，相比 js entry 极大的降低了应用改造的成本； 完备的沙箱方案，js 沙箱做了 SnapshotSandbox、LegacySandbox、ProxySandbox 三套渐进增强方案，css 沙箱做了 strictStyleIsolation、experimentalStyleIsolation 两套适用不同场景的方案； 做了静态资源预加载能力； 不足
+适配成本比较高，工程化、生命周期、静态资源路径、路由等都要做一系列的适配工作； css 沙箱采用严格隔离会有各种问题，js 沙箱在某些场景下执行性能下降严重； 无法同时激活多个子应用，也不支持子应用保活； 无法支持 vite 等 esmodule 脚本运行； micro-app 方案 micro-app 是基于 webcomponent &#43; qiankun sandbox 的微前端方案。
+特点
+使用 webcomponet 加载子应用相比 single-spa 这种注册监听方案更加优雅； 复用经过大量项目验证过 qiankun 的沙箱机制也使得框架更加可靠； 组件式的 api 更加符合使用习惯，支持子应用保活； 降低子应用改造的成本，提供静态资源预加载能力； 不足
+接入成本较 qiankun 有所降低，但是路由依然存在依赖；（虚拟路由已解决） 多应用激活后无法保持各子应用的路由状态，刷新后全部丢失；（虚拟路由已解决） css 沙箱依然无法绝对的隔离，js 沙箱做全局变量查找缓存，性能有所优化； 支持 vite 运行，但必须使用 plugin 改造子应用，且 js 代码没办法做沙箱隔离； 对于不支持 webcompnent 的浏览器没有做降级处理； EMP 方案 EMP 方案是基于 webpack 5 module federation 的微前端方案。"><meta itemprop="datePublished" content="2022-10-06T19:52:07+08:00" />
+<meta itemprop="dateModified" content="2022-10-06T19:52:07+08:00" />
+<meta itemprop="wordCount" content="414">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="将微前端做到极致-无界微前端方案"/>
+<meta name="twitter:description" content="前言：微前端已经是一个非常成熟的领域了，但开发者不管采用哪个现有方案，在适配成本、样式隔离、运行性能、页面白屏、子应用通信、子应用保活、多应用激活、vite 框架支持、应用共享等用户核心诉求都或存在问题，或无法提供支持。本文提供一种基于 iframe 的全新微前端方案，完善的解决了这些核心诉求。
+为什么还要造微前端框架 目前较成熟的微前方案有 qiankun、micro-app、EMP 方案，下面分别分析这三个微前端方案：
+qiankun 方案 qiankun 方案是基于 single-spa 的微前端方案。
+特点
+html entry 的方式引入子应用，相比 js entry 极大的降低了应用改造的成本； 完备的沙箱方案，js 沙箱做了 SnapshotSandbox、LegacySandbox、ProxySandbox 三套渐进增强方案，css 沙箱做了 strictStyleIsolation、experimentalStyleIsolation 两套适用不同场景的方案； 做了静态资源预加载能力； 不足
+适配成本比较高，工程化、生命周期、静态资源路径、路由等都要做一系列的适配工作； css 沙箱采用严格隔离会有各种问题，js 沙箱在某些场景下执行性能下降严重； 无法同时激活多个子应用，也不支持子应用保活； 无法支持 vite 等 esmodule 脚本运行； micro-app 方案 micro-app 是基于 webcomponent &#43; qiankun sandbox 的微前端方案。
+特点
+使用 webcomponet 加载子应用相比 single-spa 这种注册监听方案更加优雅； 复用经过大量项目验证过 qiankun 的沙箱机制也使得框架更加可靠； 组件式的 api 更加符合使用习惯，支持子应用保活； 降低子应用改造的成本，提供静态资源预加载能力； 不足
+接入成本较 qiankun 有所降低，但是路由依然存在依赖；（虚拟路由已解决） 多应用激活后无法保持各子应用的路由状态，刷新后全部丢失；（虚拟路由已解决） css 沙箱依然无法绝对的隔离，js 沙箱做全局变量查找缓存，性能有所优化； 支持 vite 运行，但必须使用 plugin 改造子应用，且 js 代码没办法做沙箱隔离； 对于不支持 webcompnent 的浏览器没有做降级处理； EMP 方案 EMP 方案是基于 webpack 5 module federation 的微前端方案。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">将微前端做到极致-无界微前端方案</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Oct 6, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><blockquote>
+<p>前言：微前端已经是一个非常成熟的领域了，但开发者不管采用哪个现有方案，在适配成本、样式隔离、运行性能、页面白屏、子应用通信、子应用保活、多应用激活、vite 框架支持、应用共享等用户核心诉求都或存在问题，或无法提供支持。本文提供一种基于 iframe 的全新微前端方案，完善的解决了这些核心诉求。</p>
+</blockquote>
+<h2 id="为什么还要造微前端框架">为什么还要造微前端框架</h2>
+<p>目前较成熟的微前方案有 qiankun、micro-app、EMP 方案，下面分别分析这三个微前端方案：</p>
+<h3 id="qiankun-方案">qiankun 方案</h3>
+<p>qiankun 方案是基于 single-spa 的微前端方案。</p>
+<p><strong>特点</strong></p>
+<ol>
+<li>html entry 的方式引入子应用，相比 js entry 极大的降低了应用改造的成本；</li>
+<li>完备的沙箱方案，js 沙箱做了 SnapshotSandbox、LegacySandbox、ProxySandbox 三套渐进增强方案，css 沙箱做了 strictStyleIsolation、experimentalStyleIsolation 两套适用不同场景的方案；</li>
+<li>做了静态资源预加载能力；</li>
+</ol>
+<p><strong>不足</strong></p>
+<ol>
+<li>适配成本比较高，工程化、生命周期、静态资源路径、路由等都要做一系列的适配工作；</li>
+<li>css 沙箱采用严格隔离会有各种问题，js 沙箱在某些场景下执行性能下降严重；</li>
+<li>无法同时激活多个子应用，也不支持子应用保活；</li>
+<li>无法支持 vite 等 esmodule 脚本运行；</li>
+</ol>
+<h3 id="micro-app-方案">micro-app 方案</h3>
+<p>micro-app 是基于 webcomponent + qiankun sandbox 的微前端方案。</p>
+<p><strong>特点</strong></p>
+<ol>
+<li>使用 webcomponet 加载子应用相比 single-spa 这种注册监听方案更加优雅；</li>
+<li>复用经过大量项目验证过 qiankun 的沙箱机制也使得框架更加可靠；</li>
+<li>组件式的 api 更加符合使用习惯，支持子应用保活；</li>
+<li>降低子应用改造的成本，提供静态资源预加载能力；</li>
+</ol>
+<p><strong>不足</strong></p>
+<ol>
+<li>接入成本较 qiankun 有所降低，但是路由依然存在依赖；（虚拟路由已解决）</li>
+<li>多应用激活后无法保持各子应用的路由状态，刷新后全部丢失；（虚拟路由已解决）</li>
+<li>css 沙箱依然无法绝对的隔离，js 沙箱做全局变量查找缓存，性能有所优化；</li>
+<li>支持 vite 运行，但必须使用 plugin 改造子应用，且 js 代码没办法做沙箱隔离；</li>
+<li>对于不支持 webcompnent 的浏览器没有做降级处理；</li>
+</ol>
+<h3 id="emp-方案">EMP 方案</h3>
+<p>EMP 方案是基于 webpack 5 module federation 的微前端方案。</p>
+<p><strong>特点</strong></p>
+<ol>
+<li>webpack 联邦编译可以保证所有子应用依赖解耦；</li>
+<li>应用间去中心化的调用、共享模块；</li>
+<li>模块远程 ts 支持；</li>
+</ol>
+<p><strong>不足</strong></p>
+<ol>
+<li>对 webpack 强依赖，老旧项目不友好；</li>
+<li>没有有效的 css 沙箱和 js 沙箱，需要靠用户自觉；</li>
+<li>子应用保活、多应用激活无法实现；</li>
+<li>主、子应用的路由可能发生冲突；</li>
+</ol>
+<h3 id="结论">结论</h3>
+<p>qiankun 方案对 single-spa 微前端方案做了较大的提升同时也遗留下来了不少问题长时间没有解决； micro-app 方案对 qiankun 方案做了较多提升但基于 qiankun 的沙箱也相应会继承其存在的问题； EMP 方案基于 webpack 5 联邦编译则约束了其使用范围； 目前的微前端方案在用户的核心诉求上都没有很好的满足，有很大的优化提升空间。</p>
+<h2 id="无界方案">无界方案</h2>
+<p>无界微前端方案基于 webcomponent 容器 + iframe 沙箱，能够完善的解决适配成本、样式隔离、运行性能、页面白屏、子应用通信、子应用保活、多应用激活、vite 框架支持、应用共享等用户的核心诉求。</p>
+<blockquote>
+<p><a href="https://wujie-micro.github.io/doc/">文档地址</a>，<a href="https://wujie-micro.github.io/demo-main-vue/home">demo 地址</a>，<a href="https://github.com/Tencent/wujie">git 地址</a></p>
+</blockquote>
+<p>下面就成本、速度、隔离、功能等多个方面进行阐述。</p>
+<h2 id="成本低">成本低</h2>
+<p>无界微前端的成本非常低，主要体现在主应用的使用成本、子应用的适配成本两个方面。</p>
+<h3 id="主应用使用成本">主应用使用成本</h3>
+<p>主应用使用无界不需要学习额外的知识，无界提供基于 vue 封装的 <a href="https://wujie-micro.github.io/doc/pack/">wujie-vue</a> 和基于 react 封装的 <a href="https://wujie-micro.github.io/doc/pack/react.html">wujie-react</a>，用户可以当初普通组件一样加载子应用，以 wujie-vue 举例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">WujieVue</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">width</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;100%&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">height</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;100%&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;xxx&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">url</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;xxx&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:sync</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;true&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:fiber</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;true&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:degrade</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;false&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:fetch</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;fetch&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:props</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;props&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:plugins</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;plugins&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:beforeLoad</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;beforeLoad&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:beforeMount</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;beforeMount&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:afterMount</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;afterMount&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:beforeUnmount</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;beforeUnmount&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:afterUnmount</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;afterUnmount&#34;</span>
+</span></span><span style="display:flex;"><span>&gt;&lt;/<span style="color:#f92672">WujieVue</span>&gt;
+</span></span></code></pre></div><p>子应用加载和普通 vue 组件加载并无二致，所有配置都收敛到组件的属性上。</p>
+<h3 id="子应用适配成本">子应用适配成本</h3>
+<p>子应用首先需要做支持跨域请求改造，这个是所有微前端框架运行的前提，除此之外子应用可以不做任何改造就可以在无界框架中运行，不过此时运行的方式是重建模式。</p>
+<p>子应用在无界中会根据是否保活、是否做了生命周期适配进入不同的运行模式：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bcfb24074394418587ca0bc4f7a9935b~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp" alt="drawing"></p>
+<p>其中<a href="https://wujie-micro.github.io/doc/guide/mode.html#%E4%BF%9D%E6%B4%BB%E6%A8%A1%E5%BC%8F">保活模式</a>、<a href="https://wujie-micro.github.io/doc/guide/mode.html#%E4%BF%9D%E6%B4%BB%E6%A8%A1%E5%BC%8F">单例模式</a>、<a href="https://wujie-micro.github.io/doc/guide/mode.html#%E9%87%8D%E5%BB%BA%E6%A8%A1%E5%BC%8F">重建模式</a>适用于不同的业务场景，就算复杂点的单例模式用户也只是需要做一点简单的生命周期改造工作，可以说子应用适配成本极低。</p>
+<h2 id="速度快">速度快</h2>
+<p>无界微前端非常快，主要体现在首屏打开快、运行速度快两个方面。</p>
+<h3 id="首屏打开快">首屏打开快</h3>
+<p>目前大部分微前端只能做到静态资源预加载，但是就算子应用所有资源都预加载完毕，等到子应用打开时页面仍然有不短的白屏时间，这部分白屏时间主要是子应用 js 的解析和执行。</p>
+<p>无界微前端不仅能够做到静态资源的预加载，还可以做到子应用的预执行。</p>
+<p>预执行会阻塞主应用的执行线程，所以无界提供 <a href="https://wujie-micro.github.io/doc/api/startApp.html#fiber">fiber 执行模式</a>，采取类似 react fiber 的方式间断执行 js，每个 js 文件的执行都包裹在 requestidlecallback 中，每执行一个 js 可以返回响应外部的输入，但是这个颗粒度是 js 文件，如果子应用单个 js 文件过大，可以通过拆包的方式降低体积达到 fiber 执行模式效益最大化。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e5d230643c7a490a84bb567e9a29e049~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp" alt="drawing"></p>
+<h3 id="运行速度快">运行速度快</h3>
+<p>子应用的 js 在 iframe 内运行，由于 iframe 是一个天然的 js 运行沙箱，所以无需采用 with ( fakewindow ) 这种方式来指定子应用的执行上下文，从而避免由于采用 with 语句执行子应用代码而导致的性能下降，整体的运行性能和原生性能差别不大。</p>
+<h2 id="原生隔离">原生隔离</h2>
+<p>无界微前端实现了 css 沙箱和 js 沙箱的原生隔离，子应用不用担心污染问题。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c03c0e038b2b4401936dcaee76497c3b~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp" alt="drawing"></p>
+<h3 id="css-沙箱隔离">css 沙箱隔离</h3>
+<p>无界将子应用的 dom 放置在 webcomponent + shadowdom 的容器中，除了可继承的 css 属性外实现了应用之间 css 的原生隔离。</p>
+<h3 id="js-沙箱隔离">js 沙箱隔离</h3>
+<p>无界将子应用的 js 放置在 iframe（js-iframe）中运行，实现了应用之间 window、document、location、history 的完全解耦和隔离。</p>
+<h3 id="js-沙箱和-css-沙箱连接">js 沙箱和 css 沙箱连接</h3>
+<p>无界在底层采用 proxy + Object.defineproperty 的方式将 js-iframe 中对 dom 操作劫持代理到 webcomponent shadowRoot 容器中，开发者无感知也无需关心。</p>
+<h2 id="功能强大">功能强大</h2>
+<p>无界微前端的功能非常强大，支持子应用保活、子应用内嵌、多应用激活、去中心化通信、生命周期、插件系统、vite 框架支持、兼容 IE9、应用共享。</p>
+<h3 id="子应用保活">子应用保活</h3>
+<p>当子应用设置为<a href="https://wujie-micro.github.io/doc/guide/mode.html#%E4%BF%9D%E6%B4%BB%E6%A8%A1%E5%BC%8F">保活模式</a>，切换子应用后仍然可以保持子应用的状态和路由不会丢失。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/84545dedbf0845dd80ef333cba40592e~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp" alt="drawing"></p>
+<h3 id="子应用嵌套">子应用嵌套</h3>
+<p>无界支持子应用多层嵌套，嵌套的应用和正常应用一致，支持预加载、保活、同步、通信等能力，需要注意的是内嵌的子应用 name 也需要保持唯一性，否则将复用之前渲染出来的应用</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/531a4d4d8cbb471a83792fb216659a18~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp" alt="drawing"></p>
+<h3 id="多应用激活">多应用激活</h3>
+<p>无界支持一个页面同时激活多个子应用并且保持这些子应用路由同步的能力。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4d1a31d829df4fdc81581d4be3c14cab~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp" alt="drawing"></p>
+<h3 id="去中心化通信">去中心化通信</h3>
+<p>无界提供多种通信方式：window.parent 直接通信、props 数据注入、去中心化 <a href="https://wujie-micro.github.io/doc/api/bus.html#bus">EventBus 通信机制</a>：</p>
+<ol>
+<li>子应用 js 在和主应用同域的 iframe 内运行，所以 window.parent 可以直接拿到主应用的 window 对象来进行通信</li>
+<li>主应用可以向子应用注入 props 对象，里面可以注入数据和方法供子应用调用</li>
+<li>内置的 EventBus 去中心化通信方案可以让应用之间方便的直接通信</li>
+</ol>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0f448384e6794fdbb08994dcdf506db4~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp" alt="drawing"></p>
+<h3 id="生命周期">生命周期</h3>
+<p>无界提供完善的<a href="https://wujie-micro.github.io/doc/guide/lifecycle.html">生命周期钩子</a>供主应用调用：</p>
+<ol>
+<li>beforeLoad：子应用开始加载静态资源前触发</li>
+<li>beforeMount：子应用渲染前触发 （生命周期改造专用）</li>
+<li>afterMount：子应用渲染后触发（生命周期改造专用）</li>
+<li>beforeUnmount：子应用卸载前触发（生命周期改造专用）</li>
+<li>afterUnmount：子应用卸载后触发（生命周期改造专用）</li>
+<li>activated：子应用进入后触发（保活模式专用）</li>
+<li>deactivated：子应用离开后触发（保活模式专用）</li>
+</ol>
+<h3 id="插件系统">插件系统</h3>
+<p>无界提供强大的<a href="https://wujie-micro.github.io/doc/guide/plugin.html">插件系统</a>，方便用户在运行时去修改子应用代码从而避免将适配代码硬编码到仓库中。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/942a62a3cfd64702aa4e1a239d382ada~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp" alt="drawing"></p>
+<p>无界插件主要能力如下：</p>
+<ol>
+<li>html-loader 可以对子应用 template 进行处理</li>
+<li>js-excludes 和 css-excludes 可以排除子应用特定的 js 和 css 加载</li>
+<li>js-before-loaders、js-loader、js-after-loaders 可以方便的对子应用 js 进行自定义</li>
+<li>css-before-loaders、css-loader、css-after-loaders 可以方便的对子应用 css 进行自定义</li>
+</ol>
+<h3 id="vite-框架支持">vite 框架支持</h3>
+<p>无界子应用运行在 iframe 中原生支持 esm 的脚本，而且不用担心子应用运行的上下文问题，因为子应用读取的就是 iframe 的 window 上下文，所以无界微前端原生支持 vite 框架。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7511076da0344267a69c601def4dd9d2~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp" alt="drawing"></p>
+<h3 id="应用共享">应用共享</h3>
+<p>一个微前端系统可能同时运行多个子应用，不同子应用之间可能存在相同的包依赖，那么这个依赖就会在不同子应用中重复打包、重复执行造成性能和内存的浪费。</p>
+<p>无界提供一种工程上的策略结合无界的插件能力，可以有效的解决这个问题（其他微前端框架也可以做到），这里以一个场景举例：主应用使用到了 ant-design-vue，子应用 A 也使用到了相同版本的 ant-design-vue。</p>
+<p>主应用：</p>
+<p>1、修改主应用的 index.js，将共享包挂载到主应用的 window 对象上</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// index.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Antdv</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;ant-design-vue&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 将需要共享的包挂载到主应用全局
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>window.<span style="color:#a6e22e">Antdv</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">Antdv</span>;
+</span></span></code></pre></div><p>2、加载子应用时注入插件，将主应用的 Antdv 赋值到子应用的 window 对象上</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">WujieVue</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;A&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">url</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;xxxxx&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">:plugins</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;[{ jsBeforeLoaders: [{ content: &#39;window.Antdv = window.parent.Antdv&#39; }] }]&#34;</span>
+</span></span><span style="display:flex;"><span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">WujieVue</span>&gt;
+</span></span></code></pre></div><p>子应用: webpack 设置 externals</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">externals</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;ant-design-vue&#34;</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">root</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Antdv&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">commonjs</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Antdv&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">commonjs2</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Antdv&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">amd</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Antdv&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>如果子应用需要单独运行可以参考<a href="https://wujie-micro.github.io/doc/guide/share.html#%E5%AD%90%E5%BA%94%E7%94%A8%E9%9C%80%E8%A6%81%E5%8D%95%E7%8B%AC%E8%BF%90%E8%A1%8C">文档</a></p>
+<h2 id="总结">总结</h2>
+<p>无界微前端采用 webcomponent + iframe 的来加载子应用，具有成本低、速度快、原生隔离、功能强大等一系列优点，在满足用户核心诉求的同时让使用微前端的体验就像使用普通组件一样简单，极大的降低了使用门槛。</p>
+<p>无界已经开源 🎉🎉🎉，欢迎 <a href="https://github.com/Tencent/wujie">star ⭐️⭐️⭐️</a></p>
+<p>框架具体原理可以查看<a href="https://zhuanlan.zhihu.com/p/442815952">文章</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/130/"
+      ><span class="mr-1.5">←</span><span>那些你不知道的炫酷按钮交互效果</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/128/"
+      ><span>4个你可能不知道的编码好习惯</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

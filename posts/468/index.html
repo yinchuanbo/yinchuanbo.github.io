@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>从零搭建属于你自己的前端规范&#43;自动化部署 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="今天想要分享的是关于前端项目规范以及部署上线的整体流程，主要包含：
+🌈 eslint、prettier 📦 husky 🛡 git-cz ⚙️ 基于 nginx 部署的docker 🌍 在 pull request 时触发 CI/CD 🎨 基于 vitest 的功能测试（还在完善中&hellip;） 重点讲解的是后续的自动化部署，前面的项目规范简单的走一遍这个流程
+这个是 demo 的仓库：github.com/Jiaynn/auto…
+接下来咱们就直奔主题吧
+初始化 首先，我们肯定得初始化一个项目，这里我是基于 Vite 搭建的关于 React&#43;TypeScript 的项目
+pnpm create vite@latest 这样一个基本的架子就搭好了
+代码规范 1.EditorConfig .editorconfig 是跨编辑器维护一致编码风格的配置文件，有的编辑器会默认集成读取该配置文件的功能。
+这就解决了在团队协作时，不同的开发人员使用了不同的编辑器造成的风格不统一的问题
+注意在 vscode 需要安装扩展 EditorConfig For vs Code
+安装完此扩展后，在 vscode 中使用快捷键 ctrl&#43;shift&#43;p 打开命令台，输入 Generate .editorcofig 即可快速生成 .editorconfig 文件，如果命令没生效，直接手动创建.editorconfig 文件
+# EditorConfig is awesome: https://EditorConfig.org # top-most EditorConfig file root = true [*] indent_style = space //缩进风格，可选配置有 `tab` 和 `space` indent_size = 2 //缩进大小，可设定为 `1-8` 的数字，比如设定为 `2` ，那就是缩进 `2` 个空格。 end_of_line = lf //换行符，可选配置有 `lf` ，`cr` ，`crlf` charset = utf-8 //编码格式，通常都是选 `utf-8` trim_trailing_whitespace = false //去除多余的空格 insert_final_newline = false //在尾部插入一行 扩展装完，配置配完，编辑器就会去首先读取这个配置文件，对缩进风格、缩进大小在换行时直接按照配置的来，在你 ctrl&#43;s 保存时，就会按照里面的规则进行代码格式化。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="从零搭建属于你自己的前端规范&#43;自动化部署" />
+<meta property="og:description" content="今天想要分享的是关于前端项目规范以及部署上线的整体流程，主要包含：
+🌈 eslint、prettier 📦 husky 🛡 git-cz ⚙️ 基于 nginx 部署的docker 🌍 在 pull request 时触发 CI/CD 🎨 基于 vitest 的功能测试（还在完善中&hellip;） 重点讲解的是后续的自动化部署，前面的项目规范简单的走一遍这个流程
+这个是 demo 的仓库：github.com/Jiaynn/auto…
+接下来咱们就直奔主题吧
+初始化 首先，我们肯定得初始化一个项目，这里我是基于 Vite 搭建的关于 React&#43;TypeScript 的项目
+pnpm create vite@latest 这样一个基本的架子就搭好了
+代码规范 1.EditorConfig .editorconfig 是跨编辑器维护一致编码风格的配置文件，有的编辑器会默认集成读取该配置文件的功能。
+这就解决了在团队协作时，不同的开发人员使用了不同的编辑器造成的风格不统一的问题
+注意在 vscode 需要安装扩展 EditorConfig For vs Code
+安装完此扩展后，在 vscode 中使用快捷键 ctrl&#43;shift&#43;p 打开命令台，输入 Generate .editorcofig 即可快速生成 .editorconfig 文件，如果命令没生效，直接手动创建.editorconfig 文件
+# EditorConfig is awesome: https://EditorConfig.org # top-most EditorConfig file root = true [*] indent_style = space //缩进风格，可选配置有 `tab` 和 `space` indent_size = 2 //缩进大小，可设定为 `1-8` 的数字，比如设定为 `2` ，那就是缩进 `2` 个空格。 end_of_line = lf //换行符，可选配置有 `lf` ，`cr` ，`crlf` charset = utf-8 //编码格式，通常都是选 `utf-8` trim_trailing_whitespace = false //去除多余的空格 insert_final_newline = false //在尾部插入一行 扩展装完，配置配完，编辑器就会去首先读取这个配置文件，对缩进风格、缩进大小在换行时直接按照配置的来，在你 ctrl&#43;s 保存时，就会按照里面的规则进行代码格式化。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/468/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-10T22:03:36+08:00" />
+<meta property="article:modified_time" content="2023-04-10T22:03:36+08:00" />
+
+  
+  <meta itemprop="name" content="从零搭建属于你自己的前端规范&#43;自动化部署">
+<meta itemprop="description" content="今天想要分享的是关于前端项目规范以及部署上线的整体流程，主要包含：
+🌈 eslint、prettier 📦 husky 🛡 git-cz ⚙️ 基于 nginx 部署的docker 🌍 在 pull request 时触发 CI/CD 🎨 基于 vitest 的功能测试（还在完善中&hellip;） 重点讲解的是后续的自动化部署，前面的项目规范简单的走一遍这个流程
+这个是 demo 的仓库：github.com/Jiaynn/auto…
+接下来咱们就直奔主题吧
+初始化 首先，我们肯定得初始化一个项目，这里我是基于 Vite 搭建的关于 React&#43;TypeScript 的项目
+pnpm create vite@latest 这样一个基本的架子就搭好了
+代码规范 1.EditorConfig .editorconfig 是跨编辑器维护一致编码风格的配置文件，有的编辑器会默认集成读取该配置文件的功能。
+这就解决了在团队协作时，不同的开发人员使用了不同的编辑器造成的风格不统一的问题
+注意在 vscode 需要安装扩展 EditorConfig For vs Code
+安装完此扩展后，在 vscode 中使用快捷键 ctrl&#43;shift&#43;p 打开命令台，输入 Generate .editorcofig 即可快速生成 .editorconfig 文件，如果命令没生效，直接手动创建.editorconfig 文件
+# EditorConfig is awesome: https://EditorConfig.org # top-most EditorConfig file root = true [*] indent_style = space //缩进风格，可选配置有 `tab` 和 `space` indent_size = 2 //缩进大小，可设定为 `1-8` 的数字，比如设定为 `2` ，那就是缩进 `2` 个空格。 end_of_line = lf //换行符，可选配置有 `lf` ，`cr` ，`crlf` charset = utf-8 //编码格式，通常都是选 `utf-8` trim_trailing_whitespace = false //去除多余的空格 insert_final_newline = false //在尾部插入一行 扩展装完，配置配完，编辑器就会去首先读取这个配置文件，对缩进风格、缩进大小在换行时直接按照配置的来，在你 ctrl&#43;s 保存时，就会按照里面的规则进行代码格式化。"><meta itemprop="datePublished" content="2023-04-10T22:03:36+08:00" />
+<meta itemprop="dateModified" content="2023-04-10T22:03:36+08:00" />
+<meta itemprop="wordCount" content="1098">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="从零搭建属于你自己的前端规范&#43;自动化部署"/>
+<meta name="twitter:description" content="今天想要分享的是关于前端项目规范以及部署上线的整体流程，主要包含：
+🌈 eslint、prettier 📦 husky 🛡 git-cz ⚙️ 基于 nginx 部署的docker 🌍 在 pull request 时触发 CI/CD 🎨 基于 vitest 的功能测试（还在完善中&hellip;） 重点讲解的是后续的自动化部署，前面的项目规范简单的走一遍这个流程
+这个是 demo 的仓库：github.com/Jiaynn/auto…
+接下来咱们就直奔主题吧
+初始化 首先，我们肯定得初始化一个项目，这里我是基于 Vite 搭建的关于 React&#43;TypeScript 的项目
+pnpm create vite@latest 这样一个基本的架子就搭好了
+代码规范 1.EditorConfig .editorconfig 是跨编辑器维护一致编码风格的配置文件，有的编辑器会默认集成读取该配置文件的功能。
+这就解决了在团队协作时，不同的开发人员使用了不同的编辑器造成的风格不统一的问题
+注意在 vscode 需要安装扩展 EditorConfig For vs Code
+安装完此扩展后，在 vscode 中使用快捷键 ctrl&#43;shift&#43;p 打开命令台，输入 Generate .editorcofig 即可快速生成 .editorconfig 文件，如果命令没生效，直接手动创建.editorconfig 文件
+# EditorConfig is awesome: https://EditorConfig.org # top-most EditorConfig file root = true [*] indent_style = space //缩进风格，可选配置有 `tab` 和 `space` indent_size = 2 //缩进大小，可设定为 `1-8` 的数字，比如设定为 `2` ，那就是缩进 `2` 个空格。 end_of_line = lf //换行符，可选配置有 `lf` ，`cr` ，`crlf` charset = utf-8 //编码格式，通常都是选 `utf-8` trim_trailing_whitespace = false //去除多余的空格 insert_final_newline = false //在尾部插入一行 扩展装完，配置配完，编辑器就会去首先读取这个配置文件，对缩进风格、缩进大小在换行时直接按照配置的来，在你 ctrl&#43;s 保存时，就会按照里面的规则进行代码格式化。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">从零搭建属于你自己的前端规范&#43;自动化部署</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 10, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1de7244aa5954ec3807e6fd43de2705e~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="从零搭建属于你自己的前端规范+自动化部署"></p>
+<p>今天想要分享的是关于前端项目规范以及部署上线的整体流程，主要包含：</p>
+<ul>
+<li>🌈 eslint、prettier</li>
+<li>📦 husky</li>
+<li>🛡 git-cz</li>
+<li>⚙️ 基于 nginx 部署的docker</li>
+<li>🌍 在 pull request 时触发 CI/CD</li>
+<li>🎨 基于 vitest 的功能测试（还在完善中&hellip;）</li>
+</ul>
+<p>重点讲解的是后续的自动化部署，前面的项目规范简单的走一遍这个流程</p>
+<p>这个是 demo 的仓库：<a href="https://link.juejin.cn/?target=https%3A%2F%2Fgithub.com%2FJiaynn%2Fauto-project" title="https://github.com/Jiaynn/auto-project">github.com/Jiaynn/auto…</a></p>
+<p>接下来咱们就直奔主题吧</p>
+<h2 id="初始化">初始化</h2>
+<p>首先，我们肯定得初始化一个项目，这里我是基于 Vite 搭建的关于 React+TypeScript 的项目</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>pnpm create vite@latest
+</span></span></code></pre></div><p>这样一个基本的架子就搭好了</p>
+<h2 id="代码规范">代码规范</h2>
+<h3 id="1editorconfig">1.EditorConfig</h3>
+<p><code>.editorconfig</code> 是跨编辑器维护一致编码风格的配置文件，有的编辑器会默认集成读取该配置文件的功能。</p>
+<p>这就解决了在团队协作时，不同的开发人员使用了不同的编辑器造成的风格不统一的问题</p>
+<p>注意在 vscode 需要安装扩展 EditorConfig For vs Code</p>
+<p>安装完此扩展后，在 vscode 中使用快捷键 <code>ctrl+shift+p</code> 打开命令台，输入 <code>Generate .editorcofig</code> 即可快速生成 <code>.editorconfig</code> 文件，如果命令没生效，直接手动创建<code>.editorconfig</code> 文件</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e"># EditorConfig is awesome: https://EditorConfig.org</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># top-most EditorConfig file</span>
+</span></span><span style="display:flex;"><span>root <span style="color:#f92672">=</span> true
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>*<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>indent_style <span style="color:#f92672">=</span> space //缩进风格，可选配置有 <span style="color:#e6db74">`</span>tab<span style="color:#e6db74">`</span> 和 <span style="color:#e6db74">`</span>space<span style="color:#e6db74">`</span> 
+</span></span><span style="display:flex;"><span>indent_size <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>      //缩进大小，可设定为 <span style="color:#e6db74">`</span>1-8<span style="color:#e6db74">`</span> 的数字，比如设定为 <span style="color:#e6db74">`</span>2<span style="color:#e6db74">`</span> ，那就是缩进 <span style="color:#e6db74">`</span>2<span style="color:#e6db74">`</span> 个空格。
+</span></span><span style="display:flex;"><span>end_of_line <span style="color:#f92672">=</span> lf     //换行符，可选配置有 <span style="color:#e6db74">`</span>lf<span style="color:#e6db74">`</span> ，<span style="color:#e6db74">`</span>cr<span style="color:#e6db74">`</span> ，<span style="color:#e6db74">`</span>crlf<span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>charset <span style="color:#f92672">=</span> utf-8      //编码格式，通常都是选 <span style="color:#e6db74">`</span>utf-8<span style="color:#e6db74">`</span> 
+</span></span><span style="display:flex;"><span>trim_trailing_whitespace <span style="color:#f92672">=</span> false  //去除多余的空格
+</span></span><span style="display:flex;"><span>insert_final_newline <span style="color:#f92672">=</span> false      //在尾部插入一行
+</span></span></code></pre></div><p>扩展装完，配置配完，编辑器就会去首先读取这个配置文件，对缩进风格、缩进大小在换行时直接按照配置的来，在你 <code>ctrl+s</code> 保存时，就会按照里面的规则进行代码格式化。</p>
+<h3 id="2prettier">2.Prettier</h3>
+<p>如果说 <code>EditorConfig</code> 帮你统一编辑器风格，那 <code>Prettier</code> 就是帮你统一项目风格的。</p>
+<p>下面是我常用的配置，在根目录下查创建<code>.prettierrc</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;arrowParens&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;always&#34;</span>,                <span style="color:#75715e">//箭头函数的参数无论有几个，都要括号包裹
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#e6db74">&#34;bracketSameLine&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,              
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;bracketSpacing&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,                 <span style="color:#75715e">//在对象中的括号之间打印空格`{x: 1}` 格式化为 `{ x: 1 }`
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#e6db74">&#34;embeddedLanguageFormatting&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;auto&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;htmlWhitespaceSensitivity&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;css&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;insertPragma&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;jsxSingleQuote&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,               <span style="color:#75715e">//jsx 语法是否单引号
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#e6db74">&#34;printWidth&#34;</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">80</span>,                      <span style="color:#75715e">//单行代码最长字符长度，超过之后会自动格式化换行。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#e6db74">&#34;proseWrap&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;preserve&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;quoteProps&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;as-needed&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;requirePragma&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;semi&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,                         <span style="color:#75715e">//分号是否添加
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#e6db74">&#34;singleAttributePerLine&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;singleQuote&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,                  <span style="color:#75715e">//是否单引号
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#e6db74">&#34;tabWidth&#34;</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">2</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;trailingComma&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;none&#34;</span>,              <span style="color:#75715e">//对象的最后一个属性末尾是否添加 `,`
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#e6db74">&#34;useTabs&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;vueIndentScriptAndStyle&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;endOfLine&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;lf&#34;</span>                     <span style="color:#75715e">//与 `.editorconfig` 保持一致设置。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p><code>.editorconfig</code> 配置文件中某些配置项是会和 <code>Prettier</code> 重合的，例如 指定缩进大小 两者都可以配置。那么两者有什么区别呢？</p>
+<p><code>EditorConfig</code> 的配置项都是一些不涉及具体语法的，比如 缩进大小、文移除多余空格等。</p>
+<p>而 <code>Prettier</code> 是一个格式化工具，要根据具体语法格式化，对于不同的语法用单引号还是双引号，加不加分号，哪里换行等，当然，肯定也有缩进大小。</p>
+<h3 id="3eslint">3.Eslint</h3>
+<p>eslint是一个老生常谈的话题了，这里不过多展示，只给大家看一下我常用的eslint配置，在根目录下创建<code>.eslintrc</code>;</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;env&#34;</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;browser&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;es2021&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;node&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;es6&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;extends&#34;</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;eslint:recommended&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;plugin:react/recommended&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;plugin:@typescript-eslint/recommended&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;prettier&#34;</span>
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;parser&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;@typescript-eslint/parser&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;parserOptions&#34;</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;ecmaFeatures&#34;</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;jsx&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;ecmaVersion&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;latest&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;sourceType&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;module&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;plugins&#34;</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;react&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;@typescript-eslint&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;react-hooks&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;simple-import-sort&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;import&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;prettier&#34;</span>
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;rules&#34;</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;prettier/prettier&#34;</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>      {},
+</span></span><span style="display:flex;"><span>      {
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;usePrettierrc&#34;</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;react-hooks/rules-of-hooks&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;react-hooks/exhaustive-deps&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;warn&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;@typescript-eslint/explicit-module-boundary-types&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;off&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;@typescript-eslint/no-var-requires&#34;</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;import/first&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;import/newline-after-import&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;import/no-duplicates&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;react/prop-types&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;off&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;simple-import-sort/exports&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;simple-import-sort/imports&#34;</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>      {
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;groups&#34;</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>          [
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;^\\u0000&#34;</span>
+</span></span><span style="display:flex;"><span>          ],
+</span></span><span style="display:flex;"><span>          [
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;^react$&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;^@?\\w&#34;</span>
+</span></span><span style="display:flex;"><span>          ],
+</span></span><span style="display:flex;"><span>          [
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;^[^.]&#34;</span>
+</span></span><span style="display:flex;"><span>          ],
+</span></span><span style="display:flex;"><span>          [
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// ../whatever/
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#e6db74">&#34;^\\.\\./(?=.*/)&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// ../
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#e6db74">&#34;^\\.\\./&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// ./whatever/
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#e6db74">&#34;^\\./(?=.*/)&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// Anything that starts with a dot
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#e6db74">&#34;^\\.&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// .html are not side effect imports
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#e6db74">&#34;^.+\\.html$&#34;</span>
+</span></span><span style="display:flex;"><span>          ],
+</span></span><span style="display:flex;"><span>          [
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;^(./|../).*.s?css$&#34;</span>
+</span></span><span style="display:flex;"><span>          ]
+</span></span><span style="display:flex;"><span>        ]
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;settings&#34;</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;react&#34;</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;version&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;detect&#34;</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>在这里需要注意的是<code>eslint</code>和<code>prettier</code>同时配置后，可能会产生冲突。我们需要更新一下eslint的配置，解决冲突</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>pnpm add eslint-config-prettier --save-dev
+</span></span></code></pre></div><p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/df1409b834d840c2af8f729972e0899a~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h2 id="git-规范">Git 规范</h2>
+<p>git 规范在团队协作时，也是一个非常重要的点，我们通过 git 规范，在版本出现问题时可以清晰的定位</p>
+<h3 id="git-cz">git-cz</h3>
+<p>首先，我使用了 <code>git-cz</code> 这个库来进行规范化提交</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">pnpm</span> <span style="color:#a6e22e">add</span> <span style="color:#f92672">--</span><span style="color:#a6e22e">save</span><span style="color:#f92672">-</span><span style="color:#a6e22e">dev</span> <span style="color:#a6e22e">git</span><span style="color:#f92672">-</span><span style="color:#a6e22e">cz</span>
+</span></span></code></pre></div><p>安装完成后，在 package.json 配置提交命令</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/66da6a2866c64ed3982ee076d5373e19~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>随后在需要提交时，执行</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>pnpm start
+</span></span></code></pre></div><p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/70826f2a05574b3ba0bb99e51dbc917c~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="husky--git-hooks-配置提交校验">husky + Git hooks 配置提交校验</h3>
+<p>在前面的配置中，我们已经实现使用 <code>git cz</code> 调出规范选项，进行规范的 message 的编辑；</p>
+<p>但是如果我们忘记使用 <code>git cz</code>, 直接使用了 <code>git commit -m &quot;commit message&quot;</code>, message 信息依然会被提交上去，项目中会出现不规范的提交 message</p>
+<p>因此我们需要 husky + commit-msg + commitlint 校验我们的提交信息是否规范。</p>
+<p><strong>安装配置 commitlint</strong></p>
+<ol>
+<li>安装依赖</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>pnpm add --save-dev @commitlint/config-conventional @commitlint/cli
+</span></span></code></pre></div><ol start="2">
+<li>创建 <code>commitlint.config.js</code> 文件</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">extends</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;@commitlint/config-conventional&#34;</span>],
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 定义规则类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// type 类型定义，表示 git 提交的 type 必须在以下类型范围内
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#e6db74">&#34;type-enum&#34;</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>      <span style="color:#ae81ff">2</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;always&#34;</span>,
+</span></span><span style="display:flex;"><span>      [
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;feat&#34;</span>, <span style="color:#75715e">// 新功能
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#e6db74">&#34;fix&#34;</span>, <span style="color:#75715e">//  修复
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#e6db74">&#34;docs&#34;</span>, <span style="color:#75715e">// 文档变更
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#e6db74">&#34;style&#34;</span>, <span style="color:#75715e">// 代码格式（不影响代码运行的变动）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#e6db74">&#34;refactor&#34;</span>, <span style="color:#75715e">// 重构（既不是增加feature）,也不是修复bug
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#e6db74">&#34;pref&#34;</span>, <span style="color:#75715e">// 性能优化
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#e6db74">&#34;test&#34;</span>, <span style="color:#75715e">// 增加测试
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#e6db74">&#34;chore&#34;</span>, <span style="color:#75715e">// 构建过程或辅助工具的变动
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#e6db74">&#34;revert&#34;</span>, <span style="color:#75715e">// 回退
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#e6db74">&#34;build&#34;</span>, <span style="color:#75715e">// 打包
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      ],
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// subject 大小写不做校验
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#e6db74">&#34;subject-case&#34;</span><span style="color:#f92672">:</span> [<span style="color:#ae81ff">0</span>],
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p><strong>安装配置husky</strong></p>
+<ol>
+<li>安装依赖 </li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>pnpm add husky --save-dev
+</span></span></code></pre></div><ol start="2">
+<li>启动 hooks, 生成 .husky 文件夹 </li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>npx husky install
+</span></span></code></pre></div><ol start="3">
+<li>在 package.json 中生成 prepare 指令 </li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/374a3f45ccd042bd8a9696bfef4522f4~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<ol start="4">
+<li>添加 commitlint 的 hook 到 husky 中，<code>commit-msg</code> 时进行校验</li>
+</ol>
+<p><code>npx husky add .husky/commit-msg 'npx --no-install commitlint --edit &quot;$1&quot;'</code></p>
+<p>添加完成后：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/72fb240f623c49dfb0a8e824013b619d~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<ol start="5">
+<li>此时，不符合规范的 commit 将不会被允许提交</li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a396c9619bd64a1da5c749e4275ebdae~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><strong>pre-commit 检验当前代码是否有 ESLint 错误</strong></p>
+<p>刚才我们配置了在提交时如果提交的信息不符合规范，是不允许被提交的但其实在日常开发中，我们希望可以在提交代码时帮我们进行 <code>Eslint</code> 检查</p>
+<ol>
+<li>添加 commit 时的 hook，<code>pre-commit</code> 时运行 npx lint-staged</li>
+</ol>
+<p><code>npx husky add .husky/pre-commit &quot;npx lint-staged&quot;</code></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2556653a57ba40f19affcac74fcbad1f~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>这个 <code>npx lint-staged</code> 是什么呢？</p>
+<p><code>lint-staged</code> 可以让你当前的代码检查<strong>只检查本次修改更新的代码，并在出现错误的时候，自动修复并推送</strong></p>
+<p>修改 <code>package.json</code> 配置，在提交时帮我们 prettier 和 eslint</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a97c0c177dab425e97d57571451297c7~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>如上配置，每次在你本地 commit 之前，校验你所提的内容是否符合你本地配置的 eslint 规则</p>
+<ul>
+<li>符合规则，提交成功</li>
+<li>不符合规则，他会自动执行 <code>eslint --cache --fix</code> 尝试帮你自动修复,修复成功，则会自动帮你把修复好的代码提交；修复失败，提示你错误，让你修复好才可以提交代码；</li>
+</ul>
+<h2 id="vitest测试">Vitest测试</h2>
+<p>这个时候，你就可以编写测试代码了，然后在后续 CI/CD 时可以进行单元测试，由于这方面自己还不太熟练，这里就不过多展开了，有兴趣的可以试试</p>
+<h2 id="持续集成持续部署-cicd"><strong>持续集成/持续部署</strong> CI/CD</h2>
+<p>最终的效果是基于Github Actions在合并到主分支时，执行打包操作，以及部署到docker，最后在自己的服务器上实时更新</p>
+<p>如果你想实现这样的效果就接着往下看吧</p>
+<h3 id="配置github-actions">配置github Actions</h3>
+<h4 id="配置ci-workflow">配置CI Workflow</h4>
+<p>在项目根目录里的<code>.github/workflows</code>文件夹上新建<code>ci.yml</code>，代码如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>name: CI
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Event设置为main分支的pull request事件，</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 这里的main分支相当于master分支，github项目新建是把main设置为默认分支，我懒得改了所以就保持这样吧</span>
+</span></span><span style="display:flex;"><span>on:
+</span></span><span style="display:flex;"><span>  pull_request:
+</span></span><span style="display:flex;"><span>    branches: master
+</span></span><span style="display:flex;"><span>jobs:
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># 只需要定义一个job并命名为CI</span>
+</span></span><span style="display:flex;"><span>  CI:
+</span></span><span style="display:flex;"><span>    runs-on: ubuntu-latest
+</span></span><span style="display:flex;"><span>    steps:
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e"># 拉取项目代码</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e"># 此处 actions/checkout 操作是从仓库拉取代码到Runner里的操作</span>
+</span></span><span style="display:flex;"><span>      - name: Checkout repository
+</span></span><span style="display:flex;"><span>        uses: actions/checkout@v2
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e"># 给当前环境下载node</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e"># actions/setup-node@v3 操作来安装指定版本的 Node.js，此处指定安装的版本为v16</span>
+</span></span><span style="display:flex;"><span>      - name: Use Node.js
+</span></span><span style="display:flex;"><span>        uses: actions/setup-node@v3
+</span></span><span style="display:flex;"><span>        with:
+</span></span><span style="display:flex;"><span>          node-version: <span style="color:#e6db74">&#34;16.x&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e"># 检查缓存</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e"># 如果key命中缓存则直接将缓存的文件还原到 path 目录，从而减少流水线运行时间</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e"># 若 key 没命中缓存时，在当前Job成功完成时将自动创建一个新缓存</span>
+</span></span><span style="display:flex;"><span>      - name: Cache
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># 缓存命中结果会存储在steps.[id].outputs.cache-hit里，该变量在继后的step中可读</span>
+</span></span><span style="display:flex;"><span>        id: cache-dependencies
+</span></span><span style="display:flex;"><span>        uses: actions/cache@v3
+</span></span><span style="display:flex;"><span>        with:
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e"># 缓存文件目录的路径</span>
+</span></span><span style="display:flex;"><span>          path: |
+</span></span><span style="display:flex;"><span>            **/node_modules
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e"># key中定义缓存标志位的生成方式。runner.OS指当前环境的系统。外加对yarn.lock内容生成哈希码作为key值，如果yarn.lock改变则代表依赖有变化。</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e"># 这里用yarn.lock而不是package.json是因为package.json中还有version和description之类的描述项目但和依赖无关的属性</span>
+</span></span><span style="display:flex;"><span>          key: <span style="color:#e6db74">${</span>{runner.OS<span style="color:#e6db74">}</span><span style="color:#f92672">}</span>-<span style="color:#e6db74">${</span>{hashFiles(<span style="color:#e6db74">&#39;**/yarn.lock&#39;</span>)<span style="color:#e6db74">}</span><span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e"># 安装依赖</span>
+</span></span><span style="display:flex;"><span>      - name: Installing Dependencies
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># 如果缓存标志位没命中，则执行该step。否则就跳过该step</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span>: steps.cache-dependencies.outputs.cache-hit !<span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;true&#39;</span>
+</span></span><span style="display:flex;"><span>        run: yarn install
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e"># 运行代码扫描</span>
+</span></span><span style="display:flex;"><span>      - name: Running Lint
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># 通过前面章节定义的命令行执行代码扫描</span>
+</span></span><span style="display:flex;"><span>        run: yarn lint
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - name: build project
+</span></span><span style="display:flex;"><span>        run: yarn build
+</span></span></code></pre></div><p>这时，我们在合并到主分支时会执行这个 yml 文件，然后就会出现下面的样子，说明你编写的流水线正在执行了</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7ac6a325ec614eb8b024aaa4aeac521a~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>现在我们只是在每次合并的时候进行了打包，但我们没有进行持续的部署。</p>
+<p>我想要的效果是我只要合并在了主分支上，我的服务器上的内容能够自动更新。</p>
+<p>我采取了通过 docker 构建镜像，发布到 Docker Hub 上，最后我通过远程登录服务器，执行部署脚本，从而实时更新。</p>
+<h3 id="docker">Docker</h3>
+<p>首先我们先安装一下 docker</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">brew</span> <span style="color:#a6e22e">cask</span> <span style="color:#a6e22e">install</span> <span style="color:#a6e22e">docker</span>
+</span></span></code></pre></div><p>查看版本</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">docker</span> <span style="color:#f92672">-</span><span style="color:#a6e22e">v</span>
+</span></span></code></pre></div><p><strong>拉取 Nginx 镜像</strong></p>
+<p>首先打开你的 Docker ，默认会启动。</p>
+<p>控制台拉取 Nginx 镜像：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">docker</span> <span style="color:#a6e22e">pull</span> <span style="color:#a6e22e">nginx</span>
+</span></span></code></pre></div><p>1.在根目录下创建<code>nginx.conf</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>user  nginx;
+</span></span><span style="display:flex;"><span>worker_processes  auto;
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>error_log  /var/log/nginx/error.log warn;
+</span></span><span style="display:flex;"><span>pid        /var/run/nginx.pid;
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>events <span style="color:#f92672">{</span>
+</span></span><span style="display:flex;"><span>    worker_connections  1024;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>http <span style="color:#f92672">{</span>
+</span></span><span style="display:flex;"><span>    include       /etc/nginx/mime.types;
+</span></span><span style="display:flex;"><span>    default_type  application/octet-stream;
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    log_format  main  <span style="color:#e6db74">&#39;$remote_addr - $remote_user [$time_local] &#34;$request&#34; &#39;</span>
+</span></span><span style="display:flex;"><span>                      <span style="color:#e6db74">&#39;$status $body_bytes_sent &#34;$http_referer&#34; &#39;</span>
+</span></span><span style="display:flex;"><span>                      <span style="color:#e6db74">&#39;&#34;$http_user_agent&#34; &#34;$http_x_forwarded_for&#34;&#39;</span>;
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    access_log  /var/log/nginx/access.log  main;
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    sendfile        on;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">#tcp_nopush     on;</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    keepalive_timeout  65;
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">#gzip  on;</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>	server <span style="color:#f92672">{</span>
+</span></span><span style="display:flex;"><span>		listen       80;
+</span></span><span style="display:flex;"><span>		listen  <span style="color:#f92672">[</span>::<span style="color:#f92672">]</span>:80;
+</span></span><span style="display:flex;"><span>		server_name  localhost;
+</span></span><span style="display:flex;"><span>		location / <span style="color:#f92672">{</span>
+</span></span><span style="display:flex;"><span>			root   /etc/nginx/html;
+</span></span><span style="display:flex;"><span>			index  index.html index.htm;
+</span></span><span style="display:flex;"><span>		<span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span>		location <span style="color:#f92672">=</span> /50x.html <span style="color:#f92672">{</span>
+</span></span><span style="display:flex;"><span>			root   /usr/share/nginx/html;
+</span></span><span style="display:flex;"><span>		<span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span>		
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">}</span>
+</span></span></code></pre></div><ol start="2">
+<li>在根目录下创建 <code>Dockerfile</code></li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e"># 设置基础镜像 </span>
+</span></span><span style="display:flex;"><span>FROM daocloud.io/library/nginx:1.9.1
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 定义作者</span>
+</span></span><span style="display:flex;"><span>MAINTAINER jiaynn
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 添加时区环境变量，亚洲，上海</span>
+</span></span><span style="display:flex;"><span>ENV TimeZone<span style="color:#f92672">=</span>Asia/Shanghai
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 将dist文件中的内容复制到 /etc/nginx/html/ 这个目录下面</span>
+</span></span><span style="display:flex;"><span>COPY dist/  /etc/nginx/html/
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 将配置文件中的内容复制到 /etc/nginx 这个目录下面(增加自己的代理及一些配置)</span>
+</span></span><span style="display:flex;"><span>RUN rm -rf /etc/nginx/nginx.conf 
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 用本地的nginx配置文件覆盖镜像的Nginx配置</span>
+</span></span><span style="display:flex;"><span>COPY nginx.conf /etc/nginx/nginx.conf
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 暴露端口</span>
+</span></span><span style="display:flex;"><span>EXPOSE <span style="color:#ae81ff">80</span>
+</span></span></code></pre></div><ol start="3">
+<li>配置 CD 流水线 直接把它补充到 <code>.github/workflows</code> 文件夹上的 <code>ci.yml</code> 中</li>
+</ol>
+<p>⚠️注意，在编写<strong>CD Workflow</strong>前，我们要准备以下东西：</p>
+<ol>
+<li>内置 <code>nginx</code> 的服务器一台：用于部署制品</li>
+<li>服务器的账号和密码</li>
+<li>Docker Hub 的账号和密码</li>
+<li>Docker Hub 的远程仓库</li>
+</ol>
+<p>把步骤 2 和步骤 3 及其他关于机器的信息都放在对应仓库的<strong>Secret</strong>里，对应其中的账号密码，你可以提供密钥对,通过 ssh 免密登录进行部署,这里我为了方便，直接使用账号密码登录</p>
+<p>具体流程：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c0197ad7b7ec4a969d5d3102379d26e5~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/de14f5a551934efe81f33e3b2ff967a2~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>与此同时，我还配置了一些变量在上面</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ad1ec1235ce84c8ca8bfad80c78e5222~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>详细的解释写在了注释里面</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>- name: 打包镜像, 上传 Docker Hub
+</span></span><span style="display:flex;"><span>    run: |
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># 登录docker, secrets.DOCKER_USERNMAE 就是我们在github上配置的docker的账户和密码</span>
+</span></span><span style="display:flex;"><span>        docker login -u <span style="color:#e6db74">${</span>{secrets.DOCKER_USERNAME <span style="color:#e6db74">}</span><span style="color:#f92672">}</span> -p  <span style="color:#e6db74">${</span>{ secrets.DOCKER_PASSWORD <span style="color:#e6db74">}</span><span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># 打包镜像 -t参数给镜像命名 </span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># .是基于当前目录的 Dockerfile 来构建镜像</span>
+</span></span><span style="display:flex;"><span>        docker build --platform linux/amd64 -t <span style="color:#e6db74">${</span>{ vars.USER_NAME <span style="color:#e6db74">}</span><span style="color:#f92672">}</span>/<span style="color:#e6db74">${</span>{ vars.IMAGE_NAME <span style="color:#e6db74">}</span><span style="color:#f92672">}</span>:latest  .
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># 推送到我们的 docker 镜像仓库</span>
+</span></span><span style="display:flex;"><span>        docker push <span style="color:#e6db74">${</span>{ secrets.DOCKER_REPOSITORY <span style="color:#e6db74">}</span><span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>- name: 登录服务器, 执行脚本
+</span></span><span style="display:flex;"><span>    uses: appleboy/ssh-action@master
+</span></span><span style="display:flex;"><span>    with:
+</span></span><span style="display:flex;"><span>        host: <span style="color:#e6db74">${</span>{ secrets.REMOTE_HOST <span style="color:#e6db74">}</span><span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span>        username: root
+</span></span><span style="display:flex;"><span>        password: <span style="color:#e6db74">${</span>{ secrets.REMOTE_PASSWORD <span style="color:#e6db74">}</span><span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># 执行脚本</span>
+</span></span><span style="display:flex;"><span>        script: |
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># 部署脚本 后面的vars是传递给脚本的参数</span>
+</span></span><span style="display:flex;"><span>        deploy.sh <span style="color:#e6db74">${</span>{ vars.USER_NAME <span style="color:#e6db74">}</span><span style="color:#f92672">}</span> <span style="color:#e6db74">${</span>{ vars.IMAGE_NAME <span style="color:#e6db74">}</span><span style="color:#f92672">}</span> <span style="color:#e6db74">${</span>{ vars.PORT <span style="color:#e6db74">}</span><span style="color:#f92672">}</span> <span style="color:#e6db74">${</span>{ vars.CONTAINS_PORT <span style="color:#e6db74">}</span><span style="color:#f92672">}</span>
+</span></span></code></pre></div><p><strong>deploy.sh</strong></p>
+<p>需要将这个文件写在你的服务器上，因为是你的流水线登录到你的服务器上后执行的脚本 远程登录服务器，创建 script 文件夹，以及创建 deploy.sh 文件</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7d20e9dda0574904881cd072890f11c7~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e"># 这里的$1、$2对应上面传递过来的参数</span>
+</span></span><span style="display:flex;"><span>user_name<span style="color:#f92672">=</span>$1
+</span></span><span style="display:flex;"><span>image_name<span style="color:#f92672">=</span>$2
+</span></span><span style="display:flex;"><span>PORT<span style="color:#f92672">=</span>$3
+</span></span><span style="display:flex;"><span>CONTAINS_PORT<span style="color:#f92672">=</span>$4
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 如果传入的参数有一个为空，我们就提示他输入参数，然后退出</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$1<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;&#34;</span> <span style="color:#f92672">]</span>  <span style="color:#f92672">||</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$2<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;&#34;</span> <span style="color:#f92672">]</span> <span style="color:#f92672">||</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$3<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;&#34;</span> <span style="color:#f92672">]</span> <span style="color:#f92672">||</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$4<span style="color:#e6db74">&#34;</span> <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;&#34;</span><span style="color:#f92672">]</span>; <span style="color:#66d9ef">then</span> 
+</span></span><span style="display:flex;"><span>  echo <span style="color:#e6db74">&#34;请输入参数&#34;</span>
+</span></span><span style="display:flex;"><span>  exit
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 删除容器,就是删除旧的容器</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># docker ps -a 获取所有的容器</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># ｜ grep ${image_name} 得到这个容器 awk &#39;${print $1}&#39; 根据空格分割，输出第一项</span>
+</span></span><span style="display:flex;"><span>containerId<span style="color:#f92672">=</span><span style="color:#e6db74">`</span>docker ps -a | grep <span style="color:#e6db74">${</span>image_name<span style="color:#e6db74">}</span> | awk <span style="color:#e6db74">&#39;{print $1}&#39;</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$containerId<span style="color:#e6db74">&#34;</span> !<span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span> <span style="color:#f92672">]</span> ; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 停止运行</span>
+</span></span><span style="display:flex;"><span>docker stop $containerId
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 删除容器</span>
+</span></span><span style="display:flex;"><span>docker rm $containerId
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;Delete Container Success&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 删除镜像</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 获取所有的镜像，得到我们自己构建的镜像的id</span>
+</span></span><span style="display:flex;"><span>imageId<span style="color:#f92672">=</span><span style="color:#e6db74">`</span>docker images | grep <span style="color:#e6db74">${</span>user_name<span style="color:#e6db74">}</span>/<span style="color:#e6db74">${</span>image_name<span style="color:#e6db74">}</span> | awk <span style="color:#e6db74">&#39;{print $3}&#39;</span><span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span>$imageId<span style="color:#e6db74">&#34;</span> !<span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span> <span style="color:#f92672">]</span> ; <span style="color:#66d9ef">then</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 删除镜像</span>
+</span></span><span style="display:flex;"><span>docker rmi -f $imageId
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;Delete Image Success&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">fi</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 登录docker</span>
+</span></span><span style="display:flex;"><span>docker login -u lijiayan -p 你在docker hub上获取的密钥
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 拉取docker上新的镜像</span>
+</span></span><span style="display:flex;"><span>docker pull <span style="color:#e6db74">${</span>user_name<span style="color:#e6db74">}</span>/<span style="color:#e6db74">${</span>image_name<span style="color:#e6db74">}</span>:latest
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 运行最新的镜像 </span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># -d 设置容器在后台运行</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># -p 表示端口映射，把本机的 92 端口映射到 container 的 80 端口（这样外网就能通过本机的 92 端口访问了</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 如果服务器重启后，我们需要重新启动docker</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 执行 systemctl restart docker 重新启动docker</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 但docker启动了，里面的容器没有启动，所以我们添加--restart=always ，docker启动后，容器也可以启动</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># dokcer ps -a 查看所有的容器</span>
+</span></span><span style="display:flex;"><span>docker run -d -p $3:$4 --name $image_name --restart<span style="color:#f92672">=</span>always <span style="color:#e6db74">${</span>user_name<span style="color:#e6db74">}</span>/<span style="color:#e6db74">${</span>image_name<span style="color:#e6db74">}</span>:latest
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;Start Container Successs&#34;</span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;</span>$image_name<span style="color:#e6db74">&#34;</span>
+</span></span></code></pre></div><p>这是正在跑我们的流水线 <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e3dea2db2bca46d194e1fccc324e61c4~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"> 这样最新的部署就成功啦</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bbba16c1a82040bd87c387ab3f637bce~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/469/"
+      ><span class="mr-1.5">←</span><span>Scss 基本使用 （ @extend、 @mixin、@import、@if、@for、@while、@each ）</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/467/"
+      ><span>永远加载不满的进度条</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

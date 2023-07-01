@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>Web Woker 与主线程通信场景问题和对 postMessage 的简单封装 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="在 Web Worker 与主线程之间进行通信时，使用postMessage是一种常见的方式。然而，在某些业务场景中，postMessage可能会显得不够简洁，因为它涉及到手动序列化和反序列化数据，以及通过事件监听器处理消息。以下是一些常见问题和解决方案，以简化在 Web Worker 与主线程之间的通信场景中使用postMessage的问题。
+结构化克隆问题 在 Web Worker 与主线程之间传输数据时，使用 postMessage()方法进行通信，浏览器会对传递的数据进行序列化和反序列化的过程，以便在不同的线程间传递数据。这个序列化和反序列化的过程就是结构化克隆（Structured Cloning）。
+结构化克隆是一种浏览器内置的序列化和反序列化算法，它可以将复杂的 JavaScript 对象、数组、字符串、数字、布尔值等数据类型转换成一个可以在不同线程间传递的二进制数据流，然后再将这个二进制数据流反序列化为与原始数据相同的 JavaScript 对象。
+结构化克隆有一些特点和限制：
+支持的数据类型：结构化克隆支持包括对象、数组、字符串、数字、布尔值、日期、正则表达式、Blob、File、ImageData 等常见的 JavaScript 数据类型。但并不支持函数、Map、Set、Symbol 等一些特殊的 JavaScript 数据类型。 克隆整个对象：结构化克隆会克隆整个对象，包括对象的所有属性和方法。这可能会导致性能开销较大，尤其是在传输大规模数据时。 不共享内存：结构化克隆会生成一份完整的副本，而不是共享内存。这意味着在主线程和 Web Worker 之间传递数据时，会产生复制的开销，并且对数据的修改在不同线程中是不共享的。 兼容性：结构化克隆在大多数现代浏览器中得到支持，但并不是所有浏览器都支持。一些老旧的浏览器可能不支持结构化克隆或者只支持部分数据类型的结构化克隆。 在传输过程中，当使用 postMessage()方法传递数据时，浏览器会自动使用结构化克隆对数据进行序列化和反序列化的过程，以便在不同线程间传递数据，但结构化克隆可能会带来性能开销和兼容性问题，需要根据具体情况来选择合适的解决方案。在不支持结构化克隆的浏览器下，使用 postMessage()传输数据需要使用 JSON 对数据内容进行字符串转化和解析，这也会带来一定的性能损耗和数据类型限制。
+优化方案 分割数据：将大规模的数据分割成较小的块进行传递，而不是一次性传递整个数据。例如，可以将大型数组切割成多个小块，分别传递给 Web Worker，然后在 Web Worker 中重新组合这些小块，从而减少单次传递的数据量。 使用共享内存：共享内存是一种在 Web Worker 和主线程之间共享数据的方式，而无需进行复制。这样可以避免结构化克隆的性能开销。共享内存可以通过使用TypedArray和SharedArrayBuffer来实现，可以在主线程和 Web Worker 之间直接共享数据的引用，而不需要进行复制。需要注意的是，共享内存可能需要使用锁或其他同步机制来确保对共享数据的访问是安全的。 使用其他序列化方式：除了结构化克隆，还可以考虑使用其他的序列化方式，例如 JSON.stringify 和 JSON.parse。虽然 JSON 序列化和反序列化可能比结构化克隆更慢，但它不会像结构化克隆一样复制整个数据（因仅支持部分数据类型，以及会无视 undefined 的字段等），而是将数据转换为 JSON 字符串，并在接收方解析 JSON 字符串成 JavaScript 对象。这样可以一定的避免复制大规模的数据，从而降低性能开销。 使用压缩算法：对于大规模的数据，可以考虑使用压缩算法对数据进行压缩，从而减小数据的大小，降低传输的数据量。在接收方进行解压缩后再进行处理。常见的压缩算法有 gzip、zlib 等，可以在主线程和 Web Worker 之间使用这些算法对数据进行压缩和解压缩。 postMessage 简单封装 主线程封装 // 定义一个 WorkerMessage 类，用于向 Worker 发送消息并处理返回结果 let canStructuredClone; export class WorkerMessage { constructor(workerUrl) { this." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="Web Woker 与主线程通信场景问题和对 postMessage 的简单封装" />
+<meta property="og:description" content="在 Web Worker 与主线程之间进行通信时，使用postMessage是一种常见的方式。然而，在某些业务场景中，postMessage可能会显得不够简洁，因为它涉及到手动序列化和反序列化数据，以及通过事件监听器处理消息。以下是一些常见问题和解决方案，以简化在 Web Worker 与主线程之间的通信场景中使用postMessage的问题。
+结构化克隆问题 在 Web Worker 与主线程之间传输数据时，使用 postMessage()方法进行通信，浏览器会对传递的数据进行序列化和反序列化的过程，以便在不同的线程间传递数据。这个序列化和反序列化的过程就是结构化克隆（Structured Cloning）。
+结构化克隆是一种浏览器内置的序列化和反序列化算法，它可以将复杂的 JavaScript 对象、数组、字符串、数字、布尔值等数据类型转换成一个可以在不同线程间传递的二进制数据流，然后再将这个二进制数据流反序列化为与原始数据相同的 JavaScript 对象。
+结构化克隆有一些特点和限制：
+支持的数据类型：结构化克隆支持包括对象、数组、字符串、数字、布尔值、日期、正则表达式、Blob、File、ImageData 等常见的 JavaScript 数据类型。但并不支持函数、Map、Set、Symbol 等一些特殊的 JavaScript 数据类型。 克隆整个对象：结构化克隆会克隆整个对象，包括对象的所有属性和方法。这可能会导致性能开销较大，尤其是在传输大规模数据时。 不共享内存：结构化克隆会生成一份完整的副本，而不是共享内存。这意味着在主线程和 Web Worker 之间传递数据时，会产生复制的开销，并且对数据的修改在不同线程中是不共享的。 兼容性：结构化克隆在大多数现代浏览器中得到支持，但并不是所有浏览器都支持。一些老旧的浏览器可能不支持结构化克隆或者只支持部分数据类型的结构化克隆。 在传输过程中，当使用 postMessage()方法传递数据时，浏览器会自动使用结构化克隆对数据进行序列化和反序列化的过程，以便在不同线程间传递数据，但结构化克隆可能会带来性能开销和兼容性问题，需要根据具体情况来选择合适的解决方案。在不支持结构化克隆的浏览器下，使用 postMessage()传输数据需要使用 JSON 对数据内容进行字符串转化和解析，这也会带来一定的性能损耗和数据类型限制。
+优化方案 分割数据：将大规模的数据分割成较小的块进行传递，而不是一次性传递整个数据。例如，可以将大型数组切割成多个小块，分别传递给 Web Worker，然后在 Web Worker 中重新组合这些小块，从而减少单次传递的数据量。 使用共享内存：共享内存是一种在 Web Worker 和主线程之间共享数据的方式，而无需进行复制。这样可以避免结构化克隆的性能开销。共享内存可以通过使用TypedArray和SharedArrayBuffer来实现，可以在主线程和 Web Worker 之间直接共享数据的引用，而不需要进行复制。需要注意的是，共享内存可能需要使用锁或其他同步机制来确保对共享数据的访问是安全的。 使用其他序列化方式：除了结构化克隆，还可以考虑使用其他的序列化方式，例如 JSON.stringify 和 JSON.parse。虽然 JSON 序列化和反序列化可能比结构化克隆更慢，但它不会像结构化克隆一样复制整个数据（因仅支持部分数据类型，以及会无视 undefined 的字段等），而是将数据转换为 JSON 字符串，并在接收方解析 JSON 字符串成 JavaScript 对象。这样可以一定的避免复制大规模的数据，从而降低性能开销。 使用压缩算法：对于大规模的数据，可以考虑使用压缩算法对数据进行压缩，从而减小数据的大小，降低传输的数据量。在接收方进行解压缩后再进行处理。常见的压缩算法有 gzip、zlib 等，可以在主线程和 Web Worker 之间使用这些算法对数据进行压缩和解压缩。 postMessage 简单封装 主线程封装 // 定义一个 WorkerMessage 类，用于向 Worker 发送消息并处理返回结果 let canStructuredClone; export class WorkerMessage { constructor(workerUrl) { this." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/554/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-23T15:51:59+08:00" />
+<meta property="article:modified_time" content="2023-04-23T15:51:59+08:00" />
+
+  
+  <meta itemprop="name" content="Web Woker 与主线程通信场景问题和对 postMessage 的简单封装">
+<meta itemprop="description" content="在 Web Worker 与主线程之间进行通信时，使用postMessage是一种常见的方式。然而，在某些业务场景中，postMessage可能会显得不够简洁，因为它涉及到手动序列化和反序列化数据，以及通过事件监听器处理消息。以下是一些常见问题和解决方案，以简化在 Web Worker 与主线程之间的通信场景中使用postMessage的问题。
+结构化克隆问题 在 Web Worker 与主线程之间传输数据时，使用 postMessage()方法进行通信，浏览器会对传递的数据进行序列化和反序列化的过程，以便在不同的线程间传递数据。这个序列化和反序列化的过程就是结构化克隆（Structured Cloning）。
+结构化克隆是一种浏览器内置的序列化和反序列化算法，它可以将复杂的 JavaScript 对象、数组、字符串、数字、布尔值等数据类型转换成一个可以在不同线程间传递的二进制数据流，然后再将这个二进制数据流反序列化为与原始数据相同的 JavaScript 对象。
+结构化克隆有一些特点和限制：
+支持的数据类型：结构化克隆支持包括对象、数组、字符串、数字、布尔值、日期、正则表达式、Blob、File、ImageData 等常见的 JavaScript 数据类型。但并不支持函数、Map、Set、Symbol 等一些特殊的 JavaScript 数据类型。 克隆整个对象：结构化克隆会克隆整个对象，包括对象的所有属性和方法。这可能会导致性能开销较大，尤其是在传输大规模数据时。 不共享内存：结构化克隆会生成一份完整的副本，而不是共享内存。这意味着在主线程和 Web Worker 之间传递数据时，会产生复制的开销，并且对数据的修改在不同线程中是不共享的。 兼容性：结构化克隆在大多数现代浏览器中得到支持，但并不是所有浏览器都支持。一些老旧的浏览器可能不支持结构化克隆或者只支持部分数据类型的结构化克隆。 在传输过程中，当使用 postMessage()方法传递数据时，浏览器会自动使用结构化克隆对数据进行序列化和反序列化的过程，以便在不同线程间传递数据，但结构化克隆可能会带来性能开销和兼容性问题，需要根据具体情况来选择合适的解决方案。在不支持结构化克隆的浏览器下，使用 postMessage()传输数据需要使用 JSON 对数据内容进行字符串转化和解析，这也会带来一定的性能损耗和数据类型限制。
+优化方案 分割数据：将大规模的数据分割成较小的块进行传递，而不是一次性传递整个数据。例如，可以将大型数组切割成多个小块，分别传递给 Web Worker，然后在 Web Worker 中重新组合这些小块，从而减少单次传递的数据量。 使用共享内存：共享内存是一种在 Web Worker 和主线程之间共享数据的方式，而无需进行复制。这样可以避免结构化克隆的性能开销。共享内存可以通过使用TypedArray和SharedArrayBuffer来实现，可以在主线程和 Web Worker 之间直接共享数据的引用，而不需要进行复制。需要注意的是，共享内存可能需要使用锁或其他同步机制来确保对共享数据的访问是安全的。 使用其他序列化方式：除了结构化克隆，还可以考虑使用其他的序列化方式，例如 JSON.stringify 和 JSON.parse。虽然 JSON 序列化和反序列化可能比结构化克隆更慢，但它不会像结构化克隆一样复制整个数据（因仅支持部分数据类型，以及会无视 undefined 的字段等），而是将数据转换为 JSON 字符串，并在接收方解析 JSON 字符串成 JavaScript 对象。这样可以一定的避免复制大规模的数据，从而降低性能开销。 使用压缩算法：对于大规模的数据，可以考虑使用压缩算法对数据进行压缩，从而减小数据的大小，降低传输的数据量。在接收方进行解压缩后再进行处理。常见的压缩算法有 gzip、zlib 等，可以在主线程和 Web Worker 之间使用这些算法对数据进行压缩和解压缩。 postMessage 简单封装 主线程封装 // 定义一个 WorkerMessage 类，用于向 Worker 发送消息并处理返回结果 let canStructuredClone; export class WorkerMessage { constructor(workerUrl) { this."><meta itemprop="datePublished" content="2023-04-23T15:51:59+08:00" />
+<meta itemprop="dateModified" content="2023-04-23T15:51:59+08:00" />
+<meta itemprop="wordCount" content="563">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Web Woker 与主线程通信场景问题和对 postMessage 的简单封装"/>
+<meta name="twitter:description" content="在 Web Worker 与主线程之间进行通信时，使用postMessage是一种常见的方式。然而，在某些业务场景中，postMessage可能会显得不够简洁，因为它涉及到手动序列化和反序列化数据，以及通过事件监听器处理消息。以下是一些常见问题和解决方案，以简化在 Web Worker 与主线程之间的通信场景中使用postMessage的问题。
+结构化克隆问题 在 Web Worker 与主线程之间传输数据时，使用 postMessage()方法进行通信，浏览器会对传递的数据进行序列化和反序列化的过程，以便在不同的线程间传递数据。这个序列化和反序列化的过程就是结构化克隆（Structured Cloning）。
+结构化克隆是一种浏览器内置的序列化和反序列化算法，它可以将复杂的 JavaScript 对象、数组、字符串、数字、布尔值等数据类型转换成一个可以在不同线程间传递的二进制数据流，然后再将这个二进制数据流反序列化为与原始数据相同的 JavaScript 对象。
+结构化克隆有一些特点和限制：
+支持的数据类型：结构化克隆支持包括对象、数组、字符串、数字、布尔值、日期、正则表达式、Blob、File、ImageData 等常见的 JavaScript 数据类型。但并不支持函数、Map、Set、Symbol 等一些特殊的 JavaScript 数据类型。 克隆整个对象：结构化克隆会克隆整个对象，包括对象的所有属性和方法。这可能会导致性能开销较大，尤其是在传输大规模数据时。 不共享内存：结构化克隆会生成一份完整的副本，而不是共享内存。这意味着在主线程和 Web Worker 之间传递数据时，会产生复制的开销，并且对数据的修改在不同线程中是不共享的。 兼容性：结构化克隆在大多数现代浏览器中得到支持，但并不是所有浏览器都支持。一些老旧的浏览器可能不支持结构化克隆或者只支持部分数据类型的结构化克隆。 在传输过程中，当使用 postMessage()方法传递数据时，浏览器会自动使用结构化克隆对数据进行序列化和反序列化的过程，以便在不同线程间传递数据，但结构化克隆可能会带来性能开销和兼容性问题，需要根据具体情况来选择合适的解决方案。在不支持结构化克隆的浏览器下，使用 postMessage()传输数据需要使用 JSON 对数据内容进行字符串转化和解析，这也会带来一定的性能损耗和数据类型限制。
+优化方案 分割数据：将大规模的数据分割成较小的块进行传递，而不是一次性传递整个数据。例如，可以将大型数组切割成多个小块，分别传递给 Web Worker，然后在 Web Worker 中重新组合这些小块，从而减少单次传递的数据量。 使用共享内存：共享内存是一种在 Web Worker 和主线程之间共享数据的方式，而无需进行复制。这样可以避免结构化克隆的性能开销。共享内存可以通过使用TypedArray和SharedArrayBuffer来实现，可以在主线程和 Web Worker 之间直接共享数据的引用，而不需要进行复制。需要注意的是，共享内存可能需要使用锁或其他同步机制来确保对共享数据的访问是安全的。 使用其他序列化方式：除了结构化克隆，还可以考虑使用其他的序列化方式，例如 JSON.stringify 和 JSON.parse。虽然 JSON 序列化和反序列化可能比结构化克隆更慢，但它不会像结构化克隆一样复制整个数据（因仅支持部分数据类型，以及会无视 undefined 的字段等），而是将数据转换为 JSON 字符串，并在接收方解析 JSON 字符串成 JavaScript 对象。这样可以一定的避免复制大规模的数据，从而降低性能开销。 使用压缩算法：对于大规模的数据，可以考虑使用压缩算法对数据进行压缩，从而减小数据的大小，降低传输的数据量。在接收方进行解压缩后再进行处理。常见的压缩算法有 gzip、zlib 等，可以在主线程和 Web Worker 之间使用这些算法对数据进行压缩和解压缩。 postMessage 简单封装 主线程封装 // 定义一个 WorkerMessage 类，用于向 Worker 发送消息并处理返回结果 let canStructuredClone; export class WorkerMessage { constructor(workerUrl) { this."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">Web Woker 与主线程通信场景问题和对 postMessage 的简单封装</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 23, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>在 Web Worker 与主线程之间进行通信时，使用<code>postMessage</code>是一种常见的方式。然而，在某些业务场景中，<code>postMessage</code>可能会显得不够简洁，因为它涉及到手动序列化和反序列化数据，以及通过事件监听器处理消息。以下是一些常见问题和解决方案，以简化在 Web Worker 与主线程之间的通信场景中使用<code>postMessage</code>的问题。</p>
+<h2 id="结构化克隆问题">结构化克隆问题</h2>
+<p>在 Web Worker 与主线程之间传输数据时，使用 postMessage()方法进行通信，浏览器会对传递的数据进行序列化和反序列化的过程，以便在不同的线程间传递数据。这个序列化和反序列化的过程就是结构化克隆（Structured Cloning）。</p>
+<p>结构化克隆是一种浏览器内置的序列化和反序列化算法，它可以将复杂的 JavaScript 对象、数组、字符串、数字、布尔值等数据类型转换成一个可以在不同线程间传递的二进制数据流，然后再将这个二进制数据流反序列化为与原始数据相同的 JavaScript 对象。</p>
+<p>结构化克隆有一些特点和限制：</p>
+<ol>
+<li>支持的数据类型：结构化克隆支持包括对象、数组、字符串、数字、布尔值、日期、正则表达式、Blob、File、ImageData 等常见的 JavaScript 数据类型。但并不支持函数、Map、Set、Symbol 等一些特殊的 JavaScript 数据类型。</li>
+<li>克隆整个对象：结构化克隆会克隆整个对象，包括对象的所有属性和方法。这可能会导致性能开销较大，尤其是在传输大规模数据时。</li>
+<li>不共享内存：结构化克隆会生成一份完整的副本，而不是共享内存。这意味着在主线程和 Web Worker 之间传递数据时，会产生复制的开销，并且对数据的修改在不同线程中是不共享的。</li>
+<li>兼容性：结构化克隆在大多数现代浏览器中得到支持，但并不是所有浏览器都支持。一些老旧的浏览器可能不支持结构化克隆或者只支持部分数据类型的结构化克隆。</li>
+</ol>
+<p>在传输过程中，当使用 postMessage()方法传递数据时，浏览器会自动使用结构化克隆对数据进行序列化和反序列化的过程，以便在不同线程间传递数据，但结构化克隆可能会带来性能开销和兼容性问题，需要根据具体情况来选择合适的解决方案。在不支持结构化克隆的浏览器下，使用 postMessage()传输数据需要使用 JSON 对数据内容进行字符串转化和解析，这也会带来一定的性能损耗和数据类型限制。</p>
+<h3 id="优化方案">优化方案</h3>
+<ol>
+<li>分割数据：将大规模的数据分割成较小的块进行传递，而不是一次性传递整个数据。例如，可以将大型数组切割成多个小块，分别传递给 Web Worker，然后在 Web Worker 中重新组合这些小块，从而减少单次传递的数据量。</li>
+<li>使用共享内存：共享内存是一种在 Web Worker 和主线程之间共享数据的方式，而无需进行复制。这样可以避免结构化克隆的性能开销。共享内存可以通过使用<code>TypedArray</code>和<code>SharedArrayBuffer</code>来实现，可以在主线程和 Web Worker 之间直接共享数据的引用，而不需要进行复制。需要注意的是，共享内存可能需要使用锁或其他同步机制来确保对共享数据的访问是安全的。</li>
+<li>使用其他序列化方式：除了结构化克隆，还可以考虑使用其他的序列化方式，例如 JSON.stringify 和 JSON.parse。虽然 JSON 序列化和反序列化可能比结构化克隆更慢，但它不会像结构化克隆一样复制整个数据（因仅支持部分数据类型，以及会无视 undefined 的字段等），而是将数据转换为 JSON 字符串，并在接收方解析 JSON 字符串成 JavaScript 对象。这样可以一定的避免复制大规模的数据，从而降低性能开销。</li>
+<li>使用压缩算法：对于大规模的数据，可以考虑使用压缩算法对数据进行压缩，从而减小数据的大小，降低传输的数据量。在接收方进行解压缩后再进行处理。常见的压缩算法有 gzip、zlib 等，可以在主线程和 Web Worker 之间使用这些算法对数据进行压缩和解压缩。</li>
+</ol>
+<h2 id="postmessage-简单封装">postMessage 简单封装</h2>
+<h3 id="主线程封装">主线程封装</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 定义一个 WorkerMessage 类，用于向 Worker 发送消息并处理返回结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">canStructuredClone</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">WorkerMessage</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">workerUrl</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">worker</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Worker</span>(<span style="color:#a6e22e">workerUrl</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callbacks</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Map</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">canStructuredClone</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">undefined</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">isStructuredCloneSupported</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 监听从 Worker 返回的消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;message&#34;</span>, (<span style="color:#a6e22e">event</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">type</span>, <span style="color:#a6e22e">payload</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">data</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">callback</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callbacks</span>.<span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">id</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">warn</span>(<span style="color:#e6db74">`未知的消息 ID：</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">id</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">switch</span> (<span style="color:#a6e22e">type</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;SUCCESS&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">callback</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">payload</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;ERROR&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">callback</span>.<span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">payload</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">warn</span>(<span style="color:#e6db74">&#34;未知的消息类型：&#34;</span>, <span style="color:#a6e22e">type</span>);
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callbacks</span>.<span style="color:#66d9ef">delete</span>(<span style="color:#a6e22e">id</span>);
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 发送消息给 Worker
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">postMessage</span>(<span style="color:#a6e22e">payload</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">id</span> <span style="color:#f92672">=</span> Date.<span style="color:#a6e22e">now</span>().<span style="color:#a6e22e">toString</span>(<span style="color:#ae81ff">36</span>) <span style="color:#f92672">+</span> Math.<span style="color:#a6e22e">random</span>().<span style="color:#a6e22e">toString</span>(<span style="color:#ae81ff">36</span>).<span style="color:#a6e22e">substr</span>(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">message</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">canStructuredClone</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">?</span> { <span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">payload</span> }
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">:</span> <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">stringify</span>({ <span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">payload</span> });
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">postMessage</span>(<span style="color:#a6e22e">message</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>, <span style="color:#a6e22e">reject</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callbacks</span>.<span style="color:#a6e22e">set</span>(<span style="color:#a6e22e">id</span>, { <span style="color:#a6e22e">resolve</span>, <span style="color:#a6e22e">reject</span> });
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 关闭 Worker
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">terminate</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">terminate</span>();
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 判断当前浏览器是否支持结构化克隆算法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">isStructuredCloneSupported</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">obj</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Hello&#34;</span> };
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">clonedObj</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">postMessage</span> <span style="color:#f92672">?</span> window.<span style="color:#a6e22e">postMessage</span>(<span style="color:#a6e22e">obj</span>, <span style="color:#e6db74">&#34;*&#34;</span>) <span style="color:#f92672">:</span> <span style="color:#a6e22e">obj</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> (<span style="color:#a6e22e">canStructuredClone</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">clonedObj</span> <span style="color:#f92672">!==</span> <span style="color:#a6e22e">obj</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 捕获到异常，说明浏览器不支持结构化克隆
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">return</span> (<span style="color:#a6e22e">canStructuredClone</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>在上面的代码中，我们定义了一个名为 <code>WorkerMessage</code> 的类，用于向 Worker 发送消息并处理返回结果。在该类的构造函数中，我们首先创建了一个 Worker 实例，并监听了 message 事件。我们使用一个 Map 对象来保存每个消息的回调函数，以便后续能够根据消息 ID 找到对应的回调函数。当从 Worker 返回的消息中包含了 ID 时，我们从 Map 中找到对应的回调函数，并根据消息的类型分别调用 resolve 和 reject 方法。在调用这些方法后，我们需要从 Map 中删除对应的回调函数，以避免内存泄漏。</p>
+<p>在 <code>WorkerMessage</code> 类中，我们定义了一个 <code>postMessage</code> 方法，用于向 Worker 发送消息并处理返回结果。在该方法中，我们首先生成一个唯一的消息 ID，并构造了要发送给 Worker 的消息。然后我们使用 worker.postMessage 方法发送该消息，并返回一个 Promise 对象，以便业务层进行异步处理。在该 <code>Promise</code> 对象中，我们使用 callbacks.set 方法将该消息 ID 和对应的回调函数保存到 Map 中。</p>
+<p>在 <code>WorkerMessage</code> 类中，我们还定义了一个 <code>terminate</code> 方法，用于关闭 Worker 实例。该方法会调用 <code>worker.terminate</code> 方法来关闭 Worker。</p>
+<p>同时，我们使用 <code>isStructuredCloneSupported</code> 方法判断当前浏览器 or 环境是否支持结构化克隆，以外部 <code>canStructuredClone</code> 进行标记，并只在对象首次实例化的时候进行复制。如果当前浏览器不支持结构化克隆，则<code>postMessage</code>使用<code>JSON.stringify</code>转换成字符串。</p>
+<h3 id="子线程封装类">子线程封装类</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">childMessage</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">self</span>, <span style="color:#a6e22e">config</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">self</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">self</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">config</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">config</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 监听从主线程传来的消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">addEventListener</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">self</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;message&#34;</span>, (<span style="color:#a6e22e">event</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">payload</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">data</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">type</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">payload</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">res</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">config</span>[<span style="color:#a6e22e">type</span>](
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">canStructuredClone</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">payload</span>.<span style="color:#a6e22e">payload</span> <span style="color:#f92672">:</span> <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">parse</span>(<span style="color:#a6e22e">payload</span>.<span style="color:#a6e22e">payload</span>)
+</span></span><span style="display:flex;"><span>        );
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">res</span> <span style="color:#66d9ef">instanceof</span> Promise) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">res</span>
+</span></span><span style="display:flex;"><span>            .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>              <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">self</span>.<span style="color:#a6e22e">postMessage</span>({
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">id</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;SUCCESS&#34;</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">canStructuredClone</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">data</span> <span style="color:#f92672">:</span> <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">stringify</span>(<span style="color:#a6e22e">data</span>),
+</span></span><span style="display:flex;"><span>              });
+</span></span><span style="display:flex;"><span>            })
+</span></span><span style="display:flex;"><span>            .<span style="color:#66d9ef">catch</span>((<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>              <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">self</span>.<span style="color:#a6e22e">postMessage</span>({
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">id</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ERROR&#34;</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">toString</span>(),
+</span></span><span style="display:flex;"><span>              });
+</span></span><span style="display:flex;"><span>            });
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">self</span>.<span style="color:#a6e22e">postMessage</span>({
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">id</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;SUCCESS&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">canStructuredClone</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">res</span> <span style="color:#f92672">:</span> <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">stringify</span>(<span style="color:#a6e22e">res</span>),
+</span></span><span style="display:flex;"><span>          });
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>      } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">self</span>.<span style="color:#a6e22e">postMessage</span>({ <span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ERROR&#34;</span>, <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">toString</span>() });
+</span></span><span style="display:flex;"><span>      } <span style="color:#66d9ef">finally</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">callback</span><span style="color:#f92672">?</span>.();
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这个子线程消息传递的类，通过监听主线程发送的消息，并使用传入的 <code>config</code> 对象处理不同类型的消息，主线程通过指定执行函数的 type，由 worker 来调用制定的函数。其中，<code>callback</code> 参数是一个可选的回调函数，在处理完一条消息后可以执行。其中<code>addEventListener(callback)</code>通过添加一个消息监听器，接收一个回调函数作为参数。在这个方法中，通过调用 <code>addEventListener</code> 方法，监听主线程发送过来的消息。然后对收到的消息进行处理，并将处理结果返回给主线程。如果结果是一个 Promise，则使用 <code>then</code> 方法处理异步结果，并将结果发送给主线程。如果结果是一个普通值，则直接将结果发送给主线程。在处理完一条消息后，会执行可选的 <code>callback</code> 回调函数。</p>
+<p>同时也使用了<code>canStructuredClone</code>，如果浏览器支持结构化克隆（structured clone）算法，则直接将 payload 传给处理函数。否则，将 <code>payload</code> 进行 JSON 转换，并将其传给处理函数。</p>
+<h2 id="使用案例">使用案例</h2>
+<h3 id="主线程">主线程</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 创建一个 WorkerMessage 实例，并指定要加载的 Worker 文件路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">WorkerMessage</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;../index.js&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;WorkerMessage start&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">worker</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">WorkerMessage</span>(<span style="color:#e6db74">&#34;./worker.js&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 发送一个消息给 Worker，并处理返回结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">postMessage</span>({ <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;CALCULATE&#34;</span>, <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">10</span> }).<span style="color:#a6e22e">then</span>(
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">result</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;计算结果：&#34;</span>, <span style="color:#a6e22e">result</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">error</span>(<span style="color:#e6db74">&#34;计算出错：&#34;</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 关闭 Worker 实例
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// worker.terminate();
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">postMessage</span>({ <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;PLUS&#34;</span>, <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">10</span> }).<span style="color:#a6e22e">then</span>(
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">result</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;计算结果：&#34;</span>, <span style="color:#a6e22e">result</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">error</span>(<span style="color:#e6db74">&#34;计算出错：&#34;</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><h4 id="workerjs-worker-线程">worker.js worker 线程</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">childMessage</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;../index.js&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 执行计算的函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">doCalculate</span>(<span style="color:#a6e22e">num</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 这里可以执行一些复杂的计算任务
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">num</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">doPlus</span>(<span style="color:#a6e22e">num</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>, <span style="color:#a6e22e">reject</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">num</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>    }, <span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">child</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">childMessage</span>(<span style="color:#a6e22e">self</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">CALCULATE</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">doCalculate</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">PLUS</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">doPlus</span>,
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 起到分发执行的效果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">child</span>.<span style="color:#a6e22e">addEventListener</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;worker is listened&#34;</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h3 id="输出">输出</h3>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6e9233df073a467f8f974e6f7af68b29~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="image-20230420130706140"></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/555/"
+      ><span class="mr-1.5">←</span><span>diff 算法解析</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/553/"
+      ><span>线上多域名实战</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

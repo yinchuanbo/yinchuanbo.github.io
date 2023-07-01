@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>如何从0到1搭建前端监控平台 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 常常会苦恼，平常做的项目很普通，没啥亮点；面试中也经常会被问到：做过哪些亮点项目吗？
+前端监控就是一个很有亮点的项目，各个大厂都有自己的内部实现，没有监控的项目好比是在裸奔
+文章分成以下六部分来介绍：
+自研监控平台解决了哪些痛点，实现了什么亮点功能？ 相比 sentry 等监控方案，自研监控的优势有哪些？ 前端监控的设计方案、监控的目的 数据的采集方式：错误信息、性能数据、用户行为、加载资源、个性化指标等 设计开发一个完整的监控 SDK 监控后台错误还原演示示例 痛点 某⼀天用户：xx 商品无法下单！
+⼜⼀天运营：xx 广告在手机端打开不了！
+大家反馈的 bug，怎么都复现不出来，尴尬的要死！😢
+如何记录项目的错误，并将错误还原出来，这是监控平台要解决的痛点之一
+错误还原 web-see 监控提供三种错误还原方式：定位源码、播放录屏、记录用户行为
+定位源码 项目出错，要是能定位到源码就好了，可线上的项目都是打包后的代码，也不能把 .map 文件放到线上
+监控平台通过 source-map 可以实现该功能
+最终效果：
+播放录屏 多数场景下，定位到具体的源码，就可以定位 bug，但如果是用户做了异常操作，或者是在某些复杂操作下才出现的 bug，仅仅通过定位源码，还是不能还原错误
+要是能把用户的操作都录制下来，然后通过回放来还原错误就好了
+监控平台通过 rrweb 可以实现该功能
+最终效果： 回放的录屏中，记录了用户的所有操作，红色的线代表了鼠标的移动轨迹
+前端录屏确实是件很酷的事情，但是不能走极端，如果把用户的所有操作都录制下来，是没有意义的
+我们更关注的是，页面报错的时候用户做了哪些操作，所以监控平台只把报错前 10s 的视频保存下来（单次录屏时长也可以自定义）
+记录用户行为 通过 定位源码 &#43; 播放录屏 这套组合，还原错误应该够用了，同时监控平台也提供了 记录用户行为 这种方式
+假如用户做了很多操作，操作的间隔超过了单次录屏时长，录制的视频可能是不完整的，此时可以借助用户行为来分析用户的操作，帮助复现 bug
+最终效果： 用户行为列表记录了：鼠标点击、接口调用、资源加载、页面路由变化、代码报错等信息
+通过 定位源码、播放录屏、记录用户行为 这三板斧，解决了复现 bug 的痛点
+自研监控的优势 为什么不直接用 sentry 私有化部署，而选择自研前端监控？
+这是优先要思考的问题，sentry 作为前端监控的行业标杆，有很多可以借鉴的地方
+相比 sentry，自研监控平台的优势在于：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="如何从0到1搭建前端监控平台" />
+<meta property="og:description" content="前言 常常会苦恼，平常做的项目很普通，没啥亮点；面试中也经常会被问到：做过哪些亮点项目吗？
+前端监控就是一个很有亮点的项目，各个大厂都有自己的内部实现，没有监控的项目好比是在裸奔
+文章分成以下六部分来介绍：
+自研监控平台解决了哪些痛点，实现了什么亮点功能？ 相比 sentry 等监控方案，自研监控的优势有哪些？ 前端监控的设计方案、监控的目的 数据的采集方式：错误信息、性能数据、用户行为、加载资源、个性化指标等 设计开发一个完整的监控 SDK 监控后台错误还原演示示例 痛点 某⼀天用户：xx 商品无法下单！
+⼜⼀天运营：xx 广告在手机端打开不了！
+大家反馈的 bug，怎么都复现不出来，尴尬的要死！😢
+如何记录项目的错误，并将错误还原出来，这是监控平台要解决的痛点之一
+错误还原 web-see 监控提供三种错误还原方式：定位源码、播放录屏、记录用户行为
+定位源码 项目出错，要是能定位到源码就好了，可线上的项目都是打包后的代码，也不能把 .map 文件放到线上
+监控平台通过 source-map 可以实现该功能
+最终效果：
+播放录屏 多数场景下，定位到具体的源码，就可以定位 bug，但如果是用户做了异常操作，或者是在某些复杂操作下才出现的 bug，仅仅通过定位源码，还是不能还原错误
+要是能把用户的操作都录制下来，然后通过回放来还原错误就好了
+监控平台通过 rrweb 可以实现该功能
+最终效果： 回放的录屏中，记录了用户的所有操作，红色的线代表了鼠标的移动轨迹
+前端录屏确实是件很酷的事情，但是不能走极端，如果把用户的所有操作都录制下来，是没有意义的
+我们更关注的是，页面报错的时候用户做了哪些操作，所以监控平台只把报错前 10s 的视频保存下来（单次录屏时长也可以自定义）
+记录用户行为 通过 定位源码 &#43; 播放录屏 这套组合，还原错误应该够用了，同时监控平台也提供了 记录用户行为 这种方式
+假如用户做了很多操作，操作的间隔超过了单次录屏时长，录制的视频可能是不完整的，此时可以借助用户行为来分析用户的操作，帮助复现 bug
+最终效果： 用户行为列表记录了：鼠标点击、接口调用、资源加载、页面路由变化、代码报错等信息
+通过 定位源码、播放录屏、记录用户行为 这三板斧，解决了复现 bug 的痛点
+自研监控的优势 为什么不直接用 sentry 私有化部署，而选择自研前端监控？
+这是优先要思考的问题，sentry 作为前端监控的行业标杆，有很多可以借鉴的地方
+相比 sentry，自研监控平台的优势在于：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/463/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-10T21:24:31+08:00" />
+<meta property="article:modified_time" content="2023-04-10T21:24:31+08:00" />
+
+  
+  <meta itemprop="name" content="如何从0到1搭建前端监控平台">
+<meta itemprop="description" content="前言 常常会苦恼，平常做的项目很普通，没啥亮点；面试中也经常会被问到：做过哪些亮点项目吗？
+前端监控就是一个很有亮点的项目，各个大厂都有自己的内部实现，没有监控的项目好比是在裸奔
+文章分成以下六部分来介绍：
+自研监控平台解决了哪些痛点，实现了什么亮点功能？ 相比 sentry 等监控方案，自研监控的优势有哪些？ 前端监控的设计方案、监控的目的 数据的采集方式：错误信息、性能数据、用户行为、加载资源、个性化指标等 设计开发一个完整的监控 SDK 监控后台错误还原演示示例 痛点 某⼀天用户：xx 商品无法下单！
+⼜⼀天运营：xx 广告在手机端打开不了！
+大家反馈的 bug，怎么都复现不出来，尴尬的要死！😢
+如何记录项目的错误，并将错误还原出来，这是监控平台要解决的痛点之一
+错误还原 web-see 监控提供三种错误还原方式：定位源码、播放录屏、记录用户行为
+定位源码 项目出错，要是能定位到源码就好了，可线上的项目都是打包后的代码，也不能把 .map 文件放到线上
+监控平台通过 source-map 可以实现该功能
+最终效果：
+播放录屏 多数场景下，定位到具体的源码，就可以定位 bug，但如果是用户做了异常操作，或者是在某些复杂操作下才出现的 bug，仅仅通过定位源码，还是不能还原错误
+要是能把用户的操作都录制下来，然后通过回放来还原错误就好了
+监控平台通过 rrweb 可以实现该功能
+最终效果： 回放的录屏中，记录了用户的所有操作，红色的线代表了鼠标的移动轨迹
+前端录屏确实是件很酷的事情，但是不能走极端，如果把用户的所有操作都录制下来，是没有意义的
+我们更关注的是，页面报错的时候用户做了哪些操作，所以监控平台只把报错前 10s 的视频保存下来（单次录屏时长也可以自定义）
+记录用户行为 通过 定位源码 &#43; 播放录屏 这套组合，还原错误应该够用了，同时监控平台也提供了 记录用户行为 这种方式
+假如用户做了很多操作，操作的间隔超过了单次录屏时长，录制的视频可能是不完整的，此时可以借助用户行为来分析用户的操作，帮助复现 bug
+最终效果： 用户行为列表记录了：鼠标点击、接口调用、资源加载、页面路由变化、代码报错等信息
+通过 定位源码、播放录屏、记录用户行为 这三板斧，解决了复现 bug 的痛点
+自研监控的优势 为什么不直接用 sentry 私有化部署，而选择自研前端监控？
+这是优先要思考的问题，sentry 作为前端监控的行业标杆，有很多可以借鉴的地方
+相比 sentry，自研监控平台的优势在于："><meta itemprop="datePublished" content="2023-04-10T21:24:31+08:00" />
+<meta itemprop="dateModified" content="2023-04-10T21:24:31+08:00" />
+<meta itemprop="wordCount" content="2085">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="如何从0到1搭建前端监控平台"/>
+<meta name="twitter:description" content="前言 常常会苦恼，平常做的项目很普通，没啥亮点；面试中也经常会被问到：做过哪些亮点项目吗？
+前端监控就是一个很有亮点的项目，各个大厂都有自己的内部实现，没有监控的项目好比是在裸奔
+文章分成以下六部分来介绍：
+自研监控平台解决了哪些痛点，实现了什么亮点功能？ 相比 sentry 等监控方案，自研监控的优势有哪些？ 前端监控的设计方案、监控的目的 数据的采集方式：错误信息、性能数据、用户行为、加载资源、个性化指标等 设计开发一个完整的监控 SDK 监控后台错误还原演示示例 痛点 某⼀天用户：xx 商品无法下单！
+⼜⼀天运营：xx 广告在手机端打开不了！
+大家反馈的 bug，怎么都复现不出来，尴尬的要死！😢
+如何记录项目的错误，并将错误还原出来，这是监控平台要解决的痛点之一
+错误还原 web-see 监控提供三种错误还原方式：定位源码、播放录屏、记录用户行为
+定位源码 项目出错，要是能定位到源码就好了，可线上的项目都是打包后的代码，也不能把 .map 文件放到线上
+监控平台通过 source-map 可以实现该功能
+最终效果：
+播放录屏 多数场景下，定位到具体的源码，就可以定位 bug，但如果是用户做了异常操作，或者是在某些复杂操作下才出现的 bug，仅仅通过定位源码，还是不能还原错误
+要是能把用户的操作都录制下来，然后通过回放来还原错误就好了
+监控平台通过 rrweb 可以实现该功能
+最终效果： 回放的录屏中，记录了用户的所有操作，红色的线代表了鼠标的移动轨迹
+前端录屏确实是件很酷的事情，但是不能走极端，如果把用户的所有操作都录制下来，是没有意义的
+我们更关注的是，页面报错的时候用户做了哪些操作，所以监控平台只把报错前 10s 的视频保存下来（单次录屏时长也可以自定义）
+记录用户行为 通过 定位源码 &#43; 播放录屏 这套组合，还原错误应该够用了，同时监控平台也提供了 记录用户行为 这种方式
+假如用户做了很多操作，操作的间隔超过了单次录屏时长，录制的视频可能是不完整的，此时可以借助用户行为来分析用户的操作，帮助复现 bug
+最终效果： 用户行为列表记录了：鼠标点击、接口调用、资源加载、页面路由变化、代码报错等信息
+通过 定位源码、播放录屏、记录用户行为 这三板斧，解决了复现 bug 的痛点
+自研监控的优势 为什么不直接用 sentry 私有化部署，而选择自研前端监控？
+这是优先要思考的问题，sentry 作为前端监控的行业标杆，有很多可以借鉴的地方
+相比 sentry，自研监控平台的优势在于："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">如何从0到1搭建前端监控平台</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 10, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="前言">前言</h2>
+<p>常常会苦恼，平常做的项目很普通，没啥亮点；面试中也经常会被问到：做过哪些亮点项目吗？</p>
+<p>前端监控就是一个很有亮点的项目，各个大厂都有自己的内部实现，没有监控的项目好比是在裸奔</p>
+<p>文章分成以下六部分来介绍：</p>
+<ul>
+<li>自研监控平台解决了哪些痛点，实现了什么亮点功能？</li>
+<li>相比 sentry 等监控方案，自研监控的优势有哪些？</li>
+<li>前端监控的设计方案、监控的目的</li>
+<li>数据的采集方式：错误信息、性能数据、用户行为、加载资源、个性化指标等</li>
+<li>设计开发一个完整的监控 SDK</li>
+<li>监控后台错误还原演示示例</li>
+</ul>
+<h2 id="痛点">痛点</h2>
+<p>某⼀天用户：xx 商品无法下单！<br>
+⼜⼀天运营：xx 广告在手机端打开不了！</p>
+<p>大家反馈的 bug，怎么都复现不出来，尴尬的要死！😢</p>
+<p>如何记录项目的错误，并将错误还原出来，这是监控平台要解决的痛点之一</p>
+<h2 id="错误还原">错误还原</h2>
+<p><a href="https://github.com/xy-sea/web-see">web-see</a> 监控提供三种错误还原方式：定位源码、播放录屏、记录用户行为</p>
+<h3 id="定位源码">定位源码</h3>
+<p>项目出错，要是能定位到源码就好了，可线上的项目都是打包后的代码，也不能把 .map 文件放到线上</p>
+<p>监控平台通过 <a href="https://github.com/mozilla/source-map">source-map</a> 可以实现该功能</p>
+<p>最终效果：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/026bbc81cf4843b6a0671c89a52e8513~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="errorCode.jpg"></p>
+<h3 id="播放录屏">播放录屏</h3>
+<p>多数场景下，定位到具体的源码，就可以定位 bug，但如果是用户做了异常操作，或者是在某些复杂操作下才出现的 bug，仅仅通过定位源码，还是不能还原错误</p>
+<p>要是能把用户的操作都录制下来，然后通过回放来还原错误就好了</p>
+<p>监控平台通过 <a href="https://github.com/rrweb-io/rrweb">rrweb</a> 可以实现该功能</p>
+<p>最终效果： <img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0eb30a82a89e457182b9fde875757e80~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="record.gif"></p>
+<p>回放的录屏中，记录了用户的所有操作，红色的线代表了鼠标的移动轨迹</p>
+<p>前端录屏确实是件很酷的事情，但是不能走极端，如果把用户的所有操作都录制下来，是没有意义的</p>
+<p>我们更关注的是，页面报错的时候用户做了哪些操作，所以监控平台只把报错前 10s 的视频保存下来（单次录屏时长也可以自定义）</p>
+<h3 id="记录用户行为">记录用户行为</h3>
+<p>通过 定位源码 + 播放录屏 这套组合，还原错误应该够用了，同时监控平台也提供了 记录用户行为 这种方式</p>
+<p>假如用户做了很多操作，操作的间隔超过了单次录屏时长，录制的视频可能是不完整的，此时可以借助用户行为来分析用户的操作，帮助复现 bug</p>
+<p>最终效果： <img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/30f7c0f6e99d4f1d81def0c37a86e1ca~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="userlist.jpg"></p>
+<p>用户行为列表记录了：鼠标点击、接口调用、资源加载、页面路由变化、代码报错等信息</p>
+<p>通过 <code>定位源码、播放录屏、记录用户行为</code> 这三板斧，解决了复现 bug 的痛点</p>
+<h2 id="自研监控的优势">自研监控的优势</h2>
+<p>为什么不直接用 sentry 私有化部署，而选择自研前端监控？</p>
+<p>这是优先要思考的问题，sentry 作为前端监控的行业标杆，有很多可以借鉴的地方</p>
+<p>相比 sentry，自研监控平台的优势在于：</p>
+<p>1、可以将公司的 SDK 统一成一个，包括但不限于：监控 SDK、埋点 SDK、录屏 SDK、广告 SDK 等</p>
+<p>2、提供了更多的错误还原方式，同时错误信息可以和埋点信息联动，便可拿到更细致的用户行为栈，更快的排查线上错误</p>
+<p>3、监控自定义的个性化指标：如 long task、memory 页面内存、首屏加载时间等。过多的长任务会造成页面丢帧、卡顿；过大的内存可能会造成低端机器的卡死、崩溃</p>
+<p>4、统计资源缓存率，来判断项目的缓存策略是否合理，提升缓存率可以减少服务器压力，也可以提升页面的打开速度</p>
+<p>5、提供了  <strong>采样对比+ 轮询修正机制</strong>  的白屏检测方案，用于检测页面是否一直处于白屏状态，让开发者知道页面什么时候白了，具体实现见 <a href="https://juejin.cn/post/7176206226903007292">前端白屏的检测方案，解决你的线上之忧</a></p>
+<h2 id="设计思路">设计思路</h2>
+<p>一个完整的前端监控平台包括三个部分：数据采集与上报、数据分析和存储、数据展示</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2111ab12f74546a9b570ea8f5fd52cc9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="system.png"></p>
+<h3 id="监控目的">监控目的</h3>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b17a43984e3945199c6c4fcad74ec6f6~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="title.png"></p>
+<h3 id="异常分析">异常分析</h3>
+<p>按照 5W1H 法则来分析前端异常，需要知道以下信息</p>
+<ol>
+<li>What，发⽣了什么错误：JS 错误、异步错误、资源加载、接口错误等</li>
+<li>When，出现的时间段，如时间戳</li>
+<li>Who，影响了多少用户，包括报错事件数、IP</li>
+<li>Where，出现的页面是哪些，包括页面、对应的设备信息</li>
+<li>Why，错误的原因是为什么，包括错误堆栈、⾏列、SourceMap、异常录屏</li>
+<li>How，如何定位还原问题，如何异常报警，避免类似的错误发生</li>
+</ol>
+<h2 id="错误数据采集">错误数据采集</h2>
+<p>错误信息是最基础也是最重要的数据，错误信息主要分为下面几类：</p>
+<ul>
+<li>JS 代码运行错误、语法错误等</li>
+<li>异步错误等</li>
+<li>静态资源加载错误</li>
+<li>接口请求报错</li>
+</ul>
+<h3 id="错误捕获方式">错误捕获方式</h3>
+<p>1）try/catch</p>
+<p>只能捕获代码常规的运行错误，语法错误和异步错误不能捕获到</p>
+<p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// 示例1：常规运行时错误，可以捕获 ✅
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span> <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">a</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">undefined</span>;
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">length</span>) {
+</span></span><span style="display:flex;"><span>     <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;111&#39;</span>);
+</span></span><span style="display:flex;"><span>   }
+</span></span><span style="display:flex;"><span> } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;捕获到异常：&#39;</span>, <span style="color:#a6e22e">e</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 示例2：语法错误，不能捕获 ❌
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">notdefined</span>,
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">catch</span>(<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;捕获不到异常：&#39;</span>, <span style="color:#e6db74">&#39;Uncaught SyntaxError&#39;</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 示例3：异步错误，不能捕获 ❌
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">notdefined</span>);
+</span></span><span style="display:flex;"><span>  }, <span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">catch</span>(<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;捕获不到异常：&#39;</span>, <span style="color:#e6db74">&#39;Uncaught ReferenceError&#39;</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>2） window.onerror</p>
+<p>window.onerror 可以捕获常规错误、异步错误，但不能捕获资源错误</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param { string } message 错误信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param { string } source 发生错误的脚本URL
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param { number } lineno 发生错误的行号
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param { number } colno 发生错误的列号
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param { object } error Error对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> */</span>
+</span></span><span style="display:flex;"><span>window.<span style="color:#a6e22e">onerror</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">message</span>, <span style="color:#a6e22e">source</span>, <span style="color:#a6e22e">lineno</span>, <span style="color:#a6e22e">colno</span>, <span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;捕获到的错误信息是：&#34;</span>, <span style="color:#a6e22e">message</span>, <span style="color:#a6e22e">source</span>, <span style="color:#a6e22e">lineno</span>, <span style="color:#a6e22e">colno</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>window.<span style="color:#a6e22e">onerror</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span>(<span style="color:#a6e22e">message</span>, <span style="color:#a6e22e">source</span>, <span style="color:#a6e22e">lineno</span>, <span style="color:#a6e22e">colno</span>, <span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;捕获到的错误信息是：&#34;</span>, <span style="color:#a6e22e">message</span>, <span style="color:#a6e22e">source</span>, <span style="color:#a6e22e">lineno</span>, <span style="color:#a6e22e">colno</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 示例1：常规运行时错误，可以捕获 ✅
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">notdefined</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 示例2：语法错误，不能捕获 ❌
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">notdefined</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 示例3：异步错误，可以捕获 ✅
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">notdefined</span>);
+</span></span><span style="display:flex;"><span>}, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 示例4：资源错误，不能捕获 ❌
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">script</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;script&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">script</span>.<span style="color:#a6e22e">type</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;text/javascript&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">script</span>.<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;https://www.test.com/index.js&#34;</span>;
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">script</span>);
+</span></span></code></pre></div><p>3） window.addEventListener</p>
+<p>当静态资源加载失败时，会触发 error 事件， 此时 window.onerror 不能捕获到</p>
+<p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    window.<span style="color:#a6e22e">addEventListener</span>(
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;捕获到异常：&#34;</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">&lt;!-- 图片、script、css加载错误，都能被捕获 ✅ --&gt;</span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://test.cn/×××.png&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://test.cn/×××.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://test.cn/×××.css&#34;</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// new Image错误，不能捕获 ❌
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// new Image运用的比较少，可以自己单独处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Image</span>().<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;https://test.cn/×××.png&#34;</span>;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p>4）Promise 错误</p>
+<p>Promise 中抛出的错误，无法被 window.onerror、try/catch、 error 事件捕获到，可通过 unhandledrejection 事件来处理</p>
+<p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>, <span style="color:#a6e22e">reject</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">parse</span>(<span style="color:#e6db74">&#34;&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// try/catch 不能捕获Promise中错误 ❌
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">error</span>(<span style="color:#e6db74">&#34;in try catch&#34;</span>, <span style="color:#a6e22e">err</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// error事件 不能捕获Promise中错误 ❌
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>window.<span style="color:#a6e22e">addEventListener</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;捕获到异常：&#34;</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// window.onerror 不能捕获Promise中错误 ❌
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>window.<span style="color:#a6e22e">onerror</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">message</span>, <span style="color:#a6e22e">source</span>, <span style="color:#a6e22e">lineno</span>, <span style="color:#a6e22e">colno</span>, <span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;捕获到异常：&#34;</span>, { <span style="color:#a6e22e">message</span>, <span style="color:#a6e22e">source</span>, <span style="color:#a6e22e">lineno</span>, <span style="color:#a6e22e">colno</span>, <span style="color:#a6e22e">error</span> });
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// unhandledrejection 可以捕获Promise中的错误 ✅
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>window.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;unhandledrejection&#34;</span>, <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;捕获到异常&#34;</span>, <span style="color:#a6e22e">e</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// preventDefault阻止传播，不会在控制台打印
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">preventDefault</span>();
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h3 id="vue-错误">Vue 错误</h3>
+<p>Vue 项目中，window.onerror 和 error 事件不能捕获到常规的代码错误</p>
+<p>异常代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">created</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">a</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>main.js 中添加捕获代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span>window.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;error&#34;</span>, (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;error&#34;</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>window.<span style="color:#a6e22e">onerror</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">msg</span>, <span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">line</span>, <span style="color:#a6e22e">col</span>, <span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;onerror&#34;</span>, <span style="color:#a6e22e">msg</span>, <span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">line</span>, <span style="color:#a6e22e">col</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>控制台会报错，但是 window.onerror 和 error 不能捕获到</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a466fa1a02fb44b6b03f476a4bd066b1~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="error.jpg"></p>
+<p>vue 通过  <code>Vue.config.errorHander</code> 来捕获异常：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">Vue</span>.<span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">errorHandler</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">vm</span>, <span style="color:#a6e22e">info</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;进来啦~&#34;</span>, <span style="color:#a6e22e">err</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>控制台打印:</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/60cea7b4e84d4f699f11854feac23639~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="error2.jpg"></p>
+<p><strong>errorHandler 源码分析</strong></p>
+<p>在<code>src/core/util</code>目录下，有一个<code>error.js</code>文件</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">globalHandleError</span>(<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">vm</span>, <span style="color:#a6e22e">info</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 获取全局配置，判断是否设置处理函数，默认undefined
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 配置config.errorHandler方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">errorHandler</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 执行 errorHandler
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">errorHandler</span>.<span style="color:#a6e22e">call</span>(<span style="color:#66d9ef">null</span>, <span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">vm</span>, <span style="color:#a6e22e">info</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 如果开发者在errorHandler函数中，手动抛出同样错误信息throw err，判断err信息是否相等，避免log两次
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span> <span style="color:#f92672">!==</span> <span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">logError</span>(<span style="color:#a6e22e">e</span>, <span style="color:#66d9ef">null</span>, <span style="color:#e6db74">&#34;config.errorHandler&#34;</span>);
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 没有配置，常规输出
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">logError</span>(<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">vm</span>, <span style="color:#a6e22e">info</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">logError</span>(<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">vm</span>, <span style="color:#a6e22e">info</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">process</span>.<span style="color:#a6e22e">env</span>.<span style="color:#a6e22e">NODE_ENV</span> <span style="color:#f92672">!==</span> <span style="color:#e6db74">&#34;production&#34;</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">warn</span>(<span style="color:#e6db74">`Error in </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">info</span><span style="color:#e6db74">}</span><span style="color:#e6db74">: &#34;</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">err</span>.<span style="color:#a6e22e">toString</span>()<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;`</span>, <span style="color:#a6e22e">vm</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/* istanbul ignore else */</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> ((<span style="color:#a6e22e">inBrowser</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">inWeex</span>) <span style="color:#f92672">&amp;&amp;</span> <span style="color:#66d9ef">typeof</span> <span style="color:#a6e22e">console</span> <span style="color:#f92672">!==</span> <span style="color:#e6db74">&#34;undefined&#34;</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">error</span>(<span style="color:#a6e22e">err</span>);
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">err</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>通过源码明白了，vue 使用 try/catch 来捕获常规代码的报错，被捕获的错误会通过 console.error 输出而避免应用崩溃</p>
+<p>可以在 Vue.config.errorHandler 中将捕获的错误上报</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">Vue</span>.<span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">errorHandler</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">vm</span>, <span style="color:#a6e22e">info</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// handleError方法用来处理错误并上报
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">handleError</span>(<span style="color:#a6e22e">err</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><h3 id="react-错误">React 错误</h3>
+<p>从 react16 开始，官方提供了 ErrorBoundary 错误边界的功能，被该组件包裹的子组件，render 函数报错时会触发离当前组件最近父组件的 ErrorBoundary</p>
+<p>生产环境，一旦被 ErrorBoundary 捕获的错误，也不会触发全局的 window.onerror 和 error 事件</p>
+<p>父组件代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">React</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Child</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./Child.js&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// window.onerror 不能捕获render函数的错误 ❌
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>window.<span style="color:#a6e22e">onerror</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">msg</span>, <span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">l</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;err&#34;</span>, <span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">msg</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// error 不能render函数的错误 ❌
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>window.<span style="color:#a6e22e">addEventListener</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;捕获到异常：&#34;</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ErrorBoundary</span> <span style="color:#66d9ef">extends</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">Component</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">props</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">super</span>(<span style="color:#a6e22e">props</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">state</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">hasError</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span> };
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">static</span> <span style="color:#a6e22e">getDerivedStateFromError</span>(<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 更新 state 使下一次渲染能够显示降级后的 UI
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> { <span style="color:#a6e22e">hasError</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> };
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">componentDidCatch</span>(<span style="color:#a6e22e">error</span>, <span style="color:#a6e22e">errorInfo</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// componentDidCatch 可以捕获render函数的错误
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">error</span>, <span style="color:#a6e22e">errorInfo</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 同样可以将错误日志上报给服务器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">reportError</span>(<span style="color:#a6e22e">error</span>, <span style="color:#a6e22e">errorInfo</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">render</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">hasError</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 自定义降级后的 UI 并渲染
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">h1</span>&gt;<span style="color:#a6e22e">Something</span> <span style="color:#a6e22e">went</span> <span style="color:#a6e22e">wrong</span>.&lt;/<span style="color:#f92672">h1</span>&gt;;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">children</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Parent</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">父组件</span>
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">Child</span> /&gt;
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">Parent</span>;
+</span></span></code></pre></div><p>子组件代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">// 子组件 渲染出错
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Child</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">list</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">子组件</span>
+</span></span><span style="display:flex;"><span>      {<span style="color:#a6e22e">list</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">item</span>, <span style="color:#a6e22e">key</span>) =&gt; (
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">key</span>}&gt;{<span style="color:#a6e22e">item</span>}&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>      ))}
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">Child</span>;
+</span></span></code></pre></div><p>同 vue 项目的处理类似，react 项目中，可以在 componentDidCatch 中将捕获的错误上报</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">componentDidCatch</span>(<span style="color:#a6e22e">error</span>, <span style="color:#a6e22e">errorInfo</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// handleError方法用来处理错误并上报
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">handleError</span>(<span style="color:#a6e22e">err</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="跨域问题">跨域问题</h3>
+<p>如果当前页面中，引入了其他域名的 JS 资源，如果资源出现错误，error 事件只会监测到一个  <code>script error</code> 的异常。</p>
+<p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>window.<span style="color:#a6e22e">addEventListener</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;捕获到异常：&#34;</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 当前页面加载其他域的资源，如https://www.test.com/index.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://www.test.com/index.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 加载的https://www.test.com/index.js的代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">fn</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">parse</span>(<span style="color:#e6db74">&#34;&#34;</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fn</span>();
+</span></span></code></pre></div><p>报错信息：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0d3a64682d05414e9e4c7a17a78895f4~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="scriptError.jpg"></p>
+<p>只能捕获到 <code>script error</code> 的原因：</p>
+<p>是由于浏览器基于<code>安全考虑</code>，故意隐藏了其它域 JS 文件抛出的具体错误信息，这样可以有效避免敏感信息无意中被第三方(不受控制的)脚本捕获到，因此，浏览器只允许同域下的脚本捕获具体的错误信息</p>
+<p>解决方法：</p>
+<p>前端 script 加 crossorigin，后端配置 Access-Control-Allow-Origin</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://www.test.com/index.js&#34;</span> <span style="color:#a6e22e">crossorigin</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p>添加 crossorigin 后可以捕获到完整的报错信息：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5f78998ae48140bebbae82ce6f073536~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="ScriptError1.jpg"></p>
+<p>如果不能修改服务端的请求头，可以考虑通过使用 try/catch 绕过，将错误抛出</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://www.test.com/index.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      window.<span style="color:#a6e22e">addEventListener</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;error&#34;</span>,
+</span></span><span style="display:flex;"><span>        (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;捕获到异常：&#34;</span>, <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>      );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 调用https://www.test.com/index.js中定义的fn方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">fn</span>();
+</span></span><span style="display:flex;"><span>      } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">e</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><h3 id="接口错误">接口错误</h3>
+<p>接口监控的实现原理：针对浏览器内置的 XMLHttpRequest、fetch 对象，利用 AOP 切片编程重写该方法，实现对请求的接口拦截，从而获取接口报错的情况并上报</p>
+<p>1）拦截 XMLHttpRequest 请求示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">xhrReplace</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;XMLHttpRequest&#34;</span> <span style="color:#66d9ef">in</span> window)) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">originalXhrProto</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">XMLHttpRequest</span>.<span style="color:#a6e22e">prototype</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 重写XMLHttpRequest 原型上的open方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">replaceAop</span>(<span style="color:#a6e22e">originalXhrProto</span>, <span style="color:#e6db74">&#34;open&#34;</span>, (<span style="color:#a6e22e">originalOpen</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">function</span> (...<span style="color:#a6e22e">args</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 获取请求的信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_xhr</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">method</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">typeof</span> <span style="color:#a6e22e">args</span>[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;string&#34;</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">args</span>[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">toUpperCase</span>() <span style="color:#f92672">:</span> <span style="color:#a6e22e">args</span>[<span style="color:#ae81ff">0</span>],
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">args</span>[<span style="color:#ae81ff">1</span>],
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">startTime</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>(),
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;xhr&#34;</span>,
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 执行原始的open方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">originalOpen</span>.<span style="color:#a6e22e">apply</span>(<span style="color:#66d9ef">this</span>, <span style="color:#a6e22e">args</span>);
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 重写XMLHttpRequest 原型上的send方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">replaceAop</span>(<span style="color:#a6e22e">originalXhrProto</span>, <span style="color:#e6db74">&#34;send&#34;</span>, (<span style="color:#a6e22e">originalSend</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">function</span> (...<span style="color:#a6e22e">args</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 当请求结束时触发，无论请求成功还是失败都会触发
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;loadend&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">responseType</span>, <span style="color:#a6e22e">response</span>, <span style="color:#a6e22e">status</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">endTime</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_xhr</span>.<span style="color:#a6e22e">reqData</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">args</span>[<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_xhr</span>.<span style="color:#a6e22e">status</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">status</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> ([<span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#e6db74">&#34;json&#34;</span>, <span style="color:#e6db74">&#34;text&#34;</span>].<span style="color:#a6e22e">indexOf</span>(<span style="color:#a6e22e">responseType</span>) <span style="color:#f92672">!==</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_xhr</span>.<span style="color:#a6e22e">responseText</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">typeof</span> <span style="color:#a6e22e">response</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;object&#34;</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">stringify</span>(<span style="color:#a6e22e">response</span>) <span style="color:#f92672">:</span> <span style="color:#a6e22e">response</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 获取接口的请求时长
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_xhr</span>.<span style="color:#a6e22e">elapsedTime</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">endTime</span> <span style="color:#f92672">-</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_xhr</span>.<span style="color:#a6e22e">startTime</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 上报xhr接口数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">reportData</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_xhr</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 执行原始的send方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">originalSend</span>.<span style="color:#a6e22e">apply</span>(<span style="color:#66d9ef">this</span>, <span style="color:#a6e22e">args</span>);
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * 重写指定的方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param { object } source 重写的对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param { string } name 重写的属性
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * @param { function } fn 拦截的函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> */</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">replaceAop</span>(<span style="color:#a6e22e">source</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">fn</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">source</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">undefined</span>) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">name</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">source</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">original</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">source</span>[<span style="color:#a6e22e">name</span>];
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">wrapped</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fn</span>(<span style="color:#a6e22e">original</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">typeof</span> <span style="color:#a6e22e">wrapped</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;function&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">source</span>[<span style="color:#a6e22e">name</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">wrapped</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>2）拦截 fetch 请求示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">fetchReplace</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;fetch&#34;</span> <span style="color:#66d9ef">in</span> window)) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 重写fetch方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">replaceAop</span>(window, <span style="color:#e6db74">&#34;fetch&#34;</span>, (<span style="color:#a6e22e">originalFetch</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">config</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">sTime</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">method</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">config</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">method</span>) <span style="color:#f92672">||</span> <span style="color:#e6db74">&#34;GET&#34;</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">handlerData</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;fetch&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">method</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">reqData</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">config</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">body</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">url</span>,
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">originalFetch</span>.<span style="color:#a6e22e">apply</span>(window, [<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">config</span>]).<span style="color:#a6e22e">then</span>(
+</span></span><span style="display:flex;"><span>        (<span style="color:#a6e22e">res</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// res.clone克隆，防止被标记已消费
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">tempRes</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">clone</span>();
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">eTime</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>();
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">handlerData</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>            ...<span style="color:#a6e22e">handlerData</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">elapsedTime</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">eTime</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">sTime</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">status</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">tempRes</span>.<span style="color:#a6e22e">status</span>,
+</span></span><span style="display:flex;"><span>          };
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">tempRes</span>.<span style="color:#a6e22e">text</span>().<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">data</span>) =&gt; {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">handlerData</span>.<span style="color:#a6e22e">responseText</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">data</span>;
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 上报fetch接口数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">reportData</span>(<span style="color:#a6e22e">handlerData</span>);
+</span></span><span style="display:flex;"><span>          });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 返回原始的结果，外部继续使用then接收
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">res</span>;
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        (<span style="color:#a6e22e">err</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">eTime</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>();
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">handlerData</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>            ...<span style="color:#a6e22e">handlerData</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">elapsedTime</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">eTime</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">sTime</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">status</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>          };
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 上报fetch接口数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">reportData</span>(<span style="color:#a6e22e">handlerData</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">err</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>      );
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="性能数据采集">性能数据采集</h2>
+<p>谈到性能数据采集，就会提及加载过程模型图：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2d47107de71349518cf4f43e6508fa3a~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="timing.png"></p>
+<p>以 Spa 页面来说，页面的加载过程大致是这样的：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/93ee1530332a432b904eb3f6af65cc7a~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="spa.png"></p>
+<p>包括 dns 查询、建立 tcp 连接、发送 http 请求、返回 html 文档、html 文档解析等阶段</p>
+<p>最初，可以通过  <code>window.performance.timing</code>  来获取加载过程模型中各个阶段的耗时数据</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-arduino" data-lang="arduino"><span style="display:flex;"><span><span style="color:#75715e">// window.performance.timing 各字段说明
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>    navigationStart,  <span style="color:#75715e">// 同一个浏览器上下文中，上一个文档结束时的时间戳。如果没有上一个文档，这个值会和 fetchStart 相同。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    unloadEventStart,  <span style="color:#75715e">// 上一个文档 unload 事件触发时的时间戳。如果没有上一个文档，为 0。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    unloadEventEnd, <span style="color:#75715e">// 上一个文档 unload 事件结束时的时间戳。如果没有上一个文档，为 0。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    redirectStart, <span style="color:#75715e">// 表示第一个 http 重定向开始时的时间戳。如果没有重定向或者有一个非同源的重定向，为 0。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    redirectEnd, <span style="color:#75715e">// 表示最后一个 http 重定向结束时的时间戳。如果没有重定向或者有一个非同源的重定向，为 0。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    fetchStart, <span style="color:#75715e">// 表示浏览器准备好使用 http 请求来获取文档的时间戳。这个时间点会在检查任何缓存之前。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    domainLookupStart, <span style="color:#75715e">// 域名查询开始的时间戳。如果使用了持久连接或者本地有缓存，这个值会和 fetchStart 相同。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    domainLookupEnd, <span style="color:#75715e">// 域名查询结束的时间戳。如果使用了持久连接或者本地有缓存，这个值会和 fetchStart 相同。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    connectStart, <span style="color:#75715e">// http 请求向服务器发送连接请求时的时间戳。如果使用了持久连接，这个值会和 fetchStart 相同。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    connectEnd, <span style="color:#75715e">// 浏览器和服务器之前建立连接的时间戳，所有握手和认证过程全部结束。如果使用了持久连接，这个值会和 fetchStart 相同。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    secureConnectionStart, <span style="color:#75715e">// 浏览器与服务器开始安全链接的握手时的时间戳。如果当前网页不要求安全连接，返回 0。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    requestStart, <span style="color:#75715e">// 浏览器向服务器发起 http 请求(或者读取本地缓存)时的时间戳，即获取 html 文档。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    responseStart, <span style="color:#75715e">// 浏览器从服务器接收到第一个字节时的时间戳。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    responseEnd, <span style="color:#75715e">// 浏览器从服务器接受到最后一个字节时的时间戳。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    domLoading, <span style="color:#75715e">// dom 结构开始解析的时间戳，document.readyState 的值为 loading。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    domInteractive, <span style="color:#75715e">// dom 结构解析结束，开始加载内嵌资源的时间戳，document.readyState 的状态为 interactive。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    domContentLoadedEventStart, <span style="color:#75715e">// DOMContentLoaded 事件触发时的时间戳，所有需要执行的脚本执行完毕。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    domContentLoadedEventEnd,  <span style="color:#75715e">// DOMContentLoaded 事件结束时的时间戳
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    domComplete, <span style="color:#75715e">// dom 文档完成解析的时间戳， document.readyState 的值为 complete。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    loadEventStart, <span style="color:#75715e">// load 事件触发的时间。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    loadEventEnd <span style="color:#75715e">// load 时间结束时的时间。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>后来 window.performance.timing 被废弃，通过 <a href="https://link.juejin.cn?target=https%3A%2F%2Fdeveloper.mozilla.org%2Fzh-CN%2Fdocs%2FWeb%2FAPI%2FPerformanceObserver">PerformanceObserver</a> 来获取。旧的 api，返回的是一个 <code>UNIX</code> 类型的绝对时间，和用户的系统时间相关，分析的时候需要再次计算。而新的 api，返回的是一个相对时间，可以直接用来分析</p>
+<p>现在 chrome 开发团队提供了 <a href="https://www.npmjs.com/package/web-vitals">web-vitals</a> 库，方便来计算各性能数据（注意：web-vitals 不支持 safari 浏览器）</p>
+<p>关于 FP、FCP、LCP、CLS、TTFB、FID 等性能指标的含义和计算方式，我在 <a href="https://juejin.cn/post/7146976516692410376/#heading-63">「历时 8 个月」10 万字前端知识体系总结（工程化篇）🔥</a> 中有详细的讲解，这里不再赘述</p>
+<h2 id="用户行为数据采集">用户行为数据采集</h2>
+<p>用户行为包括：页面路由变化、鼠标点击、资源加载、接口调用、代码报错等行为</p>
+<h3 id="设计思路-1">设计思路</h3>
+<p>1、通过 Breadcrumb 类来创建用户行为的对象，来存储和管理所有的用户行为</p>
+<p>2、通过重写或添加相应的事件，完成用户行为数据的采集</p>
+<p>用户行为代码示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 创建用户行为类
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Breadcrumb</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// maxBreadcrumbs控制上报用户行为的最大条数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">maxBreadcrumbs</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// stack 存储用户行为
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">stack</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>() {}
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 添加用户行为栈
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">data</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">stack</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&gt;=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">maxBreadcrumbs</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 超出则删除第一条
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">stack</span>.<span style="color:#a6e22e">shift</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">stack</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 按照时间排序
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">stack</span>.<span style="color:#a6e22e">sort</span>((<span style="color:#a6e22e">a</span>, <span style="color:#a6e22e">b</span>) =&gt; <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">time</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">b</span>.<span style="color:#a6e22e">time</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">breadcrumb</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Breadcrumb</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加一条页面跳转的行为，从home页面跳转到about页面
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">push</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Route&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">form</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;/home&#39;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">to</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;/about&#39;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;http://localhost:3000/index.html&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">time</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;1668759320435&#34;</span>
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加一条用户点击行为
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">push</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Click&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">dom</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&lt;button id=&#39;btn&#39;&gt;按钮&lt;/button&gt;&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">time</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;1668759620485&#34;</span>
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加一条调用接口行为
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">push</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Xhr&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;http://10.105.10.12/monitor/open/pushData&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">time</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;1668760485550&#34;</span>
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 上报用户行为
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">reportData</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">uuid</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;a6481683-6d2e-4bd8-bba1-64819d8cce8c&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">stack</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">getStack</span>()
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h3 id="页面跳转">页面跳转</h3>
+<p>通过监听路由的变化来判断页面跳转，路由有<code>history、hash</code>两种模式，history 模式可以监听<code>popstate</code>事件，hash 模式通过重写 <code>pushState和 replaceState</code>事件</p>
+<p>vue 项目中不能通过 <code>hashchange</code> 事件来监听路由变化，<code>vue-router</code> 底层调用的是 <code>history.pushState</code> 和 <code>history.replaceState</code>，不会触发 hashchange</p>
+<p>vue-router 源码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">pushState</span> (<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">replace</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">saveScrollPosition</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">history</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">history</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">replace</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">history</span>.<span style="color:#a6e22e">replaceState</span>({ <span style="color:#a6e22e">key</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">_key</span> }, <span style="color:#e6db74">&#39;&#39;</span>, <span style="color:#a6e22e">url</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">_key</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">genKey</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">history</span>.<span style="color:#a6e22e">pushState</span>({ <span style="color:#a6e22e">key</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">_key</span> }, <span style="color:#e6db74">&#39;&#39;</span>, <span style="color:#a6e22e">url</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>    window.<span style="color:#a6e22e">location</span>[<span style="color:#a6e22e">replace</span> <span style="color:#f92672">?</span> <span style="color:#e6db74">&#39;replace&#39;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;assign&#39;</span>](<span style="color:#a6e22e">url</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// this.$router.push时触发
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">pushHash</span> (<span style="color:#a6e22e">path</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">supportsPushState</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pushState</span>(<span style="color:#a6e22e">getUrl</span>(<span style="color:#a6e22e">path</span>));
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    window.<span style="color:#a6e22e">location</span>.<span style="color:#a6e22e">hash</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>通过重写 pushState、replaceState 事件来监听路由变化</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// lastHref 前一个页面的路由
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">lastHref</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">location</span>.<span style="color:#a6e22e">href</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">historyReplace</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">historyReplaceFn</span>(<span style="color:#a6e22e">originalHistoryFn</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">function</span> (...<span style="color:#a6e22e">args</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">url</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">args</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">args</span>[<span style="color:#ae81ff">2</span>] <span style="color:#f92672">:</span> <span style="color:#66d9ef">undefined</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">url</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">from</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">lastHref</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">to</span> <span style="color:#f92672">=</span> String(<span style="color:#a6e22e">url</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">lastHref</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">to</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 上报路由变化
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">reportData</span>(<span style="color:#e6db74">&#34;routeChange&#34;</span>, {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">from</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">to</span>,
+</span></span><span style="display:flex;"><span>        });
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">originalHistoryFn</span>.<span style="color:#a6e22e">apply</span>(<span style="color:#66d9ef">this</span>, <span style="color:#a6e22e">args</span>);
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 重写pushState事件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">replaceAop</span>(window.<span style="color:#a6e22e">history</span>, <span style="color:#e6db74">&#34;pushState&#34;</span>, <span style="color:#a6e22e">historyReplaceFn</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 重写replaceState事件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">replaceAop</span>(window.<span style="color:#a6e22e">history</span>, <span style="color:#e6db74">&#34;replaceState&#34;</span>, <span style="color:#a6e22e">historyReplaceFn</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">replaceAop</span>(<span style="color:#a6e22e">source</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">fn</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">source</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">undefined</span>) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">name</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">source</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">original</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">source</span>[<span style="color:#a6e22e">name</span>];
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">wrapped</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fn</span>(<span style="color:#a6e22e">original</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">typeof</span> <span style="color:#a6e22e">wrapped</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;function&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">source</span>[<span style="color:#a6e22e">name</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">wrapped</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="用户点击">用户点击</h3>
+<p>给 document 对象添加 click 事件，并上报</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">domReplace</span>() {
+</span></span><span style="display:flex;"><span>  document.<span style="color:#a6e22e">addEventListener</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;click&#34;</span>,
+</span></span><span style="display:flex;"><span>    ({ <span style="color:#a6e22e">target</span> }) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">tagName</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">tagName</span>.<span style="color:#a6e22e">toLowerCase</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">tagName</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;body&#34;</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">classNames</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">classList</span>.<span style="color:#a6e22e">value</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">classNames</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">classNames</span> <span style="color:#f92672">!==</span> <span style="color:#e6db74">&#34;&#34;</span> <span style="color:#f92672">?</span> <span style="color:#e6db74">` class=&#34;</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">classNames</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;`</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">id</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">id</span> <span style="color:#f92672">?</span> <span style="color:#e6db74">` id=&#34;</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">id</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;`</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">innerText</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">innerText</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 获取包含id、class、innerTextde字符串的标签
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">dom</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`&lt;</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">tagName</span><span style="color:#e6db74">}${</span><span style="color:#a6e22e">id</span><span style="color:#e6db74">}${</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">classNames</span> <span style="color:#f92672">!==</span> <span style="color:#e6db74">&#34;&#34;</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">classNames</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">}</span><span style="color:#e6db74">&gt;</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">innerText</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&lt;/</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">tagName</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&gt;`</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 上报
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">reportData</span>({
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Click&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">dom</span>,
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="资源加载">资源加载</h3>
+<p>获取页面中加载的资源信息，比如它们的 url 是什么、加载了多久、是否来自缓存等，最终生成 <a href="https://blog.csdn.net/csdn_girl/article/details/54911632">资源加载瀑布图</a></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e92b04772b2044e5a2cc21b1b73c9acb~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="waterfall .png"></p>
+<p>瀑布图展现了浏览器为渲染网页而加载的所有的资源，包括加载的顺序和每个资源的加载时间</p>
+<p>分析这些资源是如何加载的, 可以帮助我们了解究竟是什么原因拖慢了网页，从而采取对应的措施来提升网页速度</p>
+<p>可以通过  <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Performance/getEntriesByType">performance.getEntriesByType(&lsquo;resource&rsquo;)</a> 获取页面加载的资源列表，同时可以结合  initiatorType 字段来判断资源类型，对资源进行过滤</p>
+<p>其中 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Performance/getEntriesByType">PerformanceResourceTiming</a> 来分析资源加载的详细数据</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-arduino" data-lang="arduino"><span style="display:flex;"><span><span style="color:#75715e">// PerformanceResourceTiming 各字段说明
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>  connectEnd, <span style="color:#75715e">// 表示浏览器完成建立与服务器的连接以检索资源之后的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  connectStart, <span style="color:#75715e">// 表示浏览器开始建立与服务器的连接以检索资源之前的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  decodedBodySize, <span style="color:#75715e">// 表示在删除任何应用的内容编码之后，从*消息主体*的请求（HTTP 或缓存）中接收到的大小（以八位字节为单位）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  domainLookupEnd, <span style="color:#75715e">// 表示浏览器完成资源的域名查找之后的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  domainLookupStart, <span style="color:#75715e">// 表示在浏览器立即开始资源的域名查找之前的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  duration, <span style="color:#75715e">// 返回一个timestamp，即 responseEnd 和 startTime 属性的差值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  encodedBodySize, <span style="color:#75715e">// 表示在删除任何应用的内容编码之前，从*有效内容主体*的请求（HTTP 或缓存）中接收到的大小（以八位字节为单位）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  entryType, <span style="color:#75715e">// 返回 &#34;resource&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  fetchStart, <span style="color:#75715e">// 表示浏览器即将开始获取资源之前的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  initiatorType, <span style="color:#75715e">// 代表启动性能条目的资源的类型，如 PerformanceResourceTiming.initiatorType 中所指定
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  name, <span style="color:#75715e">// 返回资源 URL
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  nextHopProtocol, <span style="color:#75715e">// 代表用于获取资源的网络协议
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  redirectEnd, <span style="color:#75715e">// 表示收到上一次重定向响应的发送最后一个字节时的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  redirectStart, <span style="color:#75715e">// 表示上一次重定向开始的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  requestStart, <span style="color:#75715e">// 表示浏览器开始向服务器请求资源之前的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  responseEnd, <span style="color:#75715e">// 表示在浏览器接收到资源的最后一个字节之后或在传输连接关闭之前（以先到者为准）的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  responseStart, <span style="color:#75715e">// 表示浏览器从服务器接收到响应的第一个字节后的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  secureConnectionStart, <span style="color:#75715e">// 表示浏览器即将开始握手过程以保护当前连接之前的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  serverTiming, <span style="color:#75715e">// 一个 PerformanceServerTiming 数组，包含服务器计时指标的PerformanceServerTiming 条目
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  startTime, <span style="color:#75715e">// 表示资源获取开始的时间。该值等效于 PerformanceEntry.fetchStart
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  transferSize, <span style="color:#75715e">// 代表所获取资源的大小（以八位字节为单位）。该大小包括响应标头字段以及响应有效内容主体
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  workerStart <span style="color:#75715e">// 如果服务 Worker 线程已经在运行，则返回在分派 FetchEvent 之前的时间戳，如果尚未运行，则返回在启动 Service Worker 线程之前的时间戳。如果服务 Worker 未拦截该资源，则该属性将始终返回 0。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>获取资源加载时长为 <code>duration</code> 字段，即  <code>responseEnd 与 startTime</code> 的差值</p>
+<p>获取加载资源列表：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getResource</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">getEntriesByType</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">entries</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">getEntriesByType</span>(<span style="color:#e6db74">&#34;resource&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 过滤掉非静态资源的 fetch、 xmlhttprequest、beacon
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">list</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">entries</span>.<span style="color:#a6e22e">filter</span>((<span style="color:#a6e22e">entry</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>        [<span style="color:#e6db74">&#34;fetch&#34;</span>, <span style="color:#e6db74">&#34;xmlhttprequest&#34;</span>, <span style="color:#e6db74">&#34;beacon&#34;</span>].<span style="color:#a6e22e">indexOf</span>(<span style="color:#a6e22e">entry</span>.<span style="color:#a6e22e">initiatorType</span>) <span style="color:#f92672">===</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>      );
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">list</span>.<span style="color:#a6e22e">length</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">list</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">parse</span>(<span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">stringify</span>(<span style="color:#a6e22e">list</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">list</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">entry</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">entry</span>.<span style="color:#a6e22e">isCache</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">isCache</span>(<span style="color:#a6e22e">entry</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">list</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 判断资料是否来自缓存
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// transferSize为0，说明是从缓存中直接读取的（强制缓存）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// transferSize不为0，但是`encodedBodySize` 字段为 0，说明它走的是协商缓存（`encodedBodySize 表示请求响应数据 body 的大小`）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">isCache</span>(<span style="color:#a6e22e">entry</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">entry</span>.<span style="color:#a6e22e">transferSize</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span>
+</span></span><span style="display:flex;"><span>    (<span style="color:#a6e22e">entry</span>.<span style="color:#a6e22e">transferSize</span> <span style="color:#f92672">!==</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">entry</span>.<span style="color:#a6e22e">encodedBodySize</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>一个真实的页面中，资源加载大多数是逐步进行的，有些资源本身就做了延迟加载，有些是需要用户发生交互后才会去请求一些资源</p>
+<p>如果我们只关注首页资源，可以在 <code>window.onload</code> 事件中去收集</p>
+<p>如果要收集所有的资源，需要通过定时器反复地去收集，并且在一轮收集结束后，通过调用  <a href="https://link.zhihu.com/?target=https%3A//developer.mozilla.org/zh-CN/docs/Web/API/Performance/clearResourceTimings">clearResourceTimings</a>  将 performance entries 里的信息清空，避免在下一轮收集时取到重复的资源</p>
+<h2 id="个性化指标">个性化指标</h2>
+<h3 id="long-task">long task</h3>
+<p>执行时间超过 50ms 的任务，被称为 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Long_Tasks_API">long task</a> 长任务</p>
+<p>获取页面的长任务列表：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">entryHandler</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">list</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">long</span> <span style="color:#66d9ef">of</span> <span style="color:#a6e22e">list</span>.<span style="color:#a6e22e">getEntries</span>()) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 获取长任务详情
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#66d9ef">long</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">observer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">PerformanceObserver</span>(<span style="color:#a6e22e">entryHandler</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">observer</span>.<span style="color:#a6e22e">observe</span>({ <span style="color:#a6e22e">entryTypes</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;longtask&#34;</span>] });
+</span></span></code></pre></div><h3 id="memory-页面内存">memory 页面内存</h3>
+<p><code>performance.memory</code> 可以显示此刻内存占用情况，它是一个动态值，其中：</p>
+<ul>
+<li>jsHeapSizeLimit 该属性代表的含义是：内存大小的限制。</li>
+<li>totalJSHeapSize 表示总内存的大小。</li>
+<li>usedJSHeapSize 表示可使用的内存的大小。</li>
+</ul>
+<p>通常，usedJSHeapSize 不能大于 totalJSHeapSize，如果大于，有可能出现了内存泄漏</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// load事件中获取此时页面的内存大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>window.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;load&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;memory&#34;</span>, <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">memory</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h3 id="首屏加载时间">首屏加载时间</h3>
+<p>首屏加载时间和首页加载时间不一样，首屏指的是屏幕内的 dom 渲染完成的时间</p>
+<p>比如首页很长需要好几屏展示，这种情况下屏幕以外的元素不考虑在内</p>
+<p><strong>计算首屏加载时间流程</strong></p>
+<p>1）利用<code>MutationObserver</code>监听<code>document</code>对象，每当 dom 变化时触发该事件</p>
+<p>2）判断监听的 dom 是否在首屏内，如果在首屏内，将该 dom 放到指定的数组中，记录下当前 dom 变化的时间点</p>
+<p>3）在 MutationObserver 的 callback 函数中，通过防抖函数，监听<code>document.readyState</code>状态的变化</p>
+<p>4）当<code>document.readyState === 'complete'</code>，停止定时器和 取消对 document 的监听</p>
+<p>5）遍历存放 dom 的数组，找出最后变化节点的时间，用该时间点减去<code>performance.timing.navigationStart</code> 得出首屏的加载时间</p>
+<h2 id="监控-sdk">监控 SDK</h2>
+<p>监控 SDK 的作用：数据采集与上报</p>
+<h3 id="整体架构">整体架构</h3>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ca8db3058b2d49608a447dbc4dccbc0c~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="sdkProcess.jpg"></p>
+<p>整体架构使用 <strong>发布-订阅</strong> 设计模式，这样设计的好处是便于后续扩展与维护，如果想添加新的<code>hook</code>或事件，在该回调中添加对应的函数即可</p>
+<h3 id="sdk-入口">SDK 入口</h3>
+<p><code>src/index.js</code></p>
+<p>对外导出 init 事件，配置了 vue、react 项目的不同引入方式</p>
+<p>vue 项目在 Vue.config.errorHandler 中上报错误，react 项目在 ErrorBoundary 中上报错误</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0124fc1be85f43f8b6172f6bdb950218~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="entry.png"></p>
+<h3 id="事件发布与订阅">事件发布与订阅</h3>
+<p>通过添加监听事件来捕获错误，利用 AOP 切片编程，重写接口请求、路由监听等功能，从而获取对应的数据</p>
+<p><code>src/load.js</code></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/498c219e4d01449cac3be2c9a3f9db24~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="replace.png"></p>
+<h3 id="用户行为收集">用户行为收集</h3>
+<p><code>core/breadcrumb.js</code></p>
+<p>创建用户行为类，stack 用来存储用户行为，当长度超过限制时，最早的一条数据会被覆盖掉，在上报错误时，对应的用户行为会添加到该错误信息中</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4e5fcce29ac54bb1a2cede02b395bfbb~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="bread.png"></p>
+<h3 id="数据上报方式">数据上报方式</h3>
+<p>支持图片打点上报和 fetch 请求上报两种方式</p>
+<p>图片打点上报的优势：<br>
+1）支持跨域，一般而言，上报域名都不是当前域名，上报的接口请求会构成跨域<br>
+2）体积小且不需要插入 dom 中<br>
+3）不需要等待服务器返回数据</p>
+<p>图片打点缺点是：url 受浏览器长度限制</p>
+<p><code>core/transportData.js</code></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0a5c83e0ee5f41428e5bca3de2f7dd2c~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="send.png"></p>
+<h3 id="数据上报时机">数据上报时机</h3>
+<p>优先使用 requestIdleCallback，利用浏览器空闲时间上报，其次使用微任务上报</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/293f0ce61c994a16aaf2ed2341803878~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="queue.png"></p>
+<p>监控 SDK，参考了 <a href="https://github.com/getsentry/sentry-javascript">sentry</a>、 <a href="https://github.com/clouDr-f2e/monitor">monitor</a>、 <a href="https://github.com/mitojs/mitojs">mitojs</a></p>
+<h2 id="项目后台-demo">项目后台 demo</h2>
+<p>主要用来演示错误还原功能，方式包括：定位源码、播放录屏、记录用户行为</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/179f1b31741443eab79be2a59eb62f28~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="web-see.gif"></p>
+<p>后台 demo 功能介绍：</p>
+<p>1、使用 express 开启静态服务器，模拟线上环境，用于实现定位源码的功能</p>
+<p>2、server.js 中实现了 reportData（错误上报）、getmap（获取 map 文件）、getRecordScreenId（获取录屏信息）、 getErrorList（获取错误列表）的接口</p>
+<p>3、用户可点击 &lsquo;js 报错&rsquo;、&lsquo;异步报错&rsquo;、&lsquo;promise 错误&rsquo; 按钮，上报对应的代码错误，后台实现错误还原功能</p>
+<p>4、点击 &lsquo;xhr 请求报错&rsquo;、&lsquo;fetch 请求报错&rsquo; 按钮，上报接口报错信息</p>
+<p>5、点击 &lsquo;加载资源报错&rsquo; 按钮，上报对应的资源报错信息</p>
+<p>通过这些异步的捕获，了解监控平台的整体流程</p>
+<h2 id="安装与使用">安装与使用</h2>
+<p>npm 官网搜索 <a href="https://www.npmjs.com/package/web-see">web-see</a></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2577f7151904489283ffa5fd6fb0213a~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="install.jpg"></p>
+<h2 id="仓库地址">仓库地址</h2>
+<p>监控 SDK： <a href="https://github.com/xy-sea/web-see">web-see</a></p>
+<p>监控后台： <a href="https://github.com/xy-sea/web-see-demo">web-see-demo</a></p>
+<h2 id="总结">总结</h2>
+<p>目前市面上的前端监控方案可谓是百花齐放，但底层原理都是相通的。从基础的理论知识到实现一个可用的监控平台，收获还是挺多的</p>
+<p>有兴趣的小伙伴可以结合 git 仓库的源码玩一玩，再结合本文一起阅读，帮助加深理解</p>
+<h2 id="后续">后续</h2>
+<p>下一篇会继续讨论前端监控，讲解具体如何实现：定位源码、播放录屏等功能</p>
+<h2 id="文章系列">文章系列</h2>
+<p>文章系列地址：<a href="https://github.com/xy-sea/blog">github.com/xy-sea/blog</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/464/"
+      ><span class="mr-1.5">←</span><span>JavaScript知识点Import Maps</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/462/"
+      ><span>15 个为 Web 开发人员准备的杀手级网站资源</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

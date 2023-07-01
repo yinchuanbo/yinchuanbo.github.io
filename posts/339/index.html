@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>深入探究选择器的性能真相 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="在 CSS 中，有些选择器会比其他选择器执行速度更快。下面就来深入研究 CSS 选择器的性能真相，看看如何编写 CSS 选择器才能更快地执行！
+幕后 编写 CSS 选择器的方式会影响浏览器如何渲染页面。每当页面发生变化时，运行它的浏览器引擎需要查看新的 DOM 树，并确定如何根据可用的 CSS 样式表对其进行样式设置。这种将样式与 DOM 节点匹配的操作称为重新计算样式。浏览器引擎需要查看所有规则并决定哪些规则适用于给定元素。为此，引擎需要从右向左查看选择器规则。
+例如，当引擎看到像.wrapper .section .title .link这样的选择器时，它会首先尝试将link类与元素匹配，如果匹配，则从右到左沿链向上找到类名为title的祖先元素，然后找到类名为section的元素，最后找到类名为wrapper的元素。
+这个例子说明，浏览器引擎只匹配 .link 可能比匹配更长的 .wrapper .section .title .link 选择器更快，因为需要检查的更少了。
+当然，类并不是在 CSS 选择器中可以使用的唯一类型标识符。一个有趣的例子就是使用属性选择器并进行子字符串匹配，如 [class*=&quot;icon-&quot;]，这选择器就要求浏览器引擎不仅要检查元素是否有 class 属性，还要检查这个属性的值是否包含子字符串 icon-。这个例子说明，不同的选择器编写方式可能需要引擎或多或少的工作来应用 CSS 规则。
+在实践中，这重要吗？ 这在很大程度上取决于网页、DOM 树的大小、CSS 规则的数量以及 DOM 是否经常变化。不幸的是，并没有关于这方面的规则。
+事实上，谈到规则，我们喜欢为什么是好的和什么是坏的制定规则。规则帮助我们快速做出决定，并在编写代码和设计软件时提供指导。但这也会让我们无法了解具体情况下真正发生的事。
+在编写 CSS 选择器时，严格应用规则或使用 linter 自动执行，在某些情况下可能会适得其反。过于复杂的 CSS 选择器，再加上变化很大的巨大 DOM 树，很可能会导致性能不佳。过度的套用理论规则来获得更好的性能，可能会使 CSS 更难阅读和维护，并且实际收益并不大。
+因此，尽可能以对应用有意义且易于阅读和维护的方式来编写代码，然后再去衡量重要用户场景的实际性能。
+性能测量工具 Edge 浏览器中的 DevTools 提供了一个性能工具，它可以帮助我们测量页面性能。在实际的测试中，我们要为用户建立同理心，并尽可能使用他们实际使用的设备。因为往往开发机器可能比用户的设备强大得多。DevTools 可以直接从工具内部降低 CPU 和网络连接速度。
+从 Edge 109 版本开始，DevTools 中的性能工具可以列出样式重新计算中成本最高的选择器。使用方法如下：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="深入探究选择器的性能真相" />
+<meta property="og:description" content="在 CSS 中，有些选择器会比其他选择器执行速度更快。下面就来深入研究 CSS 选择器的性能真相，看看如何编写 CSS 选择器才能更快地执行！
+幕后 编写 CSS 选择器的方式会影响浏览器如何渲染页面。每当页面发生变化时，运行它的浏览器引擎需要查看新的 DOM 树，并确定如何根据可用的 CSS 样式表对其进行样式设置。这种将样式与 DOM 节点匹配的操作称为重新计算样式。浏览器引擎需要查看所有规则并决定哪些规则适用于给定元素。为此，引擎需要从右向左查看选择器规则。
+例如，当引擎看到像.wrapper .section .title .link这样的选择器时，它会首先尝试将link类与元素匹配，如果匹配，则从右到左沿链向上找到类名为title的祖先元素，然后找到类名为section的元素，最后找到类名为wrapper的元素。
+这个例子说明，浏览器引擎只匹配 .link 可能比匹配更长的 .wrapper .section .title .link 选择器更快，因为需要检查的更少了。
+当然，类并不是在 CSS 选择器中可以使用的唯一类型标识符。一个有趣的例子就是使用属性选择器并进行子字符串匹配，如 [class*=&quot;icon-&quot;]，这选择器就要求浏览器引擎不仅要检查元素是否有 class 属性，还要检查这个属性的值是否包含子字符串 icon-。这个例子说明，不同的选择器编写方式可能需要引擎或多或少的工作来应用 CSS 规则。
+在实践中，这重要吗？ 这在很大程度上取决于网页、DOM 树的大小、CSS 规则的数量以及 DOM 是否经常变化。不幸的是，并没有关于这方面的规则。
+事实上，谈到规则，我们喜欢为什么是好的和什么是坏的制定规则。规则帮助我们快速做出决定，并在编写代码和设计软件时提供指导。但这也会让我们无法了解具体情况下真正发生的事。
+在编写 CSS 选择器时，严格应用规则或使用 linter 自动执行，在某些情况下可能会适得其反。过于复杂的 CSS 选择器，再加上变化很大的巨大 DOM 树，很可能会导致性能不佳。过度的套用理论规则来获得更好的性能，可能会使 CSS 更难阅读和维护，并且实际收益并不大。
+因此，尽可能以对应用有意义且易于阅读和维护的方式来编写代码，然后再去衡量重要用户场景的实际性能。
+性能测量工具 Edge 浏览器中的 DevTools 提供了一个性能工具，它可以帮助我们测量页面性能。在实际的测试中，我们要为用户建立同理心，并尽可能使用他们实际使用的设备。因为往往开发机器可能比用户的设备强大得多。DevTools 可以直接从工具内部降低 CPU 和网络连接速度。
+从 Edge 109 版本开始，DevTools 中的性能工具可以列出样式重新计算中成本最高的选择器。使用方法如下：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/339/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-01T20:19:22+08:00" />
+<meta property="article:modified_time" content="2023-02-01T20:19:22+08:00" />
+
+  
+  <meta itemprop="name" content="深入探究选择器的性能真相">
+<meta itemprop="description" content="在 CSS 中，有些选择器会比其他选择器执行速度更快。下面就来深入研究 CSS 选择器的性能真相，看看如何编写 CSS 选择器才能更快地执行！
+幕后 编写 CSS 选择器的方式会影响浏览器如何渲染页面。每当页面发生变化时，运行它的浏览器引擎需要查看新的 DOM 树，并确定如何根据可用的 CSS 样式表对其进行样式设置。这种将样式与 DOM 节点匹配的操作称为重新计算样式。浏览器引擎需要查看所有规则并决定哪些规则适用于给定元素。为此，引擎需要从右向左查看选择器规则。
+例如，当引擎看到像.wrapper .section .title .link这样的选择器时，它会首先尝试将link类与元素匹配，如果匹配，则从右到左沿链向上找到类名为title的祖先元素，然后找到类名为section的元素，最后找到类名为wrapper的元素。
+这个例子说明，浏览器引擎只匹配 .link 可能比匹配更长的 .wrapper .section .title .link 选择器更快，因为需要检查的更少了。
+当然，类并不是在 CSS 选择器中可以使用的唯一类型标识符。一个有趣的例子就是使用属性选择器并进行子字符串匹配，如 [class*=&quot;icon-&quot;]，这选择器就要求浏览器引擎不仅要检查元素是否有 class 属性，还要检查这个属性的值是否包含子字符串 icon-。这个例子说明，不同的选择器编写方式可能需要引擎或多或少的工作来应用 CSS 规则。
+在实践中，这重要吗？ 这在很大程度上取决于网页、DOM 树的大小、CSS 规则的数量以及 DOM 是否经常变化。不幸的是，并没有关于这方面的规则。
+事实上，谈到规则，我们喜欢为什么是好的和什么是坏的制定规则。规则帮助我们快速做出决定，并在编写代码和设计软件时提供指导。但这也会让我们无法了解具体情况下真正发生的事。
+在编写 CSS 选择器时，严格应用规则或使用 linter 自动执行，在某些情况下可能会适得其反。过于复杂的 CSS 选择器，再加上变化很大的巨大 DOM 树，很可能会导致性能不佳。过度的套用理论规则来获得更好的性能，可能会使 CSS 更难阅读和维护，并且实际收益并不大。
+因此，尽可能以对应用有意义且易于阅读和维护的方式来编写代码，然后再去衡量重要用户场景的实际性能。
+性能测量工具 Edge 浏览器中的 DevTools 提供了一个性能工具，它可以帮助我们测量页面性能。在实际的测试中，我们要为用户建立同理心，并尽可能使用他们实际使用的设备。因为往往开发机器可能比用户的设备强大得多。DevTools 可以直接从工具内部降低 CPU 和网络连接速度。
+从 Edge 109 版本开始，DevTools 中的性能工具可以列出样式重新计算中成本最高的选择器。使用方法如下："><meta itemprop="datePublished" content="2023-02-01T20:19:22+08:00" />
+<meta itemprop="dateModified" content="2023-02-01T20:19:22+08:00" />
+<meta itemprop="wordCount" content="347">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="深入探究选择器的性能真相"/>
+<meta name="twitter:description" content="在 CSS 中，有些选择器会比其他选择器执行速度更快。下面就来深入研究 CSS 选择器的性能真相，看看如何编写 CSS 选择器才能更快地执行！
+幕后 编写 CSS 选择器的方式会影响浏览器如何渲染页面。每当页面发生变化时，运行它的浏览器引擎需要查看新的 DOM 树，并确定如何根据可用的 CSS 样式表对其进行样式设置。这种将样式与 DOM 节点匹配的操作称为重新计算样式。浏览器引擎需要查看所有规则并决定哪些规则适用于给定元素。为此，引擎需要从右向左查看选择器规则。
+例如，当引擎看到像.wrapper .section .title .link这样的选择器时，它会首先尝试将link类与元素匹配，如果匹配，则从右到左沿链向上找到类名为title的祖先元素，然后找到类名为section的元素，最后找到类名为wrapper的元素。
+这个例子说明，浏览器引擎只匹配 .link 可能比匹配更长的 .wrapper .section .title .link 选择器更快，因为需要检查的更少了。
+当然，类并不是在 CSS 选择器中可以使用的唯一类型标识符。一个有趣的例子就是使用属性选择器并进行子字符串匹配，如 [class*=&quot;icon-&quot;]，这选择器就要求浏览器引擎不仅要检查元素是否有 class 属性，还要检查这个属性的值是否包含子字符串 icon-。这个例子说明，不同的选择器编写方式可能需要引擎或多或少的工作来应用 CSS 规则。
+在实践中，这重要吗？ 这在很大程度上取决于网页、DOM 树的大小、CSS 规则的数量以及 DOM 是否经常变化。不幸的是，并没有关于这方面的规则。
+事实上，谈到规则，我们喜欢为什么是好的和什么是坏的制定规则。规则帮助我们快速做出决定，并在编写代码和设计软件时提供指导。但这也会让我们无法了解具体情况下真正发生的事。
+在编写 CSS 选择器时，严格应用规则或使用 linter 自动执行，在某些情况下可能会适得其反。过于复杂的 CSS 选择器，再加上变化很大的巨大 DOM 树，很可能会导致性能不佳。过度的套用理论规则来获得更好的性能，可能会使 CSS 更难阅读和维护，并且实际收益并不大。
+因此，尽可能以对应用有意义且易于阅读和维护的方式来编写代码，然后再去衡量重要用户场景的实际性能。
+性能测量工具 Edge 浏览器中的 DevTools 提供了一个性能工具，它可以帮助我们测量页面性能。在实际的测试中，我们要为用户建立同理心，并尽可能使用他们实际使用的设备。因为往往开发机器可能比用户的设备强大得多。DevTools 可以直接从工具内部降低 CPU 和网络连接速度。
+从 Edge 109 版本开始，DevTools 中的性能工具可以列出样式重新计算中成本最高的选择器。使用方法如下："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">深入探究选择器的性能真相</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Feb 1, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>在 CSS 中，有些选择器会比其他选择器执行速度更快。下面就来深入研究 CSS 选择器的性能真相，看看如何编写 CSS 选择器才能更快地执行！</p>
+<h2 id="幕后">幕后</h2>
+<p>编写 CSS 选择器的方式会影响浏览器如何渲染页面。每当页面发生变化时，运行它的浏览器引擎需要查看新的 DOM 树，并确定如何根据可用的 CSS 样式表对其进行样式设置。这种将样式与 DOM 节点匹配的操作称为<strong>重新计算样式</strong>。浏览器引擎需要查看所有规则并决定哪些规则适用于给定元素。为此，引擎需要<strong>从右向左</strong>查看选择器规则。</p>
+<p>例如，当引擎看到像<code>.wrapper .section .title .link</code>这样的选择器时，它会首先尝试将<code>link</code>类与元素匹配，如果匹配，则从右到左沿链向上找到类名为<code>title</code>的祖先元素，然后找到类名为<code>section</code>的元素，最后找到类名为<code>wrapper</code>的元素。</p>
+<p>这个例子说明，浏览器引擎只匹配 <code>.link</code> 可能比匹配更长的 <code>.wrapper .section .title .link</code> 选择器更快，因为需要检查的更少了。</p>
+<p>当然，类并不是在 CSS 选择器中可以使用的唯一类型标识符。一个有趣的例子就是使用属性选择器并进行子字符串匹配，如 <code>[class*=&quot;icon-&quot;]</code>，这选择器就要求浏览器引擎不仅要检查元素是否有 <code>class</code> 属性，还要检查这个属性的值是否包含子字符串 <code>icon-</code>。这个例子说明，不同的选择器编写方式可能需要引擎或多或少的工作来应用 CSS 规则。</p>
+<h2 id="在实践中这重要吗">在实践中，这重要吗？</h2>
+<p>这在很大程度上取决于网页、DOM 树的大小、CSS 规则的数量以及 DOM 是否经常变化。不幸的是，并没有关于这方面的规则。</p>
+<p>事实上，谈到规则，我们喜欢为<strong>什么是好的</strong>和<strong>什么是坏的</strong>制定规则。规则帮助我们快速做出决定，并在编写代码和设计软件时提供指导。但这也会让我们无法了解具体情况下真正发生的事。</p>
+<p>在编写 CSS 选择器时，严格应用规则或使用 linter 自动执行，在某些情况下可能会适得其反。过于复杂的 CSS 选择器，再加上变化很大的巨大 DOM 树，很可能会导致性能不佳。过度的套用理论规则来获得更好的性能，可能会使 CSS 更难阅读和维护，并且实际收益并不大。</p>
+<p>因此，尽可能以对应用有意义且易于阅读和维护的方式来编写代码，然后再去衡量重要用户场景的实际性能。</p>
+<h2 id="性能测量工具">性能测量工具</h2>
+<p>Edge 浏览器中的 DevTools 提供了一个性能工具，它可以帮助我们测量页面性能。在实际的测试中，我们要为用户建立同理心，并尽可能使用他们实际使用的设备。因为往往开发机器可能比用户的设备强大得多。DevTools 可以直接从工具内部降低 CPU 和网络连接速度。</p>
+<img src="/imgs/21/02.png" />
+<p>从 Edge 109 版本开始，DevTools 中的性能工具可以列出样式重新计算中成本最高的选择器。使用方法如下：</p>
+<ol>
+<li>打开 DevTools 中的性能工具；</li>
+<li>点击右上角的齿轮图标打开工具设置。</li>
+<li>选中 <code>Enable advanced rendering instrumentation (slow)</code> 选项；</li>
+</ol>
+<img src="/imgs/21/03.png" />
+<ol start="4">
+<li>点击录制按钮，在要改进的网页上执行特定场景，然后单击停止；</li>
+<li>在记录的配置文件中，确定要改进的重新计算样式，并在瀑布视图（“<strong>主要</strong>”部分）中选择它；</li>
+<li>在底部的选项卡栏中，点击“<strong>选择器统计信息</strong>”进行查看。</li>
+</ol>
+<img src="/imgs/21/04.png" />
+<p>DevTools 现在提供了浏览器引擎在此重新计算操作期间计算的所有 CSS 选择器的列表，可以按选择器处理时间或匹配次数对选择器进行排序。</p>
+<p>如果发现一个选择器需要很长时间来处理，并且匹配了很多次，那么它可能就是一个可以优化的对象。选择器是否可以简化？是否可以更具体地描述需要匹配的元素？</p>
+<h2 id="案例分析">案例分析</h2>
+<p>下面通过一个照片库案例，看看如何改进 CSS 选择器的性能！</p>
+<img src="/imgs/21/05.png" />
+<p>这个页面顶部有一个工具栏，可以按相机型号、光圈、曝光时间等过滤照片。现在在相机型号之间切换感觉有点慢。所以，主要关注如下场景：</p>
+<ol>
+<li>加载页面，并等待过滤器准备就绪；</li>
+<li>将相机型号切换到另一个值并开始记录性能；</li>
+<li>切换回所有相机型号并停止录制。</li>
+</ol>
+<p>当切换回所有相机型号时速度很慢，因此只需要测量这一过程。我们还将 CPU 速度降低四倍，以获得比通常在功能强大的开发机器上获得的结果更真实的结果。</p>
+<p>录制准备就绪后，可以在配置文件中看到一个长的<strong>重新样式计算</strong>块，总计执行超过 900 毫秒。点击这个块，打开<strong>选择器统计信息</strong>，然后按运行时间排序：</p>
+<img src="/imgs/21/06.png" />
+<p>一个选择器需要匹配的工作越多，匹配的次数越多，通过改进这个选择器获得的性能提升就越多。在列表中，主要关注以下选择器：</p>
+<ul>
+<li><code>.gallery .photo .meta ::selection</code></li>
+<li><code>.gallery .photo .meta li strong:empty</code></li>
+<li><code>[class*=&quot; gallery-icon--&quot;]::before</code></li>
+<li><code>.gallery .photo .meta li</code></li>
+<li><code>*</code></li>
+<li><code>html[dir=&quot;rtl&quot;] .gallery .photo .meta li button</code></li>
+</ul>
+<h3 id="改进-selection-选择器">改进 <code>::selection</code> 选择器</h3>
+<p><code>.gallery.photo.meta ::selection</code> 选择器用来匹配照片元数据被用户选中时的背景和文本颜色。当用户选择照片下方的文本时，将使用自定义颜色而不是浏览器默认颜色。</p>
+<p>由于代码中的错误，这种特殊情况实际上是有问题的。真正的代码应该是 <code>.gallery.photo.meta::selection</code>，即<code>::selection</code>前面没有空格。因为这个错误的空格，选择器实际上被引擎解析为 <code>.gallery .photo .meta *::selection</code>，这使得在样式重新计算期间匹配起来要慢得多，因为引擎需要检查所有 DOM 元素，然后验证它们是否嵌套在正确的祖先中。</p>
+<p>如果没有多余的空格，引擎只需要检查元素是否具有<code>.meta</code>类，然后再继续即可。</p>
+<h3 id="改进-empty-选择器">改进 <code>:empty</code> 选择器</h3>
+<p><code>.gallery .photo .meta li strong:empty</code>中的 <code>:empty</code> 选择器表示仅在 <code>strong</code> 元素没有任何内容时匹配。这就可能需要引擎做更多的工作，而不仅仅是检查元素的标签名称。</p>
+<p>查看与此类似的其他 CSS 规则，可以看到：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span>.<span style="color:#a6e22e">gallery</span> .<span style="color:#a6e22e">photo</span> .<span style="color:#a6e22e">meta</span> <span style="color:#f92672">li</span> <span style="color:#f92672">strong</span>:<span style="color:#a6e22e">empty</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">padding</span>: <span style="color:#ae81ff">0.125</span><span style="color:#66d9ef">rem</span> <span style="color:#ae81ff">2</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">margin-left</span>: <span style="color:#ae81ff">0.125</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background</span>: <span style="color:#a6e22e">var</span>(<span style="color:#f92672">--</span>dim<span style="color:#f92672">-</span>bg<span style="color:#f92672">-</span><span style="color:#66d9ef">color</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">html</span><span style="color:#f92672">[</span><span style="color:#f92672">dir</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;rtl&#34;</span><span style="color:#f92672">]</span> .<span style="color:#a6e22e">gallery</span> .<span style="color:#a6e22e">photo</span> .<span style="color:#a6e22e">meta</span> <span style="color:#f92672">li</span> <span style="color:#f92672">strong</span>:<span style="color:#a6e22e">empty</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">margin-left</span>: <span style="color:#66d9ef">unset</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">margin-right</span>: <span style="color:#ae81ff">0.125</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>相同的选择器重复两次，但第二个选择器以 <code>html[dir=rtl]</code> 为前缀，当页面上的文本方向是从右到左时，<code>rtl</code> 方向规则会覆盖左边距并将其替换为右边距。</p>
+<p>为了改进这一点，可以使用 CSS 逻辑属性。可以使用符合任何文本方向的逻辑边距方向，而不是指定物理边距方向：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span>.<span style="color:#a6e22e">gallery</span> .<span style="color:#a6e22e">photo</span> .<span style="color:#a6e22e">meta</span> <span style="color:#f92672">li</span> <span style="color:#f92672">strong</span>:<span style="color:#a6e22e">empty</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">padding</span>: <span style="color:#ae81ff">0.125</span><span style="color:#66d9ef">rem</span> <span style="color:#ae81ff">2</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>  margin-inline-start: <span style="color:#ae81ff">0.125</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background</span>: <span style="color:#a6e22e">var</span>(<span style="color:#f92672">--</span>dim<span style="color:#f92672">-</span>bg<span style="color:#f92672">-</span><span style="color:#66d9ef">color</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这样，第二个选择器 <code>html[dir=&quot;rtl&quot;] .gallery .photo .meta li button</code> 就可以去掉了。</p>
+<h3 id="改进-classgallery-icon---选择器">改进 <code>[class*=&quot;gallery-icon--&quot;]</code> 选择器</h3>
+<p>以下是使用此选择器的 CSS 规则：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">[</span><span style="color:#f92672">class</span><span style="color:#f92672">*=</span><span style="color:#e6db74">&#34; gallery-icon--&#34;</span><span style="color:#f92672">]</span>::<span style="color:#a6e22e">before</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">content</span>: <span style="color:#e6db74">&#34;&#34;</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">display</span>: <span style="color:#66d9ef">block</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">width</span>: <span style="color:#ae81ff">1</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">1</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-size</span>: <span style="color:#66d9ef">contain</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-repeat</span>: <span style="color:#66d9ef">no-repeat</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-position</span>: <span style="color:#66d9ef">center</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">filter</span>: contrast(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">gallery-icon--camera</span>::<span style="color:#a6e22e">before</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-image</span>: url(<span style="color:#e6db74">...</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">gallery-icon--aperture</span>::<span style="color:#a6e22e">before</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-image</span>: url(<span style="color:#e6db74">...</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">gallery-icon--exposure</span>::<span style="color:#a6e22e">before</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-image</span>: url(<span style="color:#e6db74">...</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这里可以通过图标类给元素添加对应的图标。这就要求引擎读取类名并对其进行子字符串搜索。可以通过以下方式帮助引擎减少工作量：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span>.<span style="color:#a6e22e">gallery-icon</span>::<span style="color:#a6e22e">before</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">content</span>: <span style="color:#e6db74">&#34;&#34;</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">display</span>: <span style="color:#66d9ef">block</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">width</span>: <span style="color:#ae81ff">1</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">1</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-size</span>: <span style="color:#66d9ef">contain</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-repeat</span>: <span style="color:#66d9ef">no-repeat</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-position</span>: <span style="color:#66d9ef">center</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">filter</span>: contrast(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">gallery-icon</span>.<span style="color:#a6e22e">camera</span>::<span style="color:#a6e22e">before</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-image</span>: url(<span style="color:#e6db74">...</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">gallery-icon</span>.<span style="color:#a6e22e">aperture</span>::<span style="color:#a6e22e">before</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-image</span>: url(<span style="color:#e6db74">...</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">gallery-icon</span>.<span style="color:#a6e22e">exposure</span>::<span style="color:#a6e22e">before</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-image</span>: url(<span style="color:#e6db74">...</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>现在，不只使用一个类，而是向元素添加两个类：<code>&lt;div class=&quot;gallery-icon camera&quot;&gt;</code>，而不是 <code>&lt;div class=&quot;gallery-icon--camera&quot;&gt;</code>，这样就无需再读取类名以及搜索子字符串，减少了浏览器引擎的工作量。</p>
+<h3 id="改进-gallery-photo-meta-li-选择器">改进 <code>.gallery .photo .meta li</code> 选择器</h3>
+<p>这个选择器会强制浏览器去检查 <code>li</code> 元素的祖先列表中的多个层级。案例的网页中有很多 <code>li</code> 元素，这可能意味着很多工作。</p>
+<p>可以通过为 <code>li</code> 元素指定一个特定的类并删除不必要的嵌套来简化它：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span>.<span style="color:#a6e22e">photo-meta</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">display</span>: <span style="color:#66d9ef">flex</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">align-items</span>: <span style="color:#66d9ef">center</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">gap</span>: <span style="color:#ae81ff">0.5</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">1.5</span><span style="color:#66d9ef">rem</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="改进--选择器">改进 <code>*</code> 选择器</h3>
+<p><code>*</code>符号在 CSS 中用作匹配任何元素的通用选择器。这种匹配任何内容的能力意味着引擎需要将相关规则应用于所有元素。在性能记录中可以看到，这个选择器被匹配了很多次。</p>
+<p>在案例中，它应用了一个特定的 <code>box-sizing</code> 值：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">*</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">box-sizing</span>: <span style="color:#66d9ef">border-box</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这在 CSS 中很常见，但最好删除它，仅在需要时设置 <code>box-sizing</code> 属性。</p>
+<h3 id="改进结果">改进结果</h3>
+<p>完成以上改进之后，再来查看这个场景的性能情况：</p>
+<img src="/imgs/21/07.png" />
+<p>在第一次性能记录中，同样的“<strong>重新计算样式</strong>”块运行时间几乎为一秒，现在运行时间约为 300 毫秒，性能获得了很大的提升！</p>
+<h2 id="总结">总结</h2>
+<p>案例研究表明，改进某些 CSS 选择器可以带来重要的性能提升。然而，关键是要记住，这主要取决于特定用例。可以使用性能工具来测试网页的性能，如果发现样式重新计算使渲染变慢，就使用 Edge 浏览器中新的“<strong>选择器统计信息</strong>”功能！</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/340/"
+      ><span class="mr-1.5">←</span><span>纯 CSS 实现十个还不错的 Loading 效果</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/338/"
+      ><span>Object.is() 详解</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

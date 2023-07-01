@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>前端的项目构建性能优化和页面性能优化 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="简介 当我们说前端性能优化的时候，指的可能是不同场景的性能优化。前端涉及性能优化的场景主要有：
+项目构建性能优化 页面性能优化 加载时性能优化 运行时性能优化 构建性能主要指构建速度，优化方法和打包工具直接相关，主要思路是缓存 &#43; 并行。
+页面性能主要指页面加载速度和流畅度，很明显页面性能指标都是从用户体验角度出发的，
+页面性能优化目标是尽可能快地展示出页面内容，尽可能快地使功能可用，减少页面卡顿，提升用户体验。
+【注意页面性能优化的工作需要在构建、部署和编码各阶段进行处理，例如构建时候代码压缩，部署时候资源打散及 CDN 部署，编码节点注意 DOM 操作减少卡顿。】
+性能优化应该从这几个方面来掌握
+评价指标 优化方法 瓶颈分析（方法及工具） 性能优化的步骤通常是
+设立指标 瓶颈分析 针对性能瓶颈优化 监控指标，观察优化效果 继续优化 本文假定你已经对 chrome 的 performance 工具和 window.performance API 有一定了解。
+本文主要介绍页面性能优化。
+浏览器原理 在了解页面性能优化之前，需要知道浏览器工作原理，这就涉及一个老生常谈的问题
+从输入 url 到看到界面的过程
+下面列出主要步骤
+1. 检查缓存 如果浏览器有本地的静态资源缓存，并且未过期，则直接从缓存中读取，而不会发送网络请求。
+2. DNS 解析 将输入的 url 对应的域名解析成 ip，DNS 解析过程根据 本机的 hosts 文件-&gt;本地 DNS 缓存-&gt;本地域名服务器的优先级解析域名，在域名解析过程还可能涉及和顶级域名服务器、根域名服务器、根域名服务器的交互。
+3. 发送 HTTP 请求 建立 TCP 连接，如果是 HTTPS 还需要建立 TLS 连接，然后发送 HTTP 请求，并接收响应，如果响应状态码为 301/302 还需要进行重定向。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="前端的项目构建性能优化和页面性能优化" />
+<meta property="og:description" content="简介 当我们说前端性能优化的时候，指的可能是不同场景的性能优化。前端涉及性能优化的场景主要有：
+项目构建性能优化 页面性能优化 加载时性能优化 运行时性能优化 构建性能主要指构建速度，优化方法和打包工具直接相关，主要思路是缓存 &#43; 并行。
+页面性能主要指页面加载速度和流畅度，很明显页面性能指标都是从用户体验角度出发的，
+页面性能优化目标是尽可能快地展示出页面内容，尽可能快地使功能可用，减少页面卡顿，提升用户体验。
+【注意页面性能优化的工作需要在构建、部署和编码各阶段进行处理，例如构建时候代码压缩，部署时候资源打散及 CDN 部署，编码节点注意 DOM 操作减少卡顿。】
+性能优化应该从这几个方面来掌握
+评价指标 优化方法 瓶颈分析（方法及工具） 性能优化的步骤通常是
+设立指标 瓶颈分析 针对性能瓶颈优化 监控指标，观察优化效果 继续优化 本文假定你已经对 chrome 的 performance 工具和 window.performance API 有一定了解。
+本文主要介绍页面性能优化。
+浏览器原理 在了解页面性能优化之前，需要知道浏览器工作原理，这就涉及一个老生常谈的问题
+从输入 url 到看到界面的过程
+下面列出主要步骤
+1. 检查缓存 如果浏览器有本地的静态资源缓存，并且未过期，则直接从缓存中读取，而不会发送网络请求。
+2. DNS 解析 将输入的 url 对应的域名解析成 ip，DNS 解析过程根据 本机的 hosts 文件-&gt;本地 DNS 缓存-&gt;本地域名服务器的优先级解析域名，在域名解析过程还可能涉及和顶级域名服务器、根域名服务器、根域名服务器的交互。
+3. 发送 HTTP 请求 建立 TCP 连接，如果是 HTTPS 还需要建立 TLS 连接，然后发送 HTTP 请求，并接收响应，如果响应状态码为 301/302 还需要进行重定向。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/371/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-05T19:12:33+08:00" />
+<meta property="article:modified_time" content="2023-03-05T19:12:33+08:00" />
+
+  
+  <meta itemprop="name" content="前端的项目构建性能优化和页面性能优化">
+<meta itemprop="description" content="简介 当我们说前端性能优化的时候，指的可能是不同场景的性能优化。前端涉及性能优化的场景主要有：
+项目构建性能优化 页面性能优化 加载时性能优化 运行时性能优化 构建性能主要指构建速度，优化方法和打包工具直接相关，主要思路是缓存 &#43; 并行。
+页面性能主要指页面加载速度和流畅度，很明显页面性能指标都是从用户体验角度出发的，
+页面性能优化目标是尽可能快地展示出页面内容，尽可能快地使功能可用，减少页面卡顿，提升用户体验。
+【注意页面性能优化的工作需要在构建、部署和编码各阶段进行处理，例如构建时候代码压缩，部署时候资源打散及 CDN 部署，编码节点注意 DOM 操作减少卡顿。】
+性能优化应该从这几个方面来掌握
+评价指标 优化方法 瓶颈分析（方法及工具） 性能优化的步骤通常是
+设立指标 瓶颈分析 针对性能瓶颈优化 监控指标，观察优化效果 继续优化 本文假定你已经对 chrome 的 performance 工具和 window.performance API 有一定了解。
+本文主要介绍页面性能优化。
+浏览器原理 在了解页面性能优化之前，需要知道浏览器工作原理，这就涉及一个老生常谈的问题
+从输入 url 到看到界面的过程
+下面列出主要步骤
+1. 检查缓存 如果浏览器有本地的静态资源缓存，并且未过期，则直接从缓存中读取，而不会发送网络请求。
+2. DNS 解析 将输入的 url 对应的域名解析成 ip，DNS 解析过程根据 本机的 hosts 文件-&gt;本地 DNS 缓存-&gt;本地域名服务器的优先级解析域名，在域名解析过程还可能涉及和顶级域名服务器、根域名服务器、根域名服务器的交互。
+3. 发送 HTTP 请求 建立 TCP 连接，如果是 HTTPS 还需要建立 TLS 连接，然后发送 HTTP 请求，并接收响应，如果响应状态码为 301/302 还需要进行重定向。"><meta itemprop="datePublished" content="2023-03-05T19:12:33+08:00" />
+<meta itemprop="dateModified" content="2023-03-05T19:12:33+08:00" />
+<meta itemprop="wordCount" content="943">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="前端的项目构建性能优化和页面性能优化"/>
+<meta name="twitter:description" content="简介 当我们说前端性能优化的时候，指的可能是不同场景的性能优化。前端涉及性能优化的场景主要有：
+项目构建性能优化 页面性能优化 加载时性能优化 运行时性能优化 构建性能主要指构建速度，优化方法和打包工具直接相关，主要思路是缓存 &#43; 并行。
+页面性能主要指页面加载速度和流畅度，很明显页面性能指标都是从用户体验角度出发的，
+页面性能优化目标是尽可能快地展示出页面内容，尽可能快地使功能可用，减少页面卡顿，提升用户体验。
+【注意页面性能优化的工作需要在构建、部署和编码各阶段进行处理，例如构建时候代码压缩，部署时候资源打散及 CDN 部署，编码节点注意 DOM 操作减少卡顿。】
+性能优化应该从这几个方面来掌握
+评价指标 优化方法 瓶颈分析（方法及工具） 性能优化的步骤通常是
+设立指标 瓶颈分析 针对性能瓶颈优化 监控指标，观察优化效果 继续优化 本文假定你已经对 chrome 的 performance 工具和 window.performance API 有一定了解。
+本文主要介绍页面性能优化。
+浏览器原理 在了解页面性能优化之前，需要知道浏览器工作原理，这就涉及一个老生常谈的问题
+从输入 url 到看到界面的过程
+下面列出主要步骤
+1. 检查缓存 如果浏览器有本地的静态资源缓存，并且未过期，则直接从缓存中读取，而不会发送网络请求。
+2. DNS 解析 将输入的 url 对应的域名解析成 ip，DNS 解析过程根据 本机的 hosts 文件-&gt;本地 DNS 缓存-&gt;本地域名服务器的优先级解析域名，在域名解析过程还可能涉及和顶级域名服务器、根域名服务器、根域名服务器的交互。
+3. 发送 HTTP 请求 建立 TCP 连接，如果是 HTTPS 还需要建立 TLS 连接，然后发送 HTTP 请求，并接收响应，如果响应状态码为 301/302 还需要进行重定向。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">前端的项目构建性能优化和页面性能优化</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 5, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h1 id="简介">简介</h1>
+<p>当我们说前端性能优化的时候，指的可能是不同场景的性能优化。前端涉及性能优化的场景主要有：</p>
+<ul>
+<li>项目构建性能优化</li>
+<li>页面性能优化
+<ul>
+<li>加载时性能优化</li>
+<li>运行时性能优化</li>
+</ul>
+</li>
+</ul>
+<p>构建性能主要指构建速度，优化方法和打包工具直接相关，主要思路是缓存 + 并行。</p>
+<p>页面性能主要指页面加载速度和流畅度，很明显页面性能指标都是从用户体验角度出发的，</p>
+<p>页面性能优化目标是尽可能快地展示出页面内容，尽可能快地使功能可用，减少页面卡顿，提升用户体验。</p>
+<p>【注意页面性能优化的工作需要在构建、部署和编码各阶段进行处理，例如构建时候代码压缩，部署时候资源打散及 CDN 部署，编码节点注意 DOM 操作减少卡顿。】</p>
+<p><strong>性能优化应该从这几个方面来掌握</strong></p>
+<ol>
+<li>评价指标</li>
+<li>优化方法</li>
+<li>瓶颈分析（方法及工具）</li>
+</ol>
+<p><strong>性能优化的步骤通常是</strong></p>
+<ol>
+<li>设立指标</li>
+<li>瓶颈分析</li>
+<li>针对性能瓶颈优化</li>
+<li>监控指标，观察优化效果</li>
+<li>继续优化</li>
+</ol>
+<p>本文假定你已经对 chrome 的 performance 工具和 window.performance API 有一定了解。</p>
+<p>本文主要介绍页面性能优化。</p>
+<h1 id="浏览器原理">浏览器原理</h1>
+<p>在了解页面性能优化之前，需要知道浏览器工作原理，这就涉及一个老生常谈的问题</p>
+<p><strong>从输入 url 到看到界面的过程</strong></p>
+<p>下面列出主要步骤</p>
+<h2 id="1-检查缓存">1. 检查缓存</h2>
+<p>如果浏览器有本地的静态资源缓存，并且未过期，则直接从缓存中读取，而不会发送网络请求。</p>
+<h2 id="2-dns-解析">2. DNS 解析</h2>
+<p>将输入的 url 对应的域名解析成 ip，DNS 解析过程根据 本机的 hosts 文件-&gt;本地 DNS 缓存-&gt;本地域名服务器的优先级解析域名，在域名解析过程还可能涉及和顶级域名服务器、根域名服务器、根域名服务器的交互。</p>
+<h2 id="3-发送-http-请求">3. 发送 HTTP 请求</h2>
+<p>建立 TCP 连接，如果是 HTTPS 还需要建立 TLS 连接，然后发送 HTTP 请求，并接收响应，如果响应状态码为 301/302 还需要进行重定向。</p>
+<h2 id="4-将响应数据提交给渲染进程处理">4. 将响应数据提交给渲染进程处理</h2>
+<p>渲染进程解析 HTML，这个过程中，会提前解析外链（link 和 script）并提前下载。</p>
+<h2 id="5-构建-dom">5. 构建 DOM</h2>
+<p>将 HTML 数据转换为 DOM。</p>
+<h2 id="6-样式计算">6. 样式计算</h2>
+<p>将 CSS 转换为 CSSOM（document.styleSheets），并根据 CSSOM 计算 DOM 节点的样式得到 computedStyle。</p>
+<h2 id="7-布局">7. 布局</h2>
+<p>根据 DOM 树和 ComputedStyle 生成布局树。</p>
+<h2 id="8-分层">8. 分层</h2>
+<p>根据布局树生成不同的层，得到分层树。</p>
+<h2 id="9-绘制">9. 绘制</h2>
+<p>对每个层生成绘制指令。然后渲染引擎将绘制指令提交给合成线程处理。</p>
+<h2 id="10-分块">10. 分块</h2>
+<p>合成线程会先将每个图层分块（tile），优先渲染视口附近的块。合成线程把 tile 提供给栅格化线程。</p>
+<h2 id="11-栅格化">11. 栅格化</h2>
+<p>栅格化线程把每个块转成位图，并写到显存中。一旦所有图块都被栅格化，合成线程就会生成一个绘制图块的命令——“DrawQuad”，然后将该命令提交给浏览器进程。DrawQuad 是一系列的指令，这些指令引用了显存中的 tile 位图。</p>
+<h2 id="12-合成">12. 合成</h2>
+<p>浏览器进程接收到 DrawQuad，并用指令将 tile 合成完整的帧，然后调用 GPU 进程将合成后的帧绘制到屏幕上。</p>
+<h1 id="性能优化原理">性能优化原理</h1>
+<h2 id="加载阶段">加载阶段</h2>
+<p>加载阶段可以划分为两个大的阶段，URL 请求阶段和渲染阶段。上述从 URL 请求到看到界面的过程简述了整个过程。下面详细说明过程中的细节。</p>
+<h3 id="过程">过程</h3>
+<h4 id="url-请求阶段">URL 请求阶段</h4>
+<p>从上一部分内容可以知道，URL 请求阶段主要有缓存、DNS 检查、发送 HTTP 请求，这个阶段通常是服务器的响应时间占用大部分时间。对于静态资源，服务器的响应时间一般不会成为瓶颈；对于服务端渲染则需要进行缓存等优化处理。</p>
+<p>针对这个阶段，有一些常用优化手段。</p>
+<ol>
+<li>使用 httpDNS</li>
+<li>减少重定向</li>
+<li>静态资源服务器 gzip</li>
+<li>静态资源使用</li>
+<li>服务器升级带宽</li>
+<li>升级服务器配置</li>
+<li>数据库优化（对于服务端渲染的页面）</li>
+<li>缓存动态网页（对于服务端渲染的页面）</li>
+<li>还有可能是服务器被攻击导致缓慢，更换高防服务器</li>
+<li>善用缓存</li>
+</ol>
+<h4 id="渲染阶段">渲染阶段</h4>
+<p>从上述“<strong>从输入 url 到看到界面的过程</strong>”，我们知道渲染阶段有解析 HTML 构建 DOM、样式计算、布局、分层、绘制、分块、栅格化、合成这几个步骤。这其中耗时较长的，最容易造成瓶颈的是构建 DOM、样式计算这 2 个步骤。</p>
+<p>下面我们详细说明构建 DOM、样式计算这 2 个步骤。</p>
+<p>在这两个步骤中，存在几个关键的操作：解析 HTML 构建 DOM、下载 CSS、解析 CSS、下载 JavaScript、解析并执行 JavaScript。</p>
+<p>这两个步骤的更详细的操作流程是</p>
+<ol>
+<li><strong>预解析 HTML，预加载 link 和 script 外链。</strong> 现代浏览器对外链加载做了优化，会在渲染进程接收到 HTML 数据字节流时候就开始预解析 HTML，预解析会找到 HTML 中的外链并交给下载进程提前加载。</li>
+<li>解析 HTML，构建 DOM。</li>
+<li>遇到 style 标签或者 link 外链加载好后，解析 CSS，构建 CSSOM。</li>
+<li>遇到 script 标签，停止解析 HTML，等待外链 CSS 加载并解析完成、内联 CSS 解析完成后，再执行 JavaScript。执行完 JavaScript 再开始解析 HTML。如果外链的 script 标签有 defer/async 属性，则该 script 标签的下载和执行时候不会停止解析 HTML。若存在 defer 属性，JavaScript 会等 DOMContentLoaded 事件触发后再开始执行；若存在 async 属性，JavaScript 会等下载完再执行。动态创建的标签也会在下载完成后再执行。</li>
+</ol>
+<p>这里需要注意</p>
+<p>通常 HTML 会解析完成再渲染，除非内容非常多（例如几千个节点的列表），当节点很多时候，html 解析一部分后就会开始渲染。</p>
+<p>这和等待时间没有关系，比如使用一个 100000 循环的 Javascript 代码 block 住 html 解析，html 还是会等解析完再渲染。</p>
+<p>另外，动态创建的标签，执行顺序和创建并挂载的顺序不一定相同。</p>
+<p>从上面操作流程可以得到各操作阻塞的总结</p>
+<ul>
+<li>css 解析会<strong>阻塞</strong>渲染。因为构造渲染树需要 CSSOM，因此 CSS 解析完成是后续工作的先决条件。</li>
+<li>css 下载会<strong>阻塞</strong>js 执行，不会阻塞 html 解析。</li>
+<li>js 下载和执行会<strong>阻塞</strong>html。</li>
+<li>在执行 JavaScript 脚本之前，会先加载并解析页面中的 CSS 样式（包括 link 标签和 style 标签）（如果存在）。也就是说 CSS 在部分情况下也会<strong>阻塞</strong> DOM 的生成。</li>
+<li>defer 的 js 会异步下载执行，不阻塞 HTML 解析。</li>
+<li>async 的 js 会异步下载，下载完执行，即下载不阻塞 HTML 解析，但执行阻塞 HTML 解析。</li>
+</ul>
+<p>由于解析 HTML、加载 CSS、解析 CSS、加载 JavaScript、解析并执行 JavaScript 之间会有相互阻塞，因此为了尽快到达构造渲染树的阶段，有两个原则：</p>
+<ol>
+<li>尽量避免阻塞</li>
+<li>缩短阻塞时间</li>
+</ol>
+<p>从上面对关键资源阻塞规律的总结可以知道，CSS 的下载和解析对于首次构建布局树是必要的步骤，没有办法避免。JavaScript 的下载、解析和执行则不应该阻塞 HTML 解析，为什么呢？首先，如果 JavaScript 没有操作 DOM，那么首次构建布局树不需要 JavaScript；如果 JavaScript 操作了 DOM，也应该在整个 HTML 解析完，基本的 DOM 树构建好了之后再开始执行 JavaScript 操作 DOM。</p>
+<p>因此样式资源放在 head 标签中，这样并不会造成不必要的阻塞，并且代码会更规整；JavaScript 应该放在 body 底部或者加上 defer/async 属性或者动态创建 script 标签（动态创建的 script 标签外链会异步加载）避免 JavaScript 的下载执行阻塞 HTML 的解析。</p>
+<p>如何缩短阻塞时间呢？有 2 个原则：尽可能少、尽可能早。</p>
+<p>资源量尽可能少（压缩、雪碧图、按需加载）、请求次数尽可能少（打包）、让无依赖关系的资源尽可能早加载而不是等待排队（域名打散、分包，即并行）、请求链路尽可能少（CDN）</p>
+<p>尽可能早解析 DNS（DNS 预解析）</p>
+<h3 id="加载阶段性能优化">加载阶段性能优化</h3>
+<p>下面列举常见的加载阶段性能优化方法，这些优化方法都是根据“尽可能少”、“尽可能早”的原则实现的优化手段。</p>
+<h4 id="1-减少需要请求的资源尺寸资源压缩删除冗余代码和其他资源或者使用尺寸更小的资源">1. 减少需要请求的资源尺寸：资源压缩、删除冗余代码和其他资源，或者使用尺寸更小的资源</h4>
+<ul>
+<li>代码压缩，包括 js/css/html 都应该压缩。</li>
+<li>服务器开启 gzip。</li>
+<li>iconfont 代替图片。</li>
+<li>使用 webp 图片，在质量相同的情况下，WebP 格式图像的体积要比 JPEG 格式图像小 40%。</li>
+<li>删除无用代码（摇树 js 和 css、删除 console.log）。</li>
+<li>模块按需加载（antd、lodash、moment 等常用的第三方库，不用的模块不打包进项目）</li>
+</ul>
+<h4 id="2-减少请求数量">2. 减少请求数量</h4>
+<ul>
+<li>合并请求，由于每次请求时候，实际传输的内容只占整个请求过程的较少一部分时间，因此合并内容让多个请求变成一个可以节约请求中建立连接、排队等待等耗时。</li>
+<li>雪碧图，图片合成，避免每个图片都要发一次请求。</li>
+<li>内联较小的 js css、图片（转成 base64）等资源，避免再发一次请求获取资源。</li>
+</ul>
+<h4 id="3-缓存">3. 缓存</h4>
+<ul>
+<li>使用强缓存，文件名加 hash 后缀，这样只要文件内容不变，就会读缓存内容。</li>
+<li>文件分包，更好地利用缓存，不常改变的资源分离出来。</li>
+<li>使用 cdn，注意要避免 html 被 cdn 缓存，可以在 cdn 服务配置不缓存 html 资源，也可以把 html 部署在自己的服务器。</li>
+</ul>
+<h4 id="4-并行请求">4. 并行请求</h4>
+<ul>
+<li>域名打散（针对 http1）。</li>
+<li>使用 http2。（当然 http2 还有二进制等好处）。</li>
+</ul>
+<h4 id="5-按需加载">5. 按需加载</h4>
+<ul>
+<li>图片按需加载，只下载可视区附近的图片。</li>
+<li>组件懒加载，路由懒加载，其实路由懒加载本质也是组件懒加载。</li>
+<li>其他资源懒加载，避免由于模块引用关系不当，导致首屏页面加载了首屏用不到的 CSS、字体图标、图片等资源。</li>
+</ul>
+<h4 id="6-预加载">6. 预加载</h4>
+<ul>
+<li>dns 预解析，使用<code>&lt; link rel=&quot;dns-prefetch&quot;href=&quot;//my.domain&quot;&gt;</code>对域名做预解析，后续资源加载时候会跳过 dns 预解析的阶段，直接使用 dns 的结果。</li>
+<li>资源预加载，首屏完成后，可以采取某种机制预加载二屏资源。</li>
+</ul>
+<h4 id="7-注意事项">7. 注意事项</h4>
+<ul>
+<li>异步加载 js（async、defer、放到 body 底部、动态创建 script 标签）。</li>
+<li>不使用 CSS @import，CSS 的@import 会造成额外的请求 用代替@import 。</li>
+<li>避免空的 src 和 href 留意具有这两个属性的标签如 link，script，img，iframe 等；</li>
+</ul>
+<h4 id="8-服务端渲染和预渲染">8. 服务端渲染和预渲染。</h4>
+<p>主流框架都支持 SSR，并有开箱即用的框架，服务端渲染有优异的首屏性能，并且对 SEO 更友好。</p>
+<p>预渲染目的提升首屏性能，预渲染就是在构建阶段，启用无头浏览器，加载项目的路由，并渲染出首屏页面（也可以配置其他路由），然后生成静态页面，输出到指定的目录。</p>
+<p><a href="https://www.yuque.com/baiyueguang-rfnbu/tr4d0i/oqxr9u#xYQBb">prerender-spa-plugin</a></p>
+<h3 id="指标">指标</h3>
+<p>对于加载阶段，一个常用指标是 TTFB，Time To First Byte，首字节响应时间，指从发送请求到收到首个字节。大多数服务器的 TTFB 时间都在 100ms 以内，这个时间就是我们优化时候可以追求的时间。</p>
+<p>这里的 TTFB 指的是 HTML 资源的 TTFB，因为浏览器收到 HTML 时候才会开始构建 DOM，进入渲染阶段。</p>
+<p>使用 performance API 计算方法</p>
+<pre tabindex="0"><code>performance.timing.responseStart - performance.timing.requestStart
+</code></pre><p>对于渲染阶段，主要的指标是首屏和白屏。</p>
+<p>白屏时间 = 地址栏输入网址后回车 - 浏览器出现第一个元素</p>
+<p>首屏时间 = 地址栏输入网址后回车 - 浏览器第一屏渲染完成</p>
+<p>实际上浏览器没有 API 返回白屏和首屏时间，我们需要用其他 API 近似计算。</p>
+<p>网上有些文章提到在 HTML 中加 script 标签计算白屏和首屏</p>
+<p>例如计算白屏时间的方法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;白屏&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;text/javascript&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 不兼容performance.timing 的浏览器，如IE8
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      window.<span style="color:#a6e22e">pageStartTime</span> <span style="color:#f92672">=</span> Date.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">&lt;!-- 页面 CSS 资源 --&gt;</span>
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;common.css&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;page.css&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;text/javascript&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 白屏时间结束点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      window.<span style="color:#a6e22e">firstPaint</span> <span style="color:#f92672">=</span> Date.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">&lt;!-- 页面内容 --&gt;</span>
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p>白屏时间 = firstPaint - performance.timing.navigationStart || pageStartTime。</p>
+<p>这些方法在没有 performance API 的时代很常用，但是它们有较大的问题。这些方法一方面容易受其他 script 标签位置影响，比如如果在 body 前部有个耗时长的 script 标签，那么 body 的渲染将会被延后，渲染之前将一直是白屏。因此这样计算白屏并不准确。另一方面这些方法代码侵入性较强，不通用。</p>
+<p>也有使用 performance.timing.domloading 事件作为白屏结束时间点。这也不准确，因为该事件表示渲染引擎开始解析 HTML，如果有 script 执行 block，渲染同样会延后。</p>
+<p>目前计算白屏和首屏比较常用的方法是：</p>
+<p><strong>白屏结束时间 = FP 事件触发时间</strong></p>
+<p><strong>首屏结束时间 = FCP 事件触发时间</strong></p>
+<p>业界（Core Web Vitals）新的标准更关注最大内容的渲染时间 LCP（largest contentful paint），认为 LCP 能够更好地衡量用户关注的主要内容的加载速度。</p>
+<p>关于页面性能指标更详细内容，请阅读<a href="https://www.yuque.com/baiyueguang-rfnbu/tr4d0i/yzpshu/edit?toc_node_uuid=yzTpojEFgdutoGlM">页面性能指标</a></p>
+<h3 id="瓶颈分析">瓶颈分析</h3>
+<p>对于 TTFB 指标，如果是客户端渲染，那么通常服务器响应时间不会成为网页加载性能的瓶颈，因为静态资源服务器在网络请求时候使用的资源很小，不会有很大压力。如果是服务端渲染网页，就需要服务器做好并发优化、数据库优化、缓存策略等工作，并做好监控以保证响应时间不会过长影响页面加载。</p>
+<p>对于白屏和首屏，评估网页性能瓶颈需要区分客户端渲染和服务端渲染。</p>
+<p>客户端渲染一般只有一个 root 节点用于 js 挂载 dom。因此应该尽早加载用于操作 DOM 生成首屏 DOM 树的 JavaScript 代码。服务端渲染项目返回给浏览器的是处理好的完整 HTML，解析完 HTML、load 完依赖资源就可以开始渲染了，因此服务端渲染应该更关注如何避免 HTML 解析被阻塞。</p>
+<p>客户端渲染主要关注压缩文件、按需加载。服务端渲染复杂一些，需要考虑避免关键渲染路径上的阻塞。</p>
+<p>加载阶段瓶颈分析可以使用现成的网页性能测试工具，如</p>
+<p><a href="https://www.webpagetest.org">webpagetest</a></p>
+<p><a href="https://pagespeed.web.dev">pagespeed</a></p>
+<p>lighthouse（可以使用 chrome 的 lighthouse devtool，也可以用 nodejs API）</p>
+<p>hiper（基于 node 的性能分析工具）</p>
+<p>注意一些网页性能测试工具可能需要科学上网。</p>
+<p>这些网页性能测试工具都会从各个维度对网页性能打分，并给出优化建议。</p>
+<p>也可以使用 chrome 的 performance 和 network 工具观察网页加载渲染行为，从而找出性能瓶颈。</p>
+<p>使用 performance 工具关注主要的事件（FCP），看触发之前有哪些操作是不必要的或者过长的（如是否加载了不必要的资源、资源加载事件是否过长，资源是否过大等）。</p>
+<p>加载阶段：network 查看是否关键资源尽快下载完、是否有过大的文件而未压缩、是否有并行下载过多的情况。</p>
+<h3 id="监控">监控</h3>
+<p>监控通常使用 performance API 采集关键事件点上报，根据上面对指标的介绍可以总结上报的主要指标如下</p>
+<pre tabindex="0"><code>const ttfb = performance.timing.responseStart - performance.timing.requestStart;
+
+// FP
+const fp = performance.getEntries(&#39;paint&#39;).filter(entry =&gt; entry.name == &#39;first-paint&#39;)[0].startTime;
+
+// FCP
+const fcp = performance.getEntries(&#39;paint&#39;).filter(entry =&gt; entry.name == &#39;first-contentful-paint&#39;)[0].startTime;
+
+// Onload Event
+const l = performance.timing.loadEventEnd - performance.timing.navigationStart;
+</code></pre><p>数据上报之后，通常使用 fp 数据表示白屏时间，使用 fcp/Max(fcp, l)时间表示首屏时间。一般会通过 95 分位/98 分位的数据来评估网页性能。</p>
+<h2 id="运行阶段">运行阶段</h2>
+<h3 id="渲染过程">渲染过程</h3>
+<h4 id="首次加载的渲染过程">首次加载的渲染过程</h4>
+<p>在上面已经讨论过，渲染过程的关键操作是</p>
+<ol>
+<li>html 转成 dom</li>
+<li>计算 style</li>
+<li>生成布局树</li>
+<li>分层，生成分层树</li>
+<li>主线程给每个图层生成绘制列表，交给合成线程处理</li>
+<li>合成线程将图层分块</li>
+<li>合成线程在光栅化线程池中将图块转成位图</li>
+<li>合成线程发送绘制图块的命令 drawquad 给浏览器进程</li>
+<li>浏览器根据命令绘制，并显示在显示器上</li>
+</ol>
+<h4 id="重排和重绘">重排和重绘</h4>
+<p>如果 JavaScript 做了修改 DOM 元素的几何属性（位置、尺寸）等操作，将会重新计算 style，并且需要更新布局树，然后执行后面的渲染操作，即从 1~9 的步骤需要重新执行一遍。这个过程叫“<strong>重排</strong>”。</p>
+<p>如果 JavaScript 修改了 DOM 的非几何属性，如修改了元素的背景颜色，不需要更新布局树和重新构建分层树，只需要<strong>重新绘制</strong>，即省略了 3、4 两个阶段。</p>
+<p>在页面运行中，应该尽量避免重排和重绘，以提升渲染性能。</p>
+<h4 id="什么情况会触发重排">什么情况会触发重排</h4>
+<p>除了首次加载，还有一些其他的操作会引起重排</p>
+<ul>
+<li>
+<p>DOM 元素移动、增加、删除和内容改变会触发回流。</p>
+</li>
+<li>
+<p>当 DOM 元素的几何属性（<code>width</code> 、<code>height</code> 、<code>padding</code> 、<code>margin</code> 、<code>border</code>）发生变化就会触发回流。</p>
+</li>
+<li>
+<p>读写元素的<code>offset</code> 、<code>scroll</code> 、<code>client</code>等属性会触发回流。</p>
+</li>
+<li>
+<p>调用<code>window.getComputedStyle</code>会触发回流。</p>
+</li>
+</ul>
+<p>注意，多次修改样式并不一定触发多次回流，例如</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;root&#34;</span>).<span style="color:#a6e22e">stlye</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;100px&#34;</span>;
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;root&#34;</span>).<span style="color:#a6e22e">stlye</span>.<span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;100px&#34;</span>;
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;root&#34;</span>).<span style="color:#a6e22e">stlye</span>.<span style="color:#a6e22e">top</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;10px&#34;</span>;
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;root&#34;</span>).<span style="color:#a6e22e">stlye</span>.<span style="color:#a6e22e">left</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;10px&#34;</span>;
+</span></span></code></pre></div><p>上面代码只会触发一次回流，这是因为浏览器自身有优化机制。</p>
+<p>但是获取 offset 等元素属性，每获取一次都会触发一次回流，这是因为 offset 等属性，要回流完才能获取到最准确的值。</p>
+<h4 id="如何减少重排">如何减少重排</h4>
+<p>在更新界面时候，应该尽量避免重排。</p>
+<p><strong>1、避免元素影响到所在文档流</strong></p>
+<p>用绝对定位（<code>position: absolute;</code>）使元素脱离文档流，这样元素的变化不会导致其他元素的布局变化，也就不会引起重排。</p>
+<p>如果使用 CSS 的 transform 属性实现动画，则不需要重排和重绘，直接在合成线程合成动画操作，即省略了 3、4、5 三个阶段。由于没有占用主线程资源，并且跳过重排和重绘阶段，因此这样性能最高。</p>
+<p><strong>2、读写分离</strong></p>
+<p>当 JS 对 DOM 样式进行读写时候，浏览器会如何操作呢？</p>
+<p>浏览器对<strong>写操作</strong>会采用渲染队列机制，将写操作放入异步渲染队列，异步批量执行。当 JS 遇到<strong>读操作</strong>时候（<code>offset</code> 、<code>scroll</code> 、<code>client</code>），会把异步队列中相关的操作提前执行，以便获取到准确的值。</p>
+<p>下面通过几个示例理解这个过程。</p>
+<p>当使用 JS 修改样式时候，可能触发重排，例如</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">left</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;10px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">top</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;10px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;20px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;20px&#34;</span>;
+</span></span></code></pre></div><p>上面代码执行后，浏览器并不会触发 4 次重排，而是会将 3 个操作放入一个渲染队列中，异步批量执行，因此可能只会触发一次重排。</p>
+<p>当遇到读操作时候，则立刻执行渲染队列中相关操作，从而马上触发重排。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">left</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;10px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetLeft</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">top</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;10px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetTop</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;20px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetWidth</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;20px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetHeight</span>);
+</span></span></code></pre></div><p>上面每个<code>console.log()</code>都会让浏览器取出异步渲染队列中的写操作执行，然后返回重排后的值。</p>
+<p>对于上面的情况，为了避免重排，应该进行读写分离</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">left</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;10px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">top</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;10px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;20px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;20px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetLeft</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetTop</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetWidth</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetHeight</span>);
+</span></span></code></pre></div><p>上面代码在执行<code>console.log()</code>的时候，浏览器把之前上面四个写操作的渲染队列都给清空了。因为渲染队列是空的，所以后面的读操作并没有触发重排，仅仅取值而已。</p>
+<p>如果需要根据当前的样式设置新样式，应该先缓存当前样式，然后批量更新样式。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// bad 强制刷新，触发两次重排
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">left</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetLeft</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">top</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetTop</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;px&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// good 缓存布局信息，读写分离
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">curLeft</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetLeft</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">curTop</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">offsetTop</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">left</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">curLeft</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">top</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">curTop</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;px&#34;</span>;
+</span></span></code></pre></div><p><strong>3、集中改变样式</strong></p>
+<p>虽然浏览器有异步渲染队列的机制，但是异步 flush 的时机我们没有办法控制，为了保证性能，还是应该集中改变样式。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// bad
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">left</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">top</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">el</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">left</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">left</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">el</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">top</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">top</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;px&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// good
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">el</span>.<span style="color:#a6e22e">className</span> <span style="color:#f92672">+=</span> <span style="color:#e6db74">&#34; theclassname&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// good
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">el</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">cssText</span> <span style="color:#f92672">+=</span> <span style="color:#e6db74">&#34;; left: &#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">left</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;px; top: &#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">top</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;px;&#34;</span>;
+</span></span></code></pre></div><p><strong>4、离线改变 DOM</strong></p>
+<p>如果需要进行多个 DOM 操作（添加、删除、修改），不要在当前的 DOM 中连续操作（如循环插入<code>li</code>）。</p>
+<ul>
+<li>在要操作 DOM 之前，通过 display 隐藏 DOM，当操作完成之后，才将元素的 display 属性为可见，因为不可见的元素不会触发重排和重绘。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">dom</span>.<span style="color:#a6e22e">display</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;none&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 执行DOM操作...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">dom</span>.<span style="color:#a6e22e">display</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;block&#34;</span>;
+</span></span></code></pre></div><ul>
+<li>通过使用<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/DocumentFragment">DocumentFragment</a>创建一个 dom 碎片,在它上面批量操作 DOM，操作完成之后，再添加到文档中，这样只会触发一次重排。</li>
+<li>复制节点，在副本上操作，然后替换原节点。</li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/372/"
+      ><span class="mr-1.5">←</span><span>一文彻底了解Web Worker，十万条数据都是弟弟</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/370/"
+      ><span>图片的优化策略，推荐 WebP</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

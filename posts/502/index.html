@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>GitHub Actions 进行前端自动化部署 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 在本教程中，我将使用 GitHub Actions 实现前端项目的自动化部署到服务器。我将通过一个示例工作流，仓库中的主分支代码变动时自动进行构建、打包，并将构建后的文件传输到指定的服务器。
+基本术语介绍：
+name: 工作流的名称，应该具有描述性，以便团队成员能够快速理解工作流的用途。 on: 触发工作流的事件类型，例如 push、pull_request、schedule 等。根据需要选择适当的事件类型，以便在需要时自动触发工作流。 jobs: 工作流中的作业，每个作业可以包含一个或多个步骤，用于定义工作流的具体操作。作业可以并行运行，也可以按顺序运行，具体取决于工作流的需求和逻辑。 步骤定义：
+name: 步骤的名称，用于描述步骤的作用或功能。 run: 步骤的具体执行命令或脚本，可以是 Shell 命令、脚本文件路径或自定义命令。 env: 步骤的环境变量，用于设置步骤的运行环境。可以包含自定义的环境变量，以便在步骤中使用。 if: 步骤的条件判断，用于控制步骤是否执行。可以使用表达式来判断变量、条件和操作符等，从而实现灵活的流程控制。 uses: 步骤使用的 Action，可以是 GitHub Marketplace 中的官方 Action，也可以是团队或个人自定义的 Action。用于封装常用的操作或功能，从而简化工作流的编写和维护。 详细的可以去官方文档查看这边我就不多介绍了。
+🏷️ 开始 一、创建工作流 🗂️ 在 GitHub 仓库中使用 GitHub Actions，首先需要创建一个工作流（workflow）来定义需要执行的自动化任务。
+在仓库的根目录下创建一个名为 .github/workflows 的目录，如果已存在则不需要创建。 在 .github/workflows 目录下创建一个以 .yml 或 .yaml 为后缀的文件，作为工作流的配置文件，名字可以随便你取。例如 auto_deploy.yml。 当然你也直接通过可视化界面快速创建： 二、配置代码 📑 给工作流取个名字并设置触发条件。 name: AutoDeploy # 设置工作流的名称 on: push: # 设置触发事件为 push 事件 branches: - main # 仅当推送到 main 分支时触发 paths-ignore: # 忽略的文件或目录 - LICENSE - README." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="GitHub Actions 进行前端自动化部署" />
+<meta property="og:description" content="前言 在本教程中，我将使用 GitHub Actions 实现前端项目的自动化部署到服务器。我将通过一个示例工作流，仓库中的主分支代码变动时自动进行构建、打包，并将构建后的文件传输到指定的服务器。
+基本术语介绍：
+name: 工作流的名称，应该具有描述性，以便团队成员能够快速理解工作流的用途。 on: 触发工作流的事件类型，例如 push、pull_request、schedule 等。根据需要选择适当的事件类型，以便在需要时自动触发工作流。 jobs: 工作流中的作业，每个作业可以包含一个或多个步骤，用于定义工作流的具体操作。作业可以并行运行，也可以按顺序运行，具体取决于工作流的需求和逻辑。 步骤定义：
+name: 步骤的名称，用于描述步骤的作用或功能。 run: 步骤的具体执行命令或脚本，可以是 Shell 命令、脚本文件路径或自定义命令。 env: 步骤的环境变量，用于设置步骤的运行环境。可以包含自定义的环境变量，以便在步骤中使用。 if: 步骤的条件判断，用于控制步骤是否执行。可以使用表达式来判断变量、条件和操作符等，从而实现灵活的流程控制。 uses: 步骤使用的 Action，可以是 GitHub Marketplace 中的官方 Action，也可以是团队或个人自定义的 Action。用于封装常用的操作或功能，从而简化工作流的编写和维护。 详细的可以去官方文档查看这边我就不多介绍了。
+🏷️ 开始 一、创建工作流 🗂️ 在 GitHub 仓库中使用 GitHub Actions，首先需要创建一个工作流（workflow）来定义需要执行的自动化任务。
+在仓库的根目录下创建一个名为 .github/workflows 的目录，如果已存在则不需要创建。 在 .github/workflows 目录下创建一个以 .yml 或 .yaml 为后缀的文件，作为工作流的配置文件，名字可以随便你取。例如 auto_deploy.yml。 当然你也直接通过可视化界面快速创建： 二、配置代码 📑 给工作流取个名字并设置触发条件。 name: AutoDeploy # 设置工作流的名称 on: push: # 设置触发事件为 push 事件 branches: - main # 仅当推送到 main 分支时触发 paths-ignore: # 忽略的文件或目录 - LICENSE - README." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/502/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-17T17:50:42+08:00" />
+<meta property="article:modified_time" content="2023-04-17T17:50:42+08:00" />
+
+  
+  <meta itemprop="name" content="GitHub Actions 进行前端自动化部署">
+<meta itemprop="description" content="前言 在本教程中，我将使用 GitHub Actions 实现前端项目的自动化部署到服务器。我将通过一个示例工作流，仓库中的主分支代码变动时自动进行构建、打包，并将构建后的文件传输到指定的服务器。
+基本术语介绍：
+name: 工作流的名称，应该具有描述性，以便团队成员能够快速理解工作流的用途。 on: 触发工作流的事件类型，例如 push、pull_request、schedule 等。根据需要选择适当的事件类型，以便在需要时自动触发工作流。 jobs: 工作流中的作业，每个作业可以包含一个或多个步骤，用于定义工作流的具体操作。作业可以并行运行，也可以按顺序运行，具体取决于工作流的需求和逻辑。 步骤定义：
+name: 步骤的名称，用于描述步骤的作用或功能。 run: 步骤的具体执行命令或脚本，可以是 Shell 命令、脚本文件路径或自定义命令。 env: 步骤的环境变量，用于设置步骤的运行环境。可以包含自定义的环境变量，以便在步骤中使用。 if: 步骤的条件判断，用于控制步骤是否执行。可以使用表达式来判断变量、条件和操作符等，从而实现灵活的流程控制。 uses: 步骤使用的 Action，可以是 GitHub Marketplace 中的官方 Action，也可以是团队或个人自定义的 Action。用于封装常用的操作或功能，从而简化工作流的编写和维护。 详细的可以去官方文档查看这边我就不多介绍了。
+🏷️ 开始 一、创建工作流 🗂️ 在 GitHub 仓库中使用 GitHub Actions，首先需要创建一个工作流（workflow）来定义需要执行的自动化任务。
+在仓库的根目录下创建一个名为 .github/workflows 的目录，如果已存在则不需要创建。 在 .github/workflows 目录下创建一个以 .yml 或 .yaml 为后缀的文件，作为工作流的配置文件，名字可以随便你取。例如 auto_deploy.yml。 当然你也直接通过可视化界面快速创建： 二、配置代码 📑 给工作流取个名字并设置触发条件。 name: AutoDeploy # 设置工作流的名称 on: push: # 设置触发事件为 push 事件 branches: - main # 仅当推送到 main 分支时触发 paths-ignore: # 忽略的文件或目录 - LICENSE - README."><meta itemprop="datePublished" content="2023-04-17T17:50:42+08:00" />
+<meta itemprop="dateModified" content="2023-04-17T17:50:42+08:00" />
+<meta itemprop="wordCount" content="572">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="GitHub Actions 进行前端自动化部署"/>
+<meta name="twitter:description" content="前言 在本教程中，我将使用 GitHub Actions 实现前端项目的自动化部署到服务器。我将通过一个示例工作流，仓库中的主分支代码变动时自动进行构建、打包，并将构建后的文件传输到指定的服务器。
+基本术语介绍：
+name: 工作流的名称，应该具有描述性，以便团队成员能够快速理解工作流的用途。 on: 触发工作流的事件类型，例如 push、pull_request、schedule 等。根据需要选择适当的事件类型，以便在需要时自动触发工作流。 jobs: 工作流中的作业，每个作业可以包含一个或多个步骤，用于定义工作流的具体操作。作业可以并行运行，也可以按顺序运行，具体取决于工作流的需求和逻辑。 步骤定义：
+name: 步骤的名称，用于描述步骤的作用或功能。 run: 步骤的具体执行命令或脚本，可以是 Shell 命令、脚本文件路径或自定义命令。 env: 步骤的环境变量，用于设置步骤的运行环境。可以包含自定义的环境变量，以便在步骤中使用。 if: 步骤的条件判断，用于控制步骤是否执行。可以使用表达式来判断变量、条件和操作符等，从而实现灵活的流程控制。 uses: 步骤使用的 Action，可以是 GitHub Marketplace 中的官方 Action，也可以是团队或个人自定义的 Action。用于封装常用的操作或功能，从而简化工作流的编写和维护。 详细的可以去官方文档查看这边我就不多介绍了。
+🏷️ 开始 一、创建工作流 🗂️ 在 GitHub 仓库中使用 GitHub Actions，首先需要创建一个工作流（workflow）来定义需要执行的自动化任务。
+在仓库的根目录下创建一个名为 .github/workflows 的目录，如果已存在则不需要创建。 在 .github/workflows 目录下创建一个以 .yml 或 .yaml 为后缀的文件，作为工作流的配置文件，名字可以随便你取。例如 auto_deploy.yml。 当然你也直接通过可视化界面快速创建： 二、配置代码 📑 给工作流取个名字并设置触发条件。 name: AutoDeploy # 设置工作流的名称 on: push: # 设置触发事件为 push 事件 branches: - main # 仅当推送到 main 分支时触发 paths-ignore: # 忽略的文件或目录 - LICENSE - README."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">GitHub Actions 进行前端自动化部署</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 17, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ec6f49fd1776497585d1ad6875d51a57~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="GitHub Actions 进行前端自动化部署"></p>
+<h1 id="前言">前言</h1>
+<p>在本教程中，我将使用 GitHub Actions 实现前端项目的自动化部署到服务器。我将通过一个示例工作流，仓库中的主分支代码变动时自动进行构建、打包，并将构建后的文件传输到指定的服务器。</p>
+<p>基本术语介绍：</p>
+<ul>
+<li><code>name</code>: 工作流的名称，应该具有描述性，以便团队成员能够快速理解工作流的用途。</li>
+<li><code>on</code>: 触发工作流的事件类型，例如 <code>push</code>、<code>pull_request</code>、<code>schedule</code> 等。根据需要选择适当的事件类型，以便在需要时自动触发工作流。</li>
+<li><code>jobs</code>: 工作流中的作业，每个作业可以包含一个或多个步骤，用于定义工作流的具体操作。作业可以并行运行，也可以按顺序运行，具体取决于工作流的需求和逻辑。</li>
+</ul>
+<p>步骤定义：</p>
+<ul>
+<li><code>name</code>: 步骤的名称，用于描述步骤的作用或功能。</li>
+<li><code>run</code>: 步骤的具体执行命令或脚本，可以是 Shell 命令、脚本文件路径或自定义命令。</li>
+<li><code>env</code>: 步骤的环境变量，用于设置步骤的运行环境。可以包含自定义的环境变量，以便在步骤中使用。</li>
+<li><code>if</code>: 步骤的条件判断，用于控制步骤是否执行。可以使用表达式来判断变量、条件和操作符等，从而实现灵活的流程控制。</li>
+<li><code>uses</code>: 步骤使用的 Action，可以是 GitHub Marketplace 中的官方 Action，也可以是团队或个人自定义的 Action。用于封装常用的操作或功能，从而简化工作流的编写和维护。</li>
+</ul>
+<p>详细的可以去<a href="https://docs.github.com/en/actions">官方文档</a>查看这边我就不多介绍了。</p>
+<h1 id="-开始">🏷️ 开始</h1>
+<h4 id="一创建工作流-">一、创建工作流 🗂️</h4>
+<p>在 GitHub 仓库中使用 GitHub Actions，首先需要创建一个工作流（workflow）来定义需要执行的自动化任务。</p>
+<ol>
+<li>在仓库的根目录下创建一个名为 <code>.github/workflows</code> 的目录，如果已存在则不需要创建。</li>
+<li>在 <code>.github/workflows</code> 目录下创建一个以 <code>.yml</code> 或 <code>.yaml</code> 为后缀的文件，作为工作流的配置文件，名字可以随便你取。例如 <code>auto_deploy.yml</code>。</li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/399cdbe980bd4e51873eadd004d33fc8~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>当然你也直接通过可视化界面快速创建： <img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2880ae59a75c43cea4a11866a0dd5d27~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h4 id="二配置代码-">二、配置代码 📑</h4>
+<ol>
+<li>给工作流取个名字并设置触发条件。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">name</span>: <span style="color:#ae81ff">AutoDeploy</span> <span style="color:#75715e"># 设置工作流的名称</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">on</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">push</span>: <span style="color:#75715e"># 设置触发事件为 push 事件</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">branches</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">main</span> <span style="color:#75715e"># 仅当推送到 main 分支时触发</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">paths-ignore</span>: <span style="color:#75715e"># 忽略的文件或目录</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">LICENSE</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">README.md</span>
+</span></span></code></pre></div><ol start="2">
+<li>工作流作业和步骤。</li>
+</ol>
+<p>一个工作流文件可以包含很多个 jobs 工作，例如下面的示例中有<code>xxx1</code>,<code>xxx2</code>,<code>xxx3</code>三个工作依次执行，每个工作又可以定义很多个步骤。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">jobs</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">xxx1</span>: <span style="color:#ae81ff">....具体步骤</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">xxx2</span>: <span style="color:#ae81ff">....具体步骤</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">xxx3</span>: <span style="color:#ae81ff">....具体步骤</span>
+</span></span></code></pre></div><p>因为我们这次自动化部署比较简单所以这边我们就命名一个为<code>build</code>的工作。其中<code>runs-on</code>是指定运行环境的。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">jobs</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">build</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">runs-on</span>: <span style="color:#ae81ff">ubuntu-latest</span>
+</span></span></code></pre></div><ol start="3">
+<li>给命为<code>build</code>的工作写上具体<code>steps</code>步骤。</li>
+</ol>
+<p>想象一下在我们自己部署项目的时候都做了什么？是不是就是将写好的代码 build 一下然后把打包好的文件放到服务器的目录里。那么在 Github Action 中亦是如此。</p>
+<p>所以思路：拿代码-打包代码-放到服务器</p>
+<p>第一步：拿到我们仓库的代码放到前面的 ubuntu 环境中。我们使用官方提供的 action 脚本。 <a href="https://github.com/actions/checkout">actions/checkout</a></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Checkout</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/checkout@v3</span>
+</span></span></code></pre></div><p>第二步：安装 node 环境指定使用什么包管理器（自带了 npm、yarn、pnpm）。<br>
+<a href="https://github.com/actions/setup-node">actions/setup-node</a></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Setup</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/setup-node@v2</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">node-version</span>: <span style="color:#ae81ff">16</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">cache</span>: <span style="color:#e6db74">&#39;npm&#39;</span>
+</span></span></code></pre></div><p>第三步：安装我们项目中的依赖</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Install</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">run</span>: <span style="color:#ae81ff">npm install</span>
+</span></span></code></pre></div><p>第四步：执行构建（run 根据你自己项目自己的构建命令设置）</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span>        - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Build</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">if</span>: <span style="color:#ae81ff">${{ steps.release.outputs.release_created }}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">run</span>: <span style="color:#ae81ff">npm run build</span>
+</span></span></code></pre></div><p>第五步： 部署到服务器这里我使用的是<a href="https://github.com/appleboy">Bo-Yi Wu</a>大佬写的脚本<a href="https://github.com/appleboy/scp-action">appleboy/scp-action</a></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Appleboy</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">appleboy/scp-action@master</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">host</span>: <span style="color:#ae81ff">${{ secrets.USER_HOST }}</span> <span style="color:#75715e"># 服务器地址：xxx.xxx.xxx.xxx</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">username</span>: <span style="color:#ae81ff">${{ secrets.USER_NAME }}</span> <span style="color:#75715e"># 服务器名字 一般是root</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">key</span>: <span style="color:#ae81ff">${{ secrets.KEY }}</span> <span style="color:#75715e"># 服务器连接密钥</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">source</span>: <span style="color:#e6db74">&#39;./dist&#39;</span> <span style="color:#75715e"># 拷贝文件目录</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">target</span>: <span style="color:#ae81ff">${{ secrets.USER_TARGET }}</span> <span style="color:#75715e"># 服务器目标目录</span>
+</span></span></code></pre></div><h4 id="三配置密钥-">三、配置密钥 🔐</h4>
+<p>上面的这段代码我们没有直接将一些重要的服务器信息明文显示在文件中，这很不安全当然你要直接明文写上也是可以运行的。<br>
+<strong>设置密钥：</strong></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/28d8249974964d219170ea06bc631e55~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/225c25e71c0941aeb7a381e8274a31f3~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>建议命名全大写 <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/551237a610134251a214242f46334fc1~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"> 密钥 KEY：例如 pem 文件我们用记事本打开后拷贝进去即可。 <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e817e1a47ff64277b46191e2efc4b3c9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"> 将什么每一步的代码合起来并设置好密钥后就完成了整个简单的自动化部署。</p>
+<h4 id="四缓存优化-">四、缓存优化 ⌛️</h4>
+<p>前面的配置完成了整个自动化部署，但是在实际使用过程中我们会发现每次 Github 执行这个工作流的时候都非常的耗时间。于是我们需要给它加上缓存机制，避免重复下载和安装依赖、构建等耗时操作，从而减少整体的执行时间。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c1d4d73375a34b3eaba6be7714774b54~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<ul>
+<li>
+<p>我们通过<a href="https://github.com/actions/cache">actions/cache</a>来实现缓存。</p>
+<p>path： 指定要缓存的目录。这里是 <code>**/node_modules</code>，表示缓存所有项目中的 <code>node_modules</code> 目录。</p>
+<p>key：给这个缓存唯一的 key。 唯一 key 生成的方式有很多这里我使用：<code>${{runner.OS}}</code> 表示当前操作系统类型（如 ubuntu、macos、windows）<code>hashFiles('**/package-lock')</code> 表示对项目中所有的 <code>package-lock</code> 文件进行哈希计算，生成一个唯一的缓存键。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">cache</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">id</span>: <span style="color:#ae81ff">cache-dependencies</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/cache@v3</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">path</span>: |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        **/node_modules
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        key: ${{runner.OS}}-${{hashFiles(&#39;**/package-lock&#39;)}}</span>        
+</span></span></code></pre></div><p>现在缓存有了，那么我们就可以对步骤进行条件判断如果有缓存就不执行了。 例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">安装依赖</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">if</span>: <span style="color:#ae81ff">steps.cache-dependencies.outputs.cache-hit != &#39;true&#39;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">run</span>: <span style="color:#ae81ff">npm install</span>
+</span></span></code></pre></div><h2 id="-完整代码">🔩 完整代码</h2>
+<p>拷贝进去配置好密钥即可使用</p>
+<h4 id="npm-版">npm 版</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">name</span>: <span style="color:#ae81ff">AutoDeploy</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">on</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">push</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">branches</span>: [<span style="color:#ae81ff">master]</span> <span style="color:#75715e"># master分支push就执行该工作流</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">paths-ignore</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">LICENSE</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">README.md</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">jobs</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">build</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">runs-on</span>: <span style="color:#ae81ff">ubuntu-latest</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">steps</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">检出代码</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/checkout@v3</span> <span style="color:#75715e"># git 克隆到当前机器上</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Node环境</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/setup-node@v3</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">node-version</span>: <span style="color:#ae81ff">16.</span><span style="color:#ae81ff">x</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">cache</span>: <span style="color:#e6db74">&#34;npm&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">缓存检查</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">id</span>: <span style="color:#ae81ff">cache-dependencies</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/cache@v3</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">path</span>: |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            </span>            <span style="color:#75715e">**/node_modules</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">key</span>: <span style="color:#ae81ff">${{runner.OS}}-${{hashFiles(&#39;**/package-lock&#39;)}}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">安装依赖</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">if</span>: <span style="color:#ae81ff">steps.cache-dependencies.outputs.cache-hit != &#39;true&#39;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">run</span>: <span style="color:#ae81ff">npm install</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">打包构建</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">run</span>: <span style="color:#ae81ff">npm run build</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">部署</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">appleboy/scp-action@master</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">host</span>: <span style="color:#ae81ff">${{ secrets.USER_HOST }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">username</span>: <span style="color:#ae81ff">${{ secrets.USER_NAME }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">key</span>: <span style="color:#ae81ff">${{ secrets.KEY }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">source</span>: <span style="color:#e6db74">&#34;./dist&#34;</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">target</span>: <span style="color:#ae81ff">${{ secrets.USER_TARGET }}</span>
+</span></span></code></pre></div><h4 id="yarn-版">yarn 版</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">name</span>: <span style="color:#ae81ff">AutoDeploy</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">on</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">push</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">branches</span>: [<span style="color:#ae81ff">master]</span> <span style="color:#75715e"># master分支push就执行该工作流</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">paths-ignore</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">LICENSE</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">README.md</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">jobs</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">build</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">runs-on</span>: <span style="color:#ae81ff">ubuntu-latest</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">steps</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">检出代码</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/checkout@v3</span> <span style="color:#75715e"># git 克隆到当前机器上</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Node环境</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/setup-node@v3</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">node-version</span>: <span style="color:#ae81ff">16.</span><span style="color:#ae81ff">x</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">cache</span>: <span style="color:#e6db74">&#34;yarn&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">缓存检查</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">id</span>: <span style="color:#ae81ff">cache-dependencies</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/cache@v3</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">path</span>: |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            </span>            <span style="color:#75715e">**/node_modules</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">key</span>: <span style="color:#ae81ff">${{runner.OS}}-${{hashFiles(&#39;**/yarn.lock&#39;)}}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">安装依赖</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">if</span>: <span style="color:#ae81ff">steps.cache-dependencies.outputs.cache-hit != &#39;true&#39;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">run</span>: <span style="color:#ae81ff">yarn</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">打包构建</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">run</span>: <span style="color:#ae81ff">yarn build</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">查看打包后文件</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">run</span>: <span style="color:#ae81ff">ls -a</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">部署</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">appleboy/scp-action@master</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">host</span>: <span style="color:#ae81ff">${{ secrets.USER_HOST }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">username</span>: <span style="color:#ae81ff">${{ secrets.USER_NAME }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">key</span>: <span style="color:#ae81ff">${{ secrets.KEY }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">source</span>: <span style="color:#e6db74">&#34;./dist&#34;</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">target</span>: <span style="color:#ae81ff">${{ secrets.USER_TARGET }}</span>
+</span></span></code></pre></div><h4 id="pnpm-版">pnpm 版</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">name</span>: <span style="color:#ae81ff">AutoDeploy</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">on</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">push</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">branches</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">main</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">paths-ignore</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">LICENSE</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">README.md</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">jobs</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">build</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">runs-on</span>: <span style="color:#ae81ff">ubuntu-latest</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">steps</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">检出代码</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/checkout@v3</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Node环境</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/setup-node@v2</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">node-version</span>: <span style="color:#ae81ff">16</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">pnpm/action-setup@v2</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">name</span>: <span style="color:#ae81ff">安装pnpm</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">id</span>: <span style="color:#ae81ff">pnpm-install</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">version</span>: <span style="color:#ae81ff">8</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">run_install</span>: <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Get pnpm store directory</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">id</span>: <span style="color:#ae81ff">pnpm-cache</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">shell</span>: <span style="color:#ae81ff">bash</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">run</span>: |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">          </span>          <span style="color:#ae81ff">echo &#34;STORE_PATH=$(pnpm store path)&#34; &gt;&gt; $GITHUB_OUTPUT</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">actions/cache@v3</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Setup pnpm cache</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">path</span>: <span style="color:#ae81ff">${{ steps.pnpm-cache.outputs.STORE_PATH }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">key</span>: <span style="color:#ae81ff">${{ runner.os }}-pnpm-store-${{ hashFiles(&#39;**/pnpm-lock.yaml&#39;) }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">restore-keys</span>: |<span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            </span>            <span style="color:#ae81ff">${{ runner.os }}-pnpm-store-</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">安装依赖</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">if</span>: <span style="color:#ae81ff">steps.cache-hit.outputs.cache-hit != &#39;true&#39;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">run</span>: <span style="color:#ae81ff">pnpm install</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">打包构建</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">run</span>: <span style="color:#ae81ff">pnpm run build</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">部署</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">uses</span>: <span style="color:#ae81ff">appleboy/scp-action@master</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">host</span>: <span style="color:#ae81ff">${{ secrets.USER_HOST }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">username</span>: <span style="color:#ae81ff">${{ secrets.USER_NAME }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">key</span>: <span style="color:#ae81ff">${{ secrets.KEY }}</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">source</span>: <span style="color:#e6db74">&#34;./dist&#34;</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">target</span>: <span style="color:#ae81ff">${{ secrets.USER_TARGET }}</span>
+</span></span></code></pre></div><h2 id="-注意">📌 注意</h2>
+<ul>
+<li>配置代码缩进格式必须正确不然会不生效！</li>
+<li>尽量不要明文使用敏感信息。要使用 Secrets！</li>
+</ul>
+<h1 id="总结">总结</h1>
+<p>通过以上配置和步骤，实现了仓库代码接收推送到 main 分支时自动进行构建和部署的功能，提高了软件开发的效率和自动化程度。当然你可以根据自己的项目情况做更多的操作和限制。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/503/"
+      ><span class="mr-1.5">←</span><span>http 网络库 flyio 如何使用？</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/501/"
+      ><span>12个绝佳的UI设计网站，助力你的创作之旅！</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

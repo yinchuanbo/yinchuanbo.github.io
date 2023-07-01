@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>js实现贝塞尔曲线，div也能如此丝滑 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="今天遇到朋友发来的一个 ui 图，询问我如何实现下图这样的效果【vue 项目】，（听说是类似 LED 灯的展示效果），于是便有了今天的小 demo，要实现一个类似下图的动效，上面的灯会一直重复滚动，但是这个并不是什么难点，主要在于如何实现这种平滑的曲线，日常我们的开发的 div 在我们的脑海中通常就是一个网格状，涉及到平滑曲线的往往是图表，于是我们需要找一个方案来完成这种布局（非真实 ui 图，是完成之后的效果）
+分析 我们需要先简单分析一下这个 ui，当我们拿到这个 UI 图 的时候，脑海中的第一反应是，一个大的 DIV 中间套了很多的小的 DIV，并且小的的上下位置出现了偏移，但是偏移多少目前我们不得而知，但是基础的布局方案已经完成。
+第二步我们考虑球体的颜色，可以看到，轨道是一种颜色，需要一直移动的球体是另一种颜色，这个非常简单，我们定义两组数据，一组是轨道，一组是高亮的球，通过不段改变高亮的这组数据，即可响应式的完成灯的移动，第二点我们也解决了
+第三点，初始的时候考虑的是 y 的坐标是 0, 2, 4, 6, 8, 10 , 8, 6, 4 , 2 &hellip;.. ,但是很显然，这样的坐标出来的形状一定是一个折线图，而不是平滑的曲线，于是我们需要用到数学知识了：需要使用到圆的弧度的概念，在 javascript 中有两个方法 Math.sin()和 Math.cos() 都是关于弧度的公式，关于这两个方法，我们下面再说。
+实现 布局 实现这个的布局非常简单，外层一个大的 div，内层很多小的 span，通过 flex 一排即可到一排
+&lt;template&gt; &lt;div class=&#34;container&#34;&gt; &lt;div class=&#34;content&#34;&gt; &lt;span class=&#34;circle&#34; v-for=&#34;(item, index) in list&#34; :key=&#34;index&#34;&gt;&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;/template&gt; 如何计算 y 的偏移量 这一步是我们比较重要的一步，我们有一个 400px 的容器，容器中放置了 20 个 球 span ，现在他们在一排，我们只需要给他动态绑定样式 transform: translateY(?" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="js实现贝塞尔曲线，div也能如此丝滑" />
+<meta property="og:description" content="今天遇到朋友发来的一个 ui 图，询问我如何实现下图这样的效果【vue 项目】，（听说是类似 LED 灯的展示效果），于是便有了今天的小 demo，要实现一个类似下图的动效，上面的灯会一直重复滚动，但是这个并不是什么难点，主要在于如何实现这种平滑的曲线，日常我们的开发的 div 在我们的脑海中通常就是一个网格状，涉及到平滑曲线的往往是图表，于是我们需要找一个方案来完成这种布局（非真实 ui 图，是完成之后的效果）
+分析 我们需要先简单分析一下这个 ui，当我们拿到这个 UI 图 的时候，脑海中的第一反应是，一个大的 DIV 中间套了很多的小的 DIV，并且小的的上下位置出现了偏移，但是偏移多少目前我们不得而知，但是基础的布局方案已经完成。
+第二步我们考虑球体的颜色，可以看到，轨道是一种颜色，需要一直移动的球体是另一种颜色，这个非常简单，我们定义两组数据，一组是轨道，一组是高亮的球，通过不段改变高亮的这组数据，即可响应式的完成灯的移动，第二点我们也解决了
+第三点，初始的时候考虑的是 y 的坐标是 0, 2, 4, 6, 8, 10 , 8, 6, 4 , 2 &hellip;.. ,但是很显然，这样的坐标出来的形状一定是一个折线图，而不是平滑的曲线，于是我们需要用到数学知识了：需要使用到圆的弧度的概念，在 javascript 中有两个方法 Math.sin()和 Math.cos() 都是关于弧度的公式，关于这两个方法，我们下面再说。
+实现 布局 实现这个的布局非常简单，外层一个大的 div，内层很多小的 span，通过 flex 一排即可到一排
+&lt;template&gt; &lt;div class=&#34;container&#34;&gt; &lt;div class=&#34;content&#34;&gt; &lt;span class=&#34;circle&#34; v-for=&#34;(item, index) in list&#34; :key=&#34;index&#34;&gt;&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;/template&gt; 如何计算 y 的偏移量 这一步是我们比较重要的一步，我们有一个 400px 的容器，容器中放置了 20 个 球 span ，现在他们在一排，我们只需要给他动态绑定样式 transform: translateY(?" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/203/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-16T11:37:53+08:00" />
+<meta property="article:modified_time" content="2022-10-16T11:37:53+08:00" />
+
+  
+  <meta itemprop="name" content="js实现贝塞尔曲线，div也能如此丝滑">
+<meta itemprop="description" content="今天遇到朋友发来的一个 ui 图，询问我如何实现下图这样的效果【vue 项目】，（听说是类似 LED 灯的展示效果），于是便有了今天的小 demo，要实现一个类似下图的动效，上面的灯会一直重复滚动，但是这个并不是什么难点，主要在于如何实现这种平滑的曲线，日常我们的开发的 div 在我们的脑海中通常就是一个网格状，涉及到平滑曲线的往往是图表，于是我们需要找一个方案来完成这种布局（非真实 ui 图，是完成之后的效果）
+分析 我们需要先简单分析一下这个 ui，当我们拿到这个 UI 图 的时候，脑海中的第一反应是，一个大的 DIV 中间套了很多的小的 DIV，并且小的的上下位置出现了偏移，但是偏移多少目前我们不得而知，但是基础的布局方案已经完成。
+第二步我们考虑球体的颜色，可以看到，轨道是一种颜色，需要一直移动的球体是另一种颜色，这个非常简单，我们定义两组数据，一组是轨道，一组是高亮的球，通过不段改变高亮的这组数据，即可响应式的完成灯的移动，第二点我们也解决了
+第三点，初始的时候考虑的是 y 的坐标是 0, 2, 4, 6, 8, 10 , 8, 6, 4 , 2 &hellip;.. ,但是很显然，这样的坐标出来的形状一定是一个折线图，而不是平滑的曲线，于是我们需要用到数学知识了：需要使用到圆的弧度的概念，在 javascript 中有两个方法 Math.sin()和 Math.cos() 都是关于弧度的公式，关于这两个方法，我们下面再说。
+实现 布局 实现这个的布局非常简单，外层一个大的 div，内层很多小的 span，通过 flex 一排即可到一排
+&lt;template&gt; &lt;div class=&#34;container&#34;&gt; &lt;div class=&#34;content&#34;&gt; &lt;span class=&#34;circle&#34; v-for=&#34;(item, index) in list&#34; :key=&#34;index&#34;&gt;&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;/template&gt; 如何计算 y 的偏移量 这一步是我们比较重要的一步，我们有一个 400px 的容器，容器中放置了 20 个 球 span ，现在他们在一排，我们只需要给他动态绑定样式 transform: translateY(?"><meta itemprop="datePublished" content="2022-10-16T11:37:53+08:00" />
+<meta itemprop="dateModified" content="2022-10-16T11:37:53+08:00" />
+<meta itemprop="wordCount" content="399">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="js实现贝塞尔曲线，div也能如此丝滑"/>
+<meta name="twitter:description" content="今天遇到朋友发来的一个 ui 图，询问我如何实现下图这样的效果【vue 项目】，（听说是类似 LED 灯的展示效果），于是便有了今天的小 demo，要实现一个类似下图的动效，上面的灯会一直重复滚动，但是这个并不是什么难点，主要在于如何实现这种平滑的曲线，日常我们的开发的 div 在我们的脑海中通常就是一个网格状，涉及到平滑曲线的往往是图表，于是我们需要找一个方案来完成这种布局（非真实 ui 图，是完成之后的效果）
+分析 我们需要先简单分析一下这个 ui，当我们拿到这个 UI 图 的时候，脑海中的第一反应是，一个大的 DIV 中间套了很多的小的 DIV，并且小的的上下位置出现了偏移，但是偏移多少目前我们不得而知，但是基础的布局方案已经完成。
+第二步我们考虑球体的颜色，可以看到，轨道是一种颜色，需要一直移动的球体是另一种颜色，这个非常简单，我们定义两组数据，一组是轨道，一组是高亮的球，通过不段改变高亮的这组数据，即可响应式的完成灯的移动，第二点我们也解决了
+第三点，初始的时候考虑的是 y 的坐标是 0, 2, 4, 6, 8, 10 , 8, 6, 4 , 2 &hellip;.. ,但是很显然，这样的坐标出来的形状一定是一个折线图，而不是平滑的曲线，于是我们需要用到数学知识了：需要使用到圆的弧度的概念，在 javascript 中有两个方法 Math.sin()和 Math.cos() 都是关于弧度的公式，关于这两个方法，我们下面再说。
+实现 布局 实现这个的布局非常简单，外层一个大的 div，内层很多小的 span，通过 flex 一排即可到一排
+&lt;template&gt; &lt;div class=&#34;container&#34;&gt; &lt;div class=&#34;content&#34;&gt; &lt;span class=&#34;circle&#34; v-for=&#34;(item, index) in list&#34; :key=&#34;index&#34;&gt;&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;/template&gt; 如何计算 y 的偏移量 这一步是我们比较重要的一步，我们有一个 400px 的容器，容器中放置了 20 个 球 span ，现在他们在一排，我们只需要给他动态绑定样式 transform: translateY(?"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">js实现贝塞尔曲线，div也能如此丝滑</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Oct 16, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fae1e7ac16194677bff96536204a8399~tplv-k3u1fbpfcp-zoom-crop-mark:3024:3024:3024:1702.awebp?" alt="js实现贝塞尔曲线，div也能如此丝滑？"></p>
+<p>今天遇到朋友发来的一个 ui 图，询问我如何实现下图这样的效果【vue 项目】，（听说是类似 LED 灯的展示效果），于是便有了今天的小 demo，要实现一个类似下图的动效，上面的灯会一直重复滚动，但是这个并不是什么难点，主要在于如何实现这种平滑的曲线，日常我们的开发的 div 在我们的脑海中通常就是一个网格状，涉及到平滑曲线的往往是图表，于是我们需要找一个方案来完成这种布局（非真实 ui 图，是完成之后的效果）</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cba84b3078ee47089b0585f76cbf07a9~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="2022-09-20-17-22-00-image.png"></p>
+<h3 id="分析">分析</h3>
+<p>我们需要先简单分析一下这个 ui，当我们拿到这个 <strong>UI 图</strong> 的时候，脑海中的第一反应是，一个大的 <strong>DIV</strong> 中间套了很多的小的 <strong>DIV</strong>，并且小的的上下位置出现了偏移，但是偏移多少目前我们不得而知，但是基础的布局方案已经完成。</p>
+<p>第二步我们考虑球体的颜色，可以看到，轨道是一种颜色，需要一直移动的球体是另一种颜色，这个非常简单，我们定义两组数据，一组是轨道，一组是高亮的球，通过不段改变高亮的这组数据，即可响应式的完成灯的移动，第二点我们也解决了</p>
+<p>第三点，初始的时候考虑的是 y 的坐标是 <strong>0, 2, 4, 6, 8, 10 , 8, 6, 4 , 2 &hellip;..</strong> ,但是很显然，这样的坐标出来的形状一定是一个折线图，而不是平滑的曲线，于是我们需要用到数学知识了：需要使用到圆的弧度的概念，在 <strong>javascript</strong> 中有两个方法 <strong>Math.sin()和 Math.cos()</strong> 都是关于弧度的公式，关于这两个方法，我们下面再说。</p>
+<h3 id="实现">实现</h3>
+<h4 id="布局">布局</h4>
+<p>实现这个的布局非常简单，外层一个大的 div，内层很多小的 span，通过 <strong>flex</strong> 一排即可到一排</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-vue" data-lang="vue"><span style="display:flex;"><span>&lt;<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;container&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;content&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;circle&#34;</span> <span style="color:#f92672">v-for</span><span style="color:#e6db74">=&#34;(item, index) in list&#34; </span><span style="color:#f92672">:key</span><span style="color:#e6db74">=&#34;index&#34;</span>&gt;&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">template</span>&gt;
+</span></span></code></pre></div><h4 id="如何计算-y-的偏移量">如何计算 y 的偏移量</h4>
+<p>这一步是我们比较重要的一步，我们有一个 <strong>400px</strong> 的容器，容器中放置了 <strong>20 个</strong> 球 <strong>span</strong> ，现在他们在一排，我们只需要给他动态绑定样式 <strong>transform: translateY(?px)</strong> 即可，重要的是我们如何计算这个的坐标，我们先来了解下两个方法的用处：</p>
+<h4 id="mathsin-和-mathcos">Math.sin() 和 Math.cos()</h4>
+<p>Math.sin(x): x 的正玄值。返回值在 -1.0 到 1.0 之间；</p>
+<p>Math.cos(x): x 的余弦值。返回的是 -1.0 到 1.0 之间；</p>
+<p>可以看到其分别是 x 点的正弦，这两个函数中的 x 指的是 <strong>弧度</strong> 而不是 <strong>角度</strong>，<strong>弧度</strong> 的计算公式是：<code>2π/360°</code></p>
+<p>这里涉及到数学知识，我们先看看这张图</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2b7153bb5080428c82804c037e2d0f21~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="sanjiao.jpeg"></p>
+<p>我们看我们关注的 <strong>sin 和 cos</strong></p>
+<blockquote>
+<p>sin(∠A) = 对边比斜边（a / c）<br>
+cos(∠A) = 临边比斜边 （b / c）</p>
+</blockquote>
+<p>可大致了解一下即可，当然，我们今天所需要使用的和这个关系不大，这里只是帮大家回顾一下高中知识（手动狗头）。</p>
+<p>好了这里直接推荐一个在线网站，<a href="https://www.desmos.com/calculator?lang=zh-CN">图形计算器</a>可以直接在线调试各种曲线</p>
+<p>我们看看基础的正弦余弦曲线</p>
+<h4 id="正弦曲线">正弦曲线</h4>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1a680287751341588bf270abe77ba896~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="2022-09-20-22-08-07-image.png"></p>
+<h4 id="余弦曲线">余弦曲线</h4>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6531b5e7ad1e4281afa3850fd8cf8d49~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="2022-09-20-22-08-52-image.png"> 我们知道圆周率（π）， <strong>1π=180°</strong>，<strong>2π=360°</strong>，就是一周，所以我们只需要截图（0-2π）一个周期的曲线即可，后续不管要什么曲线，都在这个上面进行变换即可,通过上面对比，发现正弦曲线的起始点是（0,0），比余弦的（0,1）更好计算，我们就直接用正弦吧，那么我们列出已知条件：</p>
+<ol>
+<li>
+<p>在曲线中 y = cos(x)</p>
+</li>
+<li>
+<p>在曲线中，曲线的宽度是 <strong>2π</strong></p>
+</li>
+<li>
+<p>在曲线中，曲线的高度最高点到最低点是 2</p>
+</li>
+<li>
+<p>在我们的需求中，总宽度是 <strong>400px</strong></p>
+</li>
+<li>
+<p>在我们需求中， 共有二十个圆圈，所以我们可以算出每个球的宽度平均是 <strong>20px</strong>，所以坐标就是<code>(index+1)*20</code></p>
+<p>现在我们知道了很多信息，我们就可以计算出更多信息了</p>
+</li>
+</ol>
+<h4 id="计算更多信息">计算更多信息</h4>
+<ol>
+<li>
+<p>我们知道曲线的宽度和我们的物理实际宽度就可以得出宽度比： 400 / 2π</p>
+</li>
+<li>
+<p>这个时候我们需要通过这个比例计算出物理的 x 坐标对应的曲线中的 x 坐标，那么 物理宽度/x 坐标 = 2π/曲线中 x 坐标</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">/* 400 / x = 2π / y, 我们的x是已知的，等下自己可以拿，这样拿到了曲线中实际的x坐标 */</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">z</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">400</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">400</span> <span style="color:#f92672">*</span> Math.<span style="color:#a6e22e">PI</span><span style="color:#f92672">*</span><span style="color:#ae81ff">2</span>
+</span></span></code></pre></div></li>
+<li>
+<p>有个曲线中的对应 x 坐标，通过公式我们就可以拿到其曲线中实际<strong>y 坐标了</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">/* 这样就拿到了曲线中的y坐标 */</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">sin</span>(<span style="color:#a6e22e">z</span>)
+</span></span></code></pre></div></li>
+<li>
+<p>拿到了曲线中的 y 坐标，那么们又知道，曲线中的总高是 2，通过 xy 的坐标对比，我们可以计算出我们所需的真实的 y</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">/* 真实宽度400/曲线宽度2π = 真实高度y/曲线中的y 通过对比得到真实的y点 */</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Y</span> <span style="color:#f92672">=</span> (((Math.<span style="color:#a6e22e">sin</span>(<span style="color:#a6e22e">z</span>) <span style="color:#f92672">*</span> <span style="color:#ae81ff">400</span>) <span style="color:#f92672">/</span> Math.<span style="color:#a6e22e">PI</span>) <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>) <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>;
+</span></span></code></pre></div><p>然后通过这样的一个计算公式把这个 y 值赋值给我们的 y 点就可以得到这样的曲线</p>
+</li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/eb9b10f0d56e41b6a4b7b1813497fcc1~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="2022-09-20-22-30-37-image.png"></p>
+<h3 id="完善剩余">完善剩余</h3>
+<p>看起来有点意思了，这就是一个完整的 2π，或者我们理解为就是曲线的一个周期，但是很明显曲线的度数不对，我们如何调整呢，回到刚刚的那个网站之中，我们要想曲线更加平滑，只需要对<code>sin()</code>除以/x 即可，x 最大线越平，我们到刚刚的网站去自己调试到自己理想的高度，</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c0a990c36df947f7b7522adb2db8df71~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="2022-09-20-22-35-41-image.png"></p>
+<p>我们调试发现除以 4 就得到了差不多我们想要的曲线，所以我们只需要在上面的基础上/4 就得到了我们真正想要的 y。</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/87ebc9fde1454e2b86fe4f993fcc4f48~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="2022-09-20-22-36-07-image.png"> 此时我们的曲线就已经完成了，所以其实是不是就是我们的高中数学知识呢</p>
+<h3 id="完成跑马灯制作">完成跑马灯制作</h3>
+<p>前面的曲线画完，后面就已经不难了，我们只需要定义一段高亮的下标数组，我们写一个方法，创建一个自己想要高亮几个就生成 0-x 的数组</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">createActiveIndex</span>(<span style="color:#a6e22e">len</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">6</span>){
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> Array.<span style="color:#a6e22e">from</span>({<span style="color:#a6e22e">length</span><span style="color:#f92672">:</span><span style="color:#a6e22e">len</span>}, (<span style="color:#a6e22e">v</span>,<span style="color:#a6e22e">k</span>) =&gt; <span style="color:#a6e22e">k</span>)
+</span></span><span style="display:flex;"><span>},
+</span></span></code></pre></div><p>然后在给 <strong>span</strong> 动态绑定一个背景颜色。当 <strong>index</strong> 属于高亮的时候就给高亮的颜色，不是则反之，然后我们写一个定时器一直修改这个高亮的数组即可，每次让其里面所有元素加 1，就可以让他一直跑下去了，当然边界的时候我们需要对他进行归 0</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">changeIndex</span>(){
+</span></span><span style="display:flex;"><span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">activeIndex</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">activeIndex</span>.<span style="color:#a6e22e">map</span>( <span style="color:#a6e22e">item</span> =&gt; <span style="color:#a6e22e">item</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">list</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">?</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">:</span> <span style="color:#a6e22e">item</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>},
+</span></span></code></pre></div><p>最后我们启动即可，就实现了我们开头想要的效果。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/529ded497f7c4f5e832ac6e61c675b28~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="11111.gif"></p>
+<p>至此这个需求算是完成了，这只是一个小的场景通过这样的方式我们可以绘制出更多好玩的东西，你可以改变各种参数对齐进行调整修改，看看是不是你想要的效果</p>
+<h3 id="贝塞尔曲线">贝塞尔曲线</h3>
+<p>我们知道，前端的动画经常出现一个名词 <strong>贝塞尔曲线</strong>，就是动画的执行过程，我们刚刚的曲线其实就是同理，如果此时我们需要去手动书写一个贝塞尔曲线我们应该怎么做呢，刚刚我们知道，我们容器的总宽度是 400，曲线的周长是 2π，比例就是 400/2π，同理，当我们换算成时间的时候，假如动画是 1 秒。那么我们需要 60 帧，一帧动画的时间就是 1000/60=16.7ms,我们通过 2π/60 就知道我们每一帧动画在什么位置了，当我们手写贝塞尔曲线的时候，利用差不多的公式一样可以完成。</p>
+<h4 id="简单封装一下方法">简单封装一下方法</h4>
+<p>看起来似乎很复杂，但是实际上我们所需要的其实只是利用真实的 x 点，拿到对应曲线求出我们 y 的坐标，所以我们需要的参数有，我们真实场景的总宽，总宽之中的个数，我们所需要的曲线的倍率，三个参数即可,我们尽量分开步骤写，这样你看会理解的更清楚</p>
+<p><code>js 中 π 就是 Math.PI</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getCoordinate</span>(<span style="color:#a6e22e">width</span>, <span style="color:#a6e22e">count</span>, <span style="color:#a6e22e">mag</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/* 通过总宽和个数计算出一个单个的宽 */</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">singleWidth</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">width</span> <span style="color:#f92672">/</span> <span style="color:#a6e22e">count</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/* 通过物理宽度/曲线周长计算出比率 */</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ratio</span> <span style="color:#f92672">=</span> (<span style="color:#ae81ff">400</span> <span style="color:#f92672">/</span> Math.<span style="color:#a6e22e">PI</span>) <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/* 上面实例代码我们是动态一次计算一个，而现在是方法，我们应该一次去拿到所有，所以我们返回一个数组对象记录xy */</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">result</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Array(<span style="color:#a6e22e">count</span>).<span style="color:#a6e22e">fill</span>({});
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/* 遍历总长度的dom个数，在数组中填充宽高 */</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">result</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">item</span>, <span style="color:#a6e22e">index</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* x的坐标 */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">index</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">*</span> <span style="color:#a6e22e">singleWidth</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* 定义变量z计算曲线中x的坐标 */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">z</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">x</span> <span style="color:#f92672">/</span> <span style="color:#a6e22e">width</span>) <span style="color:#f92672">*</span> Math.<span style="color:#a6e22e">PI</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* 计算出真实的y的坐标 */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> ((((Math.<span style="color:#a6e22e">sin</span>(<span style="color:#a6e22e">z</span>) <span style="color:#f92672">/</span> <span style="color:#ae81ff">4</span>) <span style="color:#f92672">*</span> <span style="color:#ae81ff">400</span>) <span style="color:#f92672">/</span> Math.<span style="color:#a6e22e">PI</span>) <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>) <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* y还需要通过倍率改变曲线，得到最终我们想要的y */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">y</span> <span style="color:#f92672">/</span> <span style="color:#a6e22e">mag</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* 写入数组对象中 */</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> { <span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">y</span> };
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">result</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>如果后期你也有这种需求，可以在上面的基础上进行修改，基础的算法已经写出来了，如果您有疑问，欢迎讨论</p>
+<h3 id="在线体验">在线体验</h3>
+<p>最终版本在此体验，</p>
+<iframe class="code-editor-frame" data-code="code-editor-element" data-code-id="7145423522687352835" data-src="https://code.juejin.cn/pen/7145423522687352835" style="display: inline;width: 100%; height: 400px" loading="lazy" src="https://code.juejin.cn/pen/7145423522687352835"></iframe>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/204/"
+      ><span class="mr-1.5">←</span><span>从0到1封装原生table组件，并支持大数量级渲染(十万级)</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/202/"
+      ><span>JS 从数组中删除特定数据</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

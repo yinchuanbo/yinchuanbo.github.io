@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>webpack5之Loader和Plugin的实现 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="Loader 底层实现 我们之前已经在核心配置中提到了很多 Loader，比如style-loader、css-loader、vue-loader、babel-loader等等，那怎么实现一个自定义 Loader 呢，Loader 本质上是一个导出为函数的 JavaScript 模块，loader runner 库会调用这个函数，然后将上一个 loader 产生的结果或者资源文件传入进去。
+现在我们开发一个自定义 loader，我们新建一个 loaders 目录，在新建一个 yj-loader.js
+// loaders/yj-loader.js module.exports = function (content, map, meta) { console.log(content); console.log(map); console.log(meta); return content; }; 该函数会接受三个参数
+content: 资源文件的内容 map: sourcemap 相关的数据 meta: 一些元数据 下面我们从 loader 的引入路径，执行顺序，异步 loader，获取参数，实现一个 loader 这几个方面在探讨下。
+引入路径 现在我们在 webpack 配置该自定义 loader
+{ test: /\.js$/, use: [ &#39;./loaders/yj-loader&#39;, ] } 可以看到，我们引入的自定义 loader 路径是相对路径，且基于 context 属性，但是如果我们依然希望可以直接去加载自己的 loader 文件，我们可以配置resolveLoader属性
+{ resolveLoader: { modules: [&#34;node_modules&#34;, &#34;." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="webpack5之Loader和Plugin的实现" />
+<meta property="og:description" content="Loader 底层实现 我们之前已经在核心配置中提到了很多 Loader，比如style-loader、css-loader、vue-loader、babel-loader等等，那怎么实现一个自定义 Loader 呢，Loader 本质上是一个导出为函数的 JavaScript 模块，loader runner 库会调用这个函数，然后将上一个 loader 产生的结果或者资源文件传入进去。
+现在我们开发一个自定义 loader，我们新建一个 loaders 目录，在新建一个 yj-loader.js
+// loaders/yj-loader.js module.exports = function (content, map, meta) { console.log(content); console.log(map); console.log(meta); return content; }; 该函数会接受三个参数
+content: 资源文件的内容 map: sourcemap 相关的数据 meta: 一些元数据 下面我们从 loader 的引入路径，执行顺序，异步 loader，获取参数，实现一个 loader 这几个方面在探讨下。
+引入路径 现在我们在 webpack 配置该自定义 loader
+{ test: /\.js$/, use: [ &#39;./loaders/yj-loader&#39;, ] } 可以看到，我们引入的自定义 loader 路径是相对路径，且基于 context 属性，但是如果我们依然希望可以直接去加载自己的 loader 文件，我们可以配置resolveLoader属性
+{ resolveLoader: { modules: [&#34;node_modules&#34;, &#34;." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/415/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-28T22:23:08+08:00" />
+<meta property="article:modified_time" content="2023-03-28T22:23:08+08:00" />
+
+  
+  <meta itemprop="name" content="webpack5之Loader和Plugin的实现">
+<meta itemprop="description" content="Loader 底层实现 我们之前已经在核心配置中提到了很多 Loader，比如style-loader、css-loader、vue-loader、babel-loader等等，那怎么实现一个自定义 Loader 呢，Loader 本质上是一个导出为函数的 JavaScript 模块，loader runner 库会调用这个函数，然后将上一个 loader 产生的结果或者资源文件传入进去。
+现在我们开发一个自定义 loader，我们新建一个 loaders 目录，在新建一个 yj-loader.js
+// loaders/yj-loader.js module.exports = function (content, map, meta) { console.log(content); console.log(map); console.log(meta); return content; }; 该函数会接受三个参数
+content: 资源文件的内容 map: sourcemap 相关的数据 meta: 一些元数据 下面我们从 loader 的引入路径，执行顺序，异步 loader，获取参数，实现一个 loader 这几个方面在探讨下。
+引入路径 现在我们在 webpack 配置该自定义 loader
+{ test: /\.js$/, use: [ &#39;./loaders/yj-loader&#39;, ] } 可以看到，我们引入的自定义 loader 路径是相对路径，且基于 context 属性，但是如果我们依然希望可以直接去加载自己的 loader 文件，我们可以配置resolveLoader属性
+{ resolveLoader: { modules: [&#34;node_modules&#34;, &#34;."><meta itemprop="datePublished" content="2023-03-28T22:23:08+08:00" />
+<meta itemprop="dateModified" content="2023-03-28T22:23:08+08:00" />
+<meta itemprop="wordCount" content="965">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="webpack5之Loader和Plugin的实现"/>
+<meta name="twitter:description" content="Loader 底层实现 我们之前已经在核心配置中提到了很多 Loader，比如style-loader、css-loader、vue-loader、babel-loader等等，那怎么实现一个自定义 Loader 呢，Loader 本质上是一个导出为函数的 JavaScript 模块，loader runner 库会调用这个函数，然后将上一个 loader 产生的结果或者资源文件传入进去。
+现在我们开发一个自定义 loader，我们新建一个 loaders 目录，在新建一个 yj-loader.js
+// loaders/yj-loader.js module.exports = function (content, map, meta) { console.log(content); console.log(map); console.log(meta); return content; }; 该函数会接受三个参数
+content: 资源文件的内容 map: sourcemap 相关的数据 meta: 一些元数据 下面我们从 loader 的引入路径，执行顺序，异步 loader，获取参数，实现一个 loader 这几个方面在探讨下。
+引入路径 现在我们在 webpack 配置该自定义 loader
+{ test: /\.js$/, use: [ &#39;./loaders/yj-loader&#39;, ] } 可以看到，我们引入的自定义 loader 路径是相对路径，且基于 context 属性，但是如果我们依然希望可以直接去加载自己的 loader 文件，我们可以配置resolveLoader属性
+{ resolveLoader: { modules: [&#34;node_modules&#34;, &#34;."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">webpack5之Loader和Plugin的实现</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 28, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h1 id="loader-底层实现">Loader 底层实现</h1>
+<p>我们之前已经在核心配置中提到了很多 Loader，比如<code>style-loader</code>、<code>css-loader</code>、<code>vue-loader</code>、<code>babel-loader</code>等等，那怎么实现一个自定义 Loader 呢，Loader 本质上是一个导出为函数的 JavaScript 模块，loader runner 库会调用这个函数，然后将上一个 loader 产生的结果或者资源文件传入进去。</p>
+<p>现在我们开发一个自定义 loader，我们新建一个 loaders 目录，在新建一个 yj-loader.js</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// loaders/yj-loader.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">content</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">map</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">meta</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">content</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>该函数会接受三个参数</p>
+<ul>
+<li><code>content</code>: 资源文件的内容</li>
+<li><code>map</code>: sourcemap 相关的数据</li>
+<li><code>meta</code>: 一些元数据</li>
+</ul>
+<p>下面我们从 loader 的引入路径，执行顺序，异步 loader，获取参数，实现一个 loader 这几个方面在探讨下。</p>
+<h2 id="引入路径">引入路径</h2>
+<p>现在我们在 webpack 配置该自定义 loader</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.js$/</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;./loaders/yj-loader&#39;</span>,
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>可以看到，我们引入的自定义 loader 路径是相对路径，且基于 context 属性，但是如果我们依然希望可以直接去加载自己的 loader 文件，我们可以配置<code>resolveLoader</code>属性</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">resolveLoader</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">modules</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;node_modules&#34;</span>, <span style="color:#e6db74">&#34;./loaders&#34;</span>];
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>该属性是用来配置 loader 的引入路径，默认是 node_modules，我们 node_modules 没有的话去找我们的 loaders 目录，可以在 module 属性后面添加我们的 loaders 目录，现在我们可以直接使用 loader</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.js$/</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;yj-loader&#39;</span>,
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="执行顺序">执行顺序</h2>
+<p>之前在介绍 loader 时讲了 loader 执行的顺序是从数组最后往前执行，现在我们新建三个自定义 loader 来证明一下这个结果，我们新建 yj-loader01.js，yj-loader02.js，yj-loader03.js。并在每个 loader 打印</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// yj-loader01.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;loader01执行&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">content</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// yj-loader02.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;loader02执行&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">content</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// yj-loader03.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;loader03执行&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">content</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// webpack
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.js$/</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;yj-loader01&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;yj-loader02&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;yj-loader03&#39;</span>,
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>现在我们打包一下 npm run build</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e2d350d7cafe4d1ca46503c562c63ffc~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_19-52-21.png"></p>
+<p>可以看到 loader03 先执行，loader02 第二执行，loader01 最后执行。其实在 loader 中我们还可以配置一个 pitch-loader，我们修改下 loader</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// yj-loader01.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;loader01执行&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">content</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span>.<span style="color:#a6e22e">pitch</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;pitch-loader01执行&#34;</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// yj-loader02.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;loader02执行&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">content</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span>.<span style="color:#a6e22e">pitch</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;pitch-loader02执行&#34;</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// yj-loader03.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;loader03执行&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">content</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span>.<span style="color:#a6e22e">pitch</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;pitch-loader03执行&#34;</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>再重新执行打包</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/43279e07aebc4f02adf29ca9dcb620b5~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_19-56-40.png"></p>
+<p>可以看到 pitch-loader 是从 01 开始，这是什么原因呢，我们可以查看源码 loader-runner 这个库下面的 lib/LoaderRunner.js 这个文件。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/19e49dc3170b489aaf4b411dc36d73fe~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_20-01-48.png"></p>
+<p>在执行 runLoaders 函数中先执行<strong>iteratePitchingLoaders</strong>这个函数，也就是说先执行 pitch-loader。</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/84938c14391e49759b7dad2e6f82d195~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_20-04-50.png"></p>
+<p>并且在<strong>iteratePitchingLoaders</strong>中<code>loaderContext.loaderIndex++</code>，并且递归执行<strong>iteratePitchingLoaders</strong>，执行完后才执行<strong>iterateNormalLoaders</strong>，也就是正常的 loader。</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8d06e1c96b1d45d19eac3d1e0fef6b97~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_20-07-07.png"></p>
+<p>往下看可以看到<code>loaderContext.loaderIndex--</code>，并执行<strong>iterateNormalLoaders</strong>。所以 loader 的执行顺序是按 loaderIndex 来执行的</p>
+<p>总结:</p>
+<ul>
+<li>runLoader 先优先执行 PitchLoader，在执行 PitchLoader 时进行 loaderIndex++</li>
+<li>runLoader 之后会执行 NormalLoader，在执行 NormalLoader 时进行 loaderIndex&ndash;</li>
+</ul>
+<p>那我们能否自定义执行顺序呢，可以，我们需要拆分成多个 Rule 对象，通过<strong>enforce</strong>来改变它们的顺序</p>
+<p>enforce 一共有四种方式:</p>
+<ul>
+<li>默认所有的 loader 都是<code>normal</code></li>
+<li>在行内设置的 loader 是<code>inline</code></li>
+<li>可以通过 enforce 设置<code>pre</code>和<code>post</code></li>
+</ul>
+<ol>
+<li><strong>Pitching</strong>  阶段: loader 上的 pitch 方法，按照  <code>后置(post)、行内(inline)、普通(normal)、前置(pre)</code>  的顺序调用</li>
+<li><strong>Normal</strong>  阶段: loader 上的常规方法，按照  <code>前置(pre)、普通(normal)、行内(inline)、后置(post)</code>  的顺序调用。模块源码的转换， 发生在这个阶段。</li>
+</ol>
+<p>现在我们将 loader02 设置 pre</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.js$/</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;yj-loader01&#39;</span>
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>},
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.js$/</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;yj-loader02&#39;</span>,
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">enforce</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;pre&#39;</span>
+</span></span><span style="display:flex;"><span>},
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.js$/</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;yj-loader03&#39;</span>,
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2bfb9d8506174ee4ab6792b12ee12a97~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_20-16-51.png"></p>
+<p>现在可以看到 loader02 第一个执行了，pitch-loader02 也就变成了最后一个执行。</p>
+<h2 id="异步-loader">异步 loader</h2>
+<p>我们之前默认创建的 Loader 都是是同步的 Loader，这个 Loader 必须通过<code>return</code>或者<code>this.callback</code> 来返回结果，交给下一个 loader 来处理。通常在有错误的情况下，我们会使用<code>this.callback</code></p>
+<p>this.callback 的用法如下:</p>
+<ul>
+<li>第一个参数必须是 Error 或者 null</li>
+<li>第二个参数是一个 string 或者 Buffer</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// yj-loader.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;执行loader&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">callback</span>(<span style="color:#66d9ef">null</span>, <span style="color:#a6e22e">content</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c7189265e61c403494754488980bd90b~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_20-21-37.png"></p>
+<p>我们现在使用 this.callback 的方式返回也是可以的，那有时候我们使用 Loader 时会进行一些异步的操作，我们希望在异步操作完成后，再返回这个 loader 处理的结果，这时候需要使用异步的 loader 了，loader-runner 已经给我们实现了<code>this.async</code>函数，我们使用如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// yj-loader03.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;执行loader03&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">callback</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#66d9ef">async</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">callback</span>(<span style="color:#66d9ef">null</span>, <span style="color:#a6e22e">content</span>);
+</span></span><span style="display:flex;"><span>  }, <span style="color:#ae81ff">3000</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c8c85a2b354f43fba9961284bc4f37db~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_20-27-33.png"></p>
+<p>现在依然能够按顺序打印出来，并且在打包过程中可以看到 loader03 打印后延迟了大概 3S 才打印 loader02 和 loader01。</p>
+<h2 id="获取参数">获取参数</h2>
+<p>我们之前在使用 css-loader 或者 babel-loader 时配置了参数，那我们如何也能配置参数并获取到呢。我们可以通过一个 webpack 官方提供的一个解析库<strong>loader-utils</strong>，该库里面有一个<code>getOptions</code>方法能够帮助我们获取配置，而且该库在安装 webpack 时已自动帮我们安装。 修改我们的 loader 并在 loader 上添加参数</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// webpack
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.js$/</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;yj-loader03&#39;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">options</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;lyj&#39;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">age</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">18</span>
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>},
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// yj-loader-03.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">getOptions</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;loader-utils&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;loader03执行&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 获取参数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">getOptions</span>(<span style="color:#66d9ef">this</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">options</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 获取异步loader
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">callback</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#66d9ef">async</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">callback</span>(<span style="color:#66d9ef">null</span>, <span style="color:#a6e22e">content</span>);
+</span></span><span style="display:flex;"><span>  }, <span style="color:#ae81ff">3000</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fe2e211b2f3b4ff7b750b2a088913127~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_20-37-33.png"></p>
+<p>可以看到我们通过调用<code>getOptions(this)</code>获取到了参数，那如何校验传入到参数呢。我们可以通过一个 webpack 官方提供的校验库<code>schema-utils</code>，里面有<code>validate</code>方法用于验证参数，并且该库是在安装 webpack 时帮我们安装了。</p>
+<p>现在我们需要一个校验规则文件，新建一个<strong>loader-schema.json</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span><span style="color:#75715e">// loader-schema.json
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;type&#34;</span>: <span style="color:#e6db74">&#34;object&#34;</span>, <span style="color:#75715e">// 传入类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#f92672">&#34;properties&#34;</span>: {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 属性
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#f92672">&#34;名字&#34;</span>: {
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;type&#34;</span>: <span style="color:#e6db74">&#34;string&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;description&#34;</span>: <span style="color:#e6db74">&#34;请输入您的姓名&#34;</span>
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;age&#34;</span>: {
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;type&#34;</span>: <span style="color:#e6db74">&#34;number&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;description&#34;</span>: <span style="color:#e6db74">&#34;请输入您的年龄&#34;</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;additionalProperties&#34;</span>: <span style="color:#66d9ef">true</span> <span style="color:#75715e">// 表示除了以上属性外还可以额外添加其他的属性
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// yj-loader-03.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">getOptions</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;loader-utils&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">validate</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;schema-utils&#34;</span>); <span style="color:#75715e">// 用于验证loader传参
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">loaderSchema</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;./loader-schema.json&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>, <span style="color:#a6e22e">map</span>, <span style="color:#a6e22e">meta</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;loader03执行&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 获取参数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">getOptions</span>(<span style="color:#66d9ef">this</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">options</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 参数校验
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">validate</span>(<span style="color:#a6e22e">loaderSchema</span>, <span style="color:#a6e22e">options</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 获取异步loader
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">callback</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#66d9ef">async</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">callback</span>(<span style="color:#66d9ef">null</span>, <span style="color:#a6e22e">content</span>);
+</span></span><span style="display:flex;"><span>  }, <span style="color:#ae81ff">3000</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>现在我们传参对 age 传入字符串并重新打包</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/34490386a5e44aa9a049a11e23b384a6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_20-46-11.png"></p>
+<p><code>schema-utils</code>帮助我们验证了参数并提示了描述，并阻断了构建，说明验证成功。</p>
+<h2 id="实现一个-loader">实现一个 loader</h2>
+<p>现在我们来实现一个简易的 markdown loader，安装 marked，highlight.js。直接上代码</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// mkdown-loader.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">marked</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;marked&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">hljs</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;highlight.js&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">content</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 设置代码高亮
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">marked</span>.<span style="color:#a6e22e">setOptions</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">highlight</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">code</span>, <span style="color:#a6e22e">lang</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">hljs</span>.<span style="color:#a6e22e">highlight</span>(<span style="color:#a6e22e">lang</span>, <span style="color:#a6e22e">code</span>).<span style="color:#a6e22e">value</span>;
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 转成html
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">htmlContent</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">marked</span>(<span style="color:#a6e22e">content</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 转成模块化导出
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">innerContent</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;`&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">htmlContent</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;`&#34;</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">moduleCode</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`var code = </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">innerContent</span><span style="color:#e6db74">}</span><span style="color:#e6db74">;export default code;`</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">moduleCode</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">moduleCode</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// webpack loader配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.md$/</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;mkdown-loader&#39;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-md" data-lang="md"><span style="display:flex;"><span>// test.md
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span># loader 实现
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">## 引入路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">## 执行顺序
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">## 异步 loader
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    ```
+</span></span><span style="display:flex;"><span>    module.exports = function(content, map, meta) {
+</span></span><span style="display:flex;"><span>      console.log(&#39;执行loader03&#39;)
+</span></span><span style="display:flex;"><span>      const callback = this.async()
+</span></span><span style="display:flex;"><span>      setTimeout(() =&gt; {
+</span></span><span style="display:flex;"><span>        callback(null, content)
+</span></span><span style="display:flex;"><span>      }, 3000)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    ```
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">## 参数获取
+</span></span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// main.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">mdContent</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./test.md&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;highlight.js/styles/default.css&#34;</span>;
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">innerHTML</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">mdContent</span>;
+</span></span></code></pre></div><p>重新打包后我们可以看到页面上已经出现了我们的 mkdown 编译内容</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e6128abec6564eb89a94849666a903ae~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_21-11-47.png"></p>
+<h1 id="plugins-底层实现">Plugins 底层实现</h1>
+<p>webpack 有两个非常重要的类:<strong>Compiler</strong>和<strong>Compilation</strong>，他们通过注入插件的方式监听 webpack 的整个过程，插件的注入离不开 hooks，而这些 hooks 是由官方维护的一个<code>Tapable</code>库管理的，因此我们需要先来弄清楚这个库的使用方式。</p>
+<h2 id="tapable">Tapable</h2>
+<p>我们可以源码查看下<strong>Tapable</strong>导出的 hooks，包含了以下几种</p>
+<ul>
+<li><code>SyncHook</code></li>
+<li><code>SyncBailHook</code></li>
+<li><code>SyncWaterfallHook</code></li>
+<li><code>SyncLoopHook</code></li>
+<li><code>AsyncParallelHook</code></li>
+<li><code>AsyncParallelBailHook</code></li>
+<li><code>AsyncSeriesHook</code></li>
+<li><code>AsyncSeriesBailHook</code></li>
+<li><code>AsyncSeriesLoopHook</code></li>
+<li><code>AsyncSeriesWaterfallHook</code></li>
+</ul>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e8ebc72d682f44e195276fc3f1ebe56e~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-27_12-42-57.png"></p>
+<p>我们可以将<strong>Tapable</strong>的 hooks 分为同步和异步，</p>
+<ul>
+<li>以 sync 开头的，是同步的 Hook</li>
+<li>以 async 开头的，两个事件处理回调，不会等待上一次处理回调结束后再执行下一次回调</li>
+</ul>
+<p>我们也可以按其他的类别分类</p>
+<ul>
+<li><code>bail</code>: 当有返回值时，就不会执行后续的事件触发了</li>
+<li><code>Loop</code>: 当返回值为 true，就会反复执行该事件，当返回值为 undefined 或者不返回内容，就退出事件</li>
+<li><code>Waterfall</code>: 当返回值不为 undefined 时，会将这次返回的结果作为下次事件的第一个参数</li>
+<li><code>Parallel</code>: 并行，会同时执行次事件处理回调结束，才执行下一次事件处理回调</li>
+<li><code>Series</code>: 串行，会等待上一是异步的 Hook</li>
+</ul>
+<p>我们简单使用下<strong>Tapable</strong></p>
+<p>1.编写一个 tapable 测试文件</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// tapable-test.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">SyncWaterfallHook</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;tapable&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MyTapable</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">syncWaterfallHook</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">SyncWaterfallHook</span>([<span style="color:#e6db74">&#34;myName&#34;</span>, <span style="color:#e6db74">&#34;myAge&#34;</span>]),
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">on</span>();
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 注册
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">on</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">syncWaterfallHook</span>.<span style="color:#a6e22e">tap</span>(<span style="color:#e6db74">&#34;myTap1&#34;</span>, (<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">age</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;myTap1&#34;</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">age</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;123&#34;</span>;
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">syncWaterfallHook</span>.<span style="color:#a6e22e">tap</span>(<span style="color:#e6db74">&#34;myTap2&#34;</span>, (<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">age</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;myTap2&#34;</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">age</span>);
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 初始化
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">emit</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">syncWaterfallHook</span>.<span style="color:#a6e22e">call</span>(<span style="color:#e6db74">&#34;lyj&#34;</span>, <span style="color:#ae81ff">18</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">tapable</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MyTapable</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">tapable</span>.<span style="color:#a6e22e">emit</span>();
+</span></span></code></pre></div><p>2.执行<strong>tapable-test.js</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">node</span> <span style="color:#a6e22e">tapable</span><span style="color:#f92672">-</span><span style="color:#a6e22e">test</span>.<span style="color:#a6e22e">js</span>
+</span></span></code></pre></div><p>3.打印结果</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c497170549364895b56ba098143ead19~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-27_12-58-59.png"></p>
+<p>可以看到第一个注册 hook 将<code>return 123</code>返回给了第二个 hook 的第一个参数</p>
+<h2 id="plugin-注册原理">plugin 注册原理</h2>
+<p>在 webpack 中到底是怎么注册插件的呢，我们可以通过源码查看</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3748123b1cd94bc494fd4766bad90de0~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-27_13-18-34.png"></p>
+<ol>
+<li>在调用 webpack 函数的 createCompiler 方法中，注册所有的插件</li>
+<li>在注册插件时，会调用插件函数或者插件对象的 apply 方法</li>
+<li>插件方法会接收 compiler 对象，我们可以通过 compiler 对象来注册 Hook 的事件</li>
+<li>某些插件也会传入一个 compilation 的对象，我们也可以监听 compilation 的 Hook 事件</li>
+</ol>
+<h2 id="实现一个-plugin">实现一个 plugin</h2>
+<p>我们实现一个打包构建目录后自动上传至服务器的插件<code>AutoUploadPlugin</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">NodeSSH</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;node-ssh&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">AutoUploadPlugin</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">options</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ssh</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">NodeSSH</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">options</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">apply</span>(<span style="color:#a6e22e">compiler</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">compiler</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">afterEmit</span>.<span style="color:#a6e22e">tapAsync</span>(
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;AutoUploadPlugin&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">compilation</span>, <span style="color:#a6e22e">callback</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 1.获取输出的文件夹
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">outputPath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">compilation</span>.<span style="color:#a6e22e">outputOptions</span>.<span style="color:#a6e22e">path</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 2.连接服务器(ssh连接)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">connectServer</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 3.删除原来目录中的内容
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">serverDir</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">remotePath</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ssh</span>.<span style="color:#a6e22e">execCommand</span>(<span style="color:#e6db74">`rm -rf </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">serverDir</span><span style="color:#e6db74">}</span><span style="color:#e6db74">/*`</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 4.上传文件到服务器(ssh连接)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">uploadFiles</span>(<span style="color:#a6e22e">outputPath</span>, <span style="color:#a6e22e">serverDir</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 5.关闭ssh
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ssh</span>.<span style="color:#a6e22e">dispose</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">callback</span>();
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">async</span> <span style="color:#a6e22e">connectServer</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ssh</span>.<span style="color:#a6e22e">connect</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">host</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">host</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">username</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">username</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">password</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">password</span>,
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;连接成功~&#34;</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">async</span> <span style="color:#a6e22e">uploadFiles</span>(<span style="color:#a6e22e">localPath</span>, <span style="color:#a6e22e">remotePath</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">status</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ssh</span>.<span style="color:#a6e22e">putDirectory</span>(<span style="color:#a6e22e">localPath</span>, <span style="color:#a6e22e">remotePath</span>, {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">recursive</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">concurrency</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">10</span>,
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;传送到服务器: &#34;</span>, <span style="color:#a6e22e">status</span> <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34;成功&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;失败&#34;</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">AutoUploadPlugin</span>;
+</span></span></code></pre></div><p>使用该插件</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// webpack
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">AutoUploadPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">host</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;xxx.xxx.xxx.xxx&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">username</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;xxx&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">password</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;xxx&#34;</span>,
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>  ];
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div></section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/416/"
+      ><span class="mr-1.5">←</span><span>webpack5之核心源码解析</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/414/"
+      ><span>webpack5之性能优化</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

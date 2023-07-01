@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>一文讲透鼠标及触控板开发、使用技巧 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="[TOC]
+开发白板过程中，画布平移缩放操作是使用很频繁且最基础的交互功能。由于需求排期一直未实现该功能，导致白板开发使用过程中体验差点意思，有一天我终于忍不了了，花了一个晚上研究了一下相关的内容。所以有了以下实践。
+一、在白板类绘图产品中，平移缩放大部分都是依靠鼠标/触控板操作完成的。这里不可避免的要处理鼠标事件相关的代码逻辑。针对不同设备需要兼容处理不同的逻辑，尤其在使用 mac 触控板时左滑返回上一页的操作很干扰画图，会导致浏览器页面后退，需要禁用该操作。
+二、在我们日常工作生活中，几乎每天都需要用鼠标或者触控板。但是发现周围大部分用 mac 的同事使用触控板的方式都不太高效，还是使用普通鼠标那一套操作。不愿更新自己的使用习惯。
+针对以上原因，我要提问了：我们真的会运用鼠标和触控板吗？
+这个问题包含两层含义：
+作为 mac 用户：触控板我们使用习惯是否高效。 作为前端开发者：触控板相关的需求我们能否实现。 接下来我们带着问题来寻找答案。
+TL;DR 看好多国外的文章，太长了都会有 TL;DR(Too Long; Didn&rsquo;t Read.)，我认为那不是 Too Long;Didn&rsquo;t Read，而是 Too Lazy; Didn&rsquo;t Read. 😂 所以我也先把结论写在这里。
+通过本文能学到的知识：
+鼠标模式 鼠标滚轮缩放画布 右键长按拖拽平移画布 触控板模式 双指移动平移画布 双指捏合缩放画布 禁用双指轻扫在页面间切换 禁用智能缩放 触控板的高级用法 下面开始正文：
+对 mac 操作很溜的选手可以忽略“触控板使用”这节。 但是我发现身边大部分使用 mac 的同事都不怎么会熟练使用触控板的高级功能，还仅仅停留在能用的阶段。我个人推荐你阅读下升级自己的使用习惯。
+-&ndash;&raquo;&gt; 忽略开始 &laquo;&lt;&mdash;
+1 基础概念 1.1 鼠标、触控板 如下图所示分别是：Magic Trackpad 妙控板（文中统称触控板）、Magic Mouse 妙控鼠标、 普通鼠标。
+(Magic Trackpad 妙控板 / Magic Mouse 妙控鼠标 / 普通鼠标)
+本节所说的区别特指Apple 触控设备和普通鼠标的交互区别。因为妙控板和妙控鼠标交互形式是一致的，都是单指、双指点击或者滑动以及多指滑动，而普通鼠标则是按键点击与滚轮滚动与 Apple 触控设备有着明显的区别。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="一文讲透鼠标及触控板开发、使用技巧" />
+<meta property="og:description" content="[TOC]
+开发白板过程中，画布平移缩放操作是使用很频繁且最基础的交互功能。由于需求排期一直未实现该功能，导致白板开发使用过程中体验差点意思，有一天我终于忍不了了，花了一个晚上研究了一下相关的内容。所以有了以下实践。
+一、在白板类绘图产品中，平移缩放大部分都是依靠鼠标/触控板操作完成的。这里不可避免的要处理鼠标事件相关的代码逻辑。针对不同设备需要兼容处理不同的逻辑，尤其在使用 mac 触控板时左滑返回上一页的操作很干扰画图，会导致浏览器页面后退，需要禁用该操作。
+二、在我们日常工作生活中，几乎每天都需要用鼠标或者触控板。但是发现周围大部分用 mac 的同事使用触控板的方式都不太高效，还是使用普通鼠标那一套操作。不愿更新自己的使用习惯。
+针对以上原因，我要提问了：我们真的会运用鼠标和触控板吗？
+这个问题包含两层含义：
+作为 mac 用户：触控板我们使用习惯是否高效。 作为前端开发者：触控板相关的需求我们能否实现。 接下来我们带着问题来寻找答案。
+TL;DR 看好多国外的文章，太长了都会有 TL;DR(Too Long; Didn&rsquo;t Read.)，我认为那不是 Too Long;Didn&rsquo;t Read，而是 Too Lazy; Didn&rsquo;t Read. 😂 所以我也先把结论写在这里。
+通过本文能学到的知识：
+鼠标模式 鼠标滚轮缩放画布 右键长按拖拽平移画布 触控板模式 双指移动平移画布 双指捏合缩放画布 禁用双指轻扫在页面间切换 禁用智能缩放 触控板的高级用法 下面开始正文：
+对 mac 操作很溜的选手可以忽略“触控板使用”这节。 但是我发现身边大部分使用 mac 的同事都不怎么会熟练使用触控板的高级功能，还仅仅停留在能用的阶段。我个人推荐你阅读下升级自己的使用习惯。
+-&ndash;&raquo;&gt; 忽略开始 &laquo;&lt;&mdash;
+1 基础概念 1.1 鼠标、触控板 如下图所示分别是：Magic Trackpad 妙控板（文中统称触控板）、Magic Mouse 妙控鼠标、 普通鼠标。
+(Magic Trackpad 妙控板 / Magic Mouse 妙控鼠标 / 普通鼠标)
+本节所说的区别特指Apple 触控设备和普通鼠标的交互区别。因为妙控板和妙控鼠标交互形式是一致的，都是单指、双指点击或者滑动以及多指滑动，而普通鼠标则是按键点击与滚轮滚动与 Apple 触控设备有着明显的区别。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/533/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-20T11:21:17+08:00" />
+<meta property="article:modified_time" content="2023-04-20T11:21:17+08:00" />
+
+  
+  <meta itemprop="name" content="一文讲透鼠标及触控板开发、使用技巧">
+<meta itemprop="description" content="[TOC]
+开发白板过程中，画布平移缩放操作是使用很频繁且最基础的交互功能。由于需求排期一直未实现该功能，导致白板开发使用过程中体验差点意思，有一天我终于忍不了了，花了一个晚上研究了一下相关的内容。所以有了以下实践。
+一、在白板类绘图产品中，平移缩放大部分都是依靠鼠标/触控板操作完成的。这里不可避免的要处理鼠标事件相关的代码逻辑。针对不同设备需要兼容处理不同的逻辑，尤其在使用 mac 触控板时左滑返回上一页的操作很干扰画图，会导致浏览器页面后退，需要禁用该操作。
+二、在我们日常工作生活中，几乎每天都需要用鼠标或者触控板。但是发现周围大部分用 mac 的同事使用触控板的方式都不太高效，还是使用普通鼠标那一套操作。不愿更新自己的使用习惯。
+针对以上原因，我要提问了：我们真的会运用鼠标和触控板吗？
+这个问题包含两层含义：
+作为 mac 用户：触控板我们使用习惯是否高效。 作为前端开发者：触控板相关的需求我们能否实现。 接下来我们带着问题来寻找答案。
+TL;DR 看好多国外的文章，太长了都会有 TL;DR(Too Long; Didn&rsquo;t Read.)，我认为那不是 Too Long;Didn&rsquo;t Read，而是 Too Lazy; Didn&rsquo;t Read. 😂 所以我也先把结论写在这里。
+通过本文能学到的知识：
+鼠标模式 鼠标滚轮缩放画布 右键长按拖拽平移画布 触控板模式 双指移动平移画布 双指捏合缩放画布 禁用双指轻扫在页面间切换 禁用智能缩放 触控板的高级用法 下面开始正文：
+对 mac 操作很溜的选手可以忽略“触控板使用”这节。 但是我发现身边大部分使用 mac 的同事都不怎么会熟练使用触控板的高级功能，还仅仅停留在能用的阶段。我个人推荐你阅读下升级自己的使用习惯。
+-&ndash;&raquo;&gt; 忽略开始 &laquo;&lt;&mdash;
+1 基础概念 1.1 鼠标、触控板 如下图所示分别是：Magic Trackpad 妙控板（文中统称触控板）、Magic Mouse 妙控鼠标、 普通鼠标。
+(Magic Trackpad 妙控板 / Magic Mouse 妙控鼠标 / 普通鼠标)
+本节所说的区别特指Apple 触控设备和普通鼠标的交互区别。因为妙控板和妙控鼠标交互形式是一致的，都是单指、双指点击或者滑动以及多指滑动，而普通鼠标则是按键点击与滚轮滚动与 Apple 触控设备有着明显的区别。"><meta itemprop="datePublished" content="2023-04-20T11:21:17+08:00" />
+<meta itemprop="dateModified" content="2023-04-20T11:21:17+08:00" />
+<meta itemprop="wordCount" content="745">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="一文讲透鼠标及触控板开发、使用技巧"/>
+<meta name="twitter:description" content="[TOC]
+开发白板过程中，画布平移缩放操作是使用很频繁且最基础的交互功能。由于需求排期一直未实现该功能，导致白板开发使用过程中体验差点意思，有一天我终于忍不了了，花了一个晚上研究了一下相关的内容。所以有了以下实践。
+一、在白板类绘图产品中，平移缩放大部分都是依靠鼠标/触控板操作完成的。这里不可避免的要处理鼠标事件相关的代码逻辑。针对不同设备需要兼容处理不同的逻辑，尤其在使用 mac 触控板时左滑返回上一页的操作很干扰画图，会导致浏览器页面后退，需要禁用该操作。
+二、在我们日常工作生活中，几乎每天都需要用鼠标或者触控板。但是发现周围大部分用 mac 的同事使用触控板的方式都不太高效，还是使用普通鼠标那一套操作。不愿更新自己的使用习惯。
+针对以上原因，我要提问了：我们真的会运用鼠标和触控板吗？
+这个问题包含两层含义：
+作为 mac 用户：触控板我们使用习惯是否高效。 作为前端开发者：触控板相关的需求我们能否实现。 接下来我们带着问题来寻找答案。
+TL;DR 看好多国外的文章，太长了都会有 TL;DR(Too Long; Didn&rsquo;t Read.)，我认为那不是 Too Long;Didn&rsquo;t Read，而是 Too Lazy; Didn&rsquo;t Read. 😂 所以我也先把结论写在这里。
+通过本文能学到的知识：
+鼠标模式 鼠标滚轮缩放画布 右键长按拖拽平移画布 触控板模式 双指移动平移画布 双指捏合缩放画布 禁用双指轻扫在页面间切换 禁用智能缩放 触控板的高级用法 下面开始正文：
+对 mac 操作很溜的选手可以忽略“触控板使用”这节。 但是我发现身边大部分使用 mac 的同事都不怎么会熟练使用触控板的高级功能，还仅仅停留在能用的阶段。我个人推荐你阅读下升级自己的使用习惯。
+-&ndash;&raquo;&gt; 忽略开始 &laquo;&lt;&mdash;
+1 基础概念 1.1 鼠标、触控板 如下图所示分别是：Magic Trackpad 妙控板（文中统称触控板）、Magic Mouse 妙控鼠标、 普通鼠标。
+(Magic Trackpad 妙控板 / Magic Mouse 妙控鼠标 / 普通鼠标)
+本节所说的区别特指Apple 触控设备和普通鼠标的交互区别。因为妙控板和妙控鼠标交互形式是一致的，都是单指、双指点击或者滑动以及多指滑动，而普通鼠标则是按键点击与滚轮滚动与 Apple 触控设备有着明显的区别。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">一文讲透鼠标及触控板开发、使用技巧</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 20, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>[TOC]</p>
+<p>开发白板过程中，画布平移缩放操作是使用很频繁且最基础的交互功能。由于需求排期一直未实现该功能，导致白板开发使用过程中体验差点意思，有一天我终于忍不了了，花了一个晚上研究了一下相关的内容。所以有了以下实践。</p>
+<p>一、在白板类绘图产品中，平移缩放大部分都是依靠鼠标/触控板操作完成的。这里不可避免的要处理鼠标事件相关的代码逻辑。针对不同设备需要兼容处理不同的逻辑，尤其在使用 mac 触控板时左滑返回上一页的操作很干扰画图，会导致浏览器页面后退，需要禁用该操作。</p>
+<p>二、在我们日常工作生活中，几乎每天都需要用鼠标或者触控板。但是发现周围大部分用 mac 的同事使用触控板的方式都不太高效，还是使用普通鼠标那一套操作。不愿更新自己的使用习惯。</p>
+<p>针对以上原因，我要提问了：我们真的会运用鼠标和触控板吗？</p>
+<p>这个问题包含两层含义：</p>
+<ol>
+<li>作为 mac 用户：触控板我们使用习惯是否高效。</li>
+<li>作为前端开发者：触控板相关的需求我们能否实现。</li>
+</ol>
+<p>接下来我们带着问题来寻找答案。</p>
+<h2 id="tldr">TL;DR</h2>
+<p>看好多国外的文章，太长了都会有 TL;DR(Too Long; Didn&rsquo;t Read.)，我认为那不是 Too Long;Didn&rsquo;t Read，而是 Too Lazy; Didn&rsquo;t Read. 😂 所以我也先把结论写在这里。</p>
+<p>通过本文能学到的知识：</p>
+<ol>
+<li>鼠标模式
+<ol>
+<li>鼠标滚轮缩放画布</li>
+<li>右键长按拖拽平移画布</li>
+</ol>
+</li>
+<li>触控板模式
+<ol>
+<li>双指移动平移画布</li>
+<li>双指捏合缩放画布</li>
+<li>禁用双指轻扫在页面间切换</li>
+<li>禁用智能缩放</li>
+</ol>
+</li>
+<li>触控板的高级用法</li>
+</ol>
+<p>下面开始正文：</p>
+<p>对 mac 操作很溜的选手可以忽略“触控板使用”这节。 但是我发现身边大部分使用 mac 的同事都不怎么会熟练使用触控板的高级功能，还仅仅停留在能用的阶段。我个人推荐你阅读下升级自己的使用习惯。</p>
+<p>-&ndash;&raquo;&gt; 忽略开始 &laquo;&lt;&mdash;</p>
+<h2 id="1-基础概念">1 基础概念</h2>
+<h3 id="11-鼠标触控板">1.1 鼠标、触控板</h3>
+<p>如下图所示分别是：Magic Trackpad 妙控板（文中统称触控板）、Magic Mouse 妙控鼠标、 普通鼠标。</p>
+<p><img src="https://img13.360buyimg.com/imagetools/jfs/t1/102213/38/25065/566896/6234280dEc53b0fef/727672b3376d662d.jpg" alt=""></p>
+<p>(Magic Trackpad 妙控板 / Magic Mouse 妙控鼠标 / 普通鼠标)</p>
+<p>本节所说的区别特指<strong>Apple 触控设备</strong>和<strong>普通鼠标</strong>的交互区别。因为妙控板和妙控鼠标交互形式是一致的，都是<strong>单指、双指点击或者滑动以及多指滑动</strong>，而普通鼠标则是<strong>按键点击与滚轮滚动</strong>与 Apple 触控设备有着明显的区别。</p>
+<h3 id="12-点击和手势">1.2 点击和手势</h3>
+<p>相信现在工作的大家对鼠标的的操作习惯，都来源于 Windows 时代的人机交互。</p>
+<p>而 Apple 设备改进了这一交互习惯。主要还是得益于硬件设备支持了多点触控。有了多点触控就可以增加更多的手势交互。当年在鼠标时代就用过很多浏览器插件，支持鼠标手势，通过鼠标画一个预先设置好的图形，就可以执行某些具体的操作，但是用鼠标画图还是有些难以操作。</p>
+<p>我们直接来看 Apple 的手势操作。</p>
+<p>触控板常用到的手势操作有：</p>
+<p>滚动缩放类：</p>
+<ul>
+<li>放大缩小</li>
+<li>智能缩放</li>
+</ul>
+<p>这里提出一个问题：明明是缩放，为什么他们的设置项要叫滚动缩放？</p>
+<p><img src="https://img11.360buyimg.com/imagetools/jfs/t1/92361/16/25512/239646/6234280eE1acf6773/0a7bf0d1ec1d059b.jpg" alt=""></p>
+<p>更多手势类：</p>
+<ul>
+<li>常规点击操作</li>
+<li>在页面之间轻扫</li>
+<li>在全屏幕 App 之间轻扫</li>
+<li>调度中心</li>
+<li>App Exposé</li>
+<li>启动台</li>
+<li>显示桌面</li>
+</ul>
+<p><img src="https://img14.360buyimg.com/imagetools/jfs/t1/119703/10/22379/243775/6234280eEa4d36892/baf5a78b39bb6e65.jpg" alt=""></p>
+<h2 id="2-触控板独有功能以及推荐用法">2 触控板独有功能以及推荐用法</h2>
+<p>这点是我要重点推荐的，观察到大家平时操作触控板拖拽窗口，或者拖拽文件基本都是以下步骤：</p>
+<ol>
+<li>触控板移动光标到指定位置；</li>
+<li>单指使劲按下触控板；</li>
+<li>开始拖动文件，此时还的一直使劲按着触控板；</li>
+<li>拖到指定位置松手。</li>
+</ol>
+<p>到第 2、3 步的时候体验太糟糕了。手指既要向下用力，又要向左右用力滑动，一不小心松劲了，拖着的文件又跑回原来的地方了，或者压根拖到了不该去的地方。真是难受。</p>
+<p>使用了下面推荐的方法之后，你就可以随意拖动文件，而且毫不费力，</p>
+<h3 id="21-触控板三指拖移">2.1 触控板三指拖移</h3>
+<p>设置方法如下：</p>
+<ul>
+<li>设置 &gt; 辅助功能 &gt; 指针控制 &gt; 鼠标与触控板 &gt; 触控板选项
+<img src="https://img10.360buyimg.com/imagetools/jfs/t1/221356/8/13129/160585/6234280dEbef74fcd/6a9cf277c1b2fe1d.jpg" alt="">
+(触控板三指拖移设置)</li>
+<li>如果懒得找那么深的设置，也可以直接搜索：“拖移”。 可以看到 Apple 给他的定位描述 “<strong>让鼠标和触控板更易于使用</strong>”
+<img src="https://img14.360buyimg.com/imagetools/jfs/t1/118588/12/21450/226348/6234280eE3ddfaa23/f5e17ed83a0e22bc.jpg" alt=""></li>
+</ul>
+<p>提醒：由于三指被占用，原来触控板里的“更多手势”里凡是用到三指的都要改成四指，避免冲突。 接下来几天你的操作可能会特别难受，但是习惯的升级总是要经历一个过程的。</p>
+<p>以上就是触控板的最便于使用的方法。</p>
+<p>-&ndash;&raquo;&gt; 忽略结束 &laquo;&lt;&mdash;</p>
+<p>接下来就是代码部分了。</p>
+<p>-&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-我是分割线&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;</p>
+<h2 id="3-鼠标触控板开发">3 鼠标触控板开发</h2>
+<p>文章开头提出的第二个问题：我们要实现触控板/鼠标的平移缩放功能该如何实现呢？相信大部分前端开发者第一反应想到监听鼠标滚轮事件。没错，就是运用鼠标滚轮事件。</p>
+<p>此时我又要提问了：</p>
+<ul>
+<li>触控板的双指捏合缩放页面怎么实现呢？</li>
+<li>触控板的双指任意方向滑动平移页面该怎么实现呢？</li>
+<li>触控板又该如何禁用双指轻扫在页面间切换？</li>
+</ul>
+<p>这些如果你还不太清楚，那就的接着往下看了。</p>
+<p>下面我们继续带着问题来找答案。以下是我找答案的过程：</p>
+<ol>
+<li>本着面向 Google 编程的思想，在最开始我先 Google 了一通 “触控板 禁用 双指 后退 返回 trackpad disable“ 等等关键词，搜索结果都是移动端页面触控手势，触控板的文章少得可怜，基本都是介绍触控板的使用，代码相关的一无所获。</li>
+<li>后来我在想会不会触控板有我不知道的双指事件，我又去 <code>developer.apple.com</code> 一通搜索也是只有 Mouse and Trackpad 的功能介绍，在深入就到 Appkit 了显然这条路也不对。</li>
+<li>一筹莫展之下 <code>stack overflow</code> 永远不会让你失望。在这里找到了一个问题： <a href="https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript">Detect touchpad vs mouse in Javascript</a> ，心想反正也要判断触控板和鼠标，那就抄一下这个答案吧。抄答案时候发现基本用到的都是 <code>mousewheel</code> 事件。</li>
+<li>所以 mdn 接着找 <code>mousewheel</code> 资料，发现 <code>mousewheel: This feature is no longer recommended.</code> 推荐用 <code>wheel</code>，似乎我们已经找到了解决问题的方法。</li>
+</ol>
+<p>用到的对象主要是 <code>WheelEvent</code>。除他之外还有几个关联的事件对象要熟悉：<code>MouseEvent</code>，<code>UIEvent</code>，<code>Event</code>。这些事件对象都是依次继承下来的。</p>
+<p>到这里答案基本出来了解决上面的问题主要运用的就是：<code>wheel</code> 鼠标滚轮事件。到这里也回答了上面的问题：为何双指缩放等设置项会归类到滚动缩放下，因为他们的实现都是使用了 <strong><code>wheel</code>事件</strong>。</p>
+<p>那我们就细细研究一下 <strong><code>wheel</code>事件</strong>，先看他的几个对我们来说有用的属性：</p>
+<ul>
+<li><code>WheelEvent.deltaX</code> 只读：返回 double 值，该值表示滚轮的<strong>横向</strong>滚动量。</li>
+<li><code>WheelEvent.deltaY</code> 只读：返回 double 值，该值表示滚轮的<strong>纵向</strong>滚动量。</li>
+</ul>
+<p>从事件属性可以看出该事件主要用来监听鼠标滚轮的滚动，并可以拿到滚动量。 为了搞的更清楚这几个属性所代表的意义，接下来我做了个小实验，来探究 <code>delta</code> 的变化规律。</p>
+<h3 id="31-wheel-小实验">3.1 wheel 小实验</h3>
+<p>实验说明： 页面有两个 <code>div</code>，内部 <code>div</code> 比外部的大，通过监听滚轮事件滚动寻找 <code>deltaX、deltaY</code> 的规律。 同时将 <code>scrollTop、scrollLeft</code> 打印出来进行参照看 <code>div</code> 的滚动方向。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;viewport&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0&#34;</span>
+</span></span><span style="display:flex;"><span>    /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">http-equiv</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;X-UA-Compatible&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;ie=edge&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;你不知道的 Trackpad&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">style</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">body</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">background-color</span>: <span style="color:#ae81ff">#252525</span><span style="color:#ae81ff">80</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">overflow</span>: <span style="color:#66d9ef">hidden</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      #root {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">position</span>: <span style="color:#66d9ef">fixed</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">top</span>: calc(<span style="color:#ae81ff">50</span><span style="color:#66d9ef">%</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">150</span><span style="color:#66d9ef">px</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">left</span>: calc(<span style="color:#ae81ff">50</span><span style="color:#66d9ef">%</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">150</span><span style="color:#66d9ef">px</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">width</span>: <span style="color:#ae81ff">300</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">300</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">/* 任意方向滚动 */</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">overflow</span>: <span style="color:#66d9ef">scroll</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">/* 纵向滚动效果 */</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">/*overflow-x: hidden;*/</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">/*overflow-y: scroll;*/</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">/* 横向滚动效果 */</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">/*overflow-x: scroll;*/</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">/*overflow-y: hidden;*/</span>
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">h1</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">position</span>: <span style="color:#66d9ef">absolute</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">top</span>: <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">left</span>: <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      #container {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">width</span>: <span style="color:#ae81ff">1000</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">1000</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">/* 背景色渐变 */</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">background</span>: linear-gradient(
+</span></span><span style="display:flex;"><span>            <span style="color:#ae81ff">217</span><span style="color:#66d9ef">deg</span>,
+</span></span><span style="display:flex;"><span>            rgba(<span style="color:#ae81ff">255</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0.8</span>),
+</span></span><span style="display:flex;"><span>            rgba(<span style="color:#ae81ff">255</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>) <span style="color:#ae81ff">70.71</span><span style="color:#66d9ef">%</span>
+</span></span><span style="display:flex;"><span>          ), linear-gradient(
+</span></span><span style="display:flex;"><span>            <span style="color:#ae81ff">127</span><span style="color:#66d9ef">deg</span>,
+</span></span><span style="display:flex;"><span>            rgba(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">255</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0.8</span>),
+</span></span><span style="display:flex;"><span>            rgba(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">255</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>) <span style="color:#ae81ff">70.71</span><span style="color:#66d9ef">%</span>
+</span></span><span style="display:flex;"><span>          ), linear-gradient(<span style="color:#ae81ff">336</span><span style="color:#66d9ef">deg</span>, rgba(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">255</span>, <span style="color:#ae81ff">0.8</span>), rgba(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">255</span>, <span style="color:#ae81ff">0</span>) <span style="color:#ae81ff">70.71</span><span style="color:#66d9ef">%</span>);
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">style</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    灰色的都是body
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;root&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">h1</span>&gt;你不知道的 Trackpad&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;container&#34;</span>&gt;&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      document.<span style="color:#a6e22e">addEventListener</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;wheel&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">stopPropagation</span>();
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">preventDefault</span>();
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        { <span style="color:#a6e22e">passive</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span> }
+</span></span><span style="display:flex;"><span>      );
+</span></span><span style="display:flex;"><span>      document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;root&#34;</span>).<span style="color:#a6e22e">addEventListener</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;wheel&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">stopPropagation</span>();
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">logInfo</span>(<span style="color:#a6e22e">e</span>, <span style="color:#e6db74">&#34;root&#34;</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">isTrackpadOrMouse</span>(<span style="color:#a6e22e">e</span>);
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        { <span style="color:#a6e22e">passive</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span> }
+</span></span><span style="display:flex;"><span>      );
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">hnum</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">vnum</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 临时存放日志，方便以表格展示方便对比结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">temp</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 是否一直打印日志
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">always</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * 重点看这几个属性：deltaX、deltaY、ctrlKey
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       */</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">logInfo</span>(<span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">name</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">info</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">name</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">button</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">button</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">ctrlKey</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">ctrlKey</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// altKey: e.altKey,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#75715e">// metaKey: e.metaKey,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">shiftKey</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">shiftKey</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// which: e.which,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#75715e">// clientX: e.clientX,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#75715e">// clientY: e.clientY,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">deltaMode</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">deltaMode</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">deltaX</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">deltaX</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">deltaY</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">deltaY</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// deltaZ: e.deltaZ,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#75715e">// layerX: e.layerX,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#75715e">// layerY: e.layerY,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#75715e">// offsetX: e.offsetX,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#75715e">// offsetY: e.offsetY,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#75715e">// wheelDelta: e.wheelDelta,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">wheelDeltaX</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">wheelDeltaX</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">wheelDeltaY</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">wheelDeltaY</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">scrollTop</span><span style="color:#f92672">:</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#a6e22e">name</span>).<span style="color:#a6e22e">scrollTop</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">scrollLeft</span><span style="color:#f92672">:</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#a6e22e">name</span>).<span style="color:#a6e22e">scrollLeft</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// x: e.x,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#75715e">// y: e.y,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        };
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">always</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">hnum</span> <span style="color:#f92672">%</span> <span style="color:#ae81ff">10</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">vnum</span> <span style="color:#f92672">%</span> <span style="color:#ae81ff">10</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">temp</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">info</span>);
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 垂直滚动时
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">deltaY</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">vnum</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">deltaY</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">vnum</span> <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 水平滚动时
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">deltaX</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">hnum</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">deltaX</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">hnum</span> <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">always</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">hnum</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">vnum</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">table</span>(<span style="color:#a6e22e">always</span> <span style="color:#f92672">?</span> [<span style="color:#a6e22e">info</span>] <span style="color:#f92672">:</span> <span style="color:#a6e22e">temp</span>);
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * 判断是鼠标或者触控板
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @param e
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @return {boolean}
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       */</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">isTrackpadOrMouse</span>(<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">isTrackpad</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">wheelDeltaY</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">wheelDeltaY</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">deltaY</span> <span style="color:#f92672">*</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">3</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">isTrackpad</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>          }
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">deltaMode</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">isTrackpad</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">isTrackpad</span> <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34;Trackpad detected&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Mousewheel detected&#34;</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">isTrackpad</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p>实验效果图：</p>
+<p><img src="https://img14.360buyimg.com/imagetools/jfs/t1/130766/25/21909/787907/6234280fE78f2f25e/78d142a6d3d67788.jpg" alt=""></p>
+<h3 id="32-实验结论">3.2 实验结论</h3>
+<p>通过实验发现：</p>
+<h4 id="321-触控板">3.2.1 触控板</h4>
+<ul>
+<li><strong>平移</strong> 是判断 <code>deltaX</code>、<code>deltaY</code> 正负</li>
+</ul>
+<ol>
+<li><code>deltaX</code> <strong>连续</strong>为正数：<strong>向左</strong> 👈</li>
+<li><code>deltaX</code> <strong>连续</strong>为负数：<strong>向右</strong> 👉</li>
+<li><code>deltaY</code> <strong>连续</strong>为正数：<strong>向上</strong> 👆</li>
+<li><code>deltaY</code> <strong>连续</strong>为负数：<strong>向下</strong> 👇</li>
+</ol>
+<blockquote>
+<p>为什么要强调<strong>连续</strong>，因为触控板比较灵敏（灵敏度可调），而且滚动会有惯性（惯性也可设置）。偶尔一次正负变化不能说明确切方向，必须连续才能说明方向变化。</p>
+<p>灵敏度、惯性设置还是在辅助功能这里：</p>
+<p><img src="https://img10.360buyimg.com/imagetools/jfs/t1/133765/22/24779/156042/62342810E5da6af46/24907a3913563c56.jpg" alt=""></p>
+</blockquote>
+<ul>
+<li><strong>缩放</strong> 是判断 <code>deltaY</code> + <code>ctrlKey</code> 的值</li>
+</ul>
+<ol>
+<li><code>ctrlKey = true</code> &amp; <code>deltaY</code> <strong>连续</strong>为正数：<strong>向内</strong></li>
+<li><code>ctrlKey = true</code> &amp; <code>deltaY</code> <strong>连续</strong>为负数：<strong>向外</strong></li>
+</ol>
+<h4 id="322-鼠标">3.2.2 鼠标</h4>
+<p>普通鼠标滚轮一般只有上下两个方向，所以鼠标模式下：</p>
+<ul>
+<li><strong>缩放</strong> 是滚轮滚动</li>
+<li><strong>平移</strong> 是长按右键拖拽</li>
+</ul>
+<blockquote>
+<p>我的实验代码为了简单没有做连续差值计算，只是简单判断了正负，连续的更加严谨。</p>
+</blockquote>
+<h3 id="33-禁用触控板双指轻扫返回智能缩放">3.3 禁用触控板双指轻扫返回、智能缩放</h3>
+<p>平移缩放功能实现了，还差怎么禁用智能缩放，和清扫返回上一页。 下图这个箭头你一定见过，平时用着挺方便，但是在画图软件里，想平移画布结果页面跳转了，太影响操作。所以需要掉它。</p>
+<p><img src="https://img10.360buyimg.com/imagetools/jfs/t1/126091/34/25205/256201/62342810E507a7f05/828f851bf84bfa09.jpg" alt=""></p>
+<p>而智能缩放更像是一个放大镜，他与浏览器的缩放还不一样。 浏览器的缩放是将页面的每个元素都等比例放大。 智能缩放的放大就像缩放图片一样，页面超出浏览器窗口的元素都看不见了无法操作。 所以也需要禁掉智能缩放。</p>
+<p>在操作部分我们说过，双指轻扫返回、智能缩放都归类在滚动里，并且上面实验也证实他也是使用了 <code>wheel</code> 事件只不过事件绑定在了 <code>document</code> 上。所以我们只需要禁止 <code>document</code> 上的 <code>wheel</code> 事件默认行为就可以了禁止这些操作。</p>
+<ul>
+<li><code>addEventListener</code> 的 <code>passive</code> 属性</li>
+</ul>
+<p>看 MDN 文档说明：</p>
+<blockquote>
+<p><code>passive: Boolean</code>，设置为<code>true</code>时，表示 <code>listener</code> 永远不会调用 <code>preventDefault()</code>。如果 <code>listener</code> 仍然调用了这个函数，客户端将会忽略它并抛出一个控制台警告。</p>
+</blockquote>
+<p>在 <code>addEventListener</code> 中 <code>passive</code> 默认是 <code>true</code>,只有 <code>passive:false</code>，<code>e.preventDefault()</code> 才会生效。</p>
+<p>对 <code>document</code> 拦截了滚轮事件默认行为后，因为该事件会传播冒泡，所以需要注意页面上其他的子元素，如果有滚动条之类的也会失效，需要在子元素上阻止冒泡。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>document.<span style="color:#a6e22e">addEventListener</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;wheel&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">stopPropagation</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 所以实际代码中要在这里判断，只有某些情况才禁用默认行为。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">preventDefault</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">passive</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><h3 id="34-注意点">3.4 注意点</h3>
+<blockquote>
+<p>注意事项： 请勿想当然依据滚轮方向（即该事件的各 delta 属性值）来推断文档内容的滚动方向，因标准未定义滚轮事件具体会引发什么样的行为，引发的行为实际上是各浏览器自行定义的。即便滚轮事件引发了文档内容的滚动行为，也不表示滚轮方向和文档内容的滚动方向一定相同。因而通过该滚轮事件获知文档内容滚动方向的方法并不可靠。要获取文档内容的滚动方向，可在文档内容滚动事件（<code>scroll (en-US)</code>）中监听<code>scrollLeft</code>和<code>scrollTop</code>二值变化情况，即可推断出滚动方向了。</p>
+</blockquote>
+<p>详细的属性说明看 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Element/wheel_event">MDN wheel 事件文档</a> ，不在这里粘文档了。</p>
+<p>到这里基本上该有的功能就都实现了。本文实现需求在文章开头已经给出这里不再赘述。 这篇文章到此也就结束了。希望会对你有所帮助。同时感谢以下博客主为我们做出的探索与尝试。</p>
+<h2 id="参考连接">参考连接</h2>
+<ol>
+<li><a href="https://juejin.cn/post/6844904023598825486">https://juejin.cn/post/6844904023598825486</a></li>
+<li><a href="https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript">https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript</a></li>
+<li><a href="https://support.apple.com/en-ug/HT204895">https://support.apple.com/en-ug/HT204895</a></li>
+<li><a href="https://www.apude.com/blog/5979.html">https://www.apude.com/blog/5979.html</a></li>
+</ol>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/534/"
+      ><span class="mr-1.5">←</span><span>10个Web API</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/532/"
+      ><span>12个值得一试的 CSS 动画</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

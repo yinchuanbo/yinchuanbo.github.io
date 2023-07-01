@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>React 原理：通俗易懂的 Fiber - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 React 16 之后，推出了 Fiber 架构，而 Fiber 具体是个什么东西，有很多优秀的文章进行解读，而本文在学习了各个大佬的文章后，尽力以最通俗易懂过的话来解释 Fiber。
+React 16 以前的老架构 在讲 Fiber 前，需要认识 React 16 前的架构
+两层架构 React 16 前的架构有两层：
+Reconciler（协调器）：对比新旧 VDOM 找不同
+Renderer（渲染器）：将最新的 VDOM 转 真实 DOM 渲染到页面上。
+流程 当组件更新时，会调用 Reconciler（协调器）：
+JSX 转 VDOM 新旧 VDOM 作比较（老架构是 递归遍历 VDOM，不能中断） 递归结束，通知 Renderer（渲染器），将最新的 VDOM 渲染到页面上 缺点 React 16 前，采用的是 递归遍历新旧 VDOM 树做对比，这会存在一个问题：递归时，如果 VDOM 树层级很深，那么会长时间占用 JS 主线程，而 JS 又是单线程的，且递归又是同步递归的，就会导致页面上的某些交互操作无法响应、动画卡顿等问题。所以为了解决这个问题，React 16 后，新增了 Fiber 架构。
+Fiber 架构 前面也说了，Fiber 架构的出现就是为了解决 数据量过大导致页面掉帧卡顿、不能及时响应操作的问题的，那么 Fiber 具体是个什么东西呢？" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="React 原理：通俗易懂的 Fiber" />
+<meta property="og:description" content="前言 React 16 之后，推出了 Fiber 架构，而 Fiber 具体是个什么东西，有很多优秀的文章进行解读，而本文在学习了各个大佬的文章后，尽力以最通俗易懂过的话来解释 Fiber。
+React 16 以前的老架构 在讲 Fiber 前，需要认识 React 16 前的架构
+两层架构 React 16 前的架构有两层：
+Reconciler（协调器）：对比新旧 VDOM 找不同
+Renderer（渲染器）：将最新的 VDOM 转 真实 DOM 渲染到页面上。
+流程 当组件更新时，会调用 Reconciler（协调器）：
+JSX 转 VDOM 新旧 VDOM 作比较（老架构是 递归遍历 VDOM，不能中断） 递归结束，通知 Renderer（渲染器），将最新的 VDOM 渲染到页面上 缺点 React 16 前，采用的是 递归遍历新旧 VDOM 树做对比，这会存在一个问题：递归时，如果 VDOM 树层级很深，那么会长时间占用 JS 主线程，而 JS 又是单线程的，且递归又是同步递归的，就会导致页面上的某些交互操作无法响应、动画卡顿等问题。所以为了解决这个问题，React 16 后，新增了 Fiber 架构。
+Fiber 架构 前面也说了，Fiber 架构的出现就是为了解决 数据量过大导致页面掉帧卡顿、不能及时响应操作的问题的，那么 Fiber 具体是个什么东西呢？" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/588/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-05-06T14:18:12+08:00" />
+<meta property="article:modified_time" content="2023-05-06T14:18:12+08:00" />
+
+  
+  <meta itemprop="name" content="React 原理：通俗易懂的 Fiber">
+<meta itemprop="description" content="前言 React 16 之后，推出了 Fiber 架构，而 Fiber 具体是个什么东西，有很多优秀的文章进行解读，而本文在学习了各个大佬的文章后，尽力以最通俗易懂过的话来解释 Fiber。
+React 16 以前的老架构 在讲 Fiber 前，需要认识 React 16 前的架构
+两层架构 React 16 前的架构有两层：
+Reconciler（协调器）：对比新旧 VDOM 找不同
+Renderer（渲染器）：将最新的 VDOM 转 真实 DOM 渲染到页面上。
+流程 当组件更新时，会调用 Reconciler（协调器）：
+JSX 转 VDOM 新旧 VDOM 作比较（老架构是 递归遍历 VDOM，不能中断） 递归结束，通知 Renderer（渲染器），将最新的 VDOM 渲染到页面上 缺点 React 16 前，采用的是 递归遍历新旧 VDOM 树做对比，这会存在一个问题：递归时，如果 VDOM 树层级很深，那么会长时间占用 JS 主线程，而 JS 又是单线程的，且递归又是同步递归的，就会导致页面上的某些交互操作无法响应、动画卡顿等问题。所以为了解决这个问题，React 16 后，新增了 Fiber 架构。
+Fiber 架构 前面也说了，Fiber 架构的出现就是为了解决 数据量过大导致页面掉帧卡顿、不能及时响应操作的问题的，那么 Fiber 具体是个什么东西呢？"><meta itemprop="datePublished" content="2023-05-06T14:18:12+08:00" />
+<meta itemprop="dateModified" content="2023-05-06T14:18:12+08:00" />
+<meta itemprop="wordCount" content="403">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="React 原理：通俗易懂的 Fiber"/>
+<meta name="twitter:description" content="前言 React 16 之后，推出了 Fiber 架构，而 Fiber 具体是个什么东西，有很多优秀的文章进行解读，而本文在学习了各个大佬的文章后，尽力以最通俗易懂过的话来解释 Fiber。
+React 16 以前的老架构 在讲 Fiber 前，需要认识 React 16 前的架构
+两层架构 React 16 前的架构有两层：
+Reconciler（协调器）：对比新旧 VDOM 找不同
+Renderer（渲染器）：将最新的 VDOM 转 真实 DOM 渲染到页面上。
+流程 当组件更新时，会调用 Reconciler（协调器）：
+JSX 转 VDOM 新旧 VDOM 作比较（老架构是 递归遍历 VDOM，不能中断） 递归结束，通知 Renderer（渲染器），将最新的 VDOM 渲染到页面上 缺点 React 16 前，采用的是 递归遍历新旧 VDOM 树做对比，这会存在一个问题：递归时，如果 VDOM 树层级很深，那么会长时间占用 JS 主线程，而 JS 又是单线程的，且递归又是同步递归的，就会导致页面上的某些交互操作无法响应、动画卡顿等问题。所以为了解决这个问题，React 16 后，新增了 Fiber 架构。
+Fiber 架构 前面也说了，Fiber 架构的出现就是为了解决 数据量过大导致页面掉帧卡顿、不能及时响应操作的问题的，那么 Fiber 具体是个什么东西呢？"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">React 原理：通俗易懂的 Fiber</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>May 6, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="前言">前言</h2>
+<p>React 16 之后，推出了 Fiber 架构，而 Fiber 具体是个什么东西，有很多优秀的文章进行解读，而<code>本文在学习了各个大佬的文章后，尽力以最通俗易懂过的话来解释 Fiber。</code></p>
+<h2 id="react-16-以前的老架构">React 16 以前的老架构</h2>
+<p>在讲 Fiber 前，需要认识 React 16 前的架构</p>
+<h3 id="两层架构">两层架构</h3>
+<p>React 16 前的架构有两层：</p>
+<ul>
+<li>
+<p><code>Reconciler（协调器）</code>：对比新旧 VDOM 找不同</p>
+</li>
+<li>
+<p><code>Renderer（渲染器）</code>：将最新的 VDOM 转 真实 DOM 渲染到页面上。</p>
+</li>
+</ul>
+<h3 id="流程">流程</h3>
+<p>当组件更新时，会调用 Reconciler（协调器）：</p>
+<ol>
+<li>JSX 转 VDOM</li>
+<li>新旧 VDOM 作比较<code>（老架构是 递归遍历 VDOM，不能中断）</code></li>
+<li>递归结束，通知 Renderer（渲染器），将最新的 VDOM 渲染到页面上</li>
+</ol>
+<h3 id="缺点">缺点</h3>
+<p>React 16 前，采用的是 <code>递归遍历新旧 VDOM 树做对比</code>，这会存在一个问题：递归时，如果 VDOM 树层级很深，那么会长时间占用 JS 主线程，而 JS 又是单线程的，<code>且递归又是同步递归的</code>，就会导致页面上的某些交互操作无法响应、动画卡顿等问题。所以为了解决这个问题，React 16 后，新增了 Fiber 架构。</p>
+<h2 id="fiber-架构">Fiber 架构</h2>
+<p>前面也说了，Fiber 架构的出现就是为了解决 <code>数据量过大导致页面掉帧卡顿、不能及时响应操作的问题的</code>，那么 Fiber 具体是个什么东西呢？</p>
+<h3 id="fiber-的含义">Fiber 的含义</h3>
+<ul>
+<li>架构层面：<code>异步可中断</code>的方案，称为 Fiber Reconciler。React 16 前没有 Fiber，递归调用栈，叫做 Stack Reconciler。</li>
+<li>数据结构层面：保存了组件状态、信息的特殊<code>链表</code>，其中比较重要的三个属性：<code>return（指向父节点）、child（指向子节点）、sibling（指向兄弟节点）</code></li>
+</ul>
+<h3 id="fiber-工作流程">Fiber 工作流程</h3>
+<p>上面我们提到，React 16 前的 Stack Reconciler 的工作流程是：</p>
+<ul>
+<li>Stack Reconciler 递归对比虚拟 DOM 找不同</li>
+<li>Renderer 接到 Reconciler 的通知，渲染新的 VDOM。</li>
+</ul>
+<p>而 Fiber 架构里面变为了<code>三个步骤：</code></p>
+<ul>
+<li>Scheduler（调度器）：<code>设置任务的优先级</code>，优先级高的推入 Reconciler。</li>
+<li>Reconciler：VDOM 转 Fiber，对变化的 Fiber 节点打上标记 flag。对可复用的节点打上修改的标记，剩余的旧节点打上删除标记，新节点打上新增标记。也就是在协调器这一步，<code>就已经清楚了节点是增还是改还是删</code>。</li>
+<li>Renderer：根据 Reconciler 打的标记，直接渲染（因为上一步已经知道 Fiber 节点是如何变化的，所以渲染的时候就会很快）</li>
+</ul>
+<p>在 Fiber 架构下，更新的顺序变成了：</p>
+<ul>
+<li>Scheduler 给每个更新任务<code>赋予优先级</code></li>
+<li>优先级高的更新任务 A，会被推入 Reconciler，VDOM 转 Fiber，<code>新的 VDOM 和 旧的 Fiber 进行 diff 对比</code>决定怎样生成新的 Fiber 。但如果此时有新的<code>更高优先级的更新任务B</code> 进入 Scheduler，那么 <code>A 就会被中断</code>，<code>B被推入 Reconciler</code>，当 B 完成渲染后。新一轮的调度开始，A 是新一轮中优先级最高的，那 A 就继续推入 Reconciler 执行更新任务。</li>
+<li>重复以上的 <code>可中断、可重复</code> 步骤，直至所有更新任务完成渲染。</li>
+</ul>
+<p>流程图如下：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/249a86fc636541729fe047b46f4f3af9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="fiber-数据结构">Fiber 数据结构</h3>
+<p>前面说了， Fiber 是个保存了组件状态、信息的特殊链表，其中三个属性 return、child、sibling 构成了链表的指向。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">App</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">p</span>&gt;&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">a</span>&gt;&lt;/<span style="color:#f92672">a</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>变成 Fiber 链表后：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/128311b7121f4d4f919d49b326b0271b~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="fiber-双缓存">Fiber 双缓存</h3>
+<p>React 更新 DOM 采用的是双缓存技术。React 中最多会存在两颗 Fiber 树：</p>
+<ul>
+<li><code>currentFiber</code>：页面中显示的内容</li>
+<li><code>workInProgressFiber</code>：内存中正在重新构建的 Fiber 树。</li>
+</ul>
+<p>双缓存中：当 workInProgressFiber 在内存中构建完成后，React 会直接用它 替换掉 currentFiber，这样能快速更新 DOM。一旦 workInProgressFiber 树 渲染在页面上后，它就会变成 currentFiber 树，也就是说 fiberRootNode 会指向它。</p>
+<p>在 <code>currentFiber 中有一个属性 alternate 指向它对应的 workInProgressFiber</code>，同样，<code>workInProgressFiber 也有一个属性 alternate 指向它对应的 currentFiber</code>。也就是下面的这种结构：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/53a88e775cc34e8d8cecf9bd5cf7e5aa~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h2 id="fiber-的构建与更新">Fiber 的构建与更新</h2>
+<p>接下来通过图解，说明 Fiber 的 Mount（构建） 和 Update（更新）</p>
+<h3 id="mount">Mount</h3>
+<ol>
+<li>创建 fiberRoot 和 rootFiberNode 两个节点， <code>（fiberRoot是整个项目的根节点，只存在一个，rootFiber是应用的根节点，可能存在多个，例如多个 ReactDOM.render(&lt;App /&gt;, document.getElementById(&quot;root&quot;));创建多个应用节点。）</code> 并根据 JSX 在内存中构建 workInProgressFiber 树。</li>
+</ol>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bdf3feb0948a484b9c7c13c80e5f33f6~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>左侧是 currentFiber，右侧是 workInProgressFiber。</p>
+<ol start="2">
+<li><code>workInProgressFiber 树构建完成后，将其变为 currentFiber树。</code></li>
+</ol>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e2f951c149dc4f818401ecb723e6b024~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="update">Update</h3>
+<ol>
+<li>根据 currentFiber 在内存中构建 workInProgressFiber。</li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b62d95ccb2e7488eb8c1e9fc92ee36ba~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><code>构建 workInProgressFiber 是在createWorkInProgress中，它能创建或者服用Fiber</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">createWorkInProgress</span>(<span style="color:#a6e22e">current</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Fiber</span>, <span style="color:#a6e22e">pendingProps</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span>)<span style="color:#f92672">:</span> <span style="color:#a6e22e">Fiber</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">workInProgress</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">alternate</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">workInProgress</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">null</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//区分是在mount时还是在update时
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">workInProgress</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">createFiber</span>(
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">tag</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">pendingProps</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">key</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">mode</span>
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">elementType</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">elementType</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">type</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">type</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">stateNode</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">stateNode</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">alternate</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">alternate</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">workInProgress</span>;
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">pendingProps</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">pendingProps</span>; <span style="color:#75715e">//复用属性
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">type</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">type</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">flags</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">NoFlags</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">nextEffect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">firstEffect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">lastEffect</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">childLanes</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">childLanes</span>; <span style="color:#75715e">//复用属性
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">lanes</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">lanes</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">child</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">child</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">memoizedProps</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">memoizedProps</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">memoizedState</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">memoizedState</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">updateQueue</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">updateQueue</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">currentDependencies</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">dependencies</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">dependencies</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">currentDependencies</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">?</span> <span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">lanes</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">currentDependencies</span>.<span style="color:#a6e22e">lanes</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">firstContext</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">currentDependencies</span>.<span style="color:#a6e22e">firstContext</span>,
+</span></span><span style="display:flex;"><span>        };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">sibling</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">sibling</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">index</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">index</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">workInProgress</span>.<span style="color:#a6e22e">ref</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current</span>.<span style="color:#a6e22e">ref</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">workInProgress</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ol start="2">
+<li>构建完后，将 workInProgressFiber 替换成新的 currentFiber。</li>
+</ol>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/23410b730aa64feab6840ccbfa2a1239~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<blockquote>
+<p>也就是说：jsx 改变，生成新的 VDOM， 用它和 旧的 Fiber（current Fiber）对比（diff 算法），然后标记差异（是增加、修改、还是删除），形成一颗叫 workInProgress 的 Fiber 树，然后将 fiberRoot 的 current 指向 workInProgress 树，此时 workInProgress 就变成了 current Fiber</p>
+</blockquote>
+<h2 id="结语">结语</h2>
+<p>以上内容如有错误，欢迎留言指出，一起进步 💪，也欢迎大家一起讨论</p>
+<h2 id="参考文章">参考文章</h2>
+<ul>
+<li>
+<p><a href="https://juejin.cn/post/7168443785993519117#heading-24"># 「React 深入」知悉 Fiber，方能百战不殆～</a></p>
+</li>
+<li>
+<p><a href="https://juejin.cn/post/7199822364548071482"># React 源码系列(一)：React 设计理念&amp;架构</a></p>
+</li>
+<li>
+<p><a href="https://juejin.cn/post/7063321486135656479"># 手写简易版 React 来彻底搞懂 fiber 架构</a></p>
+</li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/589/"
+      ><span class="mr-1.5">←</span><span>如何完成一个完全不依赖客户端时间的倒计时</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/587/"
+      ><span>React 中使用 createObjectURL 的实践经验</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>一文彻底了解Web Worker，十万条数据都是弟弟 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 页面中有十万条数据，对其进行复杂运算，需要多久呢？
+表格 4000 行，25 列，共十万条数据
+运算包括：总和、算术平均、加权平均、最大、最小、计数、样本标准差、样本方差、中位数、总体标准差、总体方差
+答案是: 35s 左右
+注：具体时间根据电脑配置会有所不同
+并且 这个时间段内，页面一直处于假死状态，对页面做任何操作都没有反应 😭😭😭
+什么是假死？
+浏览器有 GUI 渲染线程与 JS 引擎线程，这两个线程是互斥的关系
+当 js 有大量计算时，会造成 UI 阻塞，出现界面卡顿、掉帧等情况，严重时会出现页面卡死的情况，俗称假死
+致命 bug 强行送测吧
+测试小姐姐：你的页面又死了！！
+我：还没有死，在 ICU…… ，过一会就好了
+测试小姐姐：已经等了好一会了，还不行啊，是个致命 bug💥
+我：……
+闯荡前端数十载，竟被提了个致命 bug，颜面何在！🙈
+Performance 分析假死期间的性能表现 如下图所示： 此次计算总用时为 35.45s
+重点从以下三个方面分析：
+1）FPS
+FPS: 表示每秒传输帧数，是分析动画的一个主要性能指标，绿色的长度越长，用户体验越好；反之红色越长，说明卡顿严重
+从图中看到 FPS 中有一条持续了 35s 的红线，说明这期间卡顿严重
+2）火焰图 Main
+Main: 表示主线程运行状况，包括 js 的计算与执行、css 样式计算、Layout 布局等等。
+展开 Main,红色倒三角的为Long Task,执行时长 50ms 就属于长任务，会阻塞页面渲染
+从图中看到计算过程的 Long Task 执行时间为 35.45s, 是造成页面假死的原因" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="一文彻底了解Web Worker，十万条数据都是弟弟" />
+<meta property="og:description" content="前言 页面中有十万条数据，对其进行复杂运算，需要多久呢？
+表格 4000 行，25 列，共十万条数据
+运算包括：总和、算术平均、加权平均、最大、最小、计数、样本标准差、样本方差、中位数、总体标准差、总体方差
+答案是: 35s 左右
+注：具体时间根据电脑配置会有所不同
+并且 这个时间段内，页面一直处于假死状态，对页面做任何操作都没有反应 😭😭😭
+什么是假死？
+浏览器有 GUI 渲染线程与 JS 引擎线程，这两个线程是互斥的关系
+当 js 有大量计算时，会造成 UI 阻塞，出现界面卡顿、掉帧等情况，严重时会出现页面卡死的情况，俗称假死
+致命 bug 强行送测吧
+测试小姐姐：你的页面又死了！！
+我：还没有死，在 ICU…… ，过一会就好了
+测试小姐姐：已经等了好一会了，还不行啊，是个致命 bug💥
+我：……
+闯荡前端数十载，竟被提了个致命 bug，颜面何在！🙈
+Performance 分析假死期间的性能表现 如下图所示： 此次计算总用时为 35.45s
+重点从以下三个方面分析：
+1）FPS
+FPS: 表示每秒传输帧数，是分析动画的一个主要性能指标，绿色的长度越长，用户体验越好；反之红色越长，说明卡顿严重
+从图中看到 FPS 中有一条持续了 35s 的红线，说明这期间卡顿严重
+2）火焰图 Main
+Main: 表示主线程运行状况，包括 js 的计算与执行、css 样式计算、Layout 布局等等。
+展开 Main,红色倒三角的为Long Task,执行时长 50ms 就属于长任务，会阻塞页面渲染
+从图中看到计算过程的 Long Task 执行时间为 35.45s, 是造成页面假死的原因" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/372/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-05T20:44:47+08:00" />
+<meta property="article:modified_time" content="2023-03-05T20:44:47+08:00" />
+
+  
+  <meta itemprop="name" content="一文彻底了解Web Worker，十万条数据都是弟弟">
+<meta itemprop="description" content="前言 页面中有十万条数据，对其进行复杂运算，需要多久呢？
+表格 4000 行，25 列，共十万条数据
+运算包括：总和、算术平均、加权平均、最大、最小、计数、样本标准差、样本方差、中位数、总体标准差、总体方差
+答案是: 35s 左右
+注：具体时间根据电脑配置会有所不同
+并且 这个时间段内，页面一直处于假死状态，对页面做任何操作都没有反应 😭😭😭
+什么是假死？
+浏览器有 GUI 渲染线程与 JS 引擎线程，这两个线程是互斥的关系
+当 js 有大量计算时，会造成 UI 阻塞，出现界面卡顿、掉帧等情况，严重时会出现页面卡死的情况，俗称假死
+致命 bug 强行送测吧
+测试小姐姐：你的页面又死了！！
+我：还没有死，在 ICU…… ，过一会就好了
+测试小姐姐：已经等了好一会了，还不行啊，是个致命 bug💥
+我：……
+闯荡前端数十载，竟被提了个致命 bug，颜面何在！🙈
+Performance 分析假死期间的性能表现 如下图所示： 此次计算总用时为 35.45s
+重点从以下三个方面分析：
+1）FPS
+FPS: 表示每秒传输帧数，是分析动画的一个主要性能指标，绿色的长度越长，用户体验越好；反之红色越长，说明卡顿严重
+从图中看到 FPS 中有一条持续了 35s 的红线，说明这期间卡顿严重
+2）火焰图 Main
+Main: 表示主线程运行状况，包括 js 的计算与执行、css 样式计算、Layout 布局等等。
+展开 Main,红色倒三角的为Long Task,执行时长 50ms 就属于长任务，会阻塞页面渲染
+从图中看到计算过程的 Long Task 执行时间为 35.45s, 是造成页面假死的原因"><meta itemprop="datePublished" content="2023-03-05T20:44:47+08:00" />
+<meta itemprop="dateModified" content="2023-03-05T20:44:47+08:00" />
+<meta itemprop="wordCount" content="1376">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="一文彻底了解Web Worker，十万条数据都是弟弟"/>
+<meta name="twitter:description" content="前言 页面中有十万条数据，对其进行复杂运算，需要多久呢？
+表格 4000 行，25 列，共十万条数据
+运算包括：总和、算术平均、加权平均、最大、最小、计数、样本标准差、样本方差、中位数、总体标准差、总体方差
+答案是: 35s 左右
+注：具体时间根据电脑配置会有所不同
+并且 这个时间段内，页面一直处于假死状态，对页面做任何操作都没有反应 😭😭😭
+什么是假死？
+浏览器有 GUI 渲染线程与 JS 引擎线程，这两个线程是互斥的关系
+当 js 有大量计算时，会造成 UI 阻塞，出现界面卡顿、掉帧等情况，严重时会出现页面卡死的情况，俗称假死
+致命 bug 强行送测吧
+测试小姐姐：你的页面又死了！！
+我：还没有死，在 ICU…… ，过一会就好了
+测试小姐姐：已经等了好一会了，还不行啊，是个致命 bug💥
+我：……
+闯荡前端数十载，竟被提了个致命 bug，颜面何在！🙈
+Performance 分析假死期间的性能表现 如下图所示： 此次计算总用时为 35.45s
+重点从以下三个方面分析：
+1）FPS
+FPS: 表示每秒传输帧数，是分析动画的一个主要性能指标，绿色的长度越长，用户体验越好；反之红色越长，说明卡顿严重
+从图中看到 FPS 中有一条持续了 35s 的红线，说明这期间卡顿严重
+2）火焰图 Main
+Main: 表示主线程运行状况，包括 js 的计算与执行、css 样式计算、Layout 布局等等。
+展开 Main,红色倒三角的为Long Task,执行时长 50ms 就属于长任务，会阻塞页面渲染
+从图中看到计算过程的 Long Task 执行时间为 35.45s, 是造成页面假死的原因"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">一文彻底了解Web Worker，十万条数据都是弟弟</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 5, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="前言">前言</h2>
+<p>页面中有十万条数据，对其进行复杂运算，需要多久呢？</p>
+<p>表格 4000 行，25 列，共十万条数据</p>
+<p><strong>运算包括</strong>：总和、算术平均、加权平均、最大、最小、计数、样本标准差、样本方差、中位数、总体标准差、总体方差</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9244b9f93e7546059844ba41176339eb~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="table.jpg"></p>
+<p>答案是: <strong>35s 左右</strong></p>
+<p><em>注：具体时间根据电脑配置会有所不同</em></p>
+<p><strong>并且</strong> 这个时间段内，页面一直处于假死状态，对页面做任何操作都没有反应 😭😭😭</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b2df71b2125a44c3b1160bc9daf3476d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="boom.gif"></p>
+<p><strong>什么是假死？</strong></p>
+<p>浏览器有 GUI 渲染线程与 JS 引擎线程，这两个线程是互斥的关系</p>
+<p>当 js 有大量计算时，会造成 UI 阻塞，出现界面卡顿、掉帧等情况，严重时会出现页面卡死的情况，俗称<strong>假死</strong></p>
+<h2 id="致命-bug">致命 bug</h2>
+<p><strong>强行送测吧</strong></p>
+<p>测试小姐姐：你的页面又死了！！<br>
+我：还没有死，在 ICU…… ，过一会就好了<br>
+测试小姐姐：已经等了好一会了，还不行啊，是个<strong>致命 bug</strong>💥<br>
+我：……</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4006164b249041f8915173749370f343~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="绝望.jpg"></p>
+<p><strong>闯荡前端数十载，竟被提了个致命 bug，颜面何在！🙈</strong></p>
+<h2 id="performance-分析假死期间的性能表现">Performance 分析假死期间的性能表现</h2>
+<p><strong>如下图所示： 此次计算总用时为 35.45s</strong></p>
+<p>重点从以下三个方面分析：</p>
+<p><strong>1）FPS</strong></p>
+<p>FPS: 表示每秒传输帧数，是分析动画的一个主要性能指标，绿色的长度越长，用户体验越好；反之红色越长，说明卡顿严重</p>
+<p><strong>从图中看到 FPS 中有一条持续了 35s 的红线，说明这期间卡顿严重</strong></p>
+<p><strong>2）火焰图 Main</strong><br>
+Main: 表示主线程运行状况，包括 js 的计算与执行、css 样式计算、Layout 布局等等。</p>
+<p>展开 Main,红色倒三角的为<strong>Long Task</strong>,执行时长 50ms 就属于长任务，会阻塞页面渲染</p>
+<p><strong>从图中看到计算过程的 Long Task 执行时间为 35.45s, 是造成页面假死的原因</strong></p>
+<p><strong>3）Summary 统计汇总面板</strong><br>
+Summary: 表示各指标时间占用统计报表</p>
+<ul>
+<li>Loading:  加载时间</li>
+<li>Scripting: js 计算时间</li>
+<li>Rendering:  渲染时间</li>
+<li>Painting:  绘制时间</li>
+<li>Other:  其他时间</li>
+<li>Idle:  浏览器闲置时间</li>
+</ul>
+<p><strong>Scripting 代码执行为 35.9s</strong></p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/100da80ce95148cca9ac19286828e80c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="performance8.png"></p>
+<p><strong>拿什么拯救你，我的页面</strong></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/38eb3e8c08974c5e92b48438758ba716~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<h2 id="召唤-web-worker出来吧神龙">召唤 Web Worker，出来吧神龙</h2>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ba759292d25f45fb8c28af3aa07444f9~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="R-C (1).gif"></p>
+<p><strong>神龙，我想让页面的计算变快，并且不卡顿</strong></p>
+<p><strong>Web Worker 了解一下：</strong></p>
+<p>在 HTML5 的新规范中，实现了 Web Worker 来引入 js 的 “多线程” 技术, 可以让我们在页面主运行的 js 线程中，加载运行另外单独的一个或者多个 js 线程</p>
+<p><strong>一句话： Web Worker 专门处理复杂计算的，从此让前端拥有后端的计算能力</strong></p>
+<h2 id="在-vue-中-使用-web-worker">在 Vue 中 使用 Web Worker</h2>
+<p>1、安装 worker-loader</p>
+<pre tabindex="0"><code>npm install worker-loader
+</code></pre><p>2、编写 worker.js</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// onmessage获取传入的初始值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">data</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">200000</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10000</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">sum</span> <span style="color:#f92672">+=</span> Math.<span style="color:#a6e22e">random</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 将计算的结果传递出去
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">postMessage</span>(<span style="color:#a6e22e">sum</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>3、通过行内 loader 引入 worker.js</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Worker</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;worker-loader!./worker&#34;</span>;
+</span></span></code></pre></div><p>4、最终代码</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#960050;background-color:#1e0010">@</span><span style="color:#a6e22e">click</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;makeWorker&#34;</span>&gt;开始线程&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">&lt;!--在计算时 往input输入值时 没有发生卡顿--&gt;</span>
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">p</span>&gt;&lt;<span style="color:#f92672">input</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;text&#34;</span> /&gt;&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Worker</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;worker-loader!./worker&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">methods</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">makeWorker</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 获取计算开始的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">start</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 新建一个线程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">worker</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Worker</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 线程之间通过postMessage进行通信
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">postMessage</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 监听message事件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;message&#34;</span>, (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 关闭线程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">terminate</span>();
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 获取计算结束的时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">end</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 得到总的计算时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">durationTime</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">end</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">start</span>;
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;计算结果:&#34;</span>, <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">`代码执行了 </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">durationTime</span><span style="color:#e6db74">}</span><span style="color:#e6db74"> 毫秒`</span>);
+</span></span><span style="display:flex;"><span>        });
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p>计算过程中，在 input 框输入值，页面一直未发生卡顿</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d294d8e1a5bf4051acd935d5fb96671d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="total.png"></p>
+<h2 id="对比试验">对比试验</h2>
+<p>如果直接把下面这段代码直接丢到主线程中，计算过程中页面一直处于假死状态，input 框无法输入</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">200000</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10000</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sum</span> <span style="color:#f92672">+=</span> Math.<span style="color:#a6e22e">random</span>();
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="前戏差不多了上硬菜">前戏差不多了，上硬菜</h2>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1da9b4626f5d4a81b901a215981bc263~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p><strong>开启多线程，并行计算</strong></p>
+<p>回到要解决的问题，执行多种运算时，给每种运算开启单独的线程，线程计算完成后要及时关闭</p>
+<p><strong>多线程代码</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-vue" data-lang="vue"><span style="display:flex;"><span>&lt;<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#f92672">@click</span><span style="color:#e6db74">=&#34;makeWorker&#34;</span>&gt;<span style="color:#960050;background-color:#1e0010">开始线程</span>&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">&lt;!--在计算时</span> <span style="color:#960050;background-color:#1e0010">往</span><span style="color:#a6e22e">input</span><span style="color:#960050;background-color:#1e0010">输入值时</span> <span style="color:#960050;background-color:#1e0010">没有发生卡顿--</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">p</span>&gt;&lt;<span style="color:#f92672">input</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;text&#34;</span> /&gt;&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Worker</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;worker-loader!./worker&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">data</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 模拟数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">arr</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Array(<span style="color:#ae81ff">100000</span>).<span style="color:#a6e22e">fill</span>(<span style="color:#ae81ff">1</span>).<span style="color:#a6e22e">map</span>(() =&gt; Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#ae81ff">10000</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">weightedList</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Array(<span style="color:#ae81ff">100000</span>)
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">fill</span>(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">map</span>(() =&gt; Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#ae81ff">10000</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">calcList</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;sum&#34;</span>, <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;总和&#34;</span> },
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;average&#34;</span>, <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;算术平均&#34;</span> },
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;weightedAverage&#34;</span>, <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;加权平均&#34;</span> },
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;max&#34;</span>, <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;最大&#34;</span> },
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;middleNum&#34;</span>, <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;中位数&#34;</span> },
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;min&#34;</span>, <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;最小&#34;</span> },
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;variance&#34;</span>, <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;样本方差&#34;</span> },
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;popVariance&#34;</span>, <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;总体方差&#34;</span> },
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;stdDeviation&#34;</span>, <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;样本标准差&#34;</span> },
+</span></span><span style="display:flex;"><span>      { <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;popStandardDeviation&#34;</span>, <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;总体标准差&#34;</span> },
+</span></span><span style="display:flex;"><span>    ];
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">workerList</span><span style="color:#f92672">:</span> [], <span style="color:#75715e">// 用来存储所有的线程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">calcList</span>, <span style="color:#75715e">// 计算类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">arr</span>, <span style="color:#75715e">// 数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">weightedList</span>, <span style="color:#75715e">// 加权因子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    };
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">methods</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">makeWorker</span>() {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">calcList</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">item</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">workerName</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`worker</span><span style="color:#e6db74">${</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">workerList</span>.<span style="color:#a6e22e">length</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">worker</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Worker</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">start</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">postMessage</span>({
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">arr</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">arr</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">type</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">weightedList</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">weightedList</span>,
+</span></span><span style="display:flex;"><span>        });
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;message&#34;</span>, (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">terminate</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">tastName</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>;
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">calcList</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">item</span>) =&gt; {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">type</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">type</span>) {
+</span></span><span style="display:flex;"><span>              <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">value</span>;
+</span></span><span style="display:flex;"><span>              <span style="color:#a6e22e">tastName</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">name</span>;
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>          });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">end</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">duration</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">end</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">start</span>;
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">`当前任务: </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">tastName</span><span style="color:#e6db74">}</span><span style="color:#e6db74">, 计算用时: </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">duration</span><span style="color:#e6db74">}</span><span style="color:#e6db74"> 毫秒`</span>);
+</span></span><span style="display:flex;"><span>        });
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">workerList</span>.<span style="color:#a6e22e">push</span>({ [<span style="color:#a6e22e">workerName</span>]<span style="color:#f92672">:</span> <span style="color:#a6e22e">worker</span> });
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clearWorker</span>() {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">workerList</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">workerList</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">item</span>, <span style="color:#a6e22e">key</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">item</span>[<span style="color:#e6db74">`worker</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">key</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>].<span style="color:#a6e22e">terminate</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">item</span>[<span style="color:#e6db74">`worker</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">key</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>].<span style="color:#a6e22e">terminate</span>(); <span style="color:#75715e">// 终止所有线程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        });
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 页面关闭，如果还没有计算完成，要销毁对应线程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">beforeDestroy</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">clearWorker</span>();
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p><strong>worker.js</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">create</span>, <span style="color:#a6e22e">all</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;mathjs&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">config</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">number</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;BigNumber&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">precision</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">20</span>, <span style="color:#75715e">// 精度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">math</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">create</span>(<span style="color:#a6e22e">all</span>, <span style="color:#a6e22e">config</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//加
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">numberAdd</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arg1</span>, <span style="color:#a6e22e">arg2</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">number</span>(<span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">add</span>(<span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">bignumber</span>(<span style="color:#a6e22e">arg1</span>), <span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">bignumber</span>(<span style="color:#a6e22e">arg2</span>)));
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//减
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">numberSub</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arg1</span>, <span style="color:#a6e22e">arg2</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">number</span>(<span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">subtract</span>(<span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">bignumber</span>(<span style="color:#a6e22e">arg1</span>), <span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">bignumber</span>(<span style="color:#a6e22e">arg2</span>)));
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//乘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">numberMultiply</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arg1</span>, <span style="color:#a6e22e">arg2</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">number</span>(<span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">multiply</span>(<span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">bignumber</span>(<span style="color:#a6e22e">arg1</span>), <span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">bignumber</span>(<span style="color:#a6e22e">arg2</span>)));
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//除
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">numberDivide</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arg1</span>, <span style="color:#a6e22e">arg2</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">number</span>(<span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">divide</span>(<span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">bignumber</span>(<span style="color:#a6e22e">arg1</span>), <span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">bignumber</span>(<span style="color:#a6e22e">arg2</span>)));
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组总体标准差公式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">popVariance</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> Math.<span style="color:#a6e22e">sqrt</span>(<span style="color:#a6e22e">popStandardDeviation</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组总体方差公式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">popStandardDeviation</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">s</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ave</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sums</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">len</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">len</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberAdd</span>(Number(<span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>]), <span style="color:#a6e22e">sum</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">ave</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberDivide</span>(<span style="color:#a6e22e">sum</span>, <span style="color:#a6e22e">len</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">len</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sums</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberAdd</span>(
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">sums</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">numberMultiply</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">numberSub</span>(Number(<span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>]), <span style="color:#a6e22e">ave</span>),
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">numberSub</span>(Number(<span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>]), <span style="color:#a6e22e">ave</span>)
+</span></span><span style="display:flex;"><span>      )
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">s</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberDivide</span>(<span style="color:#a6e22e">sums</span>, <span style="color:#a6e22e">len</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">s</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组加权公式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">weightedAverage</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr1</span>, <span style="color:#a6e22e">arr2</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// arr1: 计算列，arr2: 选择的权重列
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">s</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, <span style="color:#75715e">// 分子的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">sums</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, <span style="color:#75715e">// 分母的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">len</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">arr1</span>.<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">len</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberAdd</span>(<span style="color:#a6e22e">numberMultiply</span>(Number(<span style="color:#a6e22e">arr1</span>[<span style="color:#a6e22e">i</span>]), Number(<span style="color:#a6e22e">arr2</span>[<span style="color:#a6e22e">i</span>])), <span style="color:#a6e22e">sum</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sums</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberAdd</span>(Number(<span style="color:#a6e22e">arr2</span>[<span style="color:#a6e22e">i</span>]), <span style="color:#a6e22e">sums</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">s</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberDivide</span>(<span style="color:#a6e22e">sum</span>, <span style="color:#a6e22e">sums</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">s</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组样本方差公式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">variance</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">s</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ave</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sums</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">len</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">len</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberAdd</span>(Number(<span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>]), <span style="color:#a6e22e">sum</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">ave</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberDivide</span>(<span style="color:#a6e22e">sum</span>, <span style="color:#a6e22e">len</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">len</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sums</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberAdd</span>(
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">sums</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">numberMultiply</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">numberSub</span>(Number(<span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>]), <span style="color:#a6e22e">ave</span>),
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">numberSub</span>(Number(<span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>]), <span style="color:#a6e22e">ave</span>)
+</span></span><span style="display:flex;"><span>      )
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">s</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberDivide</span>(<span style="color:#a6e22e">sums</span>, <span style="color:#a6e22e">len</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">s</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组中位数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">middleNum</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">sort</span>((<span style="color:#a6e22e">a</span>, <span style="color:#a6e22e">b</span>) =&gt; <span style="color:#a6e22e">a</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">b</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">%</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//判断数字个数是奇数还是偶数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">numberDivide</span>(
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">numberAdd</span>(<span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>], <span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>]),
+</span></span><span style="display:flex;"><span>      <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>    ); <span style="color:#75715e">//偶数个取中间两个数的平均数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">arr</span>[(<span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>]; <span style="color:#75715e">//奇数个取最中间那个数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组求和
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">len</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">len</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sum</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">numberAdd</span>(Number(<span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>]), <span style="color:#a6e22e">sum</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">sum</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组平均值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">average</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">numberDivide</span>(<span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">arr</span>), <span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">length</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组最大值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">max</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">max</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">max</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>]) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">max</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>];
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">max</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组最小值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">min</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">min</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">min</span> <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>]) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">min</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">i</span>];
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">min</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组有效数据长度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">count</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">remove</span> <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#e6db74">&#34; &#34;</span>, <span style="color:#66d9ef">null</span>, <span style="color:#66d9ef">undefined</span>, <span style="color:#e6db74">&#34;-&#34;</span>]; <span style="color:#75715e">// 排除无效的数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">filter</span>((<span style="color:#a6e22e">item</span>) =&gt; <span style="color:#f92672">!</span><span style="color:#a6e22e">remove</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#a6e22e">item</span>)).<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数组样本标准差公式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">stdDeviation</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">arr</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> Math.<span style="color:#a6e22e">sqrt</span>(<span style="color:#a6e22e">variance</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 数字三位加逗号，保留两位小数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">formatNumber</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">num</span>, <span style="color:#a6e22e">pointNum</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> ((<span style="color:#f92672">!</span><span style="color:#a6e22e">num</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">num</span> <span style="color:#f92672">!==</span> <span style="color:#ae81ff">0</span>) <span style="color:#f92672">||</span> <span style="color:#a6e22e">num</span> <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;-&#34;</span>) <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;--&#34;</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">arr</span> <span style="color:#f92672">=</span> (<span style="color:#66d9ef">typeof</span> <span style="color:#a6e22e">num</span> <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;string&#34;</span> <span style="color:#f92672">?</span> parseFloat(<span style="color:#a6e22e">num</span>) <span style="color:#f92672">:</span> <span style="color:#a6e22e">num</span>)
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">toFixed</span>(<span style="color:#a6e22e">pointNum</span>)
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">split</span>(<span style="color:#e6db74">&#34;.&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">intNum</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">/\d{1,3}(?=(\d{3})+(.\d*)?$)/g</span>, <span style="color:#e6db74">&#34;$&amp;,&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">===</span> <span style="color:#66d9ef">undefined</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">intNum</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">intNum</span><span style="color:#e6db74">}</span><span style="color:#e6db74">.</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">1</span>]<span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> { <span style="color:#a6e22e">arr</span>, <span style="color:#a6e22e">type</span>, <span style="color:#a6e22e">weightedList</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">data</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">switch</span> (<span style="color:#a6e22e">type</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;sum&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">formatNumber</span>(<span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;average&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">formatNumber</span>(<span style="color:#a6e22e">average</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;weightedAverage&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">formatNumber</span>(<span style="color:#a6e22e">weightedAverage</span>(<span style="color:#a6e22e">arr</span>, <span style="color:#a6e22e">weightedList</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;max&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">formatNumber</span>(<span style="color:#a6e22e">max</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;middleNum&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">formatNumber</span>(<span style="color:#a6e22e">middleNum</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;min&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">formatNumber</span>(<span style="color:#a6e22e">min</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;variance&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">formatNumber</span>(<span style="color:#a6e22e">variance</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;popVariance&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">formatNumber</span>(<span style="color:#a6e22e">popVariance</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;stdDeviation&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">formatNumber</span>(<span style="color:#a6e22e">stdDeviation</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;popStandardDeviation&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">formatNumber</span>(<span style="color:#a6e22e">popStandardDeviation</span>(<span style="color:#a6e22e">arr</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">break</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 发送数据事件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">postMessage</span>({ <span style="color:#a6e22e">type</span>, <span style="color:#a6e22e">value</span> });
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><h2 id="35s-变成-6s">35s 变成 6s</h2>
+<p><strong>从原来的 35s 变成了最长 6s，并且计算过程中全程无卡顿，YYDS</strong></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/498cca4446ce45fcb46c3b4f5f1800fe~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="time1.png"></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/adf28e0964754127a009fd3a3eb3385a~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="src=http___img.soogif.com_n7sySW0OULhVlH5j7OrXHpbqEiM9hDsr.gif&amp;refer=http___img.soogif.gif"></p>
+<p><strong>最终的效果</strong></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/18cd82fd70d84211b8317d69fa922713~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="table.gif"></p>
+<h2 id="十万条太-low-了百万条数据玩一玩">十万条太 low 了，百万条数据玩一玩</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// 修改上文的模拟数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">arr</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Array(<span style="color:#ae81ff">1000000</span>).<span style="color:#a6e22e">fill</span>(<span style="color:#ae81ff">1</span>).<span style="color:#a6e22e">map</span>(() =&gt; Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#ae81ff">10000</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">weightedList</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Array(<span style="color:#ae81ff">1000000</span>).<span style="color:#a6e22e">fill</span>(<span style="color:#ae81ff">1</span>).<span style="color:#a6e22e">map</span>(() =&gt; Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#ae81ff">10000</span>);
+</span></span></code></pre></div><p>时间明显上来了，最长要 50 多 s 了，没事玩一玩，开心就好</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a58e9dbcc4ab4147a18c519bad9572e0~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="time3.png"></p>
+<h2 id="web-worker-提高-canvas-运行速度">web worker 提高 Canvas 运行速度</h2>
+<p>web worker 除了单纯进行计算外，还可以结合<strong>离屏 canvas</strong>进行绘图，提升绘图的渲染性能和使用体验</p>
+<p><strong>离屏 canvas 案例</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-vue" data-lang="vue"><span style="display:flex;"><span>&lt;<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#f92672">@click</span><span style="color:#e6db74">=&#34;makeWorker&#34;</span>&gt;<span style="color:#960050;background-color:#1e0010">开始绘图</span>&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">canvas</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;myCanvas&#34;</span> <span style="color:#a6e22e">width</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;300&#34;</span> <span style="color:#a6e22e">height</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;150&#34;</span>&gt;&lt;/<span style="color:#f92672">canvas</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Worker</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;worker-loader!./worker&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">methods</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">makeWorker</span>() {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">worker</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Worker</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">htmlCanvas</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;myCanvas&#34;</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 使用canvas的transferControlToOffscreen函数获取一个OffscreenCanvas对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">offscreen</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">htmlCanvas</span>.<span style="color:#a6e22e">transferControlToOffscreen</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 注意：第二个参数不能省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">worker</span>.<span style="color:#a6e22e">postMessage</span>({ <span style="color:#a6e22e">canvas</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">offscreen</span> }, [<span style="color:#a6e22e">offscreen</span>]);
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p><strong>worker.js</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 使用OffscreenCanvas（离屏Canvas）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">canvas</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">canvas</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 获取绘图上下文
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">ctx</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">canvas</span>.<span style="color:#a6e22e">getContext</span>(<span style="color:#e6db74">&#34;2d&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 绘制一个圆弧
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">beginPath</span>(); <span style="color:#75715e">// 开启路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">arc</span>(<span style="color:#ae81ff">150</span>, <span style="color:#ae81ff">75</span>, <span style="color:#ae81ff">50</span>, <span style="color:#ae81ff">0</span>, Math.<span style="color:#a6e22e">PI</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">fillStyle</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;#1989fa&#34;</span>; <span style="color:#75715e">//设置填充颜色
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">fill</span>(); <span style="color:#75715e">//开始填充
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">stroke</span>();
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p><strong>效果：</strong></p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/097856c80b2a4ad6824c8c581c1f279c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="cricle.gif"></p>
+<p><strong>离屏 canvas 的优势</strong></p>
+<p>1、对于复杂的 canvas 绘图，可以避免阻塞主线程</p>
+<p>2、由于这种解耦，OffscreenCanvas 的渲染与 DOM 完全分离了开来，并且比普通 Canvas 速度提升了一些</p>
+<h2 id="web-worker-的限制">Web Worker 的限制</h2>
+<p>1、在 Worker 线程的运行环境中没有 window 全局对象，也无法访问 DOM 对象</p>
+<p>2、Worker 中只能获取到部分浏览器提供的 API，如<code>定时器</code>、<code>navigator</code>、<code>location</code>、<code>XMLHttpRequest</code>等</p>
+<p>3、由于可以获取<code>XMLHttpRequest</code> 对象，可以在 Worker 线程中执行<code>ajax</code>请求</p>
+<p>4、每个线程运行在完全独立的环境中，需要通过<code>postMessage</code>、 <code>message</code>事件机制来实现的线程之间的通信</p>
+<h2 id="计算时长-超过多长时间-适合用-web-worker">计算时长 超过多长时间 适合用 Web Worker</h2>
+<p><strong>原则上，运算时间超过 50ms 会造成页面卡顿，属于 Long task，这种情况就可以考虑使用 Web Worker</strong></p>
+<p>但还要先考虑<code>通信时长</code>的问题</p>
+<p>假如一个运算执行时长为 100ms, 但是通信时长为 300ms, 用了 Web Worker 可能会更慢</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/874f81857de64876808f1a3868770246~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="face.jpg"></p>
+<h3 id="通信时长">通信时长</h3>
+<p>新建一个 web worker 时, 浏览器会加载对应的 worker.js 资源</p>
+<p><strong>下图中的 Time 是这个 js 资源的加载时长</strong></p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3b3f1e0b00b34a35813dd06f1354ee18~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="load.png"></p>
+<p><strong>最终标准：</strong></p>
+<p><strong>计算的运算时长 - 通信时长 &gt; 50ms，推荐使用 Web Worker</strong></p>
+<h2 id="场景补充说明">场景补充说明</h2>
+<p><strong>遇到大数据，第一反应: 为什么不让后端去计算呢？</strong></p>
+<p>这里比较特殊，表格 4000 行，25 列<br>
+1）用户可以对表格进行灵活操作，比如删除任何行或列，选择或剔除任意行<br>
+2）用户可以灵活选择运算的类型，计算一个或多个</p>
+<p>即便是让后端计算，需要把大量数据传给后端，计算好再返回，这个时间也不短，还可能出现用户频繁操作，接口数据被覆盖等情况</p>
+<h2 id="github-仓库">github 仓库</h2>
+<p>想动手玩一玩的小伙伴，可以从<a href="https://github.com/xy-sea/blog/tree/main/web-worker"><strong>github 仓库</strong></a>下载</p>
+<p><strong>示例演示</strong></p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/47bf26f3a4ca459ea360946d7a659647~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="webworker.gif"></p>
+<h2 id="总结">总结</h2>
+<p><strong>Web Worker 为前端带来了后端的计算能力，扩大了前端的业务边界</strong></p>
+<p>可以实现主线程与复杂计运算线程的分离，从而减轻了因大量计算而造成 UI 阻塞的情况</p>
+<p>并且更大程度地利用了终端硬件的性能</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c6fe05af53f14760b7abb55be9f5de0f~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="R-C.gif"></p>
+<p>参考链接<br>
+<a href="https://zhuanlan.zhihu.com/p/25184390">JavaScript 中的多线程 &ndash; Web Worker</a><br>
+<a href="https://blog.csdn.net/netcy/article/details/103781610">OffscreenCanvas-离屏 canvas 使用说明</a></p>
+<h2 id="文章系列">文章系列</h2>
+<p>文章系列地址：<a href="https://github.com/xy-sea/blog">github.com/xy-sea/blog</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/373/"
+      ><span class="mr-1.5">←</span><span>巧用 CSS 变量，实现动画函数复用，制作高级感拉满的网格动画</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/371/"
+      ><span>前端的项目构建性能优化和页面性能优化</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

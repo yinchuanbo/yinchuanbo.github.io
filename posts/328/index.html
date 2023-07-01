@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>基于 requestAnimationFrame 实现高精度毫秒级正向计时器 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="需求分析 从图上可以看出来，核心就是一个正向计时器。通过 js 实现一个普通的正向计时器很简单，大多数想到都是使用setInterval来实现。那么还有没有其他的实现方式呢？又怎么去实现一个高精度的毫秒级正向计时器呢？
+最近看了 vant4 的倒计时组件的源码，发现其并没有使用setInterval, 而是封装了requestAnimationFrame 和利用 Date.now()来处理毫秒级渲染和倒计时实现。那么能不能通过requestAnimationFrame来实现一个正向计时器呢？
+先看看效果图，接下来将会一步步去实现：
+体验地址： suyxh.github.io/timer-demo/
+setInterval 版 首先呢，来看看使用setInterval是如何实现的。在网上看了很多文章，大多都是使用的 setInterval 去实现，大致效果如下：
+从效果图上我们可以发现，最后一位始终为 0，甚至还是有些小 bug，很明显不是我们想要的。具体代码如下：
+&lt;!DOCTYPE html&gt; &lt;html lang=&#34;en&#34;&gt; &lt;head&gt; &lt;meta charset=&#34;UTF-8&#34; /&gt; &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt; &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34; /&gt; &lt;title&gt;Document&lt;/title&gt; &lt;/head&gt; &lt;body&gt; &lt;input type=&#34;text&#34; id=&#34;timetext&#34; value=&#34;00时00分00秒&#34; readonly /&gt; &lt;br /&gt; &lt;br /&gt; &lt;button type=&#34;button&#34; onclick=&#34;start()&#34;&gt;开始&lt;/button&gt; &lt;button type=&#34;button&#34; onclick=&#34;stop()&#34;&gt;暂停&lt;/button&gt; &lt;button type=&#34;button&#34; onclick=&#34;Reset()&#34;&gt;重置&lt;/button&gt; &lt;script&gt; //初始化变量 let hour, minute, second; //时 分 秒 hour = minute = second = 0; //初始化 let millisecond = 0; //毫秒 let int; //重置函数 function Reset() { window." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="基于 requestAnimationFrame 实现高精度毫秒级正向计时器" />
+<meta property="og:description" content="需求分析 从图上可以看出来，核心就是一个正向计时器。通过 js 实现一个普通的正向计时器很简单，大多数想到都是使用setInterval来实现。那么还有没有其他的实现方式呢？又怎么去实现一个高精度的毫秒级正向计时器呢？
+最近看了 vant4 的倒计时组件的源码，发现其并没有使用setInterval, 而是封装了requestAnimationFrame 和利用 Date.now()来处理毫秒级渲染和倒计时实现。那么能不能通过requestAnimationFrame来实现一个正向计时器呢？
+先看看效果图，接下来将会一步步去实现：
+体验地址： suyxh.github.io/timer-demo/
+setInterval 版 首先呢，来看看使用setInterval是如何实现的。在网上看了很多文章，大多都是使用的 setInterval 去实现，大致效果如下：
+从效果图上我们可以发现，最后一位始终为 0，甚至还是有些小 bug，很明显不是我们想要的。具体代码如下：
+&lt;!DOCTYPE html&gt; &lt;html lang=&#34;en&#34;&gt; &lt;head&gt; &lt;meta charset=&#34;UTF-8&#34; /&gt; &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt; &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34; /&gt; &lt;title&gt;Document&lt;/title&gt; &lt;/head&gt; &lt;body&gt; &lt;input type=&#34;text&#34; id=&#34;timetext&#34; value=&#34;00时00分00秒&#34; readonly /&gt; &lt;br /&gt; &lt;br /&gt; &lt;button type=&#34;button&#34; onclick=&#34;start()&#34;&gt;开始&lt;/button&gt; &lt;button type=&#34;button&#34; onclick=&#34;stop()&#34;&gt;暂停&lt;/button&gt; &lt;button type=&#34;button&#34; onclick=&#34;Reset()&#34;&gt;重置&lt;/button&gt; &lt;script&gt; //初始化变量 let hour, minute, second; //时 分 秒 hour = minute = second = 0; //初始化 let millisecond = 0; //毫秒 let int; //重置函数 function Reset() { window." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/328/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-01-14T09:30:08+08:00" />
+<meta property="article:modified_time" content="2023-01-14T09:30:08+08:00" />
+
+  
+  <meta itemprop="name" content="基于 requestAnimationFrame 实现高精度毫秒级正向计时器">
+<meta itemprop="description" content="需求分析 从图上可以看出来，核心就是一个正向计时器。通过 js 实现一个普通的正向计时器很简单，大多数想到都是使用setInterval来实现。那么还有没有其他的实现方式呢？又怎么去实现一个高精度的毫秒级正向计时器呢？
+最近看了 vant4 的倒计时组件的源码，发现其并没有使用setInterval, 而是封装了requestAnimationFrame 和利用 Date.now()来处理毫秒级渲染和倒计时实现。那么能不能通过requestAnimationFrame来实现一个正向计时器呢？
+先看看效果图，接下来将会一步步去实现：
+体验地址： suyxh.github.io/timer-demo/
+setInterval 版 首先呢，来看看使用setInterval是如何实现的。在网上看了很多文章，大多都是使用的 setInterval 去实现，大致效果如下：
+从效果图上我们可以发现，最后一位始终为 0，甚至还是有些小 bug，很明显不是我们想要的。具体代码如下：
+&lt;!DOCTYPE html&gt; &lt;html lang=&#34;en&#34;&gt; &lt;head&gt; &lt;meta charset=&#34;UTF-8&#34; /&gt; &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt; &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34; /&gt; &lt;title&gt;Document&lt;/title&gt; &lt;/head&gt; &lt;body&gt; &lt;input type=&#34;text&#34; id=&#34;timetext&#34; value=&#34;00时00分00秒&#34; readonly /&gt; &lt;br /&gt; &lt;br /&gt; &lt;button type=&#34;button&#34; onclick=&#34;start()&#34;&gt;开始&lt;/button&gt; &lt;button type=&#34;button&#34; onclick=&#34;stop()&#34;&gt;暂停&lt;/button&gt; &lt;button type=&#34;button&#34; onclick=&#34;Reset()&#34;&gt;重置&lt;/button&gt; &lt;script&gt; //初始化变量 let hour, minute, second; //时 分 秒 hour = minute = second = 0; //初始化 let millisecond = 0; //毫秒 let int; //重置函数 function Reset() { window."><meta itemprop="datePublished" content="2023-01-14T09:30:08+08:00" />
+<meta itemprop="dateModified" content="2023-01-14T09:30:08+08:00" />
+<meta itemprop="wordCount" content="1054">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="基于 requestAnimationFrame 实现高精度毫秒级正向计时器"/>
+<meta name="twitter:description" content="需求分析 从图上可以看出来，核心就是一个正向计时器。通过 js 实现一个普通的正向计时器很简单，大多数想到都是使用setInterval来实现。那么还有没有其他的实现方式呢？又怎么去实现一个高精度的毫秒级正向计时器呢？
+最近看了 vant4 的倒计时组件的源码，发现其并没有使用setInterval, 而是封装了requestAnimationFrame 和利用 Date.now()来处理毫秒级渲染和倒计时实现。那么能不能通过requestAnimationFrame来实现一个正向计时器呢？
+先看看效果图，接下来将会一步步去实现：
+体验地址： suyxh.github.io/timer-demo/
+setInterval 版 首先呢，来看看使用setInterval是如何实现的。在网上看了很多文章，大多都是使用的 setInterval 去实现，大致效果如下：
+从效果图上我们可以发现，最后一位始终为 0，甚至还是有些小 bug，很明显不是我们想要的。具体代码如下：
+&lt;!DOCTYPE html&gt; &lt;html lang=&#34;en&#34;&gt; &lt;head&gt; &lt;meta charset=&#34;UTF-8&#34; /&gt; &lt;meta http-equiv=&#34;X-UA-Compatible&#34; content=&#34;IE=edge&#34; /&gt; &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34; /&gt; &lt;title&gt;Document&lt;/title&gt; &lt;/head&gt; &lt;body&gt; &lt;input type=&#34;text&#34; id=&#34;timetext&#34; value=&#34;00时00分00秒&#34; readonly /&gt; &lt;br /&gt; &lt;br /&gt; &lt;button type=&#34;button&#34; onclick=&#34;start()&#34;&gt;开始&lt;/button&gt; &lt;button type=&#34;button&#34; onclick=&#34;stop()&#34;&gt;暂停&lt;/button&gt; &lt;button type=&#34;button&#34; onclick=&#34;Reset()&#34;&gt;重置&lt;/button&gt; &lt;script&gt; //初始化变量 let hour, minute, second; //时 分 秒 hour = minute = second = 0; //初始化 let millisecond = 0; //毫秒 let int; //重置函数 function Reset() { window."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">基于 requestAnimationFrame 实现高精度毫秒级正向计时器</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Jan 14, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="需求分析">需求分析</h2>
+<p>从图上可以看出来，核心就是一个正向计时器。通过 js 实现一个普通的正向计时器很简单，大多数想到都是使用<code>setInterval</code>来实现。那么还有没有其他的实现方式呢？又怎么去实现一个高精度的毫秒级正向计时器呢？</p>
+<p>最近看了 vant4 的倒计时组件的源码，发现其并没有使用<code>setInterval</code>, 而是封装了<code>requestAnimationFrame</code> 和利用 <code>Date.now()</code>来处理毫秒级渲染和倒计时实现。那么能不能通过<code>requestAnimationFrame</code>来实现一个正向计时器呢？</p>
+<p>先看看效果图，接下来将会一步步去实现：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/45e5bd0b6aac448fbe9fa6c4e835b33c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="计时器"></p>
+<p>体验地址： <a href="https://suyxh.github.io/timer-demo/">suyxh.github.io/timer-demo/</a></p>
+<h2 id="setinterval-版">setInterval 版</h2>
+<p>首先呢，来看看使用<code>setInterval</code>是如何实现的。在网上看了很多文章，大多都是使用的 <code>setInterval</code> 去实现，大致效果如下：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4985044b778b47ae9b03dd26570c3106~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>从效果图上我们可以发现，最后一位始终为 0，甚至还是有些小 bug，很明显不是我们想要的。具体代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">http-equiv</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;X-UA-Compatible&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;IE=edge&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;viewport&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;width=device-width, initial-scale=1.0&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;Document&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">input</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;text&#34;</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;timetext&#34;</span> <span style="color:#a6e22e">value</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;00时00分00秒&#34;</span> <span style="color:#a6e22e">readonly</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">br</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">br</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;button&#34;</span> <span style="color:#a6e22e">onclick</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;start()&#34;</span>&gt;开始&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;button&#34;</span> <span style="color:#a6e22e">onclick</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stop()&#34;</span>&gt;暂停&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;button&#34;</span> <span style="color:#a6e22e">onclick</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;Reset()&#34;</span>&gt;重置&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//初始化变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">hour</span>, <span style="color:#a6e22e">minute</span>, <span style="color:#a6e22e">second</span>; <span style="color:#75715e">//时 分 秒
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">hour</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">minute</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">second</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">//初始化
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">millisecond</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#75715e">//毫秒
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">int</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//重置函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Reset</span>() {
+</span></span><span style="display:flex;"><span>        window.<span style="color:#a6e22e">clearInterval</span>(<span style="color:#66d9ef">int</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">millisecond</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">hour</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">minute</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">second</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>        document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;timetext&#34;</span>).<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;00时00分00秒000毫秒&#34;</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//开始函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">start</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">int</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">setInterval</span>(<span style="color:#a6e22e">timer</span>, <span style="color:#ae81ff">50</span>); <span style="color:#75715e">//每隔50毫秒执行一次timer函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//计时函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">timer</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">millisecond</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">millisecond</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">50</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">millisecond</span> <span style="color:#f92672">&gt;=</span> <span style="color:#ae81ff">1000</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">millisecond</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">second</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">second</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">second</span> <span style="color:#f92672">&gt;=</span> <span style="color:#ae81ff">60</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">second</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">minute</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">minute</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">minute</span> <span style="color:#f92672">&gt;=</span> <span style="color:#ae81ff">60</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">minute</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">hour</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">hour</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;timetext&#34;</span>).<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">hour</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;时&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">minute</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;分&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">second</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;秒&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">millisecond</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;毫秒&#34;</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//暂停函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">stop</span>() {
+</span></span><span style="display:flex;"><span>        window.<span style="color:#a6e22e">clearInterval</span>(<span style="color:#66d9ef">int</span>);
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><h2 id="requestanimationframe-版">requestAnimationFrame 版</h2>
+<p>上文中提到 vant 的 CutDown 组件，主要就是利用 <code>Date.now()</code> 会自己走的原理，结合 <code>requestAnimationFrame</code> 去做时间计算；那么正向计时器则是利用了 <code>requestAnimationFrame</code> 回调函数的参数去做时间计算，从而实现毫秒级的计时器。</p>
+<p><strong><code>window.requestAnimationFrame()</code></strong> 告诉浏览器——你希望执行一个动画，并且要求浏览器在下次重绘之前调用指定的回调函数更新动画。该方法需要传入一个回调函数作为参数，该回调函数会在浏览器下一次重绘之前执行，当你准备更新动画时你应该调用此方法。这将使浏览器在下一次重绘之前调用你传入给该方法的动画函数 (即你的回调函数)。</p>
+<blockquote>
+<p><strong>注意：</strong> 若你想在浏览器下次重绘之前继续更新下一帧动画，那么回调函数自身必须再次调用 <code>window.requestAnimationFrame()</code></p>
+</blockquote>
+<p>MDN <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Window/requestAnimationFrame">requestAnimationFrame</a></p>
+<p><strong>参数</strong></p>
+<ul>
+<li><code>callback</code>
+下一次重绘之前更新动画帧所调用的函数 (即上面所说的回调函数)。该回调函数会被传入<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/DOMHighResTimeStamp"><code>DOMHighResTimeStamp</code></a>参数，该参数与<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Performance/now"><code>performance.now()</code></a>的返回值相同，它表示<code>requestAnimationFrame()</code> 开始去执行回调函数的时刻。</li>
+</ul>
+<p><strong>返回值</strong></p>
+<p>一个 <code>long</code> 整数，请求 ID，是回调列表中唯一的标识。是个非零值，没别的意义。你可以传这个值给 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Window/cancelAnimationFrame"><code>window.cancelAnimationFrame()</code></a> 以取消回调函数。</p>
+<h3 id="测试版">测试版</h3>
+<p>通过 <code>requestAnimationFrame</code> API 可以知道，回调函数中的参数就是一个 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/DOMHighResTimeStamp"><code>DOMHighResTimeStamp</code></a>参数，该参数与<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Performance/now"><code>performance.now()</code></a>的返回值相同，它表示<code>requestAnimationFrame()</code> 开始去执行回调函数的时刻。</p>
+<p>那我们直接使用该值不就可以了吗？试试看：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">http-equiv</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;X-UA-Compatible&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;IE=edge&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;viewport&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;width=device-width, initial-scale=1.0&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;Document&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;app&#34;</span>&gt;hello world&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;status&#34;</span>&gt;这里显示倒计时状态&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;start&#34;</span>&gt;开始&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">br</span> /&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">render</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">time</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;#status&#34;</span>).<span style="color:#a6e22e">innerHTML</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>(<span style="color:#a6e22e">time</span>) <span style="color:#f92672">/</span> <span style="color:#ae81ff">1000</span>;
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">useCountUp</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">rafId</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">endTime</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">step</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">timestamp</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;timestamp&#34;</span>, <span style="color:#a6e22e">timestamp</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">render</span>(<span style="color:#a6e22e">timestamp</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>        };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">start</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>        };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">start</span>,
+</span></span><span style="display:flex;"><span>        };
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">start</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">useCountUp</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;.start&#34;</span>).<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">start</span>();
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p>效果如下：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/415a8918c78f4d9286aef86fd9c43031~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="测试版"></p>
+<p>虽然比较简陋，但是并没有出现 <code>setInterval版</code> 的 bug，接下来在一步步优化。</p>
+<h3 id="简易版">简易版</h3>
+<p>我们加上格式化时间的函数 <code>parseTime()</code> 和 <code>parseFormat()</code>， 代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">http-equiv</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;X-UA-Compatible&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;IE=edge&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;viewport&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;width=device-width, initial-scale=1.0&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">title</span>&gt;Document&lt;/<span style="color:#f92672">title</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;app&#34;</span>&gt;hello world&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;status&#34;</span>&gt;这里显示倒计时状态&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;start&#34;</span>&gt;开始&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">br</span> /&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @description: 补0操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @param {*} num
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @param {*} targetLength
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @return {*}
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       */</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">padZero</span>(<span style="color:#a6e22e">num</span>, <span style="color:#a6e22e">targetLength</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">str</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">num</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">while</span> (<span style="color:#a6e22e">str</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">targetLength</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">str</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">str</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">str</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @description: 解析时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @param {*} time
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @return {*}
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       */</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">parseTime</span>(<span style="color:#a6e22e">time</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">SECOND</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1000</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">MINUTE</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">60</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">SECOND</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">HOUR</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">60</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">MINUTE</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">DAY</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">24</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">HOUR</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">days</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>(<span style="color:#a6e22e">time</span> <span style="color:#f92672">/</span> <span style="color:#a6e22e">DAY</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">hours</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>((<span style="color:#a6e22e">time</span> <span style="color:#f92672">%</span> <span style="color:#a6e22e">DAY</span>) <span style="color:#f92672">/</span> <span style="color:#a6e22e">HOUR</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">minutes</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>((<span style="color:#a6e22e">time</span> <span style="color:#f92672">%</span> <span style="color:#a6e22e">HOUR</span>) <span style="color:#f92672">/</span> <span style="color:#a6e22e">MINUTE</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">seconds</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>((<span style="color:#a6e22e">time</span> <span style="color:#f92672">%</span> <span style="color:#a6e22e">MINUTE</span>) <span style="color:#f92672">/</span> <span style="color:#a6e22e">SECOND</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">milliseconds</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>(<span style="color:#a6e22e">time</span> <span style="color:#f92672">%</span> <span style="color:#a6e22e">SECOND</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">total</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">time</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">days</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">hours</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">minutes</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">seconds</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">milliseconds</span>,
+</span></span><span style="display:flex;"><span>        };
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @description: 格式化时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @param {*} format
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @param {*} currentTime
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @return {*}
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       */</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">parseFormat</span>(<span style="color:#a6e22e">format</span>, <span style="color:#a6e22e">currentTime</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">days</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">currentTime</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> { <span style="color:#a6e22e">hours</span>, <span style="color:#a6e22e">minutes</span>, <span style="color:#a6e22e">seconds</span>, <span style="color:#a6e22e">milliseconds</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">currentTime</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#34;DD&#34;</span>)) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">format</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">&#34;DD&#34;</span>, <span style="color:#a6e22e">padZero</span>(<span style="color:#a6e22e">days</span>));
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">hours</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">days</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">24</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#34;HH&#34;</span>)) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">format</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">&#34;HH&#34;</span>, <span style="color:#a6e22e">padZero</span>(<span style="color:#a6e22e">hours</span>));
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">minutes</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">hours</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">60</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#34;mm&#34;</span>)) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">format</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">&#34;mm&#34;</span>, <span style="color:#a6e22e">padZero</span>(<span style="color:#a6e22e">minutes</span>));
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">seconds</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">minutes</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">60</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#34;ss&#34;</span>)) {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">format</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">&#34;ss&#34;</span>, <span style="color:#a6e22e">padZero</span>(<span style="color:#a6e22e">seconds</span>));
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">milliseconds</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">seconds</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">1000</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#34;S&#34;</span>)) {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ms</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">padZero</span>(<span style="color:#a6e22e">milliseconds</span>, <span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#34;SSS&#34;</span>)) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">format</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">&#34;SSS&#34;</span>, <span style="color:#a6e22e">ms</span>);
+</span></span><span style="display:flex;"><span>          } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#34;SS&#34;</span>)) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">format</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">&#34;SS&#34;</span>, <span style="color:#a6e22e">ms</span>.<span style="color:#a6e22e">slice</span>(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">2</span>));
+</span></span><span style="display:flex;"><span>          } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">format</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">format</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">&#34;S&#34;</span>, <span style="color:#a6e22e">ms</span>.<span style="color:#a6e22e">charAt</span>(<span style="color:#ae81ff">0</span>));
+</span></span><span style="display:flex;"><span>          }
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">format</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @description: 渲染时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @param {*} time
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       * @return {*}
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">       */</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">render</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">time</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">time</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">parseFormat</span>(<span style="color:#e6db74">&#34;HH:mm:ss:SSS&#34;</span>, <span style="color:#a6e22e">parseTime</span>(<span style="color:#a6e22e">time</span>));
+</span></span><span style="display:flex;"><span>        document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;#status&#34;</span>).<span style="color:#a6e22e">innerHTML</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">time</span>;
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">useCountUp</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">rafId</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">endTime</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">step</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">timestamp</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;timestamp&#34;</span>, <span style="color:#a6e22e">timestamp</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// render(timestamp)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>        };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">start</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>        };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">start</span>,
+</span></span><span style="display:flex;"><span>        };
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">start</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">useCountUp</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;.start&#34;</span>).<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">start</span>();
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p>效果如下：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b3b367f5cc4341d5a820f70fdcd5638b~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="简易版"></p>
+<p>又看到了我们熟悉的时间格式啦， 格式化的方法也是来源于 vant 的 CutDown 组件中的格式化代码！</p>
+<p>格式化虽然是完成了，但是怎么去停止呢？能不能支持暂停、继续、重置呢？</p>
+<p>接下来继续完善。</p>
+<h3 id="进阶版">进阶版</h3>
+<p>我们直接通过 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Window/cancelAnimationFrame"><code>window.cancelAnimationFrame()</code></a> 去取消回调函数即可！在 <code>useCountUp</code>函数中添加一下 <code>pause</code> 即可！</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">pause</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">rafId</span>) {
+</span></span><span style="display:flex;"><span>    window.<span style="color:#a6e22e">cancelAnimationFrame</span>(<span style="color:#a6e22e">rafId</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>效果如下：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a4db669480734759bd881ba60ac930b3~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="进阶版-停止Bug版_1"></p>
+<p>不少的小伙伴已经发现，停止虽然是没问题了，当再次点击开始的时候，时间怎么不对了？有瑕疵！</p>
+<p>因为我们少算补时时间，做如下修改，添加<code>startTime</code> 、 <code>stopTime</code> 和 <code>goOn</code> 方法:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">useCountUp</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">rafId</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">startTime</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">stopTime</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">step</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">timestamp</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;timestamp&#34;</span>, <span style="color:#a6e22e">timestamp</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">render</span>(<span style="color:#a6e22e">timestamp</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">startTime</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">start</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">startTime</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">pause</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">stopTime</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">rafId</span>) {
+</span></span><span style="display:flex;"><span>      window.<span style="color:#a6e22e">cancelAnimationFrame</span>(<span style="color:#a6e22e">rafId</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">goOn</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">startTime</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>() <span style="color:#f92672">-</span> <span style="color:#a6e22e">stopTime</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">start</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pause</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">goOn</span>,
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>这里基本上已经完成了暂停和继续的功能了，但是仍是有些 bug 的，可以多次点击继续试试 🙈 。</p>
+<h3 id="完整版">完整版</h3>
+<p>接下来，我们来修复上述的 bug，方法：添加一个变量来表示当前计时器的状态。</p>
+<p>在增加几个新功能：</p>
+<ul>
+<li>添加 重置 方法： 其实我们只需要调用一下暂停，在清理一下时间即可</li>
+<li>支持 配置：比如 正香计时的时间， 计时结束的函数</li>
+</ul>
+<p>核心代码如下，其他部分代码不变：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">useCountUp</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">options</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">rafId</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">startTime</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">stopTime</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">curentTime</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">counting</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">step</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">timestamp</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">curentTime</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">timestamp</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">startTime</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">render</span>(<span style="color:#a6e22e">curentTime</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">onChange</span><span style="color:#f92672">?</span>.(<span style="color:#a6e22e">curentTime</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">time</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (Math.<span style="color:#a6e22e">floor</span>(<span style="color:#a6e22e">curentTime</span>) <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">time</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>      } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">pause</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">onFinish</span><span style="color:#f92672">?</span>.();
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">start</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 计时中 或者 已经开始过计时想要重新开始计时，应该先点击一下 重置 再开始计时
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">counting</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">curentTime</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">counting</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">startTime</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">pause</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 已经暂停后，屏蔽掉点击
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">counting</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">counting</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">stopTime</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">rafId</span>) {
+</span></span><span style="display:flex;"><span>      window.<span style="color:#a6e22e">cancelAnimationFrame</span>(<span style="color:#a6e22e">rafId</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">goOn</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 已经在计时中，屏蔽掉点击
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">counting</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">counting</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">startTime</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>() <span style="color:#f92672">-</span> <span style="color:#a6e22e">stopTime</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rafId</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>(<span style="color:#a6e22e">step</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">reset</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pause</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">curentTime</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">startTime</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">stopTime</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">render</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">start</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pause</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">goOn</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">reset</span>,
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">start</span>, <span style="color:#a6e22e">pause</span>, <span style="color:#a6e22e">goOn</span>, <span style="color:#a6e22e">reset</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">useCountUp</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">time</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">3</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">1000</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onChange</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">current</span>) =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;change&#34;</span>, <span style="color:#a6e22e">current</span>),
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onFinish</span><span style="color:#f92672">:</span> () =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;finish&#34;</span>),
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;.start&#34;</span>).<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">start</span>();
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;.pause&#34;</span>).<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">pause</span>();
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;.goOn&#34;</span>).<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">goOn</span>();
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">querySelector</span>(<span style="color:#e6db74">&#34;.reset&#34;</span>).<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">reset</span>();
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>到此基本上就是实现了一个毫秒级的正向计时器！</p>
+<h3 id="vue-版">vue 版</h3>
+<blockquote>
+<p>只是对 js 的逻辑进行了一些封装</p>
+</blockquote>
+<p>代码：<a href="https://github.com/SuYxh/timer-demo">github.com/SuYxh/timer…</a></p>
+<p>预览：<a href="https://suyxh.github.io/timer-demo/">suyxh.github.io/timer-demo/</a></p>
+<h2 id="总结">总结</h2>
+<p>正向毫秒级计时器主要就是利用了<code>window.requestAnimationFrame</code>的回调函数的参数为<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/DOMHighResTimeStamp"><code>DOMHighResTimeStamp</code></a>，且与<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Performance/now"><code>performance.now()</code></a>的返回值相同；在实现暂停、继续时，需要计算一下补时时间。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/329/"
+      ><span class="mr-1.5">←</span><span>「React 技巧」：Refs</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/327/"
+      ><span>React Router v6 完全指南</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

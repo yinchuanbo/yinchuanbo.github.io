@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>HTML 页面生命周期 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="看似基础的问题，深究起来其实包含许多常被忽视的细节点。今天从浏览器架构出发，一次性说清楚这件事情
+浏览器架构 进程和线程 进程是 cpu 资源分配的最小单位（CPU 占用率、内存等），进程间彼此独立互不干扰，可以通信但代价较大 线程是 cpu 调度的最小单位（线程是建立在进程的基础上的一次程序运行单位，一个进程中可以有单或多个线程） 浏览器是多进程的，以 Chrome 浏览器为例，其为多进程多线程架构
+浏览器进程：只有一个，浏览器主进程，负责处理选项卡页面之外的内容，用于控制用户可见的 UI 部分（比如地址栏，书签，后退、前进按钮）和用户不可见的隐藏部分（比如网格请求和文件访问），支持多线程 UI 线程：绘制浏览器的按钮和输入字段 网络线程：发送请求，接收数据 存储线程：控制对文件的访问 GPU 进程：只有一个，处理图像，3d 绘制，提高性能 插件进程：每种类型的插件对应一个进程，仅当使用该插件时才创建 渲染进程（浏览器内核）：每个选项卡都有一个，负责渲染 UI、JS 执行、事件循环 GUI 渲染线程：负责渲染浏览器界面，解析 HTML&amp;CSS、构建 DOM 树和渲染树、计算布局以及绘制等 JS 执行线程：解析执行 JavaScript；与 GUI 渲染线程互斥，因此长时间的 JS 执行会导致阻塞 UI 渲染造成掉帧现象 Worker 线程：JS 线程向浏览器申请获得的子线程，可独立运行 JS（但不能访问 DOM） 事件线程：监听浏览器事件，事件触发后将需执行的代码塞进 JS 任务队列，等待 JS 引擎线程执行 定时器线程：负责为 setTimeout、setInterval 进行计时和将回调推送进 JS 任务队列 http 请求线程：监听 XMLHttpRequest，待响应后将回调推送进 JS 任务队列 宏观过程：页面从加载到渲染 用户输入 URL 后浏览器的执行流程： 其中渲染流程如下 用文字梳理一下整个过程
+浏览器进程将 html 资源请求回来并通信交给渲染器进程 GUI 线程解析 HTML 生成 DOM 树，解析 CSS 生成 CSS 规则树 上述两者合并为渲染树 根据渲染树计算布局（各元素尺寸、位置） 绘制图层 显示/光栅化：GPU 将各图层合成（composite），然后将像素显示在屏幕上 若之后渲染树再次发生变化引起重绘（不改变布局）或重排/回流（改变了布局），则重新触发布局计算&amp;绘制&amp;显示 并不是非要等到 HTML 解析完才会触发绘制&amp;显示，只要有完整 CSS 规则树&#43;部分 DOM 树即可触发页面内容显示（尽管内容不全）" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="HTML 页面生命周期" />
+<meta property="og:description" content="看似基础的问题，深究起来其实包含许多常被忽视的细节点。今天从浏览器架构出发，一次性说清楚这件事情
+浏览器架构 进程和线程 进程是 cpu 资源分配的最小单位（CPU 占用率、内存等），进程间彼此独立互不干扰，可以通信但代价较大 线程是 cpu 调度的最小单位（线程是建立在进程的基础上的一次程序运行单位，一个进程中可以有单或多个线程） 浏览器是多进程的，以 Chrome 浏览器为例，其为多进程多线程架构
+浏览器进程：只有一个，浏览器主进程，负责处理选项卡页面之外的内容，用于控制用户可见的 UI 部分（比如地址栏，书签，后退、前进按钮）和用户不可见的隐藏部分（比如网格请求和文件访问），支持多线程 UI 线程：绘制浏览器的按钮和输入字段 网络线程：发送请求，接收数据 存储线程：控制对文件的访问 GPU 进程：只有一个，处理图像，3d 绘制，提高性能 插件进程：每种类型的插件对应一个进程，仅当使用该插件时才创建 渲染进程（浏览器内核）：每个选项卡都有一个，负责渲染 UI、JS 执行、事件循环 GUI 渲染线程：负责渲染浏览器界面，解析 HTML&amp;CSS、构建 DOM 树和渲染树、计算布局以及绘制等 JS 执行线程：解析执行 JavaScript；与 GUI 渲染线程互斥，因此长时间的 JS 执行会导致阻塞 UI 渲染造成掉帧现象 Worker 线程：JS 线程向浏览器申请获得的子线程，可独立运行 JS（但不能访问 DOM） 事件线程：监听浏览器事件，事件触发后将需执行的代码塞进 JS 任务队列，等待 JS 引擎线程执行 定时器线程：负责为 setTimeout、setInterval 进行计时和将回调推送进 JS 任务队列 http 请求线程：监听 XMLHttpRequest，待响应后将回调推送进 JS 任务队列 宏观过程：页面从加载到渲染 用户输入 URL 后浏览器的执行流程： 其中渲染流程如下 用文字梳理一下整个过程
+浏览器进程将 html 资源请求回来并通信交给渲染器进程 GUI 线程解析 HTML 生成 DOM 树，解析 CSS 生成 CSS 规则树 上述两者合并为渲染树 根据渲染树计算布局（各元素尺寸、位置） 绘制图层 显示/光栅化：GPU 将各图层合成（composite），然后将像素显示在屏幕上 若之后渲染树再次发生变化引起重绘（不改变布局）或重排/回流（改变了布局），则重新触发布局计算&amp;绘制&amp;显示 并不是非要等到 HTML 解析完才会触发绘制&amp;显示，只要有完整 CSS 规则树&#43;部分 DOM 树即可触发页面内容显示（尽管内容不全）" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/211/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-17T22:50:53+08:00" />
+<meta property="article:modified_time" content="2022-10-17T22:50:53+08:00" />
+
+  
+  <meta itemprop="name" content="HTML 页面生命周期">
+<meta itemprop="description" content="看似基础的问题，深究起来其实包含许多常被忽视的细节点。今天从浏览器架构出发，一次性说清楚这件事情
+浏览器架构 进程和线程 进程是 cpu 资源分配的最小单位（CPU 占用率、内存等），进程间彼此独立互不干扰，可以通信但代价较大 线程是 cpu 调度的最小单位（线程是建立在进程的基础上的一次程序运行单位，一个进程中可以有单或多个线程） 浏览器是多进程的，以 Chrome 浏览器为例，其为多进程多线程架构
+浏览器进程：只有一个，浏览器主进程，负责处理选项卡页面之外的内容，用于控制用户可见的 UI 部分（比如地址栏，书签，后退、前进按钮）和用户不可见的隐藏部分（比如网格请求和文件访问），支持多线程 UI 线程：绘制浏览器的按钮和输入字段 网络线程：发送请求，接收数据 存储线程：控制对文件的访问 GPU 进程：只有一个，处理图像，3d 绘制，提高性能 插件进程：每种类型的插件对应一个进程，仅当使用该插件时才创建 渲染进程（浏览器内核）：每个选项卡都有一个，负责渲染 UI、JS 执行、事件循环 GUI 渲染线程：负责渲染浏览器界面，解析 HTML&amp;CSS、构建 DOM 树和渲染树、计算布局以及绘制等 JS 执行线程：解析执行 JavaScript；与 GUI 渲染线程互斥，因此长时间的 JS 执行会导致阻塞 UI 渲染造成掉帧现象 Worker 线程：JS 线程向浏览器申请获得的子线程，可独立运行 JS（但不能访问 DOM） 事件线程：监听浏览器事件，事件触发后将需执行的代码塞进 JS 任务队列，等待 JS 引擎线程执行 定时器线程：负责为 setTimeout、setInterval 进行计时和将回调推送进 JS 任务队列 http 请求线程：监听 XMLHttpRequest，待响应后将回调推送进 JS 任务队列 宏观过程：页面从加载到渲染 用户输入 URL 后浏览器的执行流程： 其中渲染流程如下 用文字梳理一下整个过程
+浏览器进程将 html 资源请求回来并通信交给渲染器进程 GUI 线程解析 HTML 生成 DOM 树，解析 CSS 生成 CSS 规则树 上述两者合并为渲染树 根据渲染树计算布局（各元素尺寸、位置） 绘制图层 显示/光栅化：GPU 将各图层合成（composite），然后将像素显示在屏幕上 若之后渲染树再次发生变化引起重绘（不改变布局）或重排/回流（改变了布局），则重新触发布局计算&amp;绘制&amp;显示 并不是非要等到 HTML 解析完才会触发绘制&amp;显示，只要有完整 CSS 规则树&#43;部分 DOM 树即可触发页面内容显示（尽管内容不全）"><meta itemprop="datePublished" content="2022-10-17T22:50:53+08:00" />
+<meta itemprop="dateModified" content="2022-10-17T22:50:53+08:00" />
+<meta itemprop="wordCount" content="353">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="HTML 页面生命周期"/>
+<meta name="twitter:description" content="看似基础的问题，深究起来其实包含许多常被忽视的细节点。今天从浏览器架构出发，一次性说清楚这件事情
+浏览器架构 进程和线程 进程是 cpu 资源分配的最小单位（CPU 占用率、内存等），进程间彼此独立互不干扰，可以通信但代价较大 线程是 cpu 调度的最小单位（线程是建立在进程的基础上的一次程序运行单位，一个进程中可以有单或多个线程） 浏览器是多进程的，以 Chrome 浏览器为例，其为多进程多线程架构
+浏览器进程：只有一个，浏览器主进程，负责处理选项卡页面之外的内容，用于控制用户可见的 UI 部分（比如地址栏，书签，后退、前进按钮）和用户不可见的隐藏部分（比如网格请求和文件访问），支持多线程 UI 线程：绘制浏览器的按钮和输入字段 网络线程：发送请求，接收数据 存储线程：控制对文件的访问 GPU 进程：只有一个，处理图像，3d 绘制，提高性能 插件进程：每种类型的插件对应一个进程，仅当使用该插件时才创建 渲染进程（浏览器内核）：每个选项卡都有一个，负责渲染 UI、JS 执行、事件循环 GUI 渲染线程：负责渲染浏览器界面，解析 HTML&amp;CSS、构建 DOM 树和渲染树、计算布局以及绘制等 JS 执行线程：解析执行 JavaScript；与 GUI 渲染线程互斥，因此长时间的 JS 执行会导致阻塞 UI 渲染造成掉帧现象 Worker 线程：JS 线程向浏览器申请获得的子线程，可独立运行 JS（但不能访问 DOM） 事件线程：监听浏览器事件，事件触发后将需执行的代码塞进 JS 任务队列，等待 JS 引擎线程执行 定时器线程：负责为 setTimeout、setInterval 进行计时和将回调推送进 JS 任务队列 http 请求线程：监听 XMLHttpRequest，待响应后将回调推送进 JS 任务队列 宏观过程：页面从加载到渲染 用户输入 URL 后浏览器的执行流程： 其中渲染流程如下 用文字梳理一下整个过程
+浏览器进程将 html 资源请求回来并通信交给渲染器进程 GUI 线程解析 HTML 生成 DOM 树，解析 CSS 生成 CSS 规则树 上述两者合并为渲染树 根据渲染树计算布局（各元素尺寸、位置） 绘制图层 显示/光栅化：GPU 将各图层合成（composite），然后将像素显示在屏幕上 若之后渲染树再次发生变化引起重绘（不改变布局）或重排/回流（改变了布局），则重新触发布局计算&amp;绘制&amp;显示 并不是非要等到 HTML 解析完才会触发绘制&amp;显示，只要有完整 CSS 规则树&#43;部分 DOM 树即可触发页面内容显示（尽管内容不全）"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">HTML 页面生命周期</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Oct 17, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>看似基础的问题，深究起来其实包含许多常被忽视的细节点。今天从浏览器架构出发，一次性说清楚这件事情</p>
+<h2 id="浏览器架构">浏览器架构</h2>
+<blockquote>
+<h3 id="进程和线程">进程和线程</h3>
+<ul>
+<li>进程是 cpu 资源分配的最小单位（CPU 占用率、内存等），进程间彼此独立互不干扰，可以通信但代价较大</li>
+<li>线程是 cpu 调度的最小单位（线程是建立在进程的基础上的一次程序运行单位，一个进程中可以有单或多个线程）</li>
+</ul>
+</blockquote>
+<p>浏览器是多进程的，以 Chrome 浏览器为例，其为多进程多线程架构</p>
+<ul>
+<li><strong>浏览器进程</strong>：只有一个，浏览器主进程，负责处理选项卡页面之外的内容，用于控制用户可见的 UI 部分（比如地址栏，书签，后退、前进按钮）和用户不可见的隐藏部分（比如网格请求和文件访问），支持多线程
+<ul>
+<li><strong>UI 线程</strong>：绘制浏览器的按钮和输入字段</li>
+<li><strong>网络线程</strong>：发送请求，接收数据</li>
+<li><strong>存储线程</strong>：控制对文件的访问</li>
+</ul>
+</li>
+<li><strong>GPU 进程</strong>：只有一个，处理图像，3d 绘制，提高性能</li>
+<li><strong>插件进程</strong>：每种类型的插件对应一个进程，仅当使用该插件时才创建</li>
+<li><strong>渲染进程（浏览器内核）</strong>：每个选项卡都有一个，负责渲染 UI、JS 执行、事件循环
+<ul>
+<li><strong>GUI 渲染线程</strong>：负责渲染浏览器界面，解析 HTML&amp;CSS、构建 DOM 树和渲染树、计算布局以及绘制等</li>
+<li><strong>JS 执行线程</strong>：解析执行 JavaScript；<strong>与 GUI 渲染线程互斥</strong>，因此长时间的 JS 执行会导致阻塞 UI 渲染造成掉帧现象</li>
+<li><strong>Worker 线程</strong>：JS 线程向浏览器申请获得的子线程，可独立运行 JS（但不能访问 DOM）</li>
+<li><strong>事件线程</strong>：监听浏览器事件，事件触发后将需执行的代码塞进 JS 任务队列，等待 JS 引擎线程执行</li>
+<li><strong>定时器线程</strong>：负责为 setTimeout、setInterval 进行计时和将回调推送进 JS 任务队列</li>
+<li><strong>http 请求线程</strong>：监听 XMLHttpRequest，待响应后将回调推送进 JS 任务队列</li>
+</ul>
+</li>
+</ul>
+<h2 id="宏观过程页面从加载到渲染">宏观过程：页面从加载到渲染</h2>
+<p>用户输入 URL 后浏览器的执行流程： <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6df7d27335c1425db555bb2145217016~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image" alt=""> 其中渲染流程如下 <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4e3f1e1a93fb42a78246840eebd57d0d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image" alt=""></p>
+<p>用文字梳理一下整个过程</p>
+<ol>
+<li>浏览器进程将 html 资源请求回来并通信交给渲染器进程</li>
+<li>GUI 线程解析 HTML 生成 DOM 树，解析 CSS 生成 CSS 规则树</li>
+<li>上述两者合并为渲染树</li>
+<li>根据渲染树计算布局（各元素尺寸、位置）</li>
+<li>绘制图层</li>
+<li>显示/光栅化：GPU 将各图层合成（composite），然后将像素显示在屏幕上</li>
+<li>若之后渲染树再次发生变化引起重绘（不改变布局）或重排/回流（改变了布局），则重新触发布局计算&amp;绘制&amp;显示</li>
+</ol>
+<blockquote>
+<p>并不是非要等到 HTML 解析完才会触发绘制&amp;显示，只要有完整 CSS 规则树+部分 DOM 树即可触发页面内容显示（尽管内容不全）</p>
+</blockquote>
+<blockquote>
+<p><strong>图层</strong></p>
+<ul>
+<li>普通图层：正常文档流、absolute/fix 布局的元素都在这一图层</li>
+<li>复合图层：开启了硬件加速的元素，会位于新的图层，其重绘/重排（回流）不会影响普通图层。开启硬件加速的方法包括：
+<ul>
+<li>最常用的方式：<code>translate3d</code>、<code>translateZ</code></li>
+<li><code>opacity</code>属性/过渡动画（需要动画执行的过程中才会创建合成层，动画没有开始或结束后元素还会回到之前的状态）</li>
+<li><code>&lt;video&gt;&lt;iframe&gt;&lt;canvas&gt;&lt;webgl&gt;</code>等元素</li>
+<li><code>will-chang</code>属性</li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<h2 id="宏观下的细节各种资源对页面的阻塞效应">宏观下的细节：各种资源对页面的阻塞效应</h2>
+<h3 id="1-script-脚本">1. script 脚本</h3>
+<p>script 标签引入脚本的方式有 2 种：</p>
+<ol>
+<li>引用（包括动态插入 DOM 的情况）</li>
+<li>内联（不包括动态插入 DOM 的情况，因为有个冷知识：动态插入的内联 script 不会执行）</li>
+</ol>
+<p>二者的区别是：</p>
+<ul>
+<li>前者在执行脚本前需要先加载，而后者不需要。</li>
+<li>后者的<code>defer</code>&amp;<code>async</code>属性不生效</li>
+</ul>
+<p>GUI 线程解析 HTML 过程遇到 script 时（以引用型 script 为例）：</p>
+<ol>
+<li><code>&lt;script /&gt;</code>：GUI 线程暂停等待（解析过程被阻塞），浏览器进程加载脚本，接着 JS 线程执行脚本，然后 GUI 线程恢复并继续解析(正因此，才建议把普通 script 标签放在 body 标签最末位置以避免阻塞)</li>
+<li><code>&lt;script defer /&gt;</code>：即刻并行加载（不阻塞 GUI 线程解析），待 HTML 解析完成后再执行</li>
+<li><code>&lt;script async /&gt;</code>：即刻并行加载（不阻塞 GUI 线程解析），一旦加载完立即执行（阻塞解析）</li>
+<li><code>&lt;script type=&quot;module&quot; /&gt;</code>：默认行为与<code>defer</code>一致，唯一区别是会将脚本中<code>import</code>的其它脚本也一并加载完</li>
+<li><code>&lt;script type=&quot;module&quot; async/&gt;</code>：在 4 的基础上，行为模式改为<code>async</code></li>
+</ol>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a268c98ddac24c9fa79b15aa8e6edccc~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image" alt=""></p>
+<h3 id="2-css-样式">2. css 样式</h3>
+<p>前文的渲染流程图已经指出，css 的解析与 html 的解析是并行发生的，另外 css 的文件加载也不影响 GUI 线程。所以关于 css 的结论是：其加载&amp;解析并不直接阻塞 HTML 的解析，但是</p>
+<ol>
+<li>渲染树的生成依赖它，因此会阻塞页面的绘制和显示</li>
+<li>其后的 script 会等待它再执行（不论该 script 是在 head 还是 body 中），等待期间 GUI 线程停滞，因此会间接阻塞 script 之后的 HTML 解析</li>
+</ol>
+<blockquote>
+<p>以下是佐证结论的若干示例，运行示例前记得先将浏览器网络节流模式调慢</p>
+</blockquote>
+<p><strong>示例 1</strong>：运行后，浏览器控制台可以观察到「元素」中已经出现了<code>h1</code>，但页面是空白的，等待若干秒后才在页面看到<code>h1</code>内容。这个例子佐证了结论 1，即 HTML 顺畅解析，但需要等待 css 文件加载&amp;解析完毕、合成渲染树、绘制，然后才能在页面把内容真正显示出来</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">link</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/css/bootstrap.css&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span>
+</span></span><span style="display:flex;"><span>    /&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">h1</span>&gt;我是 h1 标签&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p><strong>示例 2</strong>：可以观察到一开始「元素」中已经出现了<code>script</code>，但未出现<code>body</code>，页面是空白的，<code>&quot;head script executed!&quot;</code>这段话也没打印出来，直到等待若干秒后才打印成功，并且内容显示在页面上。这个例子佐证了结论 2</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">link</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://cdn.bootcss.com/bootstrap/4.0.0-alpha.6/css/bootstrap.css&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span>
+</span></span><span style="display:flex;"><span>    /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;head script executed!&#34;</span>);
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">h1</span>&gt;我是 h1 标签&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><p><strong>引申问题：为什么不把 css 样式放在 body 里？</strong></p>
+<p>运行下面的例子可以发现，网页马上显示黑色<code>h1</code>文字，但等待一会儿（script 加载&amp;运行完）后文字变成红色。这说明将 css 放到 body 后，不再阻塞渲染，但是当 css 加载/解析完成后页面发生了重绘，带来的视觉效果就是<strong>样式闪动</strong>，这对用户来说是很不好的体验，正是为了避免这种情况我们才建议要把 css 放在 head 中</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;UTF-8&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">head</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">h1</span>&gt;我是 h1 标签&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://cdn.bootcss.com/jquery/2.1.4/jquery.min.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">style</span>&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">h1</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">color</span>: <span style="color:#66d9ef">red</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">style</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">html</span>&gt;
+</span></span></code></pre></div><h3 id="3-图片音频视频字体等媒体资源">3. 图片/音频/视频/字体等媒体资源</h3>
+<p>不会阻塞 HTML 解析及渲染</p>
+<h2 id="宏观下的细节事件触发">宏观下的细节：事件触发</h2>
+<ul>
+<li><code>DOMContentLoaded</code>：当<strong>HTML 已经完成解析且除 async 和动态插入之外的脚本均执行完成时</strong>触发（尽管此时外部资源比如样式和脚本可能还没加载完成），并且该事件需要绑定到 <code>document</code> 对象上；</li>
+<li><code>onload</code>：当页面所有资源（包括 <code>CSS</code>、<code>JS</code>、图片、字体、视频等）都加载完成才触发，而且它是绑定到 <code>window</code> 对象上；</li>
+<li><code>readystatechange</code>：触发时查看<code>document.readyState</code>可以获知文档当前的状态
+<ul>
+<li><code>loading</code> —— 文档正在被加载。</li>
+<li><code>interactive</code> —— 文档被全部读取。（<code>DOMContentLoaded</code>紧随其后）</li>
+<li><code>complete</code> —— 文档被全部读取，并且所有资源（例如图片等）都已加载完成。（<code>onload</code>紧随其后）</li>
+</ul>
+</li>
+</ul>
+<h2 id="后续浏览器事件循环">后续：浏览器事件循环</h2>
+<p>上述介绍完了页面初始化时从加载到渲染的宏观过程&amp;细节，在这之后页面的变化主要来自事件循环：</p>
+<ol>
+<li>事件线程、定时器线程、http 线程等会将相应触发的回调送入任务队列</li>
+<li>JS 执行线程负责将任务队列中的任务取出并放入执行栈中执行</li>
+<li>执行完后再去检查任务队列并取出新的任务，依此循环</li>
+</ol>
+<p>任务队列有两个：</p>
+<ol>
+<li>宏任务队列：事件、请求、定时器等回调</li>
+<li>微任务队列：Promise、MutationObserver 等回调 <img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3a608371a91e4bb3bb841367261a4adf~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="image.png"></li>
+</ol>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/520bbc4580934cdab1d4c086f714ae45~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image?" alt="image.png"></p>
+<p><strong>补充说明：为什么网页会掉帧</strong></p>
+<p>我们所看到的网页，都是浏览器一帧一帧绘制出来的，每一帧表示浏览器执行一次光栅化显示的时间，这个时间理想情况是 16ms 以内（即满足每秒至少 60 次刷新），但实际每帧的时间并不固定，取决于一帧中各种事项的实际耗时</p>
+<p>通常每帧做的事情按顺序为：</p>
+<ol>
+<li>rAF（requestAnimationFrame）回调（每帧必定执行）</li>
+<li>重新计算布局&amp;绘制</li>
+<li>执行 JS（单个宏任务及所有微任务）</li>
+<li>rIC（requestIdleCallback）回调（前面事情做完仍有空闲才会执行）</li>
+<li>GUI 线程渲染（光栅化） <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4f288e9135ed414d871ad2fd2715d85d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.image" alt=""></li>
+</ol>
+<p>如果某帧耗时过长（比较常见的原因是 JS 任务执行时间过长）则会导致下一帧比较晚才显示，从而发生掉帧的现象</p>
+<h2 id="最后离开页面">最后：离开页面</h2>
+<ul>
+<li>当用户想要离开页面时，<code>window</code>  上的  <code>beforeunload</code>  事件就会被触发。如果我们取消这个事件，浏览器就会询问我们是否真的要离开（例如，我们有未保存的更改）。</li>
+<li>当用户最终离开时，<code>window</code>  上的  <code>unload</code>  事件就会被触发。在处理程序中，我们只能执行不涉及延迟或询问用户的简单操作。正是由于这个限制，它很少被使用。不过我们可以在<code>unload</code>回调中使用  <code>navigator.sendBeacon</code>  来发送网络请求，它在后台发送数据，浏览器离开页面，但仍然在执行  <code>sendBeacon</code></li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/212/"
+      ><span class="mr-1.5">←</span><span>基于 craco 配置的 react 项目的 webpack 构建优化</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/210/"
+      ><span>CSS3 常用动画效果合集</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

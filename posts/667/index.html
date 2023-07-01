@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>你知道怎么捕获 js 报错前的用户行为吗 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="抛出问题 我们知道线上环境复杂多变，不像本地测试的时候那样顺利，经常会有各种杂七杂八的问题，要想主动高效的定位这些异常，就得接入监控系统啦。作为前端的我们应该或多或少都有所了解，大概就是监听各种 error 事件，然后整理下数据并上报，比如下面这样 👇🏻：
+const handleError = (e) =&gt; { // ... report(); }; const handleRejection = (e) =&gt; { // ... report(); }; window.addEventListener(&#34;error&#34;, handleError); window.addEventListener(&#34;unhandledrejection&#34;, handleRejection); 但是有时候这些错误并不是那么直观，也不好复现 🧐，所以要是我们能够捕获到异常发生时的一些上下文信息就好了。🤔。。。那，这个上下文是指啥呢，让我们先看看下面这张图（参考自 sentry）： 从上图中可以看出在发生报错之前，用户进行了两次页面跳转，两次 xhr 请求，并且进行了几次点击操作。于是乎，我们就可以脑补出用户大概的一个行为路径了，这样也许就能复现 bug 了，听起来是不是还有点意思 😬。所以本篇文章主要就是讲解一下这个东西是怎么实现的。
+具体思路 收集什么 因为刚开始很容易一头雾水，所以我们先把上面的示意图进行一个简单的转化，它的本质就是个普通的数组，只不过每条数据的类型会有所不同，就像下面这样 👇🏻：
+[ { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:41.307522Z&#34;, level: &#34;info&#34;, message: &#34;a.product-thumbnail-item&#34;, category: &#34;ui.click&#34;, data: null, }, { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:41.692138Z&#34;, level: &#34;info&#34;, message: null, category: &#34;navigation&#34;, data: { from: &#34;/shop/&#34;, to: &#34;/shop/products/plant-mood-planter/&#34; }, }, { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:42." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="你知道怎么捕获 js 报错前的用户行为吗" />
+<meta property="og:description" content="抛出问题 我们知道线上环境复杂多变，不像本地测试的时候那样顺利，经常会有各种杂七杂八的问题，要想主动高效的定位这些异常，就得接入监控系统啦。作为前端的我们应该或多或少都有所了解，大概就是监听各种 error 事件，然后整理下数据并上报，比如下面这样 👇🏻：
+const handleError = (e) =&gt; { // ... report(); }; const handleRejection = (e) =&gt; { // ... report(); }; window.addEventListener(&#34;error&#34;, handleError); window.addEventListener(&#34;unhandledrejection&#34;, handleRejection); 但是有时候这些错误并不是那么直观，也不好复现 🧐，所以要是我们能够捕获到异常发生时的一些上下文信息就好了。🤔。。。那，这个上下文是指啥呢，让我们先看看下面这张图（参考自 sentry）： 从上图中可以看出在发生报错之前，用户进行了两次页面跳转，两次 xhr 请求，并且进行了几次点击操作。于是乎，我们就可以脑补出用户大概的一个行为路径了，这样也许就能复现 bug 了，听起来是不是还有点意思 😬。所以本篇文章主要就是讲解一下这个东西是怎么实现的。
+具体思路 收集什么 因为刚开始很容易一头雾水，所以我们先把上面的示意图进行一个简单的转化，它的本质就是个普通的数组，只不过每条数据的类型会有所不同，就像下面这样 👇🏻：
+[ { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:41.307522Z&#34;, level: &#34;info&#34;, message: &#34;a.product-thumbnail-item&#34;, category: &#34;ui.click&#34;, data: null, }, { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:41.692138Z&#34;, level: &#34;info&#34;, message: null, category: &#34;navigation&#34;, data: { from: &#34;/shop/&#34;, to: &#34;/shop/products/plant-mood-planter/&#34; }, }, { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:42." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/667/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-06-07T16:38:38+08:00" />
+<meta property="article:modified_time" content="2023-06-07T16:38:38+08:00" />
+
+  
+  <meta itemprop="name" content="你知道怎么捕获 js 报错前的用户行为吗">
+<meta itemprop="description" content="抛出问题 我们知道线上环境复杂多变，不像本地测试的时候那样顺利，经常会有各种杂七杂八的问题，要想主动高效的定位这些异常，就得接入监控系统啦。作为前端的我们应该或多或少都有所了解，大概就是监听各种 error 事件，然后整理下数据并上报，比如下面这样 👇🏻：
+const handleError = (e) =&gt; { // ... report(); }; const handleRejection = (e) =&gt; { // ... report(); }; window.addEventListener(&#34;error&#34;, handleError); window.addEventListener(&#34;unhandledrejection&#34;, handleRejection); 但是有时候这些错误并不是那么直观，也不好复现 🧐，所以要是我们能够捕获到异常发生时的一些上下文信息就好了。🤔。。。那，这个上下文是指啥呢，让我们先看看下面这张图（参考自 sentry）： 从上图中可以看出在发生报错之前，用户进行了两次页面跳转，两次 xhr 请求，并且进行了几次点击操作。于是乎，我们就可以脑补出用户大概的一个行为路径了，这样也许就能复现 bug 了，听起来是不是还有点意思 😬。所以本篇文章主要就是讲解一下这个东西是怎么实现的。
+具体思路 收集什么 因为刚开始很容易一头雾水，所以我们先把上面的示意图进行一个简单的转化，它的本质就是个普通的数组，只不过每条数据的类型会有所不同，就像下面这样 👇🏻：
+[ { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:41.307522Z&#34;, level: &#34;info&#34;, message: &#34;a.product-thumbnail-item&#34;, category: &#34;ui.click&#34;, data: null, }, { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:41.692138Z&#34;, level: &#34;info&#34;, message: null, category: &#34;navigation&#34;, data: { from: &#34;/shop/&#34;, to: &#34;/shop/products/plant-mood-planter/&#34; }, }, { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:42."><meta itemprop="datePublished" content="2023-06-07T16:38:38+08:00" />
+<meta itemprop="dateModified" content="2023-06-07T16:38:38+08:00" />
+<meta itemprop="wordCount" content="693">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="你知道怎么捕获 js 报错前的用户行为吗"/>
+<meta name="twitter:description" content="抛出问题 我们知道线上环境复杂多变，不像本地测试的时候那样顺利，经常会有各种杂七杂八的问题，要想主动高效的定位这些异常，就得接入监控系统啦。作为前端的我们应该或多或少都有所了解，大概就是监听各种 error 事件，然后整理下数据并上报，比如下面这样 👇🏻：
+const handleError = (e) =&gt; { // ... report(); }; const handleRejection = (e) =&gt; { // ... report(); }; window.addEventListener(&#34;error&#34;, handleError); window.addEventListener(&#34;unhandledrejection&#34;, handleRejection); 但是有时候这些错误并不是那么直观，也不好复现 🧐，所以要是我们能够捕获到异常发生时的一些上下文信息就好了。🤔。。。那，这个上下文是指啥呢，让我们先看看下面这张图（参考自 sentry）： 从上图中可以看出在发生报错之前，用户进行了两次页面跳转，两次 xhr 请求，并且进行了几次点击操作。于是乎，我们就可以脑补出用户大概的一个行为路径了，这样也许就能复现 bug 了，听起来是不是还有点意思 😬。所以本篇文章主要就是讲解一下这个东西是怎么实现的。
+具体思路 收集什么 因为刚开始很容易一头雾水，所以我们先把上面的示意图进行一个简单的转化，它的本质就是个普通的数组，只不过每条数据的类型会有所不同，就像下面这样 👇🏻：
+[ { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:41.307522Z&#34;, level: &#34;info&#34;, message: &#34;a.product-thumbnail-item&#34;, category: &#34;ui.click&#34;, data: null, }, { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:41.692138Z&#34;, level: &#34;info&#34;, message: null, category: &#34;navigation&#34;, data: { from: &#34;/shop/&#34;, to: &#34;/shop/products/plant-mood-planter/&#34; }, }, { type: &#34;dom&#34;, timestamp: &#34;2023-05-27T06:37:42."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">你知道怎么捕获 js 报错前的用户行为吗</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Jun 7, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="抛出问题">抛出问题</h2>
+<p>我们知道线上环境复杂多变，不像本地测试的时候那样顺利，经常会有各种杂七杂八的问题，要想主动高效的定位这些异常，就得接入监控系统啦。作为前端的我们应该或多或少都有所了解，大概就是监听各种 error 事件，然后整理下数据并上报，比如下面这样 👇🏻：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleError</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">report</span>();
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleRejection</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">report</span>();
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>window.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;error&#34;</span>, <span style="color:#a6e22e">handleError</span>);
+</span></span><span style="display:flex;"><span>window.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;unhandledrejection&#34;</span>, <span style="color:#a6e22e">handleRejection</span>);
+</span></span></code></pre></div><p>但是有时候这些错误并不是那么直观，也不好复现 🧐，所以要是我们能够捕获到异常发生时的一些上下文信息就好了。🤔。。。那，这个上下文是指啥呢，让我们先看看下面这张图（<a href="https://try.sentry-demo.com/organizations/moral-grouper/issues/43396/?project=33690&amp;query=is%3Aunresolved&amp;referrer=issue-stream&amp;stream_index=5#breadcrumbs">参考自 sentry</a>）： <img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a38727eeeb7342f794161f0b6294a328~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"> 从上图中可以看出在发生报错之前，用户进行了两次页面跳转，两次 xhr 请求，并且进行了几次点击操作。于是乎，我们就可以脑补出用户大概的一个行为路径了，这样也许就能复现 bug 了，听起来是不是还有点意思 😬。所以本篇文章主要就是讲解一下这个东西是怎么实现的。</p>
+<h2 id="具体思路">具体思路</h2>
+<h3 id="收集什么">收集什么</h3>
+<p>因为刚开始很容易一头雾水，所以我们先把上面的示意图进行一个简单的转化，它的本质就是个普通的数组，只不过每条数据的类型会有所不同，就像下面这样 👇🏻：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>[
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:41.307522Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;a.product-thumbnail-item&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ui.click&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:41.692138Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;navigation&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">from</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/shop/&#34;</span>, <span style="color:#a6e22e">to</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/shop/products/plant-mood-planter/&#34;</span> },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:42.076753Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;button.add-to-cart&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ui.click&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;http&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:42.461368Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;xhr&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">method</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;POST&#34;</span>, <span style="color:#a6e22e">status_code</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">200</span>, <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/api/0/cart/&#34;</span> },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:42.845984Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;a#view-cart&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ui.click&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:43.230599Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;navigation&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">from</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/shop/products/plant-mood-planter/&#34;</span>, <span style="color:#a6e22e">to</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/shop/checkout/&#34;</span> },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:43.615215Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;input#zipcode&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ui.click&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:43.999830Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;button#calculate-shipping&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ui.click&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;http&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:44.384445Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;xhr&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">method</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;POST&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">status_code</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">200</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/api/0/cart/update-shipping/&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:44.769061Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;input#card-name&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ui.click&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:45.153677Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;input#card-number&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ui.click&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:45.538292Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;input#card-cvv&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ui.click&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;dom&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;2023-05-27T06:37:45.922907Z&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">level</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;info&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;input#submit&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">category</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;ui.click&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>];
+</span></span></code></pre></div><p>简单抽离一下它的基本结构，大致如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">Breadcrumb</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">type</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">string</span>; <span style="color:#75715e">// 类型，比如 dom，http
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">category</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">string</span>; <span style="color:#75715e">// 具体分类，比如 dom 下面的 click 和 navigation；http 中的 xhr 和 fetch
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">message</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">string</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">data</span><span style="color:#f92672">?:</span> { [<span style="color:#a6e22e">key</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>]<span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span> };
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">level</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">string</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">number</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><blockquote>
+<p>有同学看到 Breadcrumb 这个单词，心想说这不是面包屑的吗，怎么取这个名字。其实它本意就是有迹可循的意思，所以用在这里还是很恰当的。（🤯 面包屑的起源：从前有两个孩子在森林中走迷了路，为了找回家，他们在路上散落着面包屑，用以标记自己的行走路径，最终成功回到家中。）</p>
+</blockquote>
+<p>可以看到，每条数据大体会有类型、数据、时间戳等几个重要的部分组成，显然不同的类型会对应不同的数据，所以我们只需要知道有哪些类型并记录相关信息即可。那怎么确定有哪些类型呢？</p>
+<p>想想我们如果要知道用户报错前的一些信息，肯定不能在报错的时候才去记录，那时候已经晚了，并且我们也不确定什么时候会报错。所以&hellip;所以在一开始就得进行收集 😅，如果报错了就把一路以来收集到的信息上报，如果没报错那就不管，这是要先明确的一点。</p>
+<p>然后就是确定要收集哪些类型以及怎么收集。这个乍一看也没什么思绪，好像还得上录屏。事实上没这么麻烦，我们可以先想想一般什么情况下做什么操作会导致 js 报错 🤔。经过几秒钟短暂的思考后，大概可以罗列出以下几种情况：</p>
+<ul>
+<li>页面跳转</li>
+<li>接口调用后</li>
+<li>点击某个按钮</li>
+<li>键盘按下时</li>
+<li>console 打印的信息</li>
+<li>定时器</li>
+<li>&hellip;（用户行为 &amp;&amp; 浏览器行为 &amp;&amp; 控制台行为）</li>
+</ul>
+<p>而其中导致报错概率最大的主要就是发送请求和点击事件，所以接下来会以这两种情况为例子来看看我们是怎么进行收集的 🥳。</p>
+<h3 id="初始工作">初始工作</h3>
+<p>在此之前，我们先定义一个全局变量，顺便简化一下 interface，就像下面这样 👇🏻：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">Breadcrumb</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">type</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">string</span>; <span style="color:#75715e">// 类型，比如 fetch、click
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">data</span><span style="color:#f92672">?:</span> { [<span style="color:#a6e22e">key</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>]<span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span> }; <span style="color:#75715e">// 类型对应的数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">timestamp</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">number</span>; <span style="color:#75715e">// 触发时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">breadcrumbs</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">// 所有行为路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">addBreadcrumb</span>(<span style="color:#a6e22e">breadcrumb</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">breadcrumbs</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">breadcrumb</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>之后想要收集的时候只要调用 <code>addBreadcrumb</code> 方法往 <code>breadcrumbs</code> 里 <code>push</code> 一条条记录就好啦。</p>
+<h3 id="收集-fetch-请求">收集 fetch 请求</h3>
+<p>这里我们就先以收集请求为例进行解释说明。可是接口请求那么多，要是在每个接口都手动加上收集的逻辑会很繁琐，所以就需要自动的对每个请求进行处理（有点类似手动埋点和全自动埋点）。那怎么进行全量处理并且无感知嘞，就是函数劫持啦（也可以叫 AOP，面向切面编程），前端最常用的魔改手段之一（此招一出，手动变自动）。通常发送请求有 xhr 和 fetch 两种 api，这里我们以 fetch 举例来看看基本的函数劫持写法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">_fetch</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">fetch</span>; <span style="color:#75715e">// 缓存原来的方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>window.<span style="color:#a6e22e">fetch</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">options</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 发送请求前可以做点事
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">result</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">_fetch</span>.<span style="color:#a6e22e">call</span>(<span style="color:#66d9ef">this</span>, <span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">options</span>); <span style="color:#75715e">// 执行原来的请求逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 发送请求后可以做点事
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">result</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>想想我们发送请求的时候需要记录什么信息呢 🤔？好像主要就几个：接口地址、请求方法、状态码和请求时间？那就先简单记录一下它们，就像下面这样 👇🏻：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">_fetch</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">fetch</span>;
+</span></span><span style="display:flex;"><span>window.<span style="color:#a6e22e">fetch</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">options</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">breadcrumb</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;fetch&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">url</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">method</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">method</span> <span style="color:#f92672">||</span> <span style="color:#e6db74">&#34;GET&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">startTimestamp</span><span style="color:#f92672">:</span> Date.<span style="color:#a6e22e">now</span>(),
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">_fetch</span>.<span style="color:#a6e22e">call</span>(<span style="color:#66d9ef">this</span>, <span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">options</span>).<span style="color:#a6e22e">then</span>(
+</span></span><span style="display:flex;"><span>    (<span style="color:#a6e22e">response</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">response</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">response</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">endTimestamp</span> <span style="color:#f92672">=</span> Date.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">addBreadcrumb</span>(<span style="color:#a6e22e">breadcrumb</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">response</span>;
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">error</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">error</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">endTimestamp</span> <span style="color:#f92672">=</span> Date.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">addBreadcrumb</span>(<span style="color:#a6e22e">breadcrumb</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">error</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>注意到上面的代码中，我们是在请求返回的时候才添加一条 fetch 面包屑数据，这是因为我们需要展示接口的状态码或错误码，以及如果我们希望增加一些自定义参数，比如接口中一般会有个 logid 方便后端排查问题，也可以将其带上，而这些数据在发送请求前是木有的。
+此外我们还注意到这里顺便记录了请求发起和返回的的时间戳，但这并不是添加面包屑的时间戳（虽然和请求返回的时间差不多），并且面包屑的时间戳是每条记录都有的，所以可以把时间戳的逻辑放在通用方法 <code>addBreadcrumb</code> 里面，就像下面这样 👇🏻：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">breadcrumbs</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">addBreadcrumb</span>(<span style="color:#a6e22e">breadcrumb</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">timestamp</span> <span style="color:#f92672">||</span> (<span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">timestamp</span> <span style="color:#f92672">=</span> Date.<span style="color:#a6e22e">now</span>());
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">breadcrumbs</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">breadcrumb</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="收集点击事件">收集点击事件</h3>
+<p>有了上面的基本实践，接下来我们说说如何记录点击事件，看起来也是直接劫持魔改 <code>EventTarget.prototype.addEventListener</code> 这个 api🤔？这当然是没问题的。不过有个更方便的方法，就是利用点击事件的特殊性，我们直接在 <code>document</code> 上进行全局监听即可，一行代码就能轻松搞定，比如这样：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>document.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">tagName</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>这样一来所有点击事件都会冒泡到 <code>document</code> 上，也就是所有点击事件都会触发上面那段代码，接下来只要在回调里面加上需要的面包屑逻辑即可。那点击事件需要记录什么信息呢？好像只需要知道点击哪个元素就可以了 🤔，没错，确实是这样。那怎么标识这个元素呢，除了基本的标签名外，我们还需要去获取点击元素的 class 样式名（当然 id 和属性选择器也是要的，这里就是举个例子），就像下面这样：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>document.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">tagName</span>, <span style="color:#a6e22e">className</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">target</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">breadcrumb</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;click&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">selector</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">tagName</span>.<span style="color:#a6e22e">toLowerCase</span>()<span style="color:#e6db74">}</span><span style="color:#e6db74">.</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">className</span>.<span style="color:#a6e22e">split</span>(<span style="color:#e6db74">&#34; &#34;</span>).<span style="color:#a6e22e">join</span>(<span style="color:#e6db74">&#34;.&#34;</span>)<span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>, <span style="color:#75715e">// 点击元素的格式大概长这样：&#39;tagName#id.class&#39;，比如 &#39;button.submit&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    },
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">breadcrumbs</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">breadcrumb</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>这时候就会出现两个问题，一个问题是有的元素没有 class 或者同一个 class 的元素有很多个，那也就无法定位出具体是哪个元素被点击了，为此我们需要把该元素的父元素也记录下来，然后拼成下面这个样子：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">body</span> <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">div</span><span style="color:#960050;background-color:#1e0010">#</span><span style="color:#a6e22e">app</span> <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">div</span>.<span style="color:#a6e22e">box</span> <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">ul</span> <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">li</span>.<span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">active</span>
+</span></span></code></pre></div><p>这样一来就基本能定位到是哪个元素了，不过需要一个小小的向上递归的过程 🤯。
+另一个问题是如果这样做会不会造成数据冗余并且消耗性能。em。。。确实如此，不过我们只需要简单限制下向上递归的次数就行了，比如四五次就 OK 了，不用一直遍历到根元素，这里就简单贴个代码实现（直接 copy 下面的代码到浏览器运行就能看到效果 😄）：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getXpath</span>(<span style="color:#a6e22e">ele</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">pathArr</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">helper</span>(<span style="color:#a6e22e">ele</span>, <span style="color:#a6e22e">depth</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">ele</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">depth</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1</span>) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">tagName</span>, <span style="color:#a6e22e">className</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">ele</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">selector</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">tagName</span>.<span style="color:#a6e22e">toLowerCase</span>()<span style="color:#e6db74">}</span><span style="color:#e6db74">.</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">className</span>
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">split</span>(<span style="color:#e6db74">&#34; &#34;</span>)
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">join</span>(<span style="color:#e6db74">&#34;.&#34;</span>)<span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pathArr</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">selector</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">helper</span>(<span style="color:#a6e22e">ele</span>.<span style="color:#a6e22e">parentNode</span>, <span style="color:#a6e22e">depth</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">helper</span>(<span style="color:#a6e22e">ele</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">pathArr</span>.<span style="color:#a6e22e">reverse</span>().<span style="color:#a6e22e">join</span>(<span style="color:#e6db74">&#34; &gt; &#34;</span>);
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;&lt;unknown&gt;&#34;</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 如果不想这么麻烦，也可以直接用 element.outerHTML 来表示，舍弃递归
+</span></span></span></code></pre></div><p>不过这样还是会有问题，比如我们点击了某个按钮，按钮自身阻止了冒泡怎么办，我们就捕获不到这个按钮的点击事件了。要解决这个问题很简单，就是将 addEventListener 的第三个参数设置为 true 就行了，就像下面这样 👇🏻：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>document.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, (<span style="color:#a6e22e">e</span>) =&gt; {}, <span style="color:#66d9ef">true</span>);
+</span></span></code></pre></div><p>就这样简单的一个操作我们就把冒泡的过程改成了捕获，也就是所有点击事件都会先触发我们的回调。
+此外我们还可以做一些优化，比如多次点击可以简单节个流，包个 throttle 函数即可；点击空白处或者点击了某个元素但不触发事件的（比如纯文本）也不进行处理，但这个还是比较难办的，即便可以通过 <code>getEventListeners(ele)</code> 这个方法来判断某个元素有没有绑定事件，但是这并不好用，比如我们点击按钮内部的元素也可以触发事件，但是内部元素并没有绑定事件。</p>
+<blockquote>
+<p>小知识：事件的传播通常有三个阶段：捕获阶段、目标阶段、冒泡阶段。在这三个阶段中，事件传播时所携带的信息都是相同的，也就是 event 是相同的。</p>
+</blockquote>
+<p>如果你用的是劫持的方式来处理点击事件你就要注意，同一个事件可能会被出发多次，所以需要用一个变量保存最近一次触发的事件 <code>lastCapturedEvent</code>，然后和当前 event 做对比，如果一样就说明是同样的事件源，可以跳过。
+至此，我们已经简单过了一下两种面包屑的实现，至于其他情况写法大同小异，都是对相应的 api 进行劫持，只是对应的数据不同罢了，比如页面跳转的 data 就是 { from, to } 即可。最后我们只需要在发生报错的时候，把当前的 <code>breadcrumbs</code> 一起上报并做个简单的可视化就行了 🥳。</p>
+<h3 id="一些疑问">一些疑问</h3>
+<ul>
+<li>我可以对面包屑做一些自定义操作吗？当然，我们只需要在 push 或者上报的时候加个钩子即可，就像下面这样 👇🏻：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">breadcrumbs</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">beforeAddBreadcrumb</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">breadcrumb</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// do something
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">addBreadcrumb</span>(<span style="color:#a6e22e">breadcrumb</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">timestamp</span> <span style="color:#f92672">||</span> (<span style="color:#a6e22e">breadcrumb</span>.<span style="color:#a6e22e">timestamp</span> <span style="color:#f92672">=</span> Date.<span style="color:#a6e22e">now</span>());
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">beforeAddBreadcrumb</span>(<span style="color:#a6e22e">breadcrumb</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">breadcrumbs</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">breadcrumb</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>通常在一些需要过滤敏感数据的情况下，<code>beforeAddBreadcrumb</code> 这个钩子就显得尤为重要，比如海外业务。</p>
+<ul>
+<li>
+<p>面包屑数据量不会太大吗？ em。。。确实是会这样，毕竟我们从头记到尾，所以可以控制一下 <code>breadcrumbs</code> 的长度，比如控制在 20 条以内，超出了就把头部元素删了，只留下最近的即可；另外还可以控制一下点击元素的 selector 的长度，当 xpath 过长时也不继续递归了。</p>
+</li>
+<li>
+<p>我。。。可以用录屏吗 😳？当然，录屏相对面包屑的脑补画面来说肯定更加直观，但是录屏的成本和大小都远高于面包屑，有条件当然是允许录屏的（比如 sentry 会通过 rrweb 提供这个功能）。不过录屏一般用在保险、审核这种需要留存记录和证据的地方，对于监控来说倒不是刚需。</p>
+</li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/668/"
+      ><span class="mr-1.5">←</span><span>vue3.2/Vite/Ts1: 项目初始化</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/666/"
+      ><span>vue3基础组件开发-icon（图标组件）</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

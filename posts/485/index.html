@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>如何在react中处理报错 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="我们都希望我们应用能稳定、完美运行，并且能够考虑到每一个边缘情况。但是现实情况是，我们是人，是人就会犯错，并且也不存在没有 bug 的代码。无论我们多么小心或者编写了多少自动化测试，总会有出现严重错误的情况。重要的是，当涉及到用户体验时，要预测那可怕的事情，尽可能地定位它，并以优雅的方式处理它，直到它真正被修复。
+所以今天，让我们来看看 React 中的错误处理：如果发生错误，我们可以做什么，不同的错误捕捉方法的注意事项是什么，以及如何减小错误的影响。
+为何要捕获 react 中的错误 那么第一件事：为什么在 React 中拥有一些错误捕获解决方案是极其重要的？
+这个答案很简单：从 16 版开始，在 React 生命周期中抛出的错误，如果不停止的话，将导致整个应用自行卸载。在此之前，组件会被保留在屏幕上，即使是样式错误和交互错误的。现在，在 UI 的一些无关紧要的部分，甚至是一些你无法控制的外部库中，一个未被捕获的错误也可以使整个页面挂掉，给用户呈现白屏。
+在此之前，前端开发人员从来没有过这样的破坏力。
+还记得在 js 中是如何捕获错误信息的吗？ 在 javascript 里如何捕获错误？众所周知，我们可以使用 try/catch 语句：在 try 里做一些事情，在它们执行失败的时候 catch 这些错误来减少影响
+try { // 如果执行的出现错误，这里会抛出错误 doSomething(); } catch (e) { // 如果错误发生了，捕获它并且在不阻止应用的时候处理它 // 比如，发送这个错误到打点服务 } 相同的语法也适用于 async 函数
+try { await fetch(&#34;/bla-bla&#34;); } catch (e) { // fetch失败，我们可以一些事情 } 如果我们正在使用旧的 promises 规范，它有专门的方法来捕获错误。我们可以基于 promise 的 API 来重写 fetch 例子，像下面这样：
+fetch(&#34;/bla-bla&#34;) ." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="如何在react中处理报错" />
+<meta property="og:description" content="我们都希望我们应用能稳定、完美运行，并且能够考虑到每一个边缘情况。但是现实情况是，我们是人，是人就会犯错，并且也不存在没有 bug 的代码。无论我们多么小心或者编写了多少自动化测试，总会有出现严重错误的情况。重要的是，当涉及到用户体验时，要预测那可怕的事情，尽可能地定位它，并以优雅的方式处理它，直到它真正被修复。
+所以今天，让我们来看看 React 中的错误处理：如果发生错误，我们可以做什么，不同的错误捕捉方法的注意事项是什么，以及如何减小错误的影响。
+为何要捕获 react 中的错误 那么第一件事：为什么在 React 中拥有一些错误捕获解决方案是极其重要的？
+这个答案很简单：从 16 版开始，在 React 生命周期中抛出的错误，如果不停止的话，将导致整个应用自行卸载。在此之前，组件会被保留在屏幕上，即使是样式错误和交互错误的。现在，在 UI 的一些无关紧要的部分，甚至是一些你无法控制的外部库中，一个未被捕获的错误也可以使整个页面挂掉，给用户呈现白屏。
+在此之前，前端开发人员从来没有过这样的破坏力。
+还记得在 js 中是如何捕获错误信息的吗？ 在 javascript 里如何捕获错误？众所周知，我们可以使用 try/catch 语句：在 try 里做一些事情，在它们执行失败的时候 catch 这些错误来减少影响
+try { // 如果执行的出现错误，这里会抛出错误 doSomething(); } catch (e) { // 如果错误发生了，捕获它并且在不阻止应用的时候处理它 // 比如，发送这个错误到打点服务 } 相同的语法也适用于 async 函数
+try { await fetch(&#34;/bla-bla&#34;); } catch (e) { // fetch失败，我们可以一些事情 } 如果我们正在使用旧的 promises 规范，它有专门的方法来捕获错误。我们可以基于 promise 的 API 来重写 fetch 例子，像下面这样：
+fetch(&#34;/bla-bla&#34;) ." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/485/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-13T17:45:44+08:00" />
+<meta property="article:modified_time" content="2023-04-13T17:45:44+08:00" />
+
+  
+  <meta itemprop="name" content="如何在react中处理报错">
+<meta itemprop="description" content="我们都希望我们应用能稳定、完美运行，并且能够考虑到每一个边缘情况。但是现实情况是，我们是人，是人就会犯错，并且也不存在没有 bug 的代码。无论我们多么小心或者编写了多少自动化测试，总会有出现严重错误的情况。重要的是，当涉及到用户体验时，要预测那可怕的事情，尽可能地定位它，并以优雅的方式处理它，直到它真正被修复。
+所以今天，让我们来看看 React 中的错误处理：如果发生错误，我们可以做什么，不同的错误捕捉方法的注意事项是什么，以及如何减小错误的影响。
+为何要捕获 react 中的错误 那么第一件事：为什么在 React 中拥有一些错误捕获解决方案是极其重要的？
+这个答案很简单：从 16 版开始，在 React 生命周期中抛出的错误，如果不停止的话，将导致整个应用自行卸载。在此之前，组件会被保留在屏幕上，即使是样式错误和交互错误的。现在，在 UI 的一些无关紧要的部分，甚至是一些你无法控制的外部库中，一个未被捕获的错误也可以使整个页面挂掉，给用户呈现白屏。
+在此之前，前端开发人员从来没有过这样的破坏力。
+还记得在 js 中是如何捕获错误信息的吗？ 在 javascript 里如何捕获错误？众所周知，我们可以使用 try/catch 语句：在 try 里做一些事情，在它们执行失败的时候 catch 这些错误来减少影响
+try { // 如果执行的出现错误，这里会抛出错误 doSomething(); } catch (e) { // 如果错误发生了，捕获它并且在不阻止应用的时候处理它 // 比如，发送这个错误到打点服务 } 相同的语法也适用于 async 函数
+try { await fetch(&#34;/bla-bla&#34;); } catch (e) { // fetch失败，我们可以一些事情 } 如果我们正在使用旧的 promises 规范，它有专门的方法来捕获错误。我们可以基于 promise 的 API 来重写 fetch 例子，像下面这样：
+fetch(&#34;/bla-bla&#34;) ."><meta itemprop="datePublished" content="2023-04-13T17:45:44+08:00" />
+<meta itemprop="dateModified" content="2023-04-13T17:45:44+08:00" />
+<meta itemprop="wordCount" content="1025">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="如何在react中处理报错"/>
+<meta name="twitter:description" content="我们都希望我们应用能稳定、完美运行，并且能够考虑到每一个边缘情况。但是现实情况是，我们是人，是人就会犯错，并且也不存在没有 bug 的代码。无论我们多么小心或者编写了多少自动化测试，总会有出现严重错误的情况。重要的是，当涉及到用户体验时，要预测那可怕的事情，尽可能地定位它，并以优雅的方式处理它，直到它真正被修复。
+所以今天，让我们来看看 React 中的错误处理：如果发生错误，我们可以做什么，不同的错误捕捉方法的注意事项是什么，以及如何减小错误的影响。
+为何要捕获 react 中的错误 那么第一件事：为什么在 React 中拥有一些错误捕获解决方案是极其重要的？
+这个答案很简单：从 16 版开始，在 React 生命周期中抛出的错误，如果不停止的话，将导致整个应用自行卸载。在此之前，组件会被保留在屏幕上，即使是样式错误和交互错误的。现在，在 UI 的一些无关紧要的部分，甚至是一些你无法控制的外部库中，一个未被捕获的错误也可以使整个页面挂掉，给用户呈现白屏。
+在此之前，前端开发人员从来没有过这样的破坏力。
+还记得在 js 中是如何捕获错误信息的吗？ 在 javascript 里如何捕获错误？众所周知，我们可以使用 try/catch 语句：在 try 里做一些事情，在它们执行失败的时候 catch 这些错误来减少影响
+try { // 如果执行的出现错误，这里会抛出错误 doSomething(); } catch (e) { // 如果错误发生了，捕获它并且在不阻止应用的时候处理它 // 比如，发送这个错误到打点服务 } 相同的语法也适用于 async 函数
+try { await fetch(&#34;/bla-bla&#34;); } catch (e) { // fetch失败，我们可以一些事情 } 如果我们正在使用旧的 promises 规范，它有专门的方法来捕获错误。我们可以基于 promise 的 API 来重写 fetch 例子，像下面这样：
+fetch(&#34;/bla-bla&#34;) ."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">如何在react中处理报错</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 13, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>我们都希望我们应用能稳定、完美运行，并且能够考虑到每一个边缘情况。但是现实情况是，我们是人，是人就会犯错，并且也不存在没有 bug 的代码。无论我们多么小心或者编写了多少自动化测试，总会有出现严重错误的情况。重要的是，当涉及到用户体验时，要预测那可怕的事情，尽可能地定位它，并以优雅的方式处理它，直到它真正被修复。</p>
+<p>所以今天，让我们来看看 React 中的错误处理：如果发生错误，我们可以做什么，不同的错误捕捉方法的注意事项是什么，以及如何减小错误的影响。</p>
+<h2 id="为何要捕获-react-中的错误">为何要捕获 react 中的错误</h2>
+<p>那么第一件事：为什么在 React 中拥有一些错误捕获解决方案是极其重要的？</p>
+<p>这个答案很简单：从 16 版开始，在 React 生命周期中抛出的错误，如果不停止的话，将导致整个应用自行卸载。在此之前，组件会被保留在屏幕上，即使是样式错误和交互错误的。现在，在 UI 的一些无关紧要的部分，甚至是一些你无法控制的外部库中，一个未被捕获的错误也可以使整个页面挂掉，给用户呈现白屏。</p>
+<p>在此之前，前端开发人员从来没有过这样的破坏力。</p>
+<h3 id="还记得在-js-中是如何捕获错误信息的吗">还记得在 js 中是如何捕获错误信息的吗？</h3>
+<p>在 javascript 里如何捕获错误？众所周知，我们可以使用 try/catch 语句：在 try 里做一些事情，在它们执行失败的时候 catch 这些错误来减少影响</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 如果执行的出现错误，这里会抛出错误
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">doSomething</span>();
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 如果错误发生了，捕获它并且在不阻止应用的时候处理它
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 比如，发送这个错误到打点服务
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>相同的语法也适用于 async 函数</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">fetch</span>(<span style="color:#e6db74">&#34;/bla-bla&#34;</span>);
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// fetch失败，我们可以一些事情
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>如果我们正在使用旧的 promises 规范，它有专门的方法来捕获错误。我们可以基于 promise 的 API 来重写 fetch 例子，像下面这样：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-typescript" data-lang="typescript"><span style="display:flex;"><span><span style="color:#a6e22e">fetch</span>(<span style="color:#e6db74">&#34;/bla-bla&#34;</span>)
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">result</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 如果承诺成功，结果将在这里
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 我们可以用它做一些有用的事情
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  })
+</span></span><span style="display:flex;"><span>  .<span style="color:#66d9ef">catch</span>((<span style="color:#a6e22e">e</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 请求失败了，我们应做一些事情来处理它
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  });
+</span></span></code></pre></div><p>以上两种是相同的概念，只是实现方式稍有不同，因此在接下来的文章中，我将只对 try/catch 错误使用语法。</p>
+<h3 id="在-react-中的-trycatch如何操作和注意事项">在 React 中的 try/catch：如何操作和注意事项</h3>
+<p>当一个错误被捕获时，我们需要对它做些什么？除了把它记录在某个地方之外，我们还能做什么？更准确地说：我们能为我们的用户做什么？仅仅让他们面对一个空屏幕或者一个不友好的界面。<br>
+最明显和最直观的答案是在等待我们修复的时候渲染一些东西。幸运的是，我们可以在这个 catch 语句中做任何我们想做的事情，包括设置状态。所以我们可以做一些事情像这样：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">SomeComponent</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">hasError</span>, <span style="color:#a6e22e">setHasError</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setHasError</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">hasError</span>) <span style="color:#66d9ef">return</span> <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">SomeErrorScreen</span> <span style="color:#f92672">/&gt;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">SomeComponentContent</span> {...<span style="color:#a6e22e">datasomething</span>} <span style="color:#f92672">/&gt;</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>我们试图发送一个获取请求，如果请求失败了&ndash;设置错误状态，如果错误状态为真，那么我们就渲染一个错误反馈的 UI，为用户提供一些额外的信息，比如支持联系号码。</p>
+<p>这种方法非常简单，非常适合简单、可预测且范围狭窄的用例，例如捕获失败的 fetch 请求。</p>
+<p>但是如果你想捕捉一个组件中可能发生的所有错误，你将面临一些挑战和严格的限制。</p>
+<h3 id="限制-1你会在使用-useeffect-钩子时遇到困难">限制 1：你会在使用 useEffect 钩子时遇到困难</h3>
+<p>如果我们用 try/catch 包住 useEffect，hook 就失效了。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;Hulk smash!&#34;</span>);
+</span></span><span style="display:flex;"><span>  }, []);
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// useEffect throws, but this will never be called
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>发生这种情况是因为 useEffect 是在渲染后被异步调用的，所以从 try/catch 的角度来看，一切都很顺利。这和任何 Promise 都是一样的：如果我们不等待结果，那么 javascript 就会继续它的工作，在承诺完成后返回，并且只执行 useEffect（或 Promise）中的内容。</p>
+<p>为了让在 useEffect 中的错误被捕获，try/catch 应该被放在里面。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;Hulk smash!&#34;</span>);
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// this one will be caught
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}, []);
+</span></span></code></pre></div><p>看一下这个例子就知道了：<a href="https://codesandbox.io/s/try-catch-and-useeffect-28h3ux?from-embed">codesandbox.io/s/try-catch…</a></p>
+<p>这适用于所有使用 useEffect 的钩子或异步事情的场景。因此，你不能用一个 try/catch 包裹所有代码，而是将其拆分到每个 hook 中</p>
+<h3 id="限制-2子组件trycatch-不能捕捉子组件内发生的任何事情你不能像这样做">限制 2：子组件。try/catch 不能捕捉子组件内发生的任何事情。你不能像这样做：</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">child</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">child</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Child</span> <span style="color:#f92672">/&gt;</span>;
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// useless for catching errors inside Child component, won&#39;t be triggered
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">child</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>甚至是这样</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Child</span> <span style="color:#f92672">/&gt;</span>;
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// still useless for catching errors inside Child component, won&#39;t be triggered
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>可以看一下这个例子<a href="https://codesandbox.io/s/try-catch-for-children-doesnt-work-5elto1?from-embed">codesandbox.io/s/try-catch…</a></p>
+<p>发生这种情况是因为当我们写时，我们实际上并没有渲染这个组件。我们所做的是创建一个组件元素，这只是一个组件的定义。它只是一个包含必要信息的对象，比如组件类型和道具，以后会被 React 本身使用，它将实际触发这个组件的渲染。它将在 try/catch 块成功执行后发生，与 promises 和 useEffect 钩子的情况完全一样。</p>
+<p>如果你想更详细地了解元素和组件的工作原理，这里有一篇文章适合你：React 元素、子代、父代和重排的奥秘</p>
+<h3 id="限制-3在渲染过程中设置-state-是不可取的">限制 3：在渲染过程中设置 state 是不可取的</h3>
+<p>如果你想在 useEffect 和各种回调之外捕获错误(也就是说在组件的渲染过程中)，那么正确处理它们就不再简单了，因为渲染过程中的状态更新是允许的。</p>
+<p>比如像这样简单的的代码，如果发生错误，就会导致重新渲染无限循环。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">hasError</span>, <span style="color:#a6e22e">setHasError</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">doSomethingComplicated</span>();
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// don&#39;t do that! will cause infinite loop in case of an error
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// see codesandbox below with live example
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">setHasError</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>当然，我们可以在这里直接返回错误组件，而不是设置错误状态。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">doSomethingComplicated</span>();
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// this allowed
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">SomeErrorScreen</span> <span style="color:#f92672">/&gt;</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>但是，正如你想的，这有点麻烦，而且会迫使我们对同一组件的错误进行不同的处理：对 useEffect 和回调进行状态处理，而对其他的直接返回错误组件(&mdash;&ndash;)</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// while it will work, it&#39;s super cumbersome and hard to maitain, don&#39;t do that
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">SomeComponent</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">hasError</span>, <span style="color:#a6e22e">setHasError</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// do something like fetching some data
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// can&#39;t just return in case of errors in useEffect or callbacks
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// so have to use state
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">setHasError</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 在渲染时，做一些事情
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">SomeErrorScreen</span> <span style="color:#f92672">/&gt;</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">hasError</span>) <span style="color:#66d9ef">return</span> <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">SomeErrorScreen</span> <span style="color:#f92672">/&gt;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">SomeComponentContent</span> {...<span style="color:#a6e22e">datasomething</span>} <span style="color:#f92672">/&gt;</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>总结一下本节的内容：如果在 React 中仅仅依靠 try/catch，要么会错过大部分的错误，要么会把每个组件变成难以理解的混乱代码而造成错误</p>
+<p>幸运的是，还有其他方法。</p>
+<h3 id="react-errorboundary-component">React ErrorBoundary component</h3>
+<p>为了减轻上面的限制，React 给我们提供了“错误边界”：一种特殊的 API，它以某种方式将普通组件转换为 try/catch 语句，但是仅适用于 React 声明的代码。你可以在下面的示例中看到的经典用法，包括 React 文档。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">SomeChildComponent</span> /&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">AnotherChildComponent</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>现在，如果这些组件或者他们的子组件在渲染中出现错误，这个错误会被捕获并处理。</p>
+<p>但是 React 并没有提供原生组件，只是给我们提供了一个工具来实现它。最简单的实现是这样子的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ErrorBoundary</span> <span style="color:#66d9ef">extends</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">Component</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">props</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">super</span>(<span style="color:#a6e22e">props</span>); <span style="color:#75715e">// 初始化error的状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">state</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">hasError</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span> };
+</span></span><span style="display:flex;"><span>  } <span style="color:#75715e">// 当error发生，设置这个状态为true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">static</span> <span style="color:#a6e22e">getDerivedStateFromError</span>(<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> { <span style="color:#a6e22e">hasError</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> };
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">render</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 如果error发生，返回一个回退组件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">hasError</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> &lt;&gt;<span style="color:#a6e22e">Oh</span> <span style="color:#a6e22e">no</span><span style="color:#f92672">!</span> <span style="color:#a6e22e">Epic</span> <span style="color:#a6e22e">fail</span><span style="color:#f92672">!</span>&lt;/&gt;;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">children</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>我们创建了一个普通的类组件，并实现了 getDerivedStateFromError 方法&ndash;这个方法可以让组件拥有错误边界。</p>
+<p>在处理错误时，另一个重要的事情是将错误信息传递到某个地方，让它能够触发所有监听者。为此，错误边界提供了 componentDidCatch 方法</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ErrorBoundary</span> <span style="color:#66d9ef">extends</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">Component</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// everything else stays the same
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">componentDidCatch</span>(<span style="color:#a6e22e">error</span>, <span style="color:#a6e22e">errorInfo</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// send error to somewhere here
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">error</span>, <span style="color:#a6e22e">errorInfo</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>在错误边界设置后，我们可以像使用其他组件一样使用它。比如，我们可以将其优化得更便于重用，并将<code>fallback</code>做为 props 来传递</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">render</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// if error happened, return a fallback component
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">hasError</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">fallback</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">children</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>可以像下面这样使用：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">ErrorBoundary</span> <span style="color:#a6e22e">fallback</span><span style="color:#f92672">=</span>{&lt;&gt;<span style="color:#a6e22e">Oh</span> <span style="color:#a6e22e">no</span><span style="color:#f92672">!</span> <span style="color:#a6e22e">Do</span> <span style="color:#a6e22e">something</span><span style="color:#f92672">!</span>&lt;/&gt;}&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">SomeChildComponent</span> /&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">AnotherChildComponent</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>或者其他我们可能需要的东西，比如点击按钮时重置状态，区分错误类型，或者将错误传递到某个上下文中。查看完整的例子：<a href="https://4ldsun.csb.app/">4ldsun.csb.app/</a></p>
+<p>不过，这里有一个注意事项：它并不能捕获一切错误</p>
+<h3 id="错误边界组件的限制">错误边界组件的限制</h3>
+<p>错误边界只捕捉发生在 React 生命周期中的错误。在生命周期之外发生的事情，如<code>resolved promise</code>、带有<code>setTimeout</code>的异步代码、各种回调和事件监听函数，如果没有被不明确处理，将不能捕获。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 这个错误将会被错误边界组件捕获
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;Destroy everything!&#34;</span>);
+</span></span><span style="display:flex;"><span>  }, []);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onClick</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 这个错误将不能被捕获处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;Hulk smash!&#34;</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 这个错误将不能被捕获处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">fetch</span>(<span style="color:#e6db74">&#34;/bla&#34;</span>);
+</span></span><span style="display:flex;"><span>  }, []);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">onClick</span>}&gt;<span style="color:#a6e22e">click</span> <span style="color:#a6e22e">me</span>&lt;/<span style="color:#f92672">button</span>&gt;;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ComponentWithBoundary</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Component</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>这里的建议是使用常规的 try/catch 来处理这类错误。而且至少在这里我们可以安全地使用 state：事件监听函数的回调正是我们通常<code>setState</code>的地方。所以从技术上讲，我们可以把两种方法结合起来，做这样的事情。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">hasError</span>, <span style="color:#a6e22e">setHasError</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#66d9ef">false</span>); <span style="color:#75715e">// 通过错误边界，组件和子组件的错误绝大部分都会被捕获
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onClick</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 这里的错误将会被捕获
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;Hulk smash!&#34;</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setHasError</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">hasError</span>) <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;something went wrong&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">onClick</span>}&gt;<span style="color:#a6e22e">click</span> <span style="color:#a6e22e">me</span>&lt;/<span style="color:#f92672">button</span>&gt;;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ComponentWithBoundary</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">ErrorBoundary</span> <span style="color:#a6e22e">fallback</span><span style="color:#f92672">=</span>{<span style="color:#e6db74">&#34;Oh no! Something went wrong&#34;</span>}&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Component</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>但是。我们又回到了原点：每个组件都需要维持它的 &ldquo;错误 &ldquo;状态，更重要的是&ndash;决定如何处理它。</p>
+<p>当然，我们可以不在组件层面上处理这些错误，而只是通过 props 或 Context 将它们传递到拥有 ErrorBoundary 的父级。这样的话，我们只需要在一个地方设置一个 &ldquo;fallback&quot;组件。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> ({ <span style="color:#a6e22e">onError</span> }) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onClick</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;Hulk smash!&#34;</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">onError</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">onClick</span>}&gt;<span style="color:#a6e22e">click</span> <span style="color:#a6e22e">me</span>&lt;/<span style="color:#f92672">button</span>&gt;;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ComponentWithBoundary</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">hasError</span>, <span style="color:#a6e22e">setHasError</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fallback</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Oh no! Something went wrong&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">hasError</span>) <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">fallback</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">ErrorBoundary</span> <span style="color:#a6e22e">fallback</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">fallback</span>}&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Component</span> <span style="color:#a6e22e">onError</span><span style="color:#f92672">=</span>{() =&gt; <span style="color:#a6e22e">setHasError</span>(<span style="color:#66d9ef">true</span>)} /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">ErrorBoundary</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>但这里有很多冗余代码，我们必须对渲染树的每一个子组件都这样做。更不用说我们现在还要维护两个错误状态：父组件，以及 ErrorBoundary 本身。而 ErrorBoundary 已经实现了一套捕获错误的机制，我们在这里做了重复的工作。</p>
+<p>那么，我们就不能用 ErrorBoundary 从异步代码和事件处理程序中捕捉这些错误吗？</p>
+<h3 id="errorboundary-捕捉异步错误">ErrorBoundary 捕捉异步错误</h3>
+<p>有趣的是&ndash;我们可以用 ErrorBoundary 把它们都捕获！大家最喜欢的 Dan Abramov 与我们分享了一个很酷的黑客技术。正是为了实现这一点：Throwing Error from hook not caught in error boundary · Issue #14981 · facebook/react. （<a href="https://github.com/facebook/react/issues/14981#issuecomment-468460187%EF%BC%89">github.com/facebook/re…</a></p>
+<p>这里的技巧是先用 try/catch 捕捉这些错误，然后在 catch 语句中触发正常的 React 重渲染，然后把这些错误重新抛回重渲染的生命周期。这样，ErrorBoundary 就可以像捕获其他错误一样捕捉它们。由于 state 变化是触发重新渲染的方式，而 setState 实际上可以接受一个更新函数作为参数，这个解决方案是纯粹的黑魔法。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">setState</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onClick</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// something bad happened
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setState</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">e</span>;
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>完整例子在这里：<a href="https://codesandbox.io/s/simple-async-error-in-error-boundary-r8l22g?from-embed">codesandbox.io/s/simple-as…</a></p>
+<p>这里的最后一步将其抽象化，所以我们不必在每个组件中创建随机状态。我们可以在这里发挥创意，实现一个钩子用来将异步错误抛出。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">useThrowAsyncError</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">setState</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setState</span>(() =&gt; <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>像这样使用它：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">throwAsyncError</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useThrowAsyncError</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fetch</span>(<span style="color:#e6db74">&#34;/bla&#34;</span>)
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">then</span>()
+</span></span><span style="display:flex;"><span>      .<span style="color:#66d9ef">catch</span>((<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// throw async error here!
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">throwAsyncError</span>(<span style="color:#a6e22e">e</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>或者，我们可以像下面这样为回调做一层封装：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">useCallbackWithErrorHandling</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">callback</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">setState</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (...<span style="color:#a6e22e">args</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">callback</span>(...<span style="color:#a6e22e">args</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">e</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setState</span>(() =&gt; <span style="color:#66d9ef">throw</span> <span style="color:#a6e22e">e</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>像下面这样使用它：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Component</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onClick</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// do something dangerous here
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  };
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onClickWithErrorHandler</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useCallbackWithErrorHandling</span>(<span style="color:#a6e22e">onClick</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">onClickWithErrorHandler</span>}&gt;<span style="color:#a6e22e">click</span> <span style="color:#a6e22e">me</span><span style="color:#f92672">!</span>&lt;/<span style="color:#f92672">button</span>&gt;;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>完整的例子在这里：<a href="https://codesandbox.io/s/simple-async-errors-utils-for-error-boundary-fzg5zv?from-embed">codesandbox.io/s/simple-as…</a></p>
+<h3 id="可以用-react-error-boundary-来代替吗">可以用 react-error-boundary 来代替吗？</h3>
+<p>对于那些讨厌重新造轮子的人，或者喜欢用库来解决已经解决的问题的人，有一个很好的库，它实现了一个灵活的 ErrorBoundary 组件，并且有一些类似于上述的有用的工具：<a href="https://github.com/bvaughn/react-error-boundary">github.com/bvaughn/rea…</a></p>
+<p>是否使用它，只是个人喜好、编码风格和组件特殊性的问题。</p>
+<p>今天就说到这里，希望从现在开始，当你的应用程序发生了报错，你都能够轻松而优雅地处理这些情况。</p>
+<p>请记住：</p>
+<ul>
+<li>try/catch 块不会捕获像 useEffect 这样的钩子和任何子组件中的错误。</li>
+<li>ErrorBoundary 可以捕捉它们，但它不会捕捉异步代码和事件处理回调中的错误。</li>
+<li>不过，你可以让 ErrorBoundary 捕捉这些错误，你只需要先用 try/catch 捕捉它们，然后再把它们重新传递到 React 生命周期中。</li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/486/"
+      ><span class="mr-1.5">←</span><span>前端正确处理“文字溢出”的思路</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/484/"
+      ><span>认识前端规范</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

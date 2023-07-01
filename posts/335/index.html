@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>千万别让 console.log 上生产！用 Performance 和 Memory 告诉你为什 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="很多前端都喜欢用 console.log 调试，先不谈调试效率怎么样，首先 console.log 有个致命的问题：会导致内存泄漏。
+为什么这么说呢？
+用 Performance 和 Memory 工具分析下就知道了。
+我们准备这样一段代码：
+一个按钮，点击之后创建一个数组，执行一些计算。
+很常见的逻辑。
+我们最后加了一个 console.log 打印了下这个数组。
+起个静态服务：
+浏览器访问：
+点击 performance 下的垃圾回收按钮，手动触发一次 GC：
+勾选 Memory，然后开始录制，点击 3 次按钮，再执行一次 GC：
+你会发现内存是这样的：
+内存占用有三次增长，因为我们点击三次按钮的时候会创建 3 次大数组。
+但是最后我们手动 GC 之后并没有回落下去，也就是这个大数组没有被回收。
+按理来说，代码执行完，那用的内存就要被释放，然后再执行别的代码，结果这段代码执行完之后大数组依然占据着内存，这样别的代码再执行的时候可用内存就少了。
+这就是发生了内存泄漏，也就是代码执行完了不释放内存的流氓行为。
+有同学说，只是这么一点内存问题不大呀，反正可用内存还很多。
+但如果你的代码要跑很长时间，这段代码要执行很多次呢？
+每次执行都会占据一部分内存不释放，慢慢的内存就不够用了，甚至会导致程序崩溃。
+比如当这段代码执行个 9 次，内存占用就增长了 9 个大数组的内存：
+再多执行几次呢？
+是不是就有崩溃的隐患了。
+那为啥说是 console.log 导致的呢？
+我们来看看不用 console.log 是什么样的：
+注释掉 console.log，重新跑。
+你会发现现在的内存分配情况是这样的：
+分配了三次内存，但是 GC 后又会落下去了。
+这才是没有内存泄漏的好代码。
+那为啥 console.log 会导致内存泄漏呢？
+因为控制台打印的对象，你是不是有可能展开看？那如果这个对象在内存中没有了，是不是就看不到了？
+所以有这个引用在，浏览器不会把你打印的对象的内存释放掉。
+有的同学说，那我不打开控制台，是不是就没有这个引用了？
+答案是否定的：
+我点击了几次之后，再打开控制台，依然是可以看到这个对象的，说明没有被 GC。
+也就是说用 console." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="千万别让 console.log 上生产！用 Performance 和 Memory 告诉你为什" />
+<meta property="og:description" content="很多前端都喜欢用 console.log 调试，先不谈调试效率怎么样，首先 console.log 有个致命的问题：会导致内存泄漏。
+为什么这么说呢？
+用 Performance 和 Memory 工具分析下就知道了。
+我们准备这样一段代码：
+一个按钮，点击之后创建一个数组，执行一些计算。
+很常见的逻辑。
+我们最后加了一个 console.log 打印了下这个数组。
+起个静态服务：
+浏览器访问：
+点击 performance 下的垃圾回收按钮，手动触发一次 GC：
+勾选 Memory，然后开始录制，点击 3 次按钮，再执行一次 GC：
+你会发现内存是这样的：
+内存占用有三次增长，因为我们点击三次按钮的时候会创建 3 次大数组。
+但是最后我们手动 GC 之后并没有回落下去，也就是这个大数组没有被回收。
+按理来说，代码执行完，那用的内存就要被释放，然后再执行别的代码，结果这段代码执行完之后大数组依然占据着内存，这样别的代码再执行的时候可用内存就少了。
+这就是发生了内存泄漏，也就是代码执行完了不释放内存的流氓行为。
+有同学说，只是这么一点内存问题不大呀，反正可用内存还很多。
+但如果你的代码要跑很长时间，这段代码要执行很多次呢？
+每次执行都会占据一部分内存不释放，慢慢的内存就不够用了，甚至会导致程序崩溃。
+比如当这段代码执行个 9 次，内存占用就增长了 9 个大数组的内存：
+再多执行几次呢？
+是不是就有崩溃的隐患了。
+那为啥说是 console.log 导致的呢？
+我们来看看不用 console.log 是什么样的：
+注释掉 console.log，重新跑。
+你会发现现在的内存分配情况是这样的：
+分配了三次内存，但是 GC 后又会落下去了。
+这才是没有内存泄漏的好代码。
+那为啥 console.log 会导致内存泄漏呢？
+因为控制台打印的对象，你是不是有可能展开看？那如果这个对象在内存中没有了，是不是就看不到了？
+所以有这个引用在，浏览器不会把你打印的对象的内存释放掉。
+有的同学说，那我不打开控制台，是不是就没有这个引用了？
+答案是否定的：
+我点击了几次之后，再打开控制台，依然是可以看到这个对象的，说明没有被 GC。
+也就是说用 console." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/335/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-01-17T19:48:03+08:00" />
+<meta property="article:modified_time" content="2023-01-17T19:48:03+08:00" />
+
+  
+  <meta itemprop="name" content="千万别让 console.log 上生产！用 Performance 和 Memory 告诉你为什">
+<meta itemprop="description" content="很多前端都喜欢用 console.log 调试，先不谈调试效率怎么样，首先 console.log 有个致命的问题：会导致内存泄漏。
+为什么这么说呢？
+用 Performance 和 Memory 工具分析下就知道了。
+我们准备这样一段代码：
+一个按钮，点击之后创建一个数组，执行一些计算。
+很常见的逻辑。
+我们最后加了一个 console.log 打印了下这个数组。
+起个静态服务：
+浏览器访问：
+点击 performance 下的垃圾回收按钮，手动触发一次 GC：
+勾选 Memory，然后开始录制，点击 3 次按钮，再执行一次 GC：
+你会发现内存是这样的：
+内存占用有三次增长，因为我们点击三次按钮的时候会创建 3 次大数组。
+但是最后我们手动 GC 之后并没有回落下去，也就是这个大数组没有被回收。
+按理来说，代码执行完，那用的内存就要被释放，然后再执行别的代码，结果这段代码执行完之后大数组依然占据着内存，这样别的代码再执行的时候可用内存就少了。
+这就是发生了内存泄漏，也就是代码执行完了不释放内存的流氓行为。
+有同学说，只是这么一点内存问题不大呀，反正可用内存还很多。
+但如果你的代码要跑很长时间，这段代码要执行很多次呢？
+每次执行都会占据一部分内存不释放，慢慢的内存就不够用了，甚至会导致程序崩溃。
+比如当这段代码执行个 9 次，内存占用就增长了 9 个大数组的内存：
+再多执行几次呢？
+是不是就有崩溃的隐患了。
+那为啥说是 console.log 导致的呢？
+我们来看看不用 console.log 是什么样的：
+注释掉 console.log，重新跑。
+你会发现现在的内存分配情况是这样的：
+分配了三次内存，但是 GC 后又会落下去了。
+这才是没有内存泄漏的好代码。
+那为啥 console.log 会导致内存泄漏呢？
+因为控制台打印的对象，你是不是有可能展开看？那如果这个对象在内存中没有了，是不是就看不到了？
+所以有这个引用在，浏览器不会把你打印的对象的内存释放掉。
+有的同学说，那我不打开控制台，是不是就没有这个引用了？
+答案是否定的：
+我点击了几次之后，再打开控制台，依然是可以看到这个对象的，说明没有被 GC。
+也就是说用 console."><meta itemprop="datePublished" content="2023-01-17T19:48:03+08:00" />
+<meta itemprop="dateModified" content="2023-01-17T19:48:03+08:00" />
+<meta itemprop="wordCount" content="201">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="千万别让 console.log 上生产！用 Performance 和 Memory 告诉你为什"/>
+<meta name="twitter:description" content="很多前端都喜欢用 console.log 调试，先不谈调试效率怎么样，首先 console.log 有个致命的问题：会导致内存泄漏。
+为什么这么说呢？
+用 Performance 和 Memory 工具分析下就知道了。
+我们准备这样一段代码：
+一个按钮，点击之后创建一个数组，执行一些计算。
+很常见的逻辑。
+我们最后加了一个 console.log 打印了下这个数组。
+起个静态服务：
+浏览器访问：
+点击 performance 下的垃圾回收按钮，手动触发一次 GC：
+勾选 Memory，然后开始录制，点击 3 次按钮，再执行一次 GC：
+你会发现内存是这样的：
+内存占用有三次增长，因为我们点击三次按钮的时候会创建 3 次大数组。
+但是最后我们手动 GC 之后并没有回落下去，也就是这个大数组没有被回收。
+按理来说，代码执行完，那用的内存就要被释放，然后再执行别的代码，结果这段代码执行完之后大数组依然占据着内存，这样别的代码再执行的时候可用内存就少了。
+这就是发生了内存泄漏，也就是代码执行完了不释放内存的流氓行为。
+有同学说，只是这么一点内存问题不大呀，反正可用内存还很多。
+但如果你的代码要跑很长时间，这段代码要执行很多次呢？
+每次执行都会占据一部分内存不释放，慢慢的内存就不够用了，甚至会导致程序崩溃。
+比如当这段代码执行个 9 次，内存占用就增长了 9 个大数组的内存：
+再多执行几次呢？
+是不是就有崩溃的隐患了。
+那为啥说是 console.log 导致的呢？
+我们来看看不用 console.log 是什么样的：
+注释掉 console.log，重新跑。
+你会发现现在的内存分配情况是这样的：
+分配了三次内存，但是 GC 后又会落下去了。
+这才是没有内存泄漏的好代码。
+那为啥 console.log 会导致内存泄漏呢？
+因为控制台打印的对象，你是不是有可能展开看？那如果这个对象在内存中没有了，是不是就看不到了？
+所以有这个引用在，浏览器不会把你打印的对象的内存释放掉。
+有的同学说，那我不打开控制台，是不是就没有这个引用了？
+答案是否定的：
+我点击了几次之后，再打开控制台，依然是可以看到这个对象的，说明没有被 GC。
+也就是说用 console."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">千万别让 console.log 上生产！用 Performance 和 Memory 告诉你为什</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Jan 17, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>很多前端都喜欢用 console.log 调试，先不谈调试效率怎么样，首先 <strong>console.log 有个致命的问题：会导致内存泄漏。</strong></p>
+<p>为什么这么说呢？</p>
+<p>用 Performance 和 Memory 工具分析下就知道了。</p>
+<p>我们准备这样一段代码：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6de7d6d5ed2f46e9bc4c9f809bceabe6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>一个按钮，点击之后创建一个数组，执行一些计算。</p>
+<p>很常见的逻辑。</p>
+<p>我们最后加了一个 <code>console.log</code> 打印了下这个数组。</p>
+<p>起个静态服务：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/41f6ea92ded84e1eba22b4fdc3a94179~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>浏览器访问：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e1052d50626c4897a8dabb75ad7ae14b~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>点击 performance 下的垃圾回收按钮，手动触发一次 GC：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b684736ed5e045c6b85bc764564b18d9~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>勾选 Memory，然后开始录制，点击 3 次按钮，再执行一次 GC：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a97487c30ca6465db0c668e0b297998c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>你会发现内存是这样的：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3c4f83f666e84d9fb4ef77c06a7b98f3~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>内存占用有三次增长，因为我们点击三次按钮的时候会创建 3 次大数组。</p>
+<p>但是最后我们手动 GC 之后并没有回落下去，也就是这个大数组没有被回收。</p>
+<p>按理来说，代码执行完，那用的内存就要被释放，然后再执行别的代码，结果这段代码执行完之后大数组依然占据着内存，这样别的代码再执行的时候可用内存就少了。</p>
+<p>这就是发生了<strong>内存泄漏，也就是代码执行完了不释放内存的流氓行为。</strong></p>
+<p>有同学说，只是这么一点内存问题不大呀，反正可用内存还很多。</p>
+<p>但如果你的代码要跑很长时间，这段代码要执行很多次呢？</p>
+<p>每次执行都会占据一部分内存不释放，慢慢的内存就不够用了，甚至会导致程序崩溃。</p>
+<p>比如当这段代码执行个 9 次，内存占用就增长了 9 个大数组的内存：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/46b4600005bf41c4981e9d9e44d98c20~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>再多执行几次呢？</p>
+<p>是不是就有崩溃的隐患了。</p>
+<p>那为啥说是 console.log 导致的呢？</p>
+<p>我们来看看不用 console.log 是什么样的：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/415ca1dbec1e4b75bf12e516448c33ae~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>注释掉 console.log，重新跑。</p>
+<p>你会发现现在的内存分配情况是这样的：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5451c547800344008bead118df14a509~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>分配了三次内存，但是 GC 后又会落下去了。</p>
+<p>这才是没有内存泄漏的好代码。</p>
+<p>那为啥 console.log 会导致内存泄漏呢？</p>
+<p>因为控制台打印的对象，你是不是有可能展开看？那如果这个对象在内存中没有了，是不是就看不到了？</p>
+<p>所以有这个引用在，浏览器不会把你打印的对象的内存释放掉。</p>
+<p>有的同学说，那我不打开控制台，是不是就没有这个引用了？</p>
+<p>答案是否定的：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/485eed998c7e4a04a57fafc8bfd0c314~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="2023-01-05 18.34.31.gif"></p>
+<p>我点击了几次之后，再打开控制台，依然是可以看到这个对象的，说明没有被 GC。</p>
+<p>也就是说<strong>用 console.log 打印对象的代码一定是有内存泄漏的。</strong></p>
+<p>当然，也不只是 console.log 会导致内存泄漏，还有别的 4 种情况：</p>
+<ul>
+<li>定时器用完了没有清除，那每次执行都会多一个定时器的内存占用，这就是内存泄漏</li>
+<li>元素从 dom 移除了，但是还有一个变量引用着他，这样的游离的 dom 元素也不会被回收。每执行一次代码，就会多出游离的 dom 元素的内存，这也是内存泄漏</li>
+<li>闭包引用了某个变量，这个变量不会被回收，如果这样的闭包比较多，那每次执行都会多出这些被引用变量的内存占用。这样引用大对象的闭包多了之后，也会导致内存问题</li>
+<li>全局变量，这个本来就不会被 GC，要注意全局变量的使用</li>
+</ul>
+<p>总之，<strong>全局变量、闭包引用的变量、被移除的 dom 依然被引用、定时器用完了没清除、console.log 都会发生代码执行完了，但是还占用着一部分内存的流氓行为，也就是内存泄漏。</strong></p>
+<p>注意，这里指的是使用完毕后没有回收，在使用期间的内存增长是正常的。</p>
+<p>那怎么排查呢？</p>
+<p>performance 工具就可以：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7c215d62874544888792618c05df078c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>点击内存分配情况的某个点，就会定位到 performance 中的某个任务的代码，点击可以在下面看到详情：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/44a3f73e7fe849b4bdb8299f8421c1c1~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>这样就定位到了分配内存的代码，分析一下哪里会有问题即可。</p>
+<p>当然，前提还是要执行先 GC，再做一些操作，再 GC 的这个流程。</p>
+<p>这是从代码角度来分析内存泄漏，其实还可以从内存中对象的角度，这个是通过 Memory 工具：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6fd6ad941bab4b5b8187a6c947aba15a~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>先 GC，录制一次内存快照，再点击几次按钮，然后 GC，再录制一次内存快照。</p>
+<p>流程和用 performance 分析的时候一样。</p>
+<p>拿到两次内存快照也是可以分析出有内存泄漏的：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4acaf66591f94fbdaebb472af431116c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>可以看到 GC 后内存占用依然增长了。</p>
+<p>快照记录着这个时刻内存中所有对象的状态：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/eb2bdbfaa5ff4f9dae72bf6cf222b354~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>对比两次快照，就可以找到变化的部分：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5863e3656f214f79b128f556d212b8af~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>比如这时候可以看到最大的内存增长是 array 对象：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cf7ad5dbb2714b24835a25536f66edda~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>然后就可以从 array 的角度去思考是什么导致的内存泄漏了。</p>
+<p>此外，memory 还有实时分析的工具：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/631adedd0b4a4c47b15f3a90803fdc16~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>选择第二个，然后点几次按钮：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c6edf03347e34b839884dbd5943fe176~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>其实不用手动 GC，JS 引擎会做 GC。</p>
+<p>去掉 console.log 再录制是这样的：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f910450bcec142f8997f20fbfdb2aee6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>除了最开始全局变量会分配一些内存以外，点击按钮之后的内存变蓝后又变灰了，也就是被 GC 了。</p>
+<p>这样你点多少次按钮，内存占用都没有增长。</p>
+<p>这就是代码执行完，会回收所有用到的内存的好代码。</p>
+<p>而前面的那个是每次代码执行，都会占用一部分内存不释放的内存泄漏代码。</p>
+<p>你还可以看到每一次内存分配的对象是啥：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7d44aebcd20144228d73e3c4b1b5c47b~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>不管是用 Performance 工具还是 Memory 工具，都可以发现 console.log 有内存泄漏的问题。所以还是尽量不要用这个来调试了。</p>
+<p>那应该用什么呢？</p>
+<p>用 debugger 呀，不管是 vscode debugger 还是 chrome devtools 的都可以：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/01fadee1bc1e49d5938e9d32e8c632d7~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>你可以添加一个 logpoint 来代替 console.log 打印：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b1dd4864cdec43548076eb874715b3e6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>代码执行到这里就会打印：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/50008e0930d54ccf8d45ef019fdecf8f~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>而你的代码里不需要写 console.log。</p>
+<p>此外，很多地方可以用断点代替打印：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9f2e060768a34125a26bd51e8b7c7047~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt=""></p>
+<p>可以看到代码执行路线和作用域，岂不是更高效？</p>
+<h3 id="总结">总结</h3>
+<p>console.log 会导致内存泄漏，也就是代码执行完了，但还占据着一部分内存的流氓行为。</p>
+<p>除了 console.log，游离的 dom 被变量引用、全局变量、变量被闭包引用、定时器没清除也会导致内存泄漏。</p>
+<p>我们可以用 Performance 工具和 Memory 工具分析内存泄漏。</p>
+<p>先手动 GC，然后执行一些操作，再 GC，如果内存没有回到执行前，就说明这段代码有内存泄漏，可以再用 Performance 定位到代码位置分析代码。</p>
+<p>Memory 工具是从内存对象的角度分析，可以对两次快照做 diff，看下是啥对象泄漏了。</p>
+<p>也可以实时检测内存占用情况，看看是否存在内存泄漏，对象是啥。</p>
+<p>console.log 调试效率也不高，可以换成 logpoint，或者打断点。</p>
+<p>千万不要把 console.log 上生产！不然这样有内存泄漏的代码，一旦执行时间长了就会有问题。</p>
+<p>其实普通项目也还好，不会长期跑，但是类似大屏项目这种长期跑的，一旦有内存泄漏，一定会崩溃，只有时间长短的区别。</p>
+<p>（这篇文章有点错误，在下篇更正了：<a href="https://juejin.cn/post/7185501830040944698">console.log 一定会导致内存泄漏？不打开 devtools 就不会</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/336/"
+      ><span class="mr-1.5">←</span><span>console.log 一定会导致内存泄漏？不打开 devtools 就不会</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/334/"
+      ><span>前端字体那些事儿</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>二十张图片彻底讲明白 Webpack 设计理念，以看懂为目的 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="一、前言 Webpack 一直都是有些人的心魔，不清楚原理是什么，不知道怎么去配置，只会基本的 API 使用。它就像一个黑盒，让部分开发者对它望而生畏。
+而本节最大的作用，就是帮大家一点一点的消灭心魔。
+大家之所以认为 Webpack 复杂，很大程度上是因为它依附着一套庞大的生态系统。其实 Webpack 的核心流程远没有我们想象中那么复杂，甚至只需百来行代码就能完整复刻出来。
+因此在学习过程中，我们应注重学习它本身的设计思想，不管是它的 Plugin 系统还是 Loader 系统，都是建立于这套核心思想之上。所谓万变不离其宗，一通百通。
+在本文中，我将会从 Webpack 的整体流程出发，通篇采用结论先行、自顶向下的方式进行讲解。在涉及到原理性的知识时，尽量采用图文的方式辅以理解，注重实现思路，注重设计思想。
+另外，如果在阅读过程中感到吃力（很正常），可自行补一补 Webpack 专栏中前置性的知识，每一节均完全解耦，可放心食用：
+不了解也没关系，在本节中我都会一一讲到。
+从构建产物洞悉模块化原理 【Webpack】异步加载(懒加载)原理 前端工程化基石 &ndash; AST（抽象语法树）以及 AST 的广泛应用 【万字长文｜趣味图解】彻底弄懂 Webpack 中的 Loader 机制 【Webpack Plugin】写了个插件跟喜欢的女生表白，结果&hellip;&hellip; 中级/高级前端】为什么我建议你一定要读一读 Tapable 源码？ 文中所涉及到的代码均放到个人 github 仓库中：github.com/noBaldAaa/h…
+二、基本使用 初始化项目：
+npm init //初始化一个项目 yarn add webpack //安装项目依赖 安装完依赖后，根据以下目录结构来添加对应的目录和文件：
+├── node_modules ├── package-lock.json ├── package.json ├── webpack.config.js #配置文件 ├── debugger.js #测试文件 └── src # 源码目录 |── index." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="二十张图片彻底讲明白 Webpack 设计理念，以看懂为目的" />
+<meta property="og:description" content="一、前言 Webpack 一直都是有些人的心魔，不清楚原理是什么，不知道怎么去配置，只会基本的 API 使用。它就像一个黑盒，让部分开发者对它望而生畏。
+而本节最大的作用，就是帮大家一点一点的消灭心魔。
+大家之所以认为 Webpack 复杂，很大程度上是因为它依附着一套庞大的生态系统。其实 Webpack 的核心流程远没有我们想象中那么复杂，甚至只需百来行代码就能完整复刻出来。
+因此在学习过程中，我们应注重学习它本身的设计思想，不管是它的 Plugin 系统还是 Loader 系统，都是建立于这套核心思想之上。所谓万变不离其宗，一通百通。
+在本文中，我将会从 Webpack 的整体流程出发，通篇采用结论先行、自顶向下的方式进行讲解。在涉及到原理性的知识时，尽量采用图文的方式辅以理解，注重实现思路，注重设计思想。
+另外，如果在阅读过程中感到吃力（很正常），可自行补一补 Webpack 专栏中前置性的知识，每一节均完全解耦，可放心食用：
+不了解也没关系，在本节中我都会一一讲到。
+从构建产物洞悉模块化原理 【Webpack】异步加载(懒加载)原理 前端工程化基石 &ndash; AST（抽象语法树）以及 AST 的广泛应用 【万字长文｜趣味图解】彻底弄懂 Webpack 中的 Loader 机制 【Webpack Plugin】写了个插件跟喜欢的女生表白，结果&hellip;&hellip; 中级/高级前端】为什么我建议你一定要读一读 Tapable 源码？ 文中所涉及到的代码均放到个人 github 仓库中：github.com/noBaldAaa/h…
+二、基本使用 初始化项目：
+npm init //初始化一个项目 yarn add webpack //安装项目依赖 安装完依赖后，根据以下目录结构来添加对应的目录和文件：
+├── node_modules ├── package-lock.json ├── package.json ├── webpack.config.js #配置文件 ├── debugger.js #测试文件 └── src # 源码目录 |── index." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/406/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-27T21:53:25+08:00" />
+<meta property="article:modified_time" content="2023-03-27T21:53:25+08:00" />
+
+  
+  <meta itemprop="name" content="二十张图片彻底讲明白 Webpack 设计理念，以看懂为目的">
+<meta itemprop="description" content="一、前言 Webpack 一直都是有些人的心魔，不清楚原理是什么，不知道怎么去配置，只会基本的 API 使用。它就像一个黑盒，让部分开发者对它望而生畏。
+而本节最大的作用，就是帮大家一点一点的消灭心魔。
+大家之所以认为 Webpack 复杂，很大程度上是因为它依附着一套庞大的生态系统。其实 Webpack 的核心流程远没有我们想象中那么复杂，甚至只需百来行代码就能完整复刻出来。
+因此在学习过程中，我们应注重学习它本身的设计思想，不管是它的 Plugin 系统还是 Loader 系统，都是建立于这套核心思想之上。所谓万变不离其宗，一通百通。
+在本文中，我将会从 Webpack 的整体流程出发，通篇采用结论先行、自顶向下的方式进行讲解。在涉及到原理性的知识时，尽量采用图文的方式辅以理解，注重实现思路，注重设计思想。
+另外，如果在阅读过程中感到吃力（很正常），可自行补一补 Webpack 专栏中前置性的知识，每一节均完全解耦，可放心食用：
+不了解也没关系，在本节中我都会一一讲到。
+从构建产物洞悉模块化原理 【Webpack】异步加载(懒加载)原理 前端工程化基石 &ndash; AST（抽象语法树）以及 AST 的广泛应用 【万字长文｜趣味图解】彻底弄懂 Webpack 中的 Loader 机制 【Webpack Plugin】写了个插件跟喜欢的女生表白，结果&hellip;&hellip; 中级/高级前端】为什么我建议你一定要读一读 Tapable 源码？ 文中所涉及到的代码均放到个人 github 仓库中：github.com/noBaldAaa/h…
+二、基本使用 初始化项目：
+npm init //初始化一个项目 yarn add webpack //安装项目依赖 安装完依赖后，根据以下目录结构来添加对应的目录和文件：
+├── node_modules ├── package-lock.json ├── package.json ├── webpack.config.js #配置文件 ├── debugger.js #测试文件 └── src # 源码目录 |── index."><meta itemprop="datePublished" content="2023-03-27T21:53:25+08:00" />
+<meta itemprop="dateModified" content="2023-03-27T21:53:25+08:00" />
+<meta itemprop="wordCount" content="2295">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="二十张图片彻底讲明白 Webpack 设计理念，以看懂为目的"/>
+<meta name="twitter:description" content="一、前言 Webpack 一直都是有些人的心魔，不清楚原理是什么，不知道怎么去配置，只会基本的 API 使用。它就像一个黑盒，让部分开发者对它望而生畏。
+而本节最大的作用，就是帮大家一点一点的消灭心魔。
+大家之所以认为 Webpack 复杂，很大程度上是因为它依附着一套庞大的生态系统。其实 Webpack 的核心流程远没有我们想象中那么复杂，甚至只需百来行代码就能完整复刻出来。
+因此在学习过程中，我们应注重学习它本身的设计思想，不管是它的 Plugin 系统还是 Loader 系统，都是建立于这套核心思想之上。所谓万变不离其宗，一通百通。
+在本文中，我将会从 Webpack 的整体流程出发，通篇采用结论先行、自顶向下的方式进行讲解。在涉及到原理性的知识时，尽量采用图文的方式辅以理解，注重实现思路，注重设计思想。
+另外，如果在阅读过程中感到吃力（很正常），可自行补一补 Webpack 专栏中前置性的知识，每一节均完全解耦，可放心食用：
+不了解也没关系，在本节中我都会一一讲到。
+从构建产物洞悉模块化原理 【Webpack】异步加载(懒加载)原理 前端工程化基石 &ndash; AST（抽象语法树）以及 AST 的广泛应用 【万字长文｜趣味图解】彻底弄懂 Webpack 中的 Loader 机制 【Webpack Plugin】写了个插件跟喜欢的女生表白，结果&hellip;&hellip; 中级/高级前端】为什么我建议你一定要读一读 Tapable 源码？ 文中所涉及到的代码均放到个人 github 仓库中：github.com/noBaldAaa/h…
+二、基本使用 初始化项目：
+npm init //初始化一个项目 yarn add webpack //安装项目依赖 安装完依赖后，根据以下目录结构来添加对应的目录和文件：
+├── node_modules ├── package-lock.json ├── package.json ├── webpack.config.js #配置文件 ├── debugger.js #测试文件 └── src # 源码目录 |── index."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">二十张图片彻底讲明白 Webpack 设计理念，以看懂为目的</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 27, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="一前言">一、前言</h2>
+<p><a href="https://webpack.js.org/">Webpack</a> 一直都是有些人的心魔，不清楚原理是什么，不知道怎么去配置，只会基本的 API 使用。它就像一个黑盒，让部分开发者对它望而生畏。</p>
+<p>而本节最大的作用，就是帮大家一点一点的消灭心魔。</p>
+<p>大家之所以认为 <strong>Webpack</strong> 复杂，很大程度上是因为它依附着一套庞大的生态系统。<strong>其实 Webpack 的核心流程远没有我们想象中那么复杂</strong>，甚至只需百来行代码就能完整复刻出来。</p>
+<p>因此在学习过程中，我们应<strong>注重学习它本身的设计思想</strong>，不管是它的 <code>Plugin 系统</code>还是 <code>Loader 系统</code>，<strong>都是建立于这套核心思想之上</strong>。所谓万变不离其宗，一通百通。</p>
+<p>在本文中，我将会从 Webpack 的整体流程出发，通篇采用<strong>结论先行、自顶向下</strong>的方式进行讲解。在涉及到原理性的知识时，尽量采用图文的方式辅以理解，<code>注重实现思路</code>，<code>注重设计思想</code>。</p>
+<p>另外，如果在阅读过程中感到吃力（很正常），可自行补一补 Webpack 专栏中前置性的知识，每一节均完全解耦，可放心食用：</p>
+<p><strong>不了解也没关系，在本节中我都会一一讲到。</strong></p>
+<ul>
+<li><a href="https://juejin.cn/post/7147365025047379981">从构建产物洞悉模块化原理</a></li>
+<li><a href="https://juejin.cn/post/7152516872330543141">【Webpack】异步加载(懒加载)原理</a></li>
+<li><a href="https://juejin.cn/post/7155151377013047304">前端工程化基石 &ndash; AST（抽象语法树）以及 AST 的广泛应用</a></li>
+<li><a href="https://juejin.cn/post/7157739406835580965">【万字长文｜趣味图解】彻底弄懂 Webpack 中的 Loader 机制</a></li>
+<li><a href="https://juejin.cn/post/7160467329334607908">【Webpack Plugin】写了个插件跟喜欢的女生表白，结果&hellip;&hellip;</a></li>
+<li><a href="https://juejin.cn/post/7164175171358556173">中级/高级前端】为什么我建议你一定要读一读 Tapable 源码？</a></li>
+</ul>
+<p>文中所涉及到的代码均放到个人 github 仓库中：<a href="https://github.com/noBaldAaa/hand-webpack">github.com/noBaldAaa/h…</a></p>
+<h2 id="二基本使用">二、基本使用</h2>
+<blockquote>
+<p>初始化项目：</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>npm init  //初始化一个项目
+</span></span><span style="display:flex;"><span>yarn add webpack //安装项目依赖
+</span></span></code></pre></div><p>安装完依赖后，根据以下目录结构来添加对应的目录和文件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>├── node_modules
+</span></span><span style="display:flex;"><span>├── package-lock.json
+</span></span><span style="display:flex;"><span>├── package.json
+</span></span><span style="display:flex;"><span>├── webpack.config.js <span style="color:#75715e">#配置文件</span>
+</span></span><span style="display:flex;"><span>├── debugger.js <span style="color:#75715e">#测试文件</span>
+</span></span><span style="display:flex;"><span>└── src <span style="color:#75715e"># 源码目录</span>
+</span></span><span style="display:flex;"><span>     |── index.js
+</span></span><span style="display:flex;"><span>     |── name.js
+</span></span><span style="display:flex;"><span>     └── age.js
+</span></span></code></pre></div><p>webpack.config.js</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;path&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">mode</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;development&#34;</span>, <span style="color:#75715e">//防止代码被压缩
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">entry</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./src/index.js&#34;</span>, <span style="color:#75715e">//入口文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">output</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">path</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;dist&#34;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;[name].js&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">devtool</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;source-map&#34;</span>, <span style="color:#75715e">//防止干扰源文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>};
+</span></span></code></pre></div><p>src/index.js（<code>本文不讨论CommonJS 和 ES Module之间的引用关系，以CommonJS为准</code>）</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">name</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;./name&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">age</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;./age&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;entry文件打印作者信息&#34;</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">age</span>);
+</span></span></code></pre></div><p>src/name.js</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;不要秃头啊&#34;</span>;
+</span></span></code></pre></div><p>src/age.js</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;99&#34;</span>;
+</span></span></code></pre></div><p>文件依赖关系：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e3d59be7092e485fb4fc94ed072c0d42~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><a href="https://webpack.js.org/">Webpack</a> 本质上是一个函数，它接受一个配置信息作为参数，执行后返回一个 <a href="https://webpack.js.org/plugins/internal-plugins/#compiler">compiler 对象</a>，调用 <code>compiler</code> 对象中的 <a href="https://webpack.js.org/api/node/#run">run</a> 方法就会启动编译。<code>run</code> 方法接受一个回调，可以用来查看编译过程中的错误信息或编译信息。</p>
+<p>debugger.js</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// const { webpack } = require(&#34;./webpack.js&#34;); //后面自己手写
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">webpack</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;webpack&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">webpackOptions</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;./webpack.config.js&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">compiler</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpack</span>(<span style="color:#a6e22e">webpackOptions</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//开始编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">compiler</span>.<span style="color:#a6e22e">run</span>((<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">stats</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">err</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">stats</span>.<span style="color:#a6e22e">toJson</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">assets</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">//打印本次编译产出的资源
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">chunks</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">//打印本次编译产出的代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">modules</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">//打印本次编译产出的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    })
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>执行打包命令：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">node</span> .<span style="color:#f92672">/</span><span style="color:#66d9ef">debugger</span>.<span style="color:#a6e22e">js</span>
+</span></span></code></pre></div><p>得到产出文件 dist/main.js（先暂停三十秒读一读下面代码，命名经优化）：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/baf521722f4740189a5fd793347e4850~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="carbon (1).png"></p>
+<p>运行该文件，得到结果：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>entry 文件打印作者信息 不要秃头啊 <span style="color:#ae81ff">99</span>
+</span></span></code></pre></div><h2 id="三核心思想">三、核心思想</h2>
+<p>我们先来分析一下源代码和构建产物之间的关系：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1f08957efc1d4c6fb9ee851427167f95~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>从图中可以看出，入口文件（<code>src/index.js</code>）被包裹在最后的立即执行函数中，而它所依赖的模块（<code>src/name.js</code>、<code>src/age.js</code>）则被放进了 <code>modules</code> 对象中（<code>modules</code> 用于存放<strong>入口文件的依赖模块</strong>，<code>key 值为依赖模块路径，value 值为依赖模块源代码</code>）。</p>
+<p><code>require</code> 函数是 <strong>web 环境下</strong> 加载模块的方法（ <code>require</code> 原本是 <strong>node 环境</strong> 中内置的方法，浏览器并不认识 <code>require</code>，所以这里需要手动实现一下），它接受模块的路径为参数，返回模块导出的内容。</p>
+<p>要想弄清楚 Webpack 原理，那么核心问题就变成了：如何将左边的源代码转换成 <strong>dist/main.js</strong> 文件？</p>
+<blockquote>
+<p>核心思想：</p>
+</blockquote>
+<ul>
+<li>第一步：首先，根据配置信息（<code>webpack.config.js</code>）找到入口文件（<code>src/index.js</code>）</li>
+<li>第二步：找到入口文件所依赖的模块，并收集关键信息：比如<code>路径、源代码、它所依赖的模块</code>等：
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">modules</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./src/name.js&#34;</span>, <span style="color:#75715e">//路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">dependencies</span><span style="color:#f92672">:</span> [], <span style="color:#75715e">//所依赖的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">source</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;module.exports = &#34;不要秃头啊&#34;;&#39;</span>, <span style="color:#75715e">//源代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./src/age.js&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dependencies</span><span style="color:#f92672">:</span> [],
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">source</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;module.exports = &#34;99&#34;;&#39;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;./src/index.js&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dependencies</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;./src/name.js&#34;</span>, <span style="color:#e6db74">&#34;./src/age.js&#34;</span>],
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">source</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#39;const name = require(&#34;./src/name.js&#34;);\n&#39;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#39;const age = require(&#34;./src/age.js&#34;);\n&#39;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#39;console.log(&#34;entry文件打印作者信息&#34;, name, age);&#39;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>];
+</span></span></code></pre></div></li>
+<li>第三步：根据上一步得到的信息，生成最终输出到硬盘中的文件（dist）： 包括 modules 对象、require 模版代码、入口执行文件等</li>
+</ul>
+<p>在这过程中，由于浏览器并不认识除 <code>html、js、css</code> 以外的文件格式，所以我们还需要对源文件进行转换 —— <strong><code>Loader 系统</code></strong>。</p>
+<p><strong>Loader 系统</strong> 本质上就是接收资源文件，并对其进行转换，最终输出转换后的文件：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d136fc6ee2134316ba2ed5d80e19b243~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>除此之外，打包过程中也有一些特定的时机需要处理，比如：</p>
+<ul>
+<li>在打包前需要校验用户传过来的参数，判断格式是否符合要求</li>
+<li>在打包过程中，需要知道哪些模块可以忽略编译，直接引用 cdn 链接</li>
+<li>在编译完成后，需要将输出的内容插入到 html 文件中</li>
+<li>在输出到硬盘前，需要先清空 dist 文件夹</li>
+<li>&hellip;&hellip;</li>
+</ul>
+<p>这个时候需要一个可插拔的设计，方便给社区提供可扩展的接口 —— <strong><code>Plugin 系统</code></strong>。</p>
+<p><strong>Plugin 系统</strong> 本质上就是一种事件流的机制，到了固定的时间节点就广播特定的事件，用户可以在事件内执行特定的逻辑，类似于生命周期：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/19369943abc04a71b970e70b9cbfb434~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>这些设计也都是根据使用场景来的，只有理清需求后我们才能更好的理解它的设计思想。</p>
+<h2 id="四架构设计">四、架构设计</h2>
+<p>在理清楚核心思想后，剩下的就是对其进行一步步拆解。</p>
+<p>上面提到，我们需要建立一套事件流的机制来管控整个打包过程，大致可以分为三个阶段：</p>
+<ul>
+<li>打包开始前的准备工作</li>
+<li>打包过程中（也就是编译阶段）</li>
+<li>打包结束后（包含打包成功和打包失败）</li>
+</ul>
+<p>这其中又以编译阶段最为复杂，另外还考虑到一个场景：<a href="https://webpack.docschina.org/guides/development/#using-watch-mode">watch mode</a>（当文件变化时，将重新进行编译），因此这里最好将编译阶段（也就是下文中的<code>compilation</code>）单独解耦出来。</p>
+<p>在 <strong>Webpack</strong> 源码中，<code>compiler</code> 就像是一个大管家，它就代表上面说的三个阶段，在它上面挂载着各种生命周期函数，而 <code>compilation</code> 就像专管伙食的厨师，专门负责编译相关的工作，也就是<code>打包过程中</code>这个阶段。画个图帮助大家理解：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6751335793864999b09abea4feb05b77~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>大致架构定下后，那现在应该如何实现这套事件流呢？</p>
+<p>这时候就需要借助  <a href="https://www.npmjs.com/package/tapable">Tapable</a> 了！它是一个类似于 Node.js 中的  <a href="https://www.npmjs.com/package/events">EventEmitter</a>  的库，但<strong>更专注于自定义事件的触发和处理</strong>。通过 Tapable 我们可以注册自定义事件，然后在适当的时机去执行自定义事件。</p>
+<p>类比到  <code>Vue</code>  和  <code>React</code>  框架中的生命周期函数，它们就是到了固定的时间节点就执行对应的生命周期，<code>tapable</code>  做的事情就和这个差不多，我们可以通过它先注册一系列的生命周期函数，然后在合适的时间点执行。</p>
+<p>example：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">SyncHook</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;tapable&#34;</span>); <span style="color:#75715e">//这是一个同步钩子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//第一步：实例化钩子函数，可以在这里定义形参
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">syncHook</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">SyncHook</span>([<span style="color:#e6db74">&#34;author&#34;</span>, <span style="color:#e6db74">&#34;age&#34;</span>]);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//第二步：注册事件1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">syncHook</span>.<span style="color:#a6e22e">tap</span>(<span style="color:#e6db74">&#34;监听器1&#34;</span>, (<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">age</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;监听器1:&#34;</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">age</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//第二步：注册事件2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">syncHook</span>.<span style="color:#a6e22e">tap</span>(<span style="color:#e6db74">&#34;监听器2&#34;</span>, (<span style="color:#a6e22e">name</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;监听器2&#34;</span>, <span style="color:#a6e22e">name</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//第三步：注册事件3
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">syncHook</span>.<span style="color:#a6e22e">tap</span>(<span style="color:#e6db74">&#34;监听器3&#34;</span>, (<span style="color:#a6e22e">name</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;监听器3&#34;</span>, <span style="color:#a6e22e">name</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//第三步：触发事件，这里传的是实参，会被每一个注册函数接收到
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">syncHook</span>.<span style="color:#a6e22e">call</span>(<span style="color:#e6db74">&#34;不要秃头啊&#34;</span>, <span style="color:#e6db74">&#34;99&#34;</span>);
+</span></span></code></pre></div><p>运行上面这段代码，得到结果：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>监听器1 不要秃头啊 <span style="color:#ae81ff">99</span>
+</span></span><span style="display:flex;"><span>监听器2 不要秃头啊
+</span></span><span style="display:flex;"><span>监听器3 不要秃头啊
+</span></span></code></pre></div><p>在 Webpack 中，就是通过 <code>tapable</code> 在 <code>comiler</code> 和 <code>compilation</code> 上像这样挂载着一系列<code>生命周期 Hook</code>，它就像是一座桥梁，贯穿着整个构建过程：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compiler</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//它内部提供了很多钩子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">run</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">SyncHook</span>(), <span style="color:#75715e">//会在编译刚开始的时候触发此钩子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">done</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">SyncHook</span>(), <span style="color:#75715e">//会在编译结束的时候触发此钩子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    };
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="五具体实现">五、具体实现</h2>
+<p>整个实现过程大致分为以下步骤：</p>
+<ul>
+<li>（1）搭建结构，读取配置参数</li>
+<li>（2）用配置参数对象初始化 <code>Compiler</code> 对象</li>
+<li>（3）挂载配置文件中的插件</li>
+<li>（4）执行 <code>Compiler</code> 对象的 <code>run</code> 方法开始执行编译</li>
+<li>（5）根据配置文件中的 <code>entry</code> 配置项找到所有的入口</li>
+<li>（6）从入口文件出发，调用配置的 <code>loader</code> 规则，对各模块进行编译</li>
+<li>（7）找出此模块所依赖的模块，再对依赖模块进行编译</li>
+<li>（8）等所有模块都编译完成后，根据模块之间的依赖关系，组装代码块 <code>chunk</code></li>
+<li>（9）把各个代码块 <code>chunk</code> 转换成一个一个文件加入到输出列表</li>
+<li>（10）确定好输出内容之后，根据配置的输出路径和文件名，将文件内容写入到文件系统</li>
+</ul>
+<h3 id="51搭建结构读取配置参数">5.1、搭建结构，读取配置参数</h3>
+<p>根据 <a href="https://webpack.js.org/">Webpack</a> 的用法可以看出， Webpack 本质上是一个函数，它接受一个配置信息作为参数，执行后返回一个 <a href="https://webpack.js.org/plugins/internal-plugins/#compiler">compiler 对象</a>，调用 <code>compiler</code> 对象中的 <a href="https://webpack.js.org/api/node/#run">run</a> 方法就会启动编译。<code>run</code> 方法接受一个回调，可以用来查看编译过程中的错误信息或编译信息。</p>
+<p>修改 <strong>debugger.js</strong> 中 webpack 的引用：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">webpack</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;./webpack&#34;</span>); <span style="color:#75715e">//手写webpack
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">webpackOptions</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;./webpack.config.js&#34;</span>); <span style="color:#75715e">//这里一般会放配置信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">compiler</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpack</span>(<span style="color:#a6e22e">webpackOptions</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">compiler</span>.<span style="color:#a6e22e">run</span>((<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">stats</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">err</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">stats</span>.<span style="color:#a6e22e">toJson</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">assets</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">//打印本次编译产出的资源
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">chunks</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">//打印本次编译产出的代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">modules</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">//打印本次编译产出的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    })
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>搭建结构：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compiler</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>() {}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">run</span>(<span style="color:#a6e22e">callback</span>) {}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//第一步：搭建结构，读取配置参数，这里接受的是webpack.config.js中的参数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">webpack</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">compiler</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Compiler</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">compiler</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>运行流程图：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a844687f98ed4b4d8b9a1567ff904832~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="52用配置参数对象初始化-compiler-对象">5.2、用配置参数对象初始化 <code>Compiler</code> 对象</h3>
+<p>上面提到过，<code>Compiler</code> 它就是整个打包过程的大管家，它里面放着各种你可能需要的<code>编译信息</code>和<code>生命周期 Hook</code>，而且是单例模式。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">//Compiler其实是一个类，它是整个编译过程的大管家，而且是单例模式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compiler</span> {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>; <span style="color:#75715e">//存储配置信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#75715e">//它内部提供了很多钩子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">run</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">SyncHook</span>(), <span style="color:#75715e">//会在编译刚开始的时候触发此run钩子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">done</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">SyncHook</span>(), <span style="color:#75715e">//会在编译结束的时候触发此done钩子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   };
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//第一步：搭建结构，读取配置参数，这里接受的是webpack.config.js中的参数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">webpack</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//第二步：用配置参数对象初始化 `Compiler` 对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">compiler</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Compiler</span>(<span style="color:#a6e22e">webpackOptions</span>)
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">compiler</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>运行流程图：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a018263ca9ba428f96d07cfc8ea3e214~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="53挂载配置文件中的插件">5.3、挂载配置文件中的插件</h3>
+<p>先写两个自定义插件配置到 <strong>webpack.config.js</strong> 中：一个在开始打包的时候执行，一个在打包完成后执行。</p>
+<p><code>Webpack Plugin 其实就是一个普通的函数，在该函数中需要我们定制一个 apply 方法。</code>当 Webpack 内部进行插件挂载时会执行 <code>apply</code> 函数。我们可以在 <code>apply</code> 方法中订阅各种生命周期钩子，当到达对应的时间点时就会执行。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">//自定义插件WebpackRunPlugin
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">WebpackRunPlugin</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">apply</span>(<span style="color:#a6e22e">compiler</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">compiler</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">run</span>.<span style="color:#a6e22e">tap</span>(<span style="color:#e6db74">&#34;WebpackRunPlugin&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;开始编译&#34;</span>);
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//自定义插件WebpackDonePlugin
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">WebpackDonePlugin</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">apply</span>(<span style="color:#a6e22e">compiler</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">compiler</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">done</span>.<span style="color:#a6e22e">tap</span>(<span style="color:#e6db74">&#34;WebpackDonePlugin&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;结束编译&#34;</span>);
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>webpack.config.js</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">WebpackRunPlugin</span>, <span style="color:#a6e22e">WebpackDonePlugin</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;./webpack&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//其他省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span> <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [<span style="color:#66d9ef">new</span> <span style="color:#a6e22e">WebpackRunPlugin</span>(), <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">WebpackDonePlugin</span>()],
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>插件定义时必须要有一个 <code>apply</code> 方法，加载插件其实执行 <code>apply</code> 方法。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">//第一步：搭建结构，读取配置参数，这里接受的是webpack.config.js中的参数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">webpack</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//第二步：用配置参数对象初始化 `Compiler` 对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">compiler</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Compiler</span>(<span style="color:#a6e22e">webpackOptions</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//第三步：挂载配置文件中的插件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span> <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">plugins</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">plugin</span> <span style="color:#66d9ef">of</span> <span style="color:#a6e22e">plugins</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#a6e22e">plugin</span>.<span style="color:#a6e22e">apply</span>(<span style="color:#a6e22e">compiler</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">compiler</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>运行流程图：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8acb9c387482403cb54a515ca34e7331~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="54执行compiler对象的run方法开始执行编译">5.4、执行<code>Compiler</code>对象的<code>run</code>方法开始执行编译</h3>
+<p>重点来了！</p>
+<p>在正式开始编译前，我们需要先调用 <code>Compiler</code> 中的 <code>run</code> 钩子，表示开始启动编译了；在编译结束后，需要调用 <code>done</code> 钩子，表示编译完成。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">//Compiler其实是一个类，它是整个编译过程的大管家，而且是单例模式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compiler</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>   <span style="color:#75715e">//省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#a6e22e">compile</span>(<span style="color:#a6e22e">callback</span>){
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>  <span style="color:#75715e">//
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span> }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#75715e">//第四步：执行`Compiler`对象的`run`方法开始执行编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span> <span style="color:#a6e22e">run</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">run</span>.<span style="color:#a6e22e">call</span>(); <span style="color:#75715e">//在编译前触发run钩子执行，表示开始启动编译了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onCompiled</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">done</span>.<span style="color:#a6e22e">call</span>(); <span style="color:#75715e">//当编译成功后会触发done这个钩子执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   };
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">compile</span>(<span style="color:#a6e22e">onCompiled</span>); <span style="color:#75715e">//开始编译，成功之后调用onCompiled
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面架构设计中提到过，编译这个阶段需要单独解耦出来，通过 <code>Compilation</code> 来完成，定义<code>Compilation</code> 大致结构：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compiler</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//省略其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">run</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">compile</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//虽然webpack只有一个Compiler，但是每次编译都会产出一个新的Compilation，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//这里主要是为了考虑到watch模式，它会在启动时先编译一次，然后监听文件变化，如果发生变化会重新开始编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//每次编译都会产出一个新的Compilation，代表每次的编译结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">compilation</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Compilation</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#a6e22e">compilation</span>.<span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>); <span style="color:#75715e">//执行compilation的build方法进行编译，编译成功之后执行回调
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compilation</span> {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译所有生成出来的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译产出的所有代码块，入口模块和依赖的模块打包在一起为代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">assets</span> <span style="color:#f92672">=</span> {}; <span style="color:#75715e">//本次编译产出的资源文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次打包涉及到的文件，这里主要是为了实现watch模式下监听文件的变化，文件发生变化后会重新编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>    <span style="color:#75715e">//这里开始做编译工作，编译成功执行callback
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>    <span style="color:#a6e22e">callback</span>()
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   }
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> }
+</span></span></code></pre></div><p>运行流程图（点击可放大）：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ed9d985140a046ddba051d233a16cae8~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="55根据配置文件中的entry配置项找到所有的入口">5.5、根据配置文件中的<code>entry</code>配置项找到所有的入口</h3>
+<p>接下来就正式开始编译了，逻辑均在 <code>Compilation</code> 中。</p>
+<p>在编译前我们首先需要知道入口文件，而 <a href="https://webpack.js.org/configuration/entry-context/#entry">入口的配置方式</a> 有多种，可以配置成字符串，也可以配置成一个对象，这一步骤就是为了统一配置信息的格式，然后找出所有的入口（考虑多入口打包的场景）。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compilation</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译所有生成出来的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译产出的所有代码块，入口模块和依赖的模块打包在一起为代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">assets</span> <span style="color:#f92672">=</span> {}; <span style="color:#75715e">//本次编译产出的资源文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次打包涉及到的文件，这里主要是为了实现watch模式下监听文件的变化，文件发生变化后会重新编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//第五步：根据配置文件中的`entry`配置项找到所有的入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entry</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">typeof</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">entry</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;string&#34;</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">entry</span>.<span style="color:#a6e22e">main</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">entry</span>; <span style="color:#75715e">//如果是单入口，将entry:&#34;xx&#34;变成{main:&#34;xx&#34;}，这里需要做兼容
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">entry</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">entry</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//编译成功执行callback
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">callback</span>()
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>运行流程图（点击可放大）：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fbf2c292d249482fa5936dc6158b3a84~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="56从入口文件出发调用配置的loader规则对各模块进行编译">5.6、从入口文件出发，调用配置的<code>loader</code>规则，对各模块进行编译</h3>
+<p>Loader 本质上就是一个函数，接收资源文件或者上一个 Loader 产生的结果作为入参，最终输出转换后的结果。</p>
+<p>写两个自定义 Loader 配置到 <strong>webpack.config.js</strong> 中：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">loader1</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">source</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">source</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;//给你的代码加点注释：loader1&#34;</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">loader2</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">source</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">source</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;//给你的代码加点注释：loader2&#34;</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>webpack.config.js</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">loader1</span>, <span style="color:#a6e22e">loader2</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;./webpack&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//省略其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">module</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>      {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.js$/</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [<span style="color:#a6e22e">loader1</span>, <span style="color:#a6e22e">loader2</span>],
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>这一步骤将从入口文件出发，然后查找出对应的 Loader 对源代码进行翻译和替换。</p>
+<p>主要有三个要点：</p>
+<ul>
+<li>（6.1）把入口文件的绝对路径添加到依赖数组（<code>this.fileDependencies</code>）中，记录此次编译依赖的模块</li>
+<li>（6.2）得到入口模块的的 <code>module</code> 对象 （里面放着该模块的路径、依赖模块、源代码等）
+<ul>
+<li>（6.2.1）读取模块内容，获取源代码</li>
+<li>（6.2.2）创建模块对象</li>
+<li>（6.2.3）找到对应的 <code>Loader</code> 对源代码进行翻译和替换</li>
+</ul>
+</li>
+<li>（6.3）将生成的入口文件 <code>module</code> 对象 push 进 <code>this.modules</code> 中</li>
+</ul>
+<blockquote>
+<p>6.1：把入口文件的绝对路径添加到依赖数组中，记录此次编译依赖的模块</p>
+</blockquote>
+<p>这里因为要获取入口文件的绝对路径，考虑到操作系统的兼容性问题，需要将路径的 <code>\</code> 都替换成 <code>/</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">//将\替换成/
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">toUnixPath</span>(<span style="color:#a6e22e">filePath</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">filePath</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">/\\/g</span>, <span style="color:#e6db74">&#34;/&#34;</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">baseDir</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">toUnixPath</span>(<span style="color:#a6e22e">process</span>.<span style="color:#a6e22e">cwd</span>()); <span style="color:#75715e">//获取工作目录，在哪里执行命令就获取哪里的目录，这里获取的也是跟操作系统有关系，要替换成/
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compilation</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译所有生成出来的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译产出的所有代码块，入口模块和依赖的模块打包在一起为代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">assets</span> <span style="color:#f92672">=</span> {}; <span style="color:#75715e">//本次编译产出的资源文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次打包涉及到的文件，这里主要是为了实现watch模式下监听文件的变化，文件发生变化后会重新编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//第五步：根据配置文件中的`entry`配置项找到所有的入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entry</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">typeof</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">entry</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;string&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">entry</span>.<span style="color:#a6e22e">main</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">entry</span>; <span style="color:#75715e">//如果是单入口，将entry:&#34;xx&#34;变成{main:&#34;xx&#34;}，这里需要做兼容
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">entry</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">entry</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#75715e">//第六步：从入口文件出发，调用配置的 `loader` 规则，对各模块进行编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryName</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">entry</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#75715e">//entryName=&#34;main&#34; entryName就是entry的属性名，也将会成为代码块的名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryFilePath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">posix</span>.<span style="color:#a6e22e">join</span>(<span style="color:#a6e22e">baseDir</span>, <span style="color:#a6e22e">entry</span>[<span style="color:#a6e22e">entryName</span>]); <span style="color:#75715e">//path.posix为了解决不同操作系统的路径分隔符,这里拿到的就是入口文件的绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#75715e">//6.1 把入口文件的绝对路径添加到依赖数组（`this.fileDependencies`）中，记录此次编译依赖的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">entryFilePath</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//编译成功执行callback
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">callback</span>()
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><blockquote>
+<p>6.2.1：读取模块内容，获取源代码</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compilation</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译所有生成出来的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译产出的所有代码块，入口模块和依赖的模块打包在一起为代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">assets</span> <span style="color:#f92672">=</span> {}; <span style="color:#75715e">//本次编译产出的资源文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次打包涉及到的文件，这里主要是为了实现watch模式下监听文件的变化，文件发生变化后会重新编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#75715e">//当编译模块的时候，name：这个模块是属于哪个代码块chunk的，modulePath：模块绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span> <span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">modulePath</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#75715e">//6.2.1 读取模块内容，获取源代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">sourceCode</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">readFileSync</span>(<span style="color:#a6e22e">modulePath</span>, <span style="color:#e6db74">&#34;utf8&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">return</span> {};
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//第五步：根据配置文件中的`entry`配置项找到所有的入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//代码省略...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//第六步：从入口文件出发，调用配置的 `loader` 规则，对各模块进行编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryName</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">entry</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//entryName=&#34;main&#34; entryName就是entry的属性名，也将会成为代码块的名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryFilePath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">posix</span>.<span style="color:#a6e22e">join</span>(<span style="color:#a6e22e">baseDir</span>, <span style="color:#a6e22e">entry</span>[<span style="color:#a6e22e">entryName</span>]); <span style="color:#75715e">//path.posix为了解决不同操作系统的路径分隔符,这里拿到的就是入口文件的绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//6.1 把入口文件的绝对路径添加到依赖数组（`this.fileDependencies`）中，记录此次编译依赖的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">entryFilePath</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//6.2 得到入口模块的的 `module` 对象 （里面放着该模块的路径、依赖模块、源代码等）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryModule</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">entryName</span>, <span style="color:#a6e22e">entryFilePath</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//编译成功执行callback
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">callback</span>()
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><blockquote>
+<p>6.2.2：创建模块对象</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compilation</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//省略其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//当编译模块的时候，name：这个模块是属于哪个代码块chunk的，modulePath：模块绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">modulePath</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//6.2.1 读取模块内容，获取源代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">sourceCode</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">readFileSync</span>(<span style="color:#a6e22e">modulePath</span>, <span style="color:#e6db74">&#34;utf8&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//buildModule最终会返回一个modules模块对象，每个模块都会有一个id,id是相对于根目录的相对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">moduleId</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;./&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">posix</span>.<span style="color:#a6e22e">relative</span>(<span style="color:#a6e22e">baseDir</span>, <span style="color:#a6e22e">modulePath</span>); <span style="color:#75715e">//模块id:从根目录出发，找到与该模块的相对路径（./src/index.js）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#75715e">//6.2.2 创建模块对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">module</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">moduleId</span>,
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">names</span><span style="color:#f92672">:</span> [<span style="color:#a6e22e">name</span>], <span style="color:#75715e">//names设计成数组是因为代表的是此模块属于哪个代码块，可能属于多个代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">dependencies</span><span style="color:#f92672">:</span> [], <span style="color:#75715e">//它依赖的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">_source</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#75715e">//该模块的代码信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   };
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">module</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><blockquote>
+<p>6.2.3：找到对应的 <code>Loader</code> 对源代码进行翻译和替换</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compilation</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//省略其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//当编译模块的时候，name：这个模块是属于哪个代码块chunk的，modulePath：模块绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">modulePath</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//6.2.1 读取模块内容，获取源代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">sourceCode</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">readFileSync</span>(<span style="color:#a6e22e">modulePath</span>, <span style="color:#e6db74">&#34;utf8&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//buildModule最终会返回一个modules模块对象，每个模块都会有一个id,id是相对于根目录的相对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">moduleId</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;./&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">posix</span>.<span style="color:#a6e22e">relative</span>(<span style="color:#a6e22e">baseDir</span>, <span style="color:#a6e22e">modulePath</span>); <span style="color:#75715e">//模块id:从根目录出发，找到与该模块的相对路径（./src/index.js）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//6.2.2 创建模块对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">module</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">moduleId</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">names</span><span style="color:#f92672">:</span> [<span style="color:#a6e22e">name</span>], <span style="color:#75715e">//names设计成数组是因为代表的是此模块属于哪个代码块，可能属于多个代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">dependencies</span><span style="color:#f92672">:</span> [], <span style="color:#75715e">//它依赖的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">_source</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#75715e">//该模块的代码信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    };
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//6.2.3 找到对应的 `Loader` 对源代码进行翻译和替换
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">loaders</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">let</span> { <span style="color:#a6e22e">rules</span> <span style="color:#f92672">=</span> [] } <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">module</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#a6e22e">rules</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">rule</span>) =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">let</span> { <span style="color:#a6e22e">test</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">rule</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#75715e">//如果模块的路径和正则匹配，就把此规则对应的loader添加到loader数组中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">modulePath</span>.<span style="color:#a6e22e">match</span>(<span style="color:#a6e22e">test</span>)) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#a6e22e">loaders</span>.<span style="color:#a6e22e">push</span>(...<span style="color:#a6e22e">rule</span>.<span style="color:#a6e22e">use</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     }
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#75715e">//自右向左对模块进行转译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>   <span style="color:#a6e22e">sourceCode</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">loaders</span>.<span style="color:#a6e22e">reduceRight</span>((<span style="color:#a6e22e">code</span>, <span style="color:#a6e22e">loader</span>) =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">loader</span>(<span style="color:#a6e22e">code</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   }, <span style="color:#a6e22e">sourceCode</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">module</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><blockquote>
+<p>6.3：将生成的入口文件 <code>module</code> 对象 push 进 <code>this.modules</code> 中</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compilation</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译所有生成出来的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译产出的所有代码块，入口模块和依赖的模块打包在一起为代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">assets</span> <span style="color:#f92672">=</span> {}; <span style="color:#75715e">//本次编译产出的资源文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次打包涉及到的文件，这里主要是为了实现watch模式下监听文件的变化，文件发生变化后会重新编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">modulePath</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//省略其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//第五步：根据配置文件中的`entry`配置项找到所有的入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//省略其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//第六步：从入口文件出发，调用配置的 `loader` 规则，对各模块进行编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryName</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">entry</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//entryName=&#34;main&#34; entryName就是entry的属性名，也将会成为代码块的名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryFilePath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">posix</span>.<span style="color:#a6e22e">join</span>(<span style="color:#a6e22e">baseDir</span>, <span style="color:#a6e22e">entry</span>[<span style="color:#a6e22e">entryName</span>]); <span style="color:#75715e">//path.posix为了解决不同操作系统的路径分隔符,这里拿到的就是入口文件的绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//6.1 把入口文件的绝对路径添加到依赖数组（`this.fileDependencies`）中，记录此次编译依赖的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">entryFilePath</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//6.2 得到入口模块的的 `module` 对象 （里面放着该模块的路径、依赖模块、源代码等）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryModule</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">entryName</span>, <span style="color:#a6e22e">entryFilePath</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">+</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">//6.3 将生成的入口文件 `module` 对象 push 进 `this.modules` 中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        (<span style="color:#f92672">+</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">entryModule</span>))
+</span></span><span style="display:flex;"><span>      );
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//编译成功执行callback
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">callback</span>();
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>运行流程图（点击可放大）：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c3bc858776154eee8c545dc3b7cf4a11~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="57找出此模块所依赖的模块再对依赖模块进行编译">5.7、找出此模块所依赖的模块，再对依赖模块进行编译</h3>
+<p>该步骤是整体流程中最为复杂的，一遍看不懂没关系，可以先理解思路。</p>
+<p>该步骤经过细化可以将其拆分成十个小步骤：</p>
+<ul>
+<li>（7.1）：先把源代码编译成 <a href="https://astexplorer.net/">AST</a></li>
+<li>（7.2）：在 <code>AST</code> 中查找 <code>require</code> 语句，找出依赖的模块名称和绝对路径</li>
+<li>（7.3）：将依赖模块的绝对路径 push 到 <code>this.fileDependencies</code> 中</li>
+<li>（7.4）：生成依赖模块的<code>模块 id</code></li>
+<li>（7.5）：修改语法结构，把依赖的模块改为依赖<code>模块 id</code></li>
+<li>（7.6）：将依赖模块的信息 push 到该模块的 <code>dependencies</code> 属性中</li>
+<li>（7.7）：生成新代码，并把转译后的源代码放到 <code>module._source</code> 属性上</li>
+<li>（7.8）：对依赖模块进行编译（对 <code>module 对象</code>中的 <code>dependencies</code> 进行递归执行 <code>buildModule</code> ）</li>
+<li>（7.9）：对依赖模块编译完成后得到依赖模块的 <code>module 对象</code>，push 到 <code>this.modules</code> 中</li>
+<li>（7.10）：等依赖模块全部编译完成后，返回入口模块的 <code>module</code> 对象</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">parser</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;@babel/parser&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">types</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;@babel/types&#34;</span>); <span style="color:#75715e">//用来生成或者判断节点的AST语法树的节点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">traverse</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;@babel/traverse&#34;</span>).<span style="color:#66d9ef">default</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">generator</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;@babel/generator&#34;</span>).<span style="color:#66d9ef">default</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//获取文件路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">tryExtensions</span>(<span style="color:#a6e22e">modulePath</span>, <span style="color:#a6e22e">extensions</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">existsSync</span>(<span style="color:#a6e22e">modulePath</span>)) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">modulePath</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   }
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">extensions</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">filePath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">modulePath</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">extensions</span>[<span style="color:#a6e22e">i</span>];
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">existsSync</span>(<span style="color:#a6e22e">filePath</span>)) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">filePath</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     }
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   }
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">`无法找到</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">modulePath</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compilation</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译所有生成出来的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译产出的所有代码块，入口模块和依赖的模块打包在一起为代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">assets</span> <span style="color:#f92672">=</span> {}; <span style="color:#75715e">//本次编译产出的资源文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次打包涉及到的文件，这里主要是为了实现watch模式下监听文件的变化，文件发生变化后会重新编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//当编译模块的时候，name：这个模块是属于哪个代码块chunk的，modulePath：模块绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">modulePath</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//省略其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//6.2.1 读取模块内容，获取源代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//6.2.2 创建模块对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//6.2.3 找到对应的 `Loader` 对源代码进行翻译和替换
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//自右向左对模块进行转译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">sourceCode</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">loaders</span>.<span style="color:#a6e22e">reduceRight</span>((<span style="color:#a6e22e">code</span>, <span style="color:#a6e22e">loader</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">loader</span>(<span style="color:#a6e22e">code</span>);
+</span></span><span style="display:flex;"><span>    }, <span style="color:#a6e22e">sourceCode</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//通过loader翻译后的内容一定得是js内容，因为最后得走我们babel-parse，只有js才能成编译AST
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//第七步：找出此模块所依赖的模块，再对依赖模块进行编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#75715e">//7.1：先把源代码编译成 [AST](https://astexplorer.net/)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">ast</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">parser</span>.<span style="color:#a6e22e">parse</span>(<span style="color:#a6e22e">sourceCode</span>, { <span style="color:#a6e22e">sourceType</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;module&#34;</span> });
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">traverse</span>(<span style="color:#a6e22e">ast</span>, {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#a6e22e">CallExpression</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">nodePath</span>) =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>         <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">node</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">nodePath</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>         <span style="color:#75715e">//7.2：在 `AST` 中查找 `require` 语句，找出依赖的模块名称和绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>         <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">callee</span>.<span style="color:#a6e22e">name</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;require&#34;</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>           <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">depModuleName</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">arguments</span>[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">value</span>; <span style="color:#75715e">//获取依赖的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>           <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">dirname</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">posix</span>.<span style="color:#a6e22e">dirname</span>(<span style="color:#a6e22e">modulePath</span>); <span style="color:#75715e">//获取当前正在编译的模所在的目录
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>           <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">depModulePath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">posix</span>.<span style="color:#a6e22e">join</span>(<span style="color:#a6e22e">dirname</span>, <span style="color:#a6e22e">depModuleName</span>); <span style="color:#75715e">//获取依赖模块的绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>           <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">extensions</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">resolve</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">extensions</span> <span style="color:#f92672">||</span> [ <span style="color:#e6db74">&#34;.js&#34;</span> ]; <span style="color:#75715e">//获取配置中的extensions
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>           <span style="color:#a6e22e">depModulePath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">tryExtensions</span>(<span style="color:#a6e22e">depModulePath</span>, <span style="color:#a6e22e">extensions</span>); <span style="color:#75715e">//尝试添加后缀，找到一个真实在硬盘上存在的文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>           <span style="color:#75715e">//7.3：将依赖模块的绝对路径 push 到 `this.fileDependencies` 中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>           <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">depModulePath</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>           <span style="color:#75715e">//7.4：生成依赖模块的`模块 id`
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>           <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">depModuleId</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;./&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">posix</span>.<span style="color:#a6e22e">relative</span>(<span style="color:#a6e22e">baseDir</span>, <span style="color:#a6e22e">depModulePath</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>           <span style="color:#75715e">//7.5：修改语法结构，把依赖的模块改为依赖`模块 id` require(&#34;./name&#34;)=&gt;require(&#34;./src/name.js&#34;)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>           <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">arguments</span> <span style="color:#f92672">=</span> [<span style="color:#a6e22e">types</span>.<span style="color:#a6e22e">stringLiteral</span>(<span style="color:#a6e22e">depModuleId</span>)];
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>           <span style="color:#75715e">//7.6：将依赖模块的信息 push 到该模块的 `dependencies` 属性中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>           <span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">dependencies</span>.<span style="color:#a6e22e">push</span>({ <span style="color:#a6e22e">depModuleId</span>, <span style="color:#a6e22e">depModulePath</span> });
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>         }
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       },
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#75715e">//7.7：生成新代码，并把转译后的源代码放到 `module._source` 属性上
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">let</span> { <span style="color:#a6e22e">code</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">generator</span>(<span style="color:#a6e22e">ast</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">_source</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">code</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#75715e">//7.8：对依赖模块进行编译（对 `module 对象`中的 `dependencies` 进行递归执行 `buildModule` ）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">dependencies</span>.<span style="color:#a6e22e">forEach</span>(({ <span style="color:#a6e22e">depModuleId</span>, <span style="color:#a6e22e">depModulePath</span> }) =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#75715e">//考虑到多入口打包 ：一个模块被多个其他模块引用，不需要重复打包
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>       <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">existModule</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span>.<span style="color:#a6e22e">find</span>((<span style="color:#a6e22e">item</span>) =&gt; <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">id</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">depModuleId</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#75715e">//如果modules里已经存在这个将要编译的依赖模块了，那么就不需要编译了，直接把此代码块的名称添加到对应模块的names字段里就可以
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>       <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">existModule</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>         <span style="color:#75715e">//names指的是它属于哪个代码块chunk
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>         <span style="color:#a6e22e">existModule</span>.<span style="color:#a6e22e">names</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">name</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>         <span style="color:#75715e">//7.9：对依赖模块编译完成后得到依赖模块的 `module 对象`，push 到 `this.modules` 中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>         <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">depModule</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">depModulePath</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>         <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">depModule</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       }
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     });
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#75715e">//7.10：等依赖模块全部编译完成后，返回入口模块的 `module` 对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">module</span>;
+</span></span><span style="display:flex;"><span>   }
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//省略其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>运行流程图（点击可放大）：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2b7681959a70456ea3d2a2dac0dc3203~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="58等所有模块都编译完成后根据模块之间的依赖关系组装代码块-chunk">5.8、等所有模块都编译完成后，根据模块之间的依赖关系，组装代码块 <code>chunk</code></h3>
+<p>现在，我们已经知道了入口模块和它所依赖模块的所有信息，可以去生成对应的代码块了。</p>
+<p>一般来说，每个入口文件会对应一个代码块<code>chunk</code>，每个代码块<code>chunk</code>里面会放着本入口模块和它依赖的模块，这里暂时不考虑代码分割。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compilation</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译所有生成出来的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译产出的所有代码块，入口模块和依赖的模块打包在一起为代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">assets</span> <span style="color:#f92672">=</span> {}; <span style="color:#75715e">//本次编译产出的资源文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次打包涉及到的文件，这里主要是为了实现watch模式下监听文件的变化，文件发生变化后会重新编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">modulePath</span>) {
+</span></span><span style="display:flex;"><span>   <span style="color:#75715e">//省略其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//第五步：根据配置文件中的`entry`配置项找到所有的入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//省略其他
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//第六步：从入口文件出发，调用配置的 `loader` 规则，对各模块进行编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryName</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">entry</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//entryName=&#34;main&#34; entryName就是entry的属性名，也将会成为代码块的名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryFilePath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">posix</span>.<span style="color:#a6e22e">join</span>(<span style="color:#a6e22e">baseDir</span>, <span style="color:#a6e22e">entry</span>[<span style="color:#a6e22e">entryName</span>]); <span style="color:#75715e">//path.posix为了解决不同操作系统的路径分隔符,这里拿到的就是入口文件的绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//6.1 把入口文件的绝对路径添加到依赖数组（`this.fileDependencies`）中，记录此次编译依赖的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">entryFilePath</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//6.2 得到入口模块的的 `module` 对象 （里面放着该模块的路径、依赖模块、源代码等）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryModule</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">entryName</span>, <span style="color:#a6e22e">entryFilePath</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//6.3 将生成的入口文件 `module` 对象 push 进 `this.modules` 中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">entryModule</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//第八步：等所有模块都编译完成后，根据模块之间的依赖关系，组装代码块 `chunk`（一般来说，每个入口文件会对应一个代码块`chunk`，每个代码块`chunk`里面会放着本入口模块和它依赖的模块）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">chunk</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">entryName</span>, <span style="color:#75715e">//entryName=&#34;main&#34; 代码块的名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>       <span style="color:#a6e22e">entryModule</span>, <span style="color:#75715e">//此代码块对应的module的对象,这里就是src/index.js 的module对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>       <span style="color:#a6e22e">modules</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span>.<span style="color:#a6e22e">filter</span>((<span style="color:#a6e22e">item</span>) =&gt; <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">names</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#a6e22e">entryName</span>)), <span style="color:#75715e">//找出属于该代码块的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     };
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">chunk</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//编译成功执行callback
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">callback</span>()
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>运行流程图（点击可放大）：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/76ea4a313199403aa0f556bb453289e9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="59把各个代码块-chunk-转换成一个一个文件加入到输出列表">5.9、把各个代码块 <code>chunk</code> 转换成一个一个文件加入到输出列表</h3>
+<p>这一步需要结合配置文件中的<code>output.filename</code>去生成输出文件的文件名称，同时还需要生成运行时代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">//生成运行时代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getSource</span>(<span style="color:#a6e22e">chunk</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#66d9ef">return</span> <span style="color:#e6db74">`
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+    (() =&gt; {
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+     var modules = {
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+       </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">chunk</span>.<span style="color:#a6e22e">modules</span>.<span style="color:#a6e22e">map</span>(
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>         (<span style="color:#a6e22e">module</span>) =&gt; <span style="color:#e6db74">`
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+         &#34;</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">id</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;: (module) =&gt; {
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+           </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">_source</span><span style="color:#e6db74">}</span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+         }
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+       `</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       )<span style="color:#e6db74">}</span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+     };
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+     var cache = {};
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+     function require(moduleId) {
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+       var cachedModule = cache[moduleId];
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+       if (cachedModule !== undefined) {
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+         return cachedModule.exports;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+       }
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+       var module = (cache[moduleId] = {
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+         exports: {},
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+       });
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+       modules[moduleId](module, module.exports, require);
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+       return module.exports;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+     }
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+     var exports ={};
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+     </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">chunk</span>.<span style="color:#a6e22e">entryModule</span>.<span style="color:#a6e22e">_source</span><span style="color:#e6db74">}</span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+   })();
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">+    `</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compilation</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译所有生成出来的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次编译产出的所有代码块，入口模块和依赖的模块打包在一起为代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">assets</span> <span style="color:#f92672">=</span> {}; <span style="color:#75715e">//本次编译产出的资源文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">//本次打包涉及到的文件，这里主要是为了实现watch模式下监听文件的变化，文件发生变化后会重新编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//当编译模块的时候，name：这个模块是属于哪个代码块chunk的，modulePath：模块绝对路径
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">buildModule</span>(<span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">modulePath</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//第五步：根据配置文件中的`entry`配置项找到所有的入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//第六步：从入口文件出发，调用配置的 `loader` 规则，对各模块进行编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">entryName</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">entry</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//6.1 把入口文件的绝对路径添加到依赖数组（`this.fileDependencies`）中，记录此次编译依赖的模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//6.2 得到入口模块的的 `module` 对象 （里面放着该模块的路径、依赖模块、源代码等）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//6.3 将生成的入口文件 `module` 对象 push 进 `this.modules` 中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//第八步：等所有模块都编译完成后，根据模块之间的依赖关系，组装代码块 `chunk`（一般来说，每个入口文件会对应一个代码块`chunk`，每个代码块`chunk`里面会放着本入口模块和它依赖的模块）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//第九步：把各个代码块 `chunk` 转换成一个一个文件加入到输出列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">chunk</span>) =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">filename</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">output</span>.<span style="color:#a6e22e">filename</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">&#34;[name]&#34;</span>, <span style="color:#a6e22e">chunk</span>.<span style="color:#a6e22e">name</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">assets</span>[<span style="color:#a6e22e">filename</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">getSource</span>(<span style="color:#a6e22e">chunk</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">callback</span>(
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>         <span style="color:#a6e22e">chunks</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">chunks</span>,
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>         <span style="color:#a6e22e">modules</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">modules</span>,
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>         <span style="color:#a6e22e">assets</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">assets</span>,
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       },
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">fileDependencies</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     );
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>到了这里，<code>Compilation</code> 的逻辑就走完了。</p>
+<p>运行流程图（点击可放大）：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f393c74adeab46af94ff4864ce108d28~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="510确定好输出内容之后根据配置的输出路径和文件名将文件内容写入到文件系统">5.10、确定好输出内容之后，根据配置的输出路径和文件名，将文件内容写入到文件系统</h3>
+<p>该步骤就很简单了，直接按照 Compilation 中的 this.status 对象将文件内容写入到文件系统（这里就是硬盘）。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compiler</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">webpackOptions</span>; <span style="color:#75715e">//存储配置信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//它内部提供了很多钩子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">run</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">SyncHook</span>(), <span style="color:#75715e">//会在编译刚开始的时候触发此run钩子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">done</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">SyncHook</span>(), <span style="color:#75715e">//会在编译结束的时候触发此done钩子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    };
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">compile</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//第四步：执行`Compiler`对象的`run`方法开始执行编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">run</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">run</span>.<span style="color:#a6e22e">call</span>(); <span style="color:#75715e">//在编译前触发run钩子执行，表示开始启动编译了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onCompiled</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">stats</span>, <span style="color:#a6e22e">fileDependencies</span>) =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#75715e">//第十步：确定好输出内容之后，根据配置的输出路径和文件名，将文件内容写入到文件系统（这里就是硬盘）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#f92672">+</span>     <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">filename</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">stats</span>.<span style="color:#a6e22e">assets</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">filePath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">join</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">output</span>.<span style="color:#a6e22e">path</span>, <span style="color:#a6e22e">filename</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">writeFileSync</span>(<span style="color:#a6e22e">filePath</span>, <span style="color:#a6e22e">stats</span>.<span style="color:#a6e22e">assets</span>[<span style="color:#a6e22e">filename</span>], <span style="color:#e6db74">&#34;utf8&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">callback</span>(<span style="color:#a6e22e">err</span>, {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#a6e22e">toJson</span><span style="color:#f92672">:</span> () =&gt; <span style="color:#a6e22e">stats</span>,
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">done</span>.<span style="color:#a6e22e">call</span>(); <span style="color:#75715e">//当编译成功后会触发done这个钩子执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    };
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">compile</span>(<span style="color:#a6e22e">onCompiled</span>); <span style="color:#75715e">//开始编译，成功之后调用onCompiled
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>运行流程图（点击可放大）：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f968d7d72b434df7a19fbef3d3852575~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="完整流程图">完整流程图</h3>
+<p>以上就是整个 Webpack 的运行流程图，还是描述的比较清晰的，跟着一步步走看懂肯定没问题！</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/efb7b1900b3e476790e3a54686f49ff9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>执行 <code>node ./debugger.js</code>，通过我们手写的 Webpack 进行打包，得到输出文件 <strong>dist/main.js</strong>：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/10d04c82dd7940b580dee5c911c7431b~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="carbon.png"></p>
+<h2 id="六实现-watch-模式">六、实现 watch 模式</h2>
+<p>看完上面的实现，有些小伙伴可能有疑问了：<code>Compilation</code> 中的 <code>this.fileDependencies</code>（本次打包涉及到的文件）是用来做什么的？为什么没有地方用到该属性？</p>
+<p>这里其实是为了实现 [Webpack 的 watch 模式]https://webpack.docschina.org/guides/development/#using-watch-mode)：当文件发生变更时将重新编译。</p>
+<p>思路：对 <code>this.fileDependencies</code> 里面的文件进行监听，当文件发生变化时，重新执行 <code>compile</code> 函数。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Compiler</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">webpackOptions</span>) {
+</span></span><span style="display:flex;"><span>   <span style="color:#75715e">//省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">compile</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//虽然webpack只有一个Compiler，但是每次编译都会产出一个新的Compilation，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//这里主要是为了考虑到watch模式，它会在启动时先编译一次，然后监听文件变化，如果发生变化会重新开始编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">//每次编译都会产出一个新的Compilation，代表每次的编译结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">compilation</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Compilation</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">compilation</span>.<span style="color:#a6e22e">build</span>(<span style="color:#a6e22e">callback</span>); <span style="color:#75715e">//执行compilation的build方法进行编译，编译成功之后执行回调
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//第四步：执行`Compiler`对象的`run`方法开始执行编译
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">run</span>(<span style="color:#a6e22e">callback</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">run</span>.<span style="color:#a6e22e">call</span>(); <span style="color:#75715e">//在编译前触发run钩子执行，表示开始启动编译了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onCompiled</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">stats</span>, <span style="color:#a6e22e">fileDependencies</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//第十步：确定好输出内容之后，根据配置的输出路径和文件名，将文件内容写入到文件系统（这里就是硬盘）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">filename</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">stats</span>.<span style="color:#a6e22e">assets</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">filePath</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">join</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">output</span>.<span style="color:#a6e22e">path</span>, <span style="color:#a6e22e">filename</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">writeFileSync</span>(<span style="color:#a6e22e">filePath</span>, <span style="color:#a6e22e">stats</span>.<span style="color:#a6e22e">assets</span>[<span style="color:#a6e22e">filename</span>], <span style="color:#e6db74">&#34;utf8&#34;</span>);
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">callback</span>(<span style="color:#a6e22e">err</span>, {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">toJson</span><span style="color:#f92672">:</span> () =&gt; <span style="color:#a6e22e">stats</span>,
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     <span style="color:#a6e22e">fileDependencies</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">fileDependencie</span>) =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">watch</span>(<span style="color:#a6e22e">fileDependencie</span>, () =&gt; <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">compile</span>(<span style="color:#a6e22e">onCompiled</span>));
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>     });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">hooks</span>.<span style="color:#a6e22e">done</span>.<span style="color:#a6e22e">call</span>(); <span style="color:#75715e">//当编译成功后会触发done这个钩子执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    };
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">compile</span>(<span style="color:#a6e22e">onCompiled</span>); <span style="color:#75715e">//开始编译，成功之后调用onCompiled
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>相信看到这里，你一定也理解了 compile 和 Compilation 的设计，都是为了解耦和复用呀。</p>
+<h2 id="七总结">七、总结</h2>
+<p>本文从 Webpack 的基本使用和构建产物出发，从思想和架构两方面深度剖析了 Webpack 的设计理念。最后在代码实现阶段，通过百来行代码手写了 Webpack 的整体流程，尽管它只能对文件进行打包，还缺少很多功能，但麻雀虽小，却也五脏俱全。</p>
+<p>相信读完本章，你也一定已经克服 Webpack 的恐惧了!</p>
+<p><em>什么？实现简易版 Webpack 还不够你塞牙缝？我这里还有跟源码一比一实现的版本哦，均放在文章头部的 <a href="https://github.com/noBaldAaa/hand-webpack">github 链接</a>中，还不快去挑战一下自己的软肋 😉😉😉。</em></p>
+<h2 id="推荐阅读">推荐阅读</h2>
+<ol>
+<li><a href="https://juejin.cn/post/7145855619096903717">从零到亿系统性的建立前端构建知识体系 ✨</a></li>
+<li><a href="https://juejin.cn/post/7085257325165936648">我是如何带领团队从零到一建立前端规范的？🎉🎉🎉</a></li>
+<li><a href="https://juejin.cn/post/7166031357418668040">线上崩了？一招教你快速定位问题！</a></li>
+<li><a href="https://juejin.cn/post/7164175171358556173">【中级/高级前端】为什么我建议你一定要读一读 Tapable 源码？</a></li>
+<li><a href="https://juejin.cn/post/7155151377013047304">前端工程化基石 &ndash; AST（抽象语法树）以及 AST 的广泛应用 🔥</a></li>
+<li><a href="https://juejin.cn/post/7176963906844246074#comment">Webpack 深度进阶：两张图彻底讲明白热更新原理！</a></li>
+<li><a href="https://juejin.cn/post/7157739406835580965">【万字长文｜趣味图解】彻底弄懂 Webpack 中的 Loader 机制</a></li>
+<li><a href="https://juejin.cn/post/7095396322643017742">学会这些自定义 hooks，让你摸鱼时间再翻一倍 🐟🐟</a></li>
+<li><a href="https://juejin.cn/post/6979564690787532814">浅析前端异常及降级处理</a></li>
+<li><a href="https://juejin.cn/post/6981718762483679239">前端重新部署后，领导跟我说页面崩溃了&hellip;</a></li>
+</ol>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/407/"
+      ><span class="mr-1.5">←</span><span>用了那么久的 SVG，你还没有入门吗？</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/405/"
+      ><span>2023 前端性能优化清单</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

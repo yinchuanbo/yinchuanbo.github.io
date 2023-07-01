@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>useMemo、useCallback、useContext - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="一、正确理解 useMemo、useCallback、memo 的使用场景 在我们平时的开发中很多情况下我们都在滥用 useMemo、useCallback 这两个 hook， 实际上很多情况下我们不需要甚至说是不应该使用，因为这两个 hook 在首次 render 时需要做一些额外工作来提供缓存，
+同时既然要提供缓存那必然需要额外的内存来进行缓存，综合来看这两个 hook 其实并不利于页面的首次渲染甚至会拖慢首次渲染，这也是我们常说的“不要在一开始就优化你的组件，出现问题的时候再优化也不迟”的根本原因。
+那什么时候应该使用呢，无非以下两种情况：
+缓存 useEffect 的引用类型依赖； 缓存子组件 props 中的引用类型。 1. 缓存 useEffect 的引用类型依赖 import { useEffect } from &#34;react&#34;; export default () =&gt; { const msg = { info: &#34;hello world&#34;, }; useEffect(() =&gt; { console.log(&#34;msg:&#34;, msg.info); }, [msg]); }; 此时 msg 是一个对象该对象作为了 useEffect 的依赖，这里本意是 msg 变化的时候打印 msg 的信息。但是实际上每次组件在 render 的时候 msg 都会被重新创建，msg 的引用在每次 render 时都是不一样的，所以这里 useEffect 在每次 render 的时候都会重新执行，和我们预期的不一样，此时 useMemo 就可以派上用场了:" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="useMemo、useCallback、useContext" />
+<meta property="og:description" content="一、正确理解 useMemo、useCallback、memo 的使用场景 在我们平时的开发中很多情况下我们都在滥用 useMemo、useCallback 这两个 hook， 实际上很多情况下我们不需要甚至说是不应该使用，因为这两个 hook 在首次 render 时需要做一些额外工作来提供缓存，
+同时既然要提供缓存那必然需要额外的内存来进行缓存，综合来看这两个 hook 其实并不利于页面的首次渲染甚至会拖慢首次渲染，这也是我们常说的“不要在一开始就优化你的组件，出现问题的时候再优化也不迟”的根本原因。
+那什么时候应该使用呢，无非以下两种情况：
+缓存 useEffect 的引用类型依赖； 缓存子组件 props 中的引用类型。 1. 缓存 useEffect 的引用类型依赖 import { useEffect } from &#34;react&#34;; export default () =&gt; { const msg = { info: &#34;hello world&#34;, }; useEffect(() =&gt; { console.log(&#34;msg:&#34;, msg.info); }, [msg]); }; 此时 msg 是一个对象该对象作为了 useEffect 的依赖，这里本意是 msg 变化的时候打印 msg 的信息。但是实际上每次组件在 render 的时候 msg 都会被重新创建，msg 的引用在每次 render 时都是不一样的，所以这里 useEffect 在每次 render 的时候都会重新执行，和我们预期的不一样，此时 useMemo 就可以派上用场了:" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/196/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-16T11:10:20+08:00" />
+<meta property="article:modified_time" content="2022-10-16T11:10:20+08:00" />
+
+  
+  <meta itemprop="name" content="useMemo、useCallback、useContext">
+<meta itemprop="description" content="一、正确理解 useMemo、useCallback、memo 的使用场景 在我们平时的开发中很多情况下我们都在滥用 useMemo、useCallback 这两个 hook， 实际上很多情况下我们不需要甚至说是不应该使用，因为这两个 hook 在首次 render 时需要做一些额外工作来提供缓存，
+同时既然要提供缓存那必然需要额外的内存来进行缓存，综合来看这两个 hook 其实并不利于页面的首次渲染甚至会拖慢首次渲染，这也是我们常说的“不要在一开始就优化你的组件，出现问题的时候再优化也不迟”的根本原因。
+那什么时候应该使用呢，无非以下两种情况：
+缓存 useEffect 的引用类型依赖； 缓存子组件 props 中的引用类型。 1. 缓存 useEffect 的引用类型依赖 import { useEffect } from &#34;react&#34;; export default () =&gt; { const msg = { info: &#34;hello world&#34;, }; useEffect(() =&gt; { console.log(&#34;msg:&#34;, msg.info); }, [msg]); }; 此时 msg 是一个对象该对象作为了 useEffect 的依赖，这里本意是 msg 变化的时候打印 msg 的信息。但是实际上每次组件在 render 的时候 msg 都会被重新创建，msg 的引用在每次 render 时都是不一样的，所以这里 useEffect 在每次 render 的时候都会重新执行，和我们预期的不一样，此时 useMemo 就可以派上用场了:"><meta itemprop="datePublished" content="2022-10-16T11:10:20+08:00" />
+<meta itemprop="dateModified" content="2022-10-16T11:10:20+08:00" />
+<meta itemprop="wordCount" content="691">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="useMemo、useCallback、useContext"/>
+<meta name="twitter:description" content="一、正确理解 useMemo、useCallback、memo 的使用场景 在我们平时的开发中很多情况下我们都在滥用 useMemo、useCallback 这两个 hook， 实际上很多情况下我们不需要甚至说是不应该使用，因为这两个 hook 在首次 render 时需要做一些额外工作来提供缓存，
+同时既然要提供缓存那必然需要额外的内存来进行缓存，综合来看这两个 hook 其实并不利于页面的首次渲染甚至会拖慢首次渲染，这也是我们常说的“不要在一开始就优化你的组件，出现问题的时候再优化也不迟”的根本原因。
+那什么时候应该使用呢，无非以下两种情况：
+缓存 useEffect 的引用类型依赖； 缓存子组件 props 中的引用类型。 1. 缓存 useEffect 的引用类型依赖 import { useEffect } from &#34;react&#34;; export default () =&gt; { const msg = { info: &#34;hello world&#34;, }; useEffect(() =&gt; { console.log(&#34;msg:&#34;, msg.info); }, [msg]); }; 此时 msg 是一个对象该对象作为了 useEffect 的依赖，这里本意是 msg 变化的时候打印 msg 的信息。但是实际上每次组件在 render 的时候 msg 都会被重新创建，msg 的引用在每次 render 时都是不一样的，所以这里 useEffect 在每次 render 的时候都会重新执行，和我们预期的不一样，此时 useMemo 就可以派上用场了:"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">useMemo、useCallback、useContext</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Oct 16, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="一正确理解-usememousecallbackmemo-的使用场景">一、正确理解 useMemo、useCallback、memo 的使用场景</h2>
+<p>在我们平时的开发中很多情况下我们都在滥用 useMemo、useCallback 这两个 hook， 实际上很多情况下我们不需要甚至说是不应该使用，因为这两个 hook 在首次 render 时需要做一些额外工作来提供缓存，</p>
+<p>同时既然要提供缓存那必然需要额外的内存来进行缓存，综合来看这两个 hook 其实并不利于页面的首次渲染甚至会拖慢首次渲染，这也是我们常说的“不要在一开始就优化你的组件，出现问题的时候再优化也不迟”的根本原因。</p>
+<p>那什么时候应该使用呢，无非以下两种情况：</p>
+<ol>
+<li>缓存 useEffect 的引用类型依赖；</li>
+<li>缓存子组件 props 中的引用类型。</li>
+</ol>
+<h3 id="1-缓存-useeffect-的引用类型依赖">1.  缓存 useEffect 的引用类型依赖</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useEffect</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">msg</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">info</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;hello world&#34;</span>,
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;msg:&#34;</span>, <span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">info</span>);
+</span></span><span style="display:flex;"><span>  }, [<span style="color:#a6e22e">msg</span>]);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>此时 msg 是一个对象该对象作为了 useEffect 的依赖，这里本意是 msg 变化的时候打印 msg 的信息。但是实际上每次组件在 render 的时候 msg 都会被重新创建，msg 的引用在每次 render 时都是不一样的，所以这里 useEffect 在每次 render 的时候都会重新执行，和我们预期的不一样，此时 useMemo 就可以派上用场了:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useEffect</span>, <span style="color:#a6e22e">useMemo</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">App</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">msg</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useMemo</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">info</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;hello world&#34;</span>,
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>  }, []);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;msg:&#34;</span>, <span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">info</span>);
+</span></span><span style="display:flex;"><span>  }, [<span style="color:#a6e22e">msg</span>]);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><p>同理对于函数作为依赖的情况，我们可以使用 useCallback：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useEffect</span>, <span style="color:#a6e22e">useCallback</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">App</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">props</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">print</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useCallback</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;msg&#34;</span>, <span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">msg</span>);
+</span></span><span style="display:flex;"><span>  }, [<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">msg</span>]);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">print</span>();
+</span></span><span style="display:flex;"><span>  }, [<span style="color:#a6e22e">print</span>]);
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><h3 id="2-缓存子组件-props-中的引用类型">2. 缓存子组件 props 中的引用类型。</h3>
+<p>做这一步的目的是为了防止组件非必要的重新渲染造成的性能消耗，所以首先要明确组件在什么情况下会重新渲染。</p>
+<ol>
+<li>组件的 props 或 state 变化会导致组件重新渲染</li>
+<li>父组件的重新渲染会导致其子组件的重新渲染</li>
+</ol>
+<p>这一步优化的目的是：<strong>在父组件中跟子组件没有关系的状态变更导致的重新渲染可以不渲染子组件，造成不必要的浪费。</strong></p>
+<p>大部分时候我们是明确知道这个目的的，但是很多时候却并没有达到目的，存在一定的误区：</p>
+<p><strong>误区一：</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useCallback</span>, <span style="color:#a6e22e">useState</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Child</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">props</span>) =&gt; {};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">App</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleChange</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useCallback</span>(() =&gt; {}, []);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">count</span>, <span style="color:#a6e22e">setCount</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">div</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">onPress</span><span style="color:#f92672">=</span>{() =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">setCount</span>(<span style="color:#a6e22e">count</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>        }}
+</span></span><span style="display:flex;"><span>      &gt;
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">increase</span>
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Child</span> <span style="color:#a6e22e">handleChange</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">handleChange</span>} /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><p>项目中有很多地方存在这样的代码，实际上完全不起作用，因为只要父组件重新渲染，Child 组件也会跟着重新渲染，这里的 useCallback 完全是白给的。</p>
+<p><strong>误区二：</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useCallback</span>, <span style="color:#a6e22e">useState</span>, <span style="color:#a6e22e">memo</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Child</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">memo</span>((<span style="color:#a6e22e">props</span>) =&gt; {});
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">App</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleChange</span> <span style="color:#f92672">=</span> () =&gt; {};
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">count</span>, <span style="color:#a6e22e">setCount</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">div</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">onPress</span><span style="color:#f92672">=</span>{() =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">setCount</span>(<span style="color:#a6e22e">count</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>        }}
+</span></span><span style="display:flex;"><span>      &gt;
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">increase</span>
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Child</span> <span style="color:#a6e22e">handleChange</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">handleChange</span>} /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><p>对于复杂的组件项目中会使用 memo 进行包裹，目的是为了对组件接受的 props 属性进行浅比较来判断组件要不要进行重新渲染。这当然是正确的做法，但是问题出在 props 属性里面有引用类型的情况，例如数组、函数，如果像上面这个例子中这样书写，handleChange 在 App 组件每次重新渲染的时候都会重新创建生成，引用当然也是不一样的，那么势必会造成 Child 组件重新渲染。所以这种写法也是白给的。</p>
+<p><strong>正确姿势：</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useCallback</span>, <span style="color:#a6e22e">useState</span>, <span style="color:#a6e22e">memo</span>, <span style="color:#a6e22e">useMemo</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Child</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">memo</span>((<span style="color:#a6e22e">props</span>) =&gt; {});
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">App</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">count</span>, <span style="color:#a6e22e">setCount</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleChange</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useCallback</span>(() =&gt; {}, []);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">list</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useMemo</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> [];
+</span></span><span style="display:flex;"><span>  }, []);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">div</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">onPress</span><span style="color:#f92672">=</span>{() =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">setCount</span>(<span style="color:#a6e22e">count</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>        }}
+</span></span><span style="display:flex;"><span>      &gt;
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">increase</span>
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Child</span> <span style="color:#a6e22e">handleChange</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">handleChange</span>} <span style="color:#a6e22e">list</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">list</span>} /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><p>其实总结起来也很简单，memo 是为了防止组件在 props 没有变化时重新渲染，但是如果组件中存在类似于上面例子中的引用类型，还是那个原因每次渲染都会被重新创建，引用会改变，所以我们需要缓存这些值保证引用不变，避免不必要的重复渲染。</p>
+<h2 id="二usecontext-使用注意事项">二、useContext 使用注意事项</h2>
+<p>在项目中我们已经重度依赖于 useContext 这个 api，同时结合 useReducer 代替 redux 来做状态管理，这也引入了一些问题。我们把官方<a href="https://reactjs.org/docs/hooks-reference.html#usecontext">Demo</a>整合下，先来看看如何结合使用 useContext 和 useReducer。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">React</span>, { <span style="color:#a6e22e">createContext</span>, <span style="color:#a6e22e">useContext</span>, <span style="color:#a6e22e">useReducer</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ContainerContext</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">createContext</span>({ <span style="color:#a6e22e">count</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span> });
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">initialState</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">count</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span> };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">reducer</span>(<span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">action</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">switch</span> (<span style="color:#a6e22e">action</span>.<span style="color:#a6e22e">type</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;increment&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> { <span style="color:#a6e22e">count</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">count</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span> };
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#e6db74">&#34;decrement&#34;</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> { <span style="color:#a6e22e">count</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">count</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span> };
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> Error();
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Counter</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">dispatch</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">useContext</span>(<span style="color:#a6e22e">ContainerContext</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;&gt;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">Count</span><span style="color:#f92672">:</span> {<span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">count</span>}
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{() =&gt; <span style="color:#a6e22e">dispatch</span>({ <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;decrement&#34;</span> })}&gt;<span style="color:#f92672">-</span>&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{() =&gt; <span style="color:#a6e22e">dispatch</span>({ <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;increment&#34;</span> })}&gt;<span style="color:#f92672">+</span>&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Tip</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">span</span>&gt;<span style="color:#a6e22e">计数器</span>&lt;/<span style="color:#f92672">span</span>&gt;;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Container</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">dispatch</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useReducer</span>(<span style="color:#a6e22e">reducer</span>, <span style="color:#a6e22e">initialState</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">ContainerContext.Provider</span> <span style="color:#a6e22e">value</span><span style="color:#f92672">=</span>{{ <span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">dispatch</span> }}&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Counter</span> /&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Tip</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">ContainerContext.Provider</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">Container</span>;
+</span></span></code></pre></div><p>使用起来非常方便，乍一看似乎都挺美好的，但是其实有不少陷阱或者误区在里面。</p>
+<p>useContext 的机制是使用这个 hook 的组件在 context 发生变化时都会重新渲染。这样会导致一些问题，我把我遇到过的和能想到的问题总结到下面，如果有补充的可以再讨论。</p>
+<h4 id="1-provider-单独封装">1. Provider 单独封装</h4>
+<p>在上面的 demo 中我们应该看到了在 Provider 中有两个组件，Counter 组件在 state 发生变化的时候需要重新渲染这个没什么问题，那 Tip 组件呢，在 Tip 组件里面显然没有用到 Context 实际上是没有必要进行重新渲染的。但是现在这种写法每次 state 变化都会导致 Provider 中所有的子组件都跟着渲染。有没有什么办法解决呢，实际上也很简单，我们把状态管理单独封装到一个 Provider 组件里面，然后把子组件通过 props.children 的方式传进去</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Provider</span>(<span style="color:#a6e22e">props</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">dispatch</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useReducer</span>(<span style="color:#a6e22e">reducer</span>, <span style="color:#a6e22e">initialState</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">ContainerContext.Provider</span> <span style="color:#a6e22e">value</span><span style="color:#f92672">=</span>{{ <span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">dispatch</span> }}&gt;
+</span></span><span style="display:flex;"><span>      {<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">children</span>}
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">ContainerContext.Provider</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">App</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">Provider</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Counter</span> /&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Tip</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">Provider</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>这个时候 APP 组件就成为了无状态组件，state 变化的时候 props.children 不会改变，不会被重新渲染，这个时候再看 Tip 组件，状态更新的时候就不会跟着重新渲染了。</p>
+<p>那这样是不是就万事大吉呢，对不起没有，还有坑，接着看第二点。</p>
+<h4 id="2-缓存-provider-value">2. 缓存 Provider value</h4>
+<p>在<a href="https://zh-hans.reactjs.org/docs/context.html#caveats">官方文档</a>里面也提到了这个坑，简单说就是，如果 Provider 组件还有父组件，当 Provider 的父组件进行重渲染时，Provider 的 value 属性每次渲染都会重新创建，原理和上面 useMemo useCallback 中提到的一样，所以最好的办法是对 value 进行缓存：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Provider</span>(<span style="color:#a6e22e">props</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">dispatch</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useReducer</span>(<span style="color:#a6e22e">reducer</span>, <span style="color:#a6e22e">initialState</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useMemo</span>(() =&gt; ({ <span style="color:#a6e22e">state</span>, <span style="color:#a6e22e">dispatch</span> }), [<span style="color:#a6e22e">state</span>]);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">ContainerContext.Provider</span> <span style="color:#a6e22e">value</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">value</span>}&gt;
+</span></span><span style="display:flex;"><span>      {<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">children</span>}
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">ContainerContext.Provider</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><h4 id="3-memo-优化直接被穿透不再起作用">3. memo 优化直接被穿透，不再起作用</h4>
+<p>在开发中我们会使用 memo 来对组件进行优化，如上文中提到的，但是很多时候我们又会在使用 memo 的组件中使用 context，用 context 的地方在 context 发生变化的时候无论如何都会发生重新渲染，所以很多时候会导致 memo 优化实效，具体可以看<a href="https://github.com/facebook/react/issues/15156">这里</a>的讨论，react 官方解释说<strong>设计如此</strong>，同时也给出了相应的建议，我们项目中主要解决方案是把 context 往上提，然后通过属性传递，就是说我们的组件一开始是这样写的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">memo</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">count</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">useContext</span>(<span style="color:#a6e22e">ContainerContext</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">span</span>&gt;{<span style="color:#a6e22e">count</span>}&lt;/<span style="color:#f92672">span</span>&gt;;
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>这个时候 context 更新了，memo 属于是白给，我们把 context 往上提一层，其实就可以解决这个问题：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Child</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useMemo</span>((<span style="color:#a6e22e">props</span>)=&gt;{
+</span></span><span style="display:flex;"><span>    ....
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Parent</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> {<span style="color:#a6e22e">count</span>} <span style="color:#f92672">=</span> <span style="color:#a6e22e">useContext</span>(<span style="color:#a6e22e">ContainerContext</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Child</span> <span style="color:#a6e22e">count</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">count</span>} <span style="color:#f92672">/&gt;</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这样保证了 Child 组件的外部状态的变化只会来自于 props，这样当然 memo 可以完美工作了。</p>
+<h4 id="3-对-context-进行拆分整合">3. 对 context 进行拆分整合</h4>
+<p>context 的使用场景应该是为一组享有公共状态的组件提供便利来获取状态的变化。 但是随着业务代码越来越复杂，在不经意间我们就会把一些不相关的数据放在同一个 context 里面。这样就导致了 context 中任何数据的变化都会导致使用这个 context 的组件重新 render。这显然不是我们想看到的。这种情况下我们应该要对 contex 进行更细粒度的拆分，把真正相关的数据整合在一起，然后再提供给组件，至少这样不相关组件的状态变化不会相互影响，也就不会导致多余的重复渲染。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/197/"
+      ><span class="mr-1.5">←</span><span>用video.js和H5实现一个漂亮的，收看M3U8直播的网站</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/195/"
+      ><span>关于发版后如何自动清理缓存</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

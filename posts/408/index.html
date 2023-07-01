@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>引力粒子特效 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="最近看了《万神殿》，里面的一个效果让我产生创作灵感：
+上面人物破碎的效果，一点点脱落
+然后，我实现了下面的效果并将其命名为归为尘埃 - 寓意人(或者说万物)在宇宙中的渺小存在：
+我们主要使用了 canvas 绘图，下面来一步步讲解：
+基本骨架 HTML 里面就两行代码：
+&lt;canvas id=&#34;canvas&#34;&gt;&lt;/canvas&gt; &lt;button id=&#34;start&#34;&gt;Click to Start&lt;/button&gt; 嗯～也许你会有疑问：图片跑哪里去了呢？
+图片放在了 javascript 文件中处理。
+色调指定 在特效中，我们使用的图片是路飞，如下：
+图片来源网络，侵删
+根据图片的色调，我们指定了 primaryColor，secondColor 和 accentColor 如下，并对开始按钮样式做了些协调调整：
+@primaryColor: #f00; // 主色调 @secondColor: #fdb117; // 次色调 @accentColor: #fdac77; // 强调色 #start { cursor: pointer; position: absolute; text-align: center; top: 60px; left: 50%; padding: 3px 12px; transform: translateX(-50%); font-size: 20px; font-family: serif; border: 1px solid transparent; letter-spacing: 2px; background: linear-gradient( to bottom right, @primaryColor, @secondColor, @accentColor ); -webkit-background-clip: text; color: transparent; border-image: linear-gradient( to top left, @primaryColor, @secondColor, @accentColor ) 1; &amp;:hover { background: linear-gradient( to top left, @primaryColor, @secondColor, @accentColor ); border-image: linear-gradient( to top left, @accentColor, @secondColor, @primaryColor ) 1; -webkit-background-clip: text; color: transparent; } text-shadow: 1px 1px 2px #000; } 关于网站中色调的使用，可以参考我之前的文章 &ndash; 网站设计：十条需避免的常见错误。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="引力粒子特效" />
+<meta property="og:description" content="最近看了《万神殿》，里面的一个效果让我产生创作灵感：
+上面人物破碎的效果，一点点脱落
+然后，我实现了下面的效果并将其命名为归为尘埃 - 寓意人(或者说万物)在宇宙中的渺小存在：
+我们主要使用了 canvas 绘图，下面来一步步讲解：
+基本骨架 HTML 里面就两行代码：
+&lt;canvas id=&#34;canvas&#34;&gt;&lt;/canvas&gt; &lt;button id=&#34;start&#34;&gt;Click to Start&lt;/button&gt; 嗯～也许你会有疑问：图片跑哪里去了呢？
+图片放在了 javascript 文件中处理。
+色调指定 在特效中，我们使用的图片是路飞，如下：
+图片来源网络，侵删
+根据图片的色调，我们指定了 primaryColor，secondColor 和 accentColor 如下，并对开始按钮样式做了些协调调整：
+@primaryColor: #f00; // 主色调 @secondColor: #fdb117; // 次色调 @accentColor: #fdac77; // 强调色 #start { cursor: pointer; position: absolute; text-align: center; top: 60px; left: 50%; padding: 3px 12px; transform: translateX(-50%); font-size: 20px; font-family: serif; border: 1px solid transparent; letter-spacing: 2px; background: linear-gradient( to bottom right, @primaryColor, @secondColor, @accentColor ); -webkit-background-clip: text; color: transparent; border-image: linear-gradient( to top left, @primaryColor, @secondColor, @accentColor ) 1; &amp;:hover { background: linear-gradient( to top left, @primaryColor, @secondColor, @accentColor ); border-image: linear-gradient( to top left, @accentColor, @secondColor, @primaryColor ) 1; -webkit-background-clip: text; color: transparent; } text-shadow: 1px 1px 2px #000; } 关于网站中色调的使用，可以参考我之前的文章 &ndash; 网站设计：十条需避免的常见错误。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/408/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-27T22:25:34+08:00" />
+<meta property="article:modified_time" content="2023-03-27T22:25:34+08:00" />
+
+  
+  <meta itemprop="name" content="引力粒子特效">
+<meta itemprop="description" content="最近看了《万神殿》，里面的一个效果让我产生创作灵感：
+上面人物破碎的效果，一点点脱落
+然后，我实现了下面的效果并将其命名为归为尘埃 - 寓意人(或者说万物)在宇宙中的渺小存在：
+我们主要使用了 canvas 绘图，下面来一步步讲解：
+基本骨架 HTML 里面就两行代码：
+&lt;canvas id=&#34;canvas&#34;&gt;&lt;/canvas&gt; &lt;button id=&#34;start&#34;&gt;Click to Start&lt;/button&gt; 嗯～也许你会有疑问：图片跑哪里去了呢？
+图片放在了 javascript 文件中处理。
+色调指定 在特效中，我们使用的图片是路飞，如下：
+图片来源网络，侵删
+根据图片的色调，我们指定了 primaryColor，secondColor 和 accentColor 如下，并对开始按钮样式做了些协调调整：
+@primaryColor: #f00; // 主色调 @secondColor: #fdb117; // 次色调 @accentColor: #fdac77; // 强调色 #start { cursor: pointer; position: absolute; text-align: center; top: 60px; left: 50%; padding: 3px 12px; transform: translateX(-50%); font-size: 20px; font-family: serif; border: 1px solid transparent; letter-spacing: 2px; background: linear-gradient( to bottom right, @primaryColor, @secondColor, @accentColor ); -webkit-background-clip: text; color: transparent; border-image: linear-gradient( to top left, @primaryColor, @secondColor, @accentColor ) 1; &amp;:hover { background: linear-gradient( to top left, @primaryColor, @secondColor, @accentColor ); border-image: linear-gradient( to top left, @accentColor, @secondColor, @primaryColor ) 1; -webkit-background-clip: text; color: transparent; } text-shadow: 1px 1px 2px #000; } 关于网站中色调的使用，可以参考我之前的文章 &ndash; 网站设计：十条需避免的常见错误。"><meta itemprop="datePublished" content="2023-03-27T22:25:34+08:00" />
+<meta itemprop="dateModified" content="2023-03-27T22:25:34+08:00" />
+<meta itemprop="wordCount" content="435">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="引力粒子特效"/>
+<meta name="twitter:description" content="最近看了《万神殿》，里面的一个效果让我产生创作灵感：
+上面人物破碎的效果，一点点脱落
+然后，我实现了下面的效果并将其命名为归为尘埃 - 寓意人(或者说万物)在宇宙中的渺小存在：
+我们主要使用了 canvas 绘图，下面来一步步讲解：
+基本骨架 HTML 里面就两行代码：
+&lt;canvas id=&#34;canvas&#34;&gt;&lt;/canvas&gt; &lt;button id=&#34;start&#34;&gt;Click to Start&lt;/button&gt; 嗯～也许你会有疑问：图片跑哪里去了呢？
+图片放在了 javascript 文件中处理。
+色调指定 在特效中，我们使用的图片是路飞，如下：
+图片来源网络，侵删
+根据图片的色调，我们指定了 primaryColor，secondColor 和 accentColor 如下，并对开始按钮样式做了些协调调整：
+@primaryColor: #f00; // 主色调 @secondColor: #fdb117; // 次色调 @accentColor: #fdac77; // 强调色 #start { cursor: pointer; position: absolute; text-align: center; top: 60px; left: 50%; padding: 3px 12px; transform: translateX(-50%); font-size: 20px; font-family: serif; border: 1px solid transparent; letter-spacing: 2px; background: linear-gradient( to bottom right, @primaryColor, @secondColor, @accentColor ); -webkit-background-clip: text; color: transparent; border-image: linear-gradient( to top left, @primaryColor, @secondColor, @accentColor ) 1; &amp;:hover { background: linear-gradient( to top left, @primaryColor, @secondColor, @accentColor ); border-image: linear-gradient( to top left, @accentColor, @secondColor, @primaryColor ) 1; -webkit-background-clip: text; color: transparent; } text-shadow: 1px 1px 2px #000; } 关于网站中色调的使用，可以参考我之前的文章 &ndash; 网站设计：十条需避免的常见错误。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">引力粒子特效</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 27, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7f5fc53d5ed74c729a0bf80f0b3fcb6d~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="引力粒子特效 - 归为尘埃"></p>
+<p>最近看了《万神殿》，里面的一个效果让我产生创作灵感：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1578f4e6e8f24a0b8749c4fff259c812~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="破碎效果.png"></p>
+<blockquote>
+<p>上面人物破碎的效果，一点点脱落</p>
+</blockquote>
+<p>然后，我实现了下面的效果并将其命名为<code>归为尘埃</code> - 寓意人(或者说万物)在宇宙中的渺小存在：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a6407af232f2486a8ac66940079b1a87~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="归为尘埃.gif"></p>
+<p>我们主要使用了 <code>canvas</code> 绘图，下面来一步步讲解：</p>
+<h3 id="基本骨架">基本骨架</h3>
+<p><code>HTML</code> 里面就两行代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">canvas</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;canvas&#34;</span>&gt;&lt;/<span style="color:#f92672">canvas</span>&gt; &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;start&#34;</span>&gt;Click to Start&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span></code></pre></div><p>嗯～也许你会有疑问：<strong>图片跑哪里去了呢</strong>？</p>
+<p>图片放在了 <code>javascript</code> 文件中处理。</p>
+<h3 id="色调指定">色调指定</h3>
+<p>在特效中，我们使用的图片是路飞，如下：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a0aa2c4eb5de4c359bd210980fceca20~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="lufei02.png"></p>
+<blockquote>
+<p>图片来源网络，侵删</p>
+</blockquote>
+<p>根据图片的色调，我们指定了 <code>primaryColor</code>，<code>secondColor</code> 和 <code>accentColor</code> 如下，并对开始按钮样式做了些协调调整：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-scss" data-lang="scss"><span style="display:flex;"><span><span style="color:#66d9ef">@primaryColor</span><span style="color:#a6e22e">:</span> #f00; <span style="color:#75715e">// 主色调
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">@secondColor</span><span style="color:#a6e22e">:</span> #fdb117; <span style="color:#75715e">// 次色调
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">@accentColor</span><span style="color:#a6e22e">:</span> #fdac77; <span style="color:#75715e">// 强调色
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>#start {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cursor</span><span style="color:#f92672">:</span> pointer;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">position</span><span style="color:#f92672">:</span> absolute;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">text-align</span><span style="color:#f92672">:</span> center;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">top</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">60</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">left</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">50</span><span style="color:#66d9ef">%</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">padding</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">3</span><span style="color:#66d9ef">px</span> <span style="color:#ae81ff">12</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">transform</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">translateX</span>(<span style="color:#f92672">-</span><span style="color:#ae81ff">50</span><span style="color:#66d9ef">%</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">font-size</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">20</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">font-family</span><span style="color:#f92672">:</span> serif;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">border</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span><span style="color:#66d9ef">px</span> solid transparent;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">letter-spacing</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">2</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">background</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">linear-gradient</span>(
+</span></span><span style="display:flex;"><span>    to bottom right<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">@</span>primaryColor<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">@</span>secondColor<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">@</span>accentColor
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">-webkit-background-clip</span><span style="color:#f92672">:</span> text;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> transparent;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">border-image</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">linear-gradient</span>(
+</span></span><span style="display:flex;"><span>      to top left<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">@</span>primaryColor<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">@</span>secondColor<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">@</span>accentColor
+</span></span><span style="display:flex;"><span>    ) <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">:hover</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">background</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">linear-gradient</span>(
+</span></span><span style="display:flex;"><span>      to top left<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">@</span>primaryColor<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">@</span>secondColor<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">@</span>accentColor
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">border-image</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">linear-gradient</span>(
+</span></span><span style="display:flex;"><span>        to top left<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">@</span>accentColor<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">@</span>secondColor<span style="color:#f92672">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">@</span>primaryColor
+</span></span><span style="display:flex;"><span>      ) <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">-webkit-background-clip</span><span style="color:#f92672">:</span> text;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> transparent;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">text-shadow</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span><span style="color:#66d9ef">px</span> <span style="color:#ae81ff">1</span><span style="color:#66d9ef">px</span> <span style="color:#ae81ff">2</span><span style="color:#66d9ef">px</span> <span style="color:#ae81ff">#000</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>关于网站中色调的使用，可以参考我之前的文章 &ndash; <a href="https://juejin.cn/post/7213022785367097399">网站设计：十条需避免的常见错误</a>。</p>
+<h3 id="绘制粒子图像">绘制粒子图像</h3>
+<p>我们通过 <code>javascript</code> 加载 <code>onload</code> 图片之后，再进行处理：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">imgDom</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Image</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">imgDom</span>.<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>; <span style="color:#75715e">// 实际代码中，我将图片转换成 base64，当然，你也可以直接使用超链接
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 监听图片加载完后处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">imgDom</span>.<span style="color:#a6e22e">onload</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// some code
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>};
+</span></span></code></pre></div><p>首先，我们收集图像数据，存放在指定的变量中，如 <code>particleArray</code> 中：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">collectData</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">particleArray</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">// 这里要重新赋值（清空），避免浏览器窗口更改等造成的粒子记入
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">drawImage</span>(<span style="color:#a6e22e">imgDom</span>, <span style="color:#a6e22e">startX</span>, <span style="color:#a6e22e">startY</span>); <span style="color:#75715e">// 绘制图片
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">y</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">canvasDom</span>.<span style="color:#a6e22e">height</span>; <span style="color:#a6e22e">y</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">x</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">canvasDom</span>.<span style="color:#a6e22e">width</span>; <span style="color:#a6e22e">x</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// rgba [i, i + 1, i + 2, i + 3]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">y</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">canvasDom</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">x</span>) <span style="color:#f92672">*</span> <span style="color:#ae81ff">4</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">r</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">imgData</span>[<span style="color:#a6e22e">i</span>];
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">g</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">imgData</span>[<span style="color:#a6e22e">i</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>];
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">b</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">imgData</span>[<span style="color:#a6e22e">i</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">2</span>];
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">color</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`rgb(</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">r</span><span style="color:#e6db74">}</span><span style="color:#e6db74">, </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">g</span><span style="color:#e6db74">}</span><span style="color:#e6db74">, </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">b</span><span style="color:#e6db74">}</span><span style="color:#e6db74">)`</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">a</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">imgData</span>[<span style="color:#a6e22e">i</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">3</span>];
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">a</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">particleArray</span>.<span style="color:#a6e22e">push</span>({
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">x</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">y</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">color</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">vx</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">vy</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">size</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">size</span> <span style="color:#f92672">*</span> Math.<span style="color:#a6e22e">random</span>(),
+</span></span><span style="display:flex;"><span>        });
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>通过上面的函数，我们将图片转换成数组数据，每个粒子数据项包含下面的字段：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">x</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">x</span>, <span style="color:#75715e">// 坐标点 x
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">y</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">y</span>, <span style="color:#75715e">// 坐标点 y
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">color</span>, <span style="color:#75715e">// 粒子颜色
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">vx</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>, <span style="color:#75715e">// x 轴的加速度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">vy</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>, <span style="color:#75715e">// y 轴的加速度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">size</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">size</span> <span style="color:#f92672">*</span> Math.<span style="color:#a6e22e">random</span>() <span style="color:#75715e">// 粒子的大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>需要留意的是 <code>color</code> 这个字段，生成的粒子数组中，从索引 <code>0</code> 开始，<strong>每四个数据为一组</strong>，每组里面从前往后依次代表该点的<strong>红色、绿色、蓝色和透明度</strong>。</p>
+<p>然后，我们将粒子数据绘制出来：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">drawPaticleImage</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">particleArray</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">paticle</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">particleArray</span>[<span style="color:#a6e22e">i</span>];
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">fillStyle</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">paticle</span>.<span style="color:#a6e22e">color</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">fillRect</span>(<span style="color:#a6e22e">paticle</span>.<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">paticle</span>.<span style="color:#a6e22e">y</span>, <span style="color:#a6e22e">paticle</span>.<span style="color:#a6e22e">size</span>, <span style="color:#a6e22e">paticle</span>.<span style="color:#a6e22e">size</span>); <span style="color:#75715e">// 绘制粒子
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>根据上面图像绘制粒子图像，效果如下：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/51eb3fef4cfe46209887259c495b6094~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="draw_image.png"></p>
+<p>很不错 👍，值得一赞</p>
+<h3 id="添加引力效果">添加引力效果</h3>
+<p>下面是整个项目中的重点，也就是添加引力效果。我们设置了触发引力的点：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">gravitySource</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">x</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">canvasDom</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>, <span style="color:#75715e">// 引力坐标 x
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">y</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">canvasDom</span>.<span style="color:#a6e22e">height</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>, <span style="color:#75715e">// 引力坐标 y
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">strength</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">100</span>, <span style="color:#75715e">// 引力强度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>};
+</span></span></code></pre></div><p>接着设置引力函数，对粒子产生相应的影响：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">gravityAttractor</span>(<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">y</span>, <span style="color:#a6e22e">strength</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">paticle</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">dx</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">paticle</span>.<span style="color:#a6e22e">x</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">dy</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">y</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">paticle</span>.<span style="color:#a6e22e">y</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">distance</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">sqrt</span>(<span style="color:#a6e22e">dx</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">dx</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">dy</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">dy</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">angle</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">atan2</span>(<span style="color:#a6e22e">dy</span>, <span style="color:#a6e22e">dx</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">acceleration</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">strength</span> <span style="color:#f92672">/</span> (<span style="color:#a6e22e">distance</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">distance</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">paticle</span>.<span style="color:#a6e22e">vx</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">acceleration</span> <span style="color:#f92672">*</span> Math.<span style="color:#a6e22e">cos</span>(<span style="color:#a6e22e">angle</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">paticle</span>.<span style="color:#a6e22e">vy</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">acceleration</span> <span style="color:#f92672">*</span> Math.<span style="color:#a6e22e">sin</span>(<span style="color:#a6e22e">angle</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>获取引力点对粒子的距离 <code>distance</code>，引力点对粒子的角度 <code>angle</code>，当前粒子的加速度 <code>acceleration</code> ，当前粒子在 <code>x</code> 轴方向的加速度和当前粒子在 <code>y</code> 轴方向上的加速度。我们感受下效果：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7b31912f8f7f46aabe7cdc976d251147~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="归为尘埃01.gif"></p>
+<p>当然，我们也可以将引力点设置在不同的位置，比如根据鼠标的移动而改变，那会很酷；或者设置多个引力源，那又会是怎么样子的呢？读者可以尝试实现一下。</p>
+<p>项目源码见： <a href="https://code.juejin.cn/pen/7214336219537211453">归为尘埃</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/409/"
+      ><span class="mr-1.5">←</span><span>借助 CSS 自定义彩色字体来实现多行文本展开收起</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/407/"
+      ><span>用了那么久的 SVG，你还没有入门吗？</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>一篇拒绝低级封装axios的文章 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="目前掘金上已经有很多关于axios封装的文章。自己在初次阅读这些文章中，见识到很多封装思路，但在付诸实践时一直有疑问：这些看似高级的二次封装，是否会把axios的调用方式弄得更加复杂？ 优秀的二次封装，有以下特点：
+能改善原生框架上的不足：明确原生框架的缺点，且在二次封装后能彻底杜绝这些缺点，与此同时不会引入新的缺点。 保持原有的功能：当进行二次封装时，新框架的 API 可能会更改原生框架的 API 的调用方式（例如传参方式），但我们要保证能通过新 API 调用原生 API 上的所有功能。 理解成本低：有原生框架使用经验的开发者在面对二次封装的框架和 API 时能迅速理解且上手。 但目前我见过，或者我接收过的项目里众多的axios二次封装中，并不具备上述原则，我们接下盘点一些常见的低级的二次封装的手法。
+盘点那些低级的axios二次封装方式 1. 对特定 method 封装成新的 API，却暴露极少的参数 例如以下代码：
+export const post = (url, data, params) =&gt; { return new Promise((resolve) =&gt; { axios .post(url, data, { params }) .then((result) =&gt; { resolve([null, result.data]); }) .catch((err) =&gt; { resolve([err, undefined]); }); }); }; 上面的代码中对method为post的请求方法进行封装，用于解决原生 API 中在处理报错时需要用try~catch包裹。但这种封装有一个缺点：整个post方法只暴露了url,data,params三个参数，通常这三个参数可以满足大多数简单请求。但是，如果我们遇到一个特殊的post接口，它的响应时间较慢，需要设置较长的超时时间，那上面的post方法就立马嗝屁了。
+此时用原生的axios.post方法可以轻松搞定上述特殊场景，如下所示：
+// 针对此次请求把超时时间设置为15s axios.post(&#34;/submit&#34;, form, { timeout: 15000 }); 类似的特殊场景还有很多，例如：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="一篇拒绝低级封装axios的文章" />
+<meta property="og:description" content="目前掘金上已经有很多关于axios封装的文章。自己在初次阅读这些文章中，见识到很多封装思路，但在付诸实践时一直有疑问：这些看似高级的二次封装，是否会把axios的调用方式弄得更加复杂？ 优秀的二次封装，有以下特点：
+能改善原生框架上的不足：明确原生框架的缺点，且在二次封装后能彻底杜绝这些缺点，与此同时不会引入新的缺点。 保持原有的功能：当进行二次封装时，新框架的 API 可能会更改原生框架的 API 的调用方式（例如传参方式），但我们要保证能通过新 API 调用原生 API 上的所有功能。 理解成本低：有原生框架使用经验的开发者在面对二次封装的框架和 API 时能迅速理解且上手。 但目前我见过，或者我接收过的项目里众多的axios二次封装中，并不具备上述原则，我们接下盘点一些常见的低级的二次封装的手法。
+盘点那些低级的axios二次封装方式 1. 对特定 method 封装成新的 API，却暴露极少的参数 例如以下代码：
+export const post = (url, data, params) =&gt; { return new Promise((resolve) =&gt; { axios .post(url, data, { params }) .then((result) =&gt; { resolve([null, result.data]); }) .catch((err) =&gt; { resolve([err, undefined]); }); }); }; 上面的代码中对method为post的请求方法进行封装，用于解决原生 API 中在处理报错时需要用try~catch包裹。但这种封装有一个缺点：整个post方法只暴露了url,data,params三个参数，通常这三个参数可以满足大多数简单请求。但是，如果我们遇到一个特殊的post接口，它的响应时间较慢，需要设置较长的超时时间，那上面的post方法就立马嗝屁了。
+此时用原生的axios.post方法可以轻松搞定上述特殊场景，如下所示：
+// 针对此次请求把超时时间设置为15s axios.post(&#34;/submit&#34;, form, { timeout: 15000 }); 类似的特殊场景还有很多，例如：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/269/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-12-11T19:39:51+08:00" />
+<meta property="article:modified_time" content="2022-12-11T19:39:51+08:00" />
+
+  
+  <meta itemprop="name" content="一篇拒绝低级封装axios的文章">
+<meta itemprop="description" content="目前掘金上已经有很多关于axios封装的文章。自己在初次阅读这些文章中，见识到很多封装思路，但在付诸实践时一直有疑问：这些看似高级的二次封装，是否会把axios的调用方式弄得更加复杂？ 优秀的二次封装，有以下特点：
+能改善原生框架上的不足：明确原生框架的缺点，且在二次封装后能彻底杜绝这些缺点，与此同时不会引入新的缺点。 保持原有的功能：当进行二次封装时，新框架的 API 可能会更改原生框架的 API 的调用方式（例如传参方式），但我们要保证能通过新 API 调用原生 API 上的所有功能。 理解成本低：有原生框架使用经验的开发者在面对二次封装的框架和 API 时能迅速理解且上手。 但目前我见过，或者我接收过的项目里众多的axios二次封装中，并不具备上述原则，我们接下盘点一些常见的低级的二次封装的手法。
+盘点那些低级的axios二次封装方式 1. 对特定 method 封装成新的 API，却暴露极少的参数 例如以下代码：
+export const post = (url, data, params) =&gt; { return new Promise((resolve) =&gt; { axios .post(url, data, { params }) .then((result) =&gt; { resolve([null, result.data]); }) .catch((err) =&gt; { resolve([err, undefined]); }); }); }; 上面的代码中对method为post的请求方法进行封装，用于解决原生 API 中在处理报错时需要用try~catch包裹。但这种封装有一个缺点：整个post方法只暴露了url,data,params三个参数，通常这三个参数可以满足大多数简单请求。但是，如果我们遇到一个特殊的post接口，它的响应时间较慢，需要设置较长的超时时间，那上面的post方法就立马嗝屁了。
+此时用原生的axios.post方法可以轻松搞定上述特殊场景，如下所示：
+// 针对此次请求把超时时间设置为15s axios.post(&#34;/submit&#34;, form, { timeout: 15000 }); 类似的特殊场景还有很多，例如："><meta itemprop="datePublished" content="2022-12-11T19:39:51+08:00" />
+<meta itemprop="dateModified" content="2022-12-11T19:39:51+08:00" />
+<meta itemprop="wordCount" content="1071">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="一篇拒绝低级封装axios的文章"/>
+<meta name="twitter:description" content="目前掘金上已经有很多关于axios封装的文章。自己在初次阅读这些文章中，见识到很多封装思路，但在付诸实践时一直有疑问：这些看似高级的二次封装，是否会把axios的调用方式弄得更加复杂？ 优秀的二次封装，有以下特点：
+能改善原生框架上的不足：明确原生框架的缺点，且在二次封装后能彻底杜绝这些缺点，与此同时不会引入新的缺点。 保持原有的功能：当进行二次封装时，新框架的 API 可能会更改原生框架的 API 的调用方式（例如传参方式），但我们要保证能通过新 API 调用原生 API 上的所有功能。 理解成本低：有原生框架使用经验的开发者在面对二次封装的框架和 API 时能迅速理解且上手。 但目前我见过，或者我接收过的项目里众多的axios二次封装中，并不具备上述原则，我们接下盘点一些常见的低级的二次封装的手法。
+盘点那些低级的axios二次封装方式 1. 对特定 method 封装成新的 API，却暴露极少的参数 例如以下代码：
+export const post = (url, data, params) =&gt; { return new Promise((resolve) =&gt; { axios .post(url, data, { params }) .then((result) =&gt; { resolve([null, result.data]); }) .catch((err) =&gt; { resolve([err, undefined]); }); }); }; 上面的代码中对method为post的请求方法进行封装，用于解决原生 API 中在处理报错时需要用try~catch包裹。但这种封装有一个缺点：整个post方法只暴露了url,data,params三个参数，通常这三个参数可以满足大多数简单请求。但是，如果我们遇到一个特殊的post接口，它的响应时间较慢，需要设置较长的超时时间，那上面的post方法就立马嗝屁了。
+此时用原生的axios.post方法可以轻松搞定上述特殊场景，如下所示：
+// 针对此次请求把超时时间设置为15s axios.post(&#34;/submit&#34;, form, { timeout: 15000 }); 类似的特殊场景还有很多，例如："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">一篇拒绝低级封装axios的文章</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Dec 11, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>目前掘金上已经有很多关于<code>axios</code>封装的文章。自己在初次阅读这些文章中，见识到很多封装思路，但在付诸实践时一直有疑问：<strong>这些看似高级的二次封装，是否会把<code>axios</code>的调用方式弄得更加复杂？</strong> 优秀的二次封装，有以下特点：</p>
+<ol>
+<li><strong>能改善原生框架上的不足</strong>：明确原生框架的缺点，且在二次封装后能彻底杜绝这些缺点，与此同时不会引入新的缺点。</li>
+<li><strong>保持原有的功能</strong>：当进行二次封装时，新框架的 API 可能会更改原生框架的 API 的调用方式（例如传参方式），但我们要保证能通过新 API 调用原生 API 上的所有功能。</li>
+<li><strong>理解成本低</strong>：有原生框架使用经验的开发者在面对二次封装的框架和 API 时能迅速理解且上手。</li>
+</ol>
+<p>但目前我见过，或者我接收过的项目里众多的<code>axios</code>二次封装中，并不具备上述原则，我们接下盘点一些常见的低级的二次封装的手法。</p>
+<h2 id="盘点那些低级的axios二次封装方式">盘点那些低级的<code>axios</code>二次封装方式</h2>
+<h3 id="1-对特定-method-封装成新的-api却暴露极少的参数">1. 对特定 method 封装成新的 API，却暴露极少的参数</h3>
+<p>例如以下代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">post</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">params</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">axios</span>
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">post</span>(<span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">data</span>, { <span style="color:#a6e22e">params</span> })
+</span></span><span style="display:flex;"><span>      .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">result</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">resolve</span>([<span style="color:#66d9ef">null</span>, <span style="color:#a6e22e">result</span>.<span style="color:#a6e22e">data</span>]);
+</span></span><span style="display:flex;"><span>      })
+</span></span><span style="display:flex;"><span>      .<span style="color:#66d9ef">catch</span>((<span style="color:#a6e22e">err</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">resolve</span>([<span style="color:#a6e22e">err</span>, <span style="color:#66d9ef">undefined</span>]);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>上面的代码中对<code>method</code>为<code>post</code>的请求方法进行封装，用于解决原生 API 中在处理报错时需要用<code>try~catch</code>包裹。但这种封装有一个缺点：整个<code>post</code>方法只暴露了<code>url</code>,<code>data</code>,<code>params</code>三个参数，通常这三个参数可以满足大多数简单请求。但是，如果我们遇到一个特殊的<code>post</code>接口，它的响应时间较慢，需要设置较长的超时时间，那上面的<code>post</code>方法就立马嗝屁了。</p>
+<p>此时用原生的<code>axios.post</code>方法可以轻松搞定上述特殊场景，如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 针对此次请求把超时时间设置为15s
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">post</span>(<span style="color:#e6db74">&#34;/submit&#34;</span>, <span style="color:#a6e22e">form</span>, { <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">15000</span> });
+</span></span></code></pre></div><p>类似的特殊场景还有很多，例如：</p>
+<ol>
+<li>需要上传表单，表单中不仅含数据还有文件，那只能设置<code>headers[&quot;Content-Type&quot;]</code>为<code>&quot;multipart/form-data&quot;</code>进行请求，如果要显示上传文件的进度条，则还要设置<code>onUploadProgress</code>属性。</li>
+<li>存在需要防止数据竞态的接口，那只能设置<code>cancelToken</code>或<code>signal</code>。有人说可以在通过拦截器<code>interceptors</code>统一处理以避免竞态并发，对此我举个用以反对的场景：如果同一个页面中有两个或多个下拉框，两个下拉框都会调用同一个接口获取下拉选项，那你这个用拦截器实现的避免数据竞态的机制就会出现问题，因为会导致这些下拉框中只有一个请求不会被中断。</li>
+</ol>
+<p>有些开发者会说不会出现这种接口，已经约定好的所有<code>post</code>接口只需这三种参数就行。对此我想反驳：一个有潜力的项目总会不断地加入更多的需求，如果你觉得你的项目是没有潜力的，那当我没说。但如果你不敢肯定你的项目之后是否会加入更多特性，不敢保证是否会遇到这类特殊场景，那请你在二次封装时，尽可能地保持与原生<code>API</code>对齐，以保证<strong>原生<code>API</code>中一切能做到的，二次封装后的新<code>API</code>也能做到</strong>。以避免在遇到上述的特殊情况时，你只能尴尬地修改新<code>API</code>，而且还会出现为了兼容因而改得特别难看那种写法。</p>
+<h3 id="2-封装创建axios实例的方法或者封装自定义axios类">2. 封装创建<code>axios</code>实例的方法，或者封装自定义<code>axios</code>类</h3>
+<p>例如以下代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 1. 封装创建`axios`实例的方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">createAxiosByinterceptors</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">config</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">create</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1000</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">withCredentials</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    ...<span style="color:#a6e22e">config</span>,
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">use</span>(<span style="color:#a6e22e">xxx</span>, <span style="color:#a6e22e">xxx</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">use</span>(<span style="color:#a6e22e">xxx</span>, <span style="color:#a6e22e">xxx</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 2. 封装自定义`axios`类
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Request</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">instance</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">AxiosInstance</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">interceptorsObj</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">RequestInterceptors</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">config</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">RequestConfig</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">create</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">interceptorsObj</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">interceptors</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">use</span>(
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">interceptorsObj</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">requestInterceptors</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">interceptorsObj</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">requestInterceptorsCatch</span>,
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">use</span>(
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">interceptorsObj</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">responseInterceptors</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">interceptorsObj</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">responseInterceptorsCatch</span>,
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面的两种写法都是用于创建多个不同配置和不同拦截器的<code>axios</code>实例以应付多个场景。对此我想表明自己的观点：<strong>一个前端项目中，只能存在一个<code>axios</code>实例</strong>。多个<code>axios</code>实例会增加代码理解成本，让参与或者接手项目的开发者花更多的时间去思考和接受每个<code>axios</code>实例的用途和场景，就好比一个项目多个<code>Vuex</code>或<code>Redux</code>一样鸡肋。</p>
+<p>那么有开发者会问如果有相当数量的接口需要用到不同的配置和拦截器，那要怎么办？下面我来分<strong>多个配置</strong>和<strong>多个拦截器</strong>两种场景进行分析：</p>
+<ol>
+<li>多个配置下的处理方式</li>
+</ol>
+<p>如果有两种或以上不同的配置，这些配置各被一部分接口使用。那么就应该声明对应不同配置的常量，然后在调用<code>axios</code>时传入对应的配置常量，如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 声明含不同配置项的常量configA和configB
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">configA</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// ....
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">configB</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// ....
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 在需要这些配置的接口里把对应的常量传进去
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;api1&#34;</span>, <span style="color:#a6e22e">configA</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;api2&#34;</span>, <span style="color:#a6e22e">configB</span>);
+</span></span></code></pre></div><p>对比起多个不同配置的<code>axios</code>实例，上述的写法更加直观，能让阅读代码的人直接看出区别。</p>
+<ol start="2">
+<li>多个拦截器下的处理方式</li>
+</ol>
+<p>如果有两种或以上不同的拦截器，这些拦截器中各被一部分接口使用。那么，<strong>我们可以把这些拦截器都挂载到全局唯一的<code>axios</code>实例上</strong>，然后通过以下两种方式来让拦截器选择性执行：</p>
+<ol>
+<li>
+<p><strong>推荐</strong>：在<code>config</code>中新加一个自定义属性以决定拦截器是否执行，代码如下所示：</p>
+<p>调用请求时，写法如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#34;/api&#34;</span>, {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//新增自定义参数enableIcp来决定是否执行拦截器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">enableIcp</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>在拦截器中，我们这么编写逻辑</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 请求拦截器写法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">use</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// onFulfilled写法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  (<span style="color:#a6e22e">config</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">RequestConfig</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 从config取出enableIcp
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">enableIcp</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">config</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">enableIcp</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//...执行逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">config</span>;
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// onRejected写法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 从error中取出config配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">config</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">error</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 从config取出enableIcp
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">enableIcp</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">config</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">enableIcp</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//...执行逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">error</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 响应拦截器写法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">response</span>.<span style="color:#a6e22e">use</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// onFulfilled写法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  (<span style="color:#a6e22e">response</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 从response中取出config配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">config</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">response</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 从config取出enableIcp
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">enableIcp</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">config</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">enableIcp</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//...执行逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">response</span>;
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// onRejected写法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  (<span style="color:#a6e22e">error</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 从error中取出config配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">config</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">error</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 从config取出enableIcp
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">enableIcp</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">config</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">enableIcp</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//...执行逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">error</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><p>通过以上写法，我们就可以通过<code>config.enableIcp</code>来决定所注册拦截器的拦截器是否执行。举一反三来说，我们可以通过往<code>config</code>塞自定义属性，同时在编写拦截器时配合，就可以完美的控制单个或多个拦截器的执行与否。</p>
+</li>
+<li>
+<p><strong>次要推荐</strong>：使用<code>axios</code>官方提供的<code>runWhen</code>属性来决定拦截器是否执行，<strong>注意该属性只能决定请求拦截器的执行与否，不能决定响应拦截器的执行与否</strong>。用法如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">onGetCall</span>(<span style="color:#a6e22e">config</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">method</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;get&#34;</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">use</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">config</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">headers</span>.<span style="color:#a6e22e">test</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;special get headers&#34;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">config</span>;
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">null</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// onGetCall的执行结果为false时，表示不执行该拦截器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  { <span style="color:#a6e22e">runWhen</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">onGetCall</span> }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><p>关于<code>runWhen</code>更多用法可看<a href="https://github.com/axios/axios#interceptors">axios#interceptors</a></p>
+</li>
+</ol>
+<h3 id="本章总结">本章总结</h3>
+<p>当我们进行二次封装时，切勿为了封装而封装，首先要分析原有框架的缺点，下面我们来分析一下<code>axios</code>目前有什么缺点。</p>
+<h2 id="盘点axios目前的缺点">盘点<code>axios</code>目前的缺点</h2>
+<h3 id="1-不能智能推导params">1. 不能智能推导<code>params</code></h3>
+<p>在<code>axios</code>的类型文件中，<code>config</code>变量对应的类型<code>AxiosRequestConfig</code>如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">AxiosRequestConfig</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">D</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">any</span><span style="color:#f92672">&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">url</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">string</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">method</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">Method</span> <span style="color:#f92672">|</span> <span style="color:#a6e22e">string</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">baseURL</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">string</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">transformRequest</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">AxiosRequestTransformer</span> <span style="color:#f92672">|</span> <span style="color:#a6e22e">AxiosRequestTransformer</span>[];
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">transformResponse</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">AxiosResponseTransformer</span> <span style="color:#f92672">|</span> <span style="color:#a6e22e">AxiosResponseTransformer</span>[];
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">headers</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">AxiosRequestHeaders</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">params</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">any</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">paramsSerializer</span><span style="color:#f92672">?:</span> (<span style="color:#a6e22e">params</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span>) =&gt; <span style="color:#a6e22e">string</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">data</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">D</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">timeout</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">number</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// ...其余属性省略
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>可看出我们可以通过泛型定义<code>data</code>的类型，但<code>params</code>被写死成<code>any</code>类型因此无法定义。</p>
+<h3 id="2-处理错误时需要用trycatch">2. 处理错误时需要用<code>try~catch</code></h3>
+<p>这个应该是很多<code>axios</code>二次封装都会解决的问题。当请求报错时，<code>axios</code>会直接抛出错误。需要开发者用<code>try~catch</code>包裹着，如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">response</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">axios</span>(<span style="color:#e6db74">&#34;/get&#34;</span>);
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// ...处理错误的逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>如果每次都要用<code>try~catch</code>代码块去包裹调用接口的代码行，会很繁琐。</p>
+<h3 id="3-不支持路径参数替换">3. 不支持路径参数替换</h3>
+<p>目前大多数后端暴露的接口格式都遵循<code>RESTful</code>风格，而<code>RESTful</code>风格的<code>url</code>中需要把参数值嵌到路径中，例如存在<code>RESTful</code>风格的接口，<code>url</code>为<code>/api/member/{member_id}</code>，用于获取成员的信息，调用中我们需要把<code>member_id</code>替换成实际值，如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">axios</span>(<span style="color:#e6db74">`/api/member/</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">member_id</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>);
+</span></span></code></pre></div><p>如果把其封装成一个请求资源方法，就要额外暴露对应路径参数的形参。非常不美观，如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getMember</span>(<span style="color:#a6e22e">member_id</span>, <span style="color:#a6e22e">config</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">axios</span>(<span style="color:#e6db74">`/api/member/</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">member_id</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>, <span style="color:#a6e22e">config</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>针对上述缺点，下面我分享一下自己精简的二次封装。</p>
+<h2 id="应该如何精简地进行二次封装">应该如何精简地进行二次封装</h2>
+<p>在本节中我会结合<code>Typescript</code>来展示如何精简地进行二次封装以解决上述<code>axios</code>的缺点。注意在这次封装中我不会写任何涉及到业务上的场景例如<strong>鉴权登录</strong>和<strong>错误码映射</strong>。下面先展示一下二次封装后的使用方式。</p>
+<p><strong><em>本次二次封装后的所有代码可在<a href="https://gitee.com/Hitotsubashi/enhance-axios-frame">enhance-axios-frame</a>中查看。</em></strong></p>
+<h3 id="使用方式以及效果">使用方式以及效果</h3>
+<p>使用方式如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">apis</span>[<span style="color:#a6e22e">method</span>][<span style="color:#a6e22e">url</span>](<span style="color:#a6e22e">config</span>);
+</span></span></code></pre></div><p><code>method</code>对应接口的请求方法；<code>url</code>为接口路径；<code>config</code>则是<code>AxiosConfig</code>，也就是配置。</p>
+<p>返回结果的数据类型为:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 当请求报错时，data为null值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span> <span style="color:#f92672">|</span> <span style="color:#a6e22e">T</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 当请求报错时，err为AxiosError类型的错误实例
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">err</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">AxiosError</span> <span style="color:#f92672">|</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 当请求报错时，response为null值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">response</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">AxiosResponse</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">|</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>下面来展示一下使用效果：</p>
+<ol>
+<li>
+<p><strong>支持<code>url</code>智能推导，且根据输入的<code>url</code>推导出需要的<code>params</code>、<code>data</code>。在缺写或写错请求参数时，会出现<code>ts</code>错误提示</strong></p>
+<p>举两个接口做例子：</p>
+<ul>
+<li>路径为<code>/register</code>，方法为<code>post</code>，<code>data</code>数据类型为<code>{ username: string; password: string }</code></li>
+<li>路径为<code>/password</code>，方法为<code>put</code>，<code>data</code>数据类型为<code>{ password: string }</code>，<code>params</code>数据类型为<code>{ username: string }</code></li>
+</ul>
+<p>调用效果如下所示：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d11d5643ad214faf8ec6d722a1c6739e~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="自动推导api1效果2.gif"></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6fcb571fb02e45758e06ebf60f9299fc~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="自动推导api2效果1.gif"></p>
+<p>通过这种方式，我们无需再通过一个函数来执行请求接口逻辑，而是可以直接通过调用<code>api</code>来执行请求接口逻辑。如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">// ------------以前的方式-------------
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 需要用一个registerAccount函数来包裹着请求代码行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">register</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">username</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>, <span style="color:#a6e22e">password</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span> },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">config</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">AxiosConfig</span>
+</span></span><span style="display:flex;"><span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">post</span>(<span style="color:#e6db74">&#34;/register&#34;</span>, <span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">config</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">App</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">registerAccount</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">username</span>, <span style="color:#a6e22e">password</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">response</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">register</span>({ <span style="color:#a6e22e">username</span>, <span style="color:#a6e22e">password</span> });
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//... 响应结束后处理逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">registerAccount</span>}&gt;<span style="color:#a6e22e">注册账号</span>&lt;/<span style="color:#f92672">button</span>&gt;;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ------------现在的方式-------------
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">App</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">registerAccount</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">username</span>, <span style="color:#a6e22e">password</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 直接调用apis
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">response</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">apis</span>.<span style="color:#a6e22e">post</span>[<span style="color:#e6db74">&#34;/register&#34;</span>]({ <span style="color:#a6e22e">username</span>, <span style="color:#a6e22e">password</span> });
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//... 响应结束后处理逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">registerAccount</span>}&gt;<span style="color:#a6e22e">注册账号</span>&lt;/<span style="color:#f92672">button</span>&gt;;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>以往我们如果想在组件里调用一个已写在前端代码里的接口，则需要先知道接口的<code>url</code>(如上面的<code>/register</code>)，再去通过<code>url</code>在前端代码里找到该接口对应的请求函数(如上面的<code>register</code>)。而如果用本文这种做法，我们只需要知道<code>url</code>就可以。</p>
+<p>这么做还有一个好处是防止重复记录接口。</p>
+</li>
+<li>
+<p>支持返回结果的智能推导</p>
+<p>举一个接口为例子：</p>
+<ul>
+<li>路径为<code>/admin</code>，方法为<code>get</code>，返回结果的数据类型为<code>{admins: string[]}</code></li>
+</ul>
+<p>调用效果如下所示：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c707bf4861fb4cc0a0cdd4e25be390cb~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="返回结果推导api效果.gif"></p>
+</li>
+<li>
+<p>支持错误捕捉，无需写<code>try~catch</code>包裹处理</p>
+<p>调用时写法如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">getAdmins</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> () =&gt; {
+</span></span><span style="display:flex;"><span> <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">data</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">apis</span>.<span style="color:#a6e22e">get</span>[<span style="color:#e6db74">&#39;/admins&#39;</span>]();
+</span></span><span style="display:flex;"><span> <span style="color:#75715e">// 判断如果err不为空，则代表请求出错
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>   <span style="color:#75715e">//.. 处理错误的逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>   <span style="color:#75715e">// 最后return跳出，避免执行下面的逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>   <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span> };
+</span></span><span style="display:flex;"><span> <span style="color:#75715e">// 如果err为空，代表请求正常，此时需要用!强制声明data不为null
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span> <span style="color:#a6e22e">setAdmins</span>(<span style="color:#a6e22e">data</span><span style="color:#f92672">!</span>.<span style="color:#a6e22e">admins</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div></li>
+<li>
+<p>支持路径参数，且路径参数也是会智能推导的</p>
+<p>举一个接口为例子：</p>
+<ul>
+<li>路径为<code>/account/{username}</code>，方法为<code>get</code>，需要<code>username</code>路径参数</li>
+</ul>
+<p>写法如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">getAccount</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">async</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">data</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">apis</span>.<span style="color:#a6e22e">get</span>[<span style="color:#e6db74">&#34;/account/{username}&#34;</span>]({
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// config新增args属性，且在里面定义username的值。最终url会被替换为/account/123
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">args</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">username</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;123&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">err</span>) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setAccount</span>(<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div></li>
+</ol>
+<h3 id="实现方式">实现方式</h3>
+<p>先展示二次封装后的 API 层目录</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/65c2f83b118a42c0a823e53e6c84f568~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+<p>我们先看<code>/apis.index.ts</code>的代码</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">deleteApis</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./apis/delete&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">get</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./apis/get&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">post</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./apis/post&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">put</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./apis/put&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 每一个属性中会包含同名的请求方法下所有接口的请求函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">apis</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">get</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">post</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">put</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">delete</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">deleteApis</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">apis</span>;
+</span></span></code></pre></div><p>逻辑上很简单，只负责导出包含所有请求的<code>apis</code>对象。接下来看看<code>/apis/get.ts</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">makeRequest</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;../request&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;/admins&#34;</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">makeRequest</span><span style="color:#f92672">&lt;</span>{ <span style="color:#a6e22e">admins</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>[] }<span style="color:#f92672">&gt;</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/admins&#34;</span>,
+</span></span><span style="display:flex;"><span>  }),
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;/delay&#34;</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">makeRequest</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/delay&#34;</span>,
+</span></span><span style="display:flex;"><span>  }),
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;/500-error&#34;</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">makeRequest</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/500-error&#34;</span>,
+</span></span><span style="display:flex;"><span>  }),
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// makeRequest用于生成支持智能推导，路径替换，捕获错误的请求函数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 其形参的类型为RequestConfig，该类型在继承AxiosConfig上加了些自定义属性,例如存放路径参数的属性args
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// makeRequest带有四个可选泛型，分别为：
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">//  - Payload: 用于定义响应结果的数据类型，若没有则可定义为undefined，下面的变量也一样
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">//  - Data：用于定义data的数据类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">//  - Params：用于定义parmas的数据类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">//  - Args：用于定义存放路径参数的属性args的数据类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#e6db74">&#34;/account/{username}&#34;</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">makeRequest</span><span style="color:#f92672">&lt;</span>
+</span></span><span style="display:flex;"><span>    { <span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>; <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>; <span style="color:#a6e22e">role</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span> },
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">undefined</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">undefined</span>,
+</span></span><span style="display:flex;"><span>    { <span style="color:#a6e22e">username</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span> }
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&gt;</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/account/{username}&#34;</span>,
+</span></span><span style="display:flex;"><span>  }),
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>一切的重点在于<code>makeRequest</code>，其作用我再注释里已经说了，就不再重复了。值得一提的是，我们在调用<code>apis.get['xx'](config1)</code>中的<code>config1</code>是配置，这里生成请求函数的<code>makeRequest(config2)</code>的<code>config2</code>也是配置，这两个配置在最后会合并在一起。这么设计的好处就是，如果有一个接口需要特殊配置，例如需要更长的<code>timeout</code>，可以直接在<code>makeRequest</code>这里就加上<code>timeout</code>属性如下所示：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 这是一个耗时较长的接口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#e6db74">&#39;/longtime&#39;</span><span style="color:#f92672">:</span>  <span style="color:#a6e22e">makeRequest</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;/longtime&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 设置超时时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">15000</span>
+</span></span><span style="display:flex;"><span>  }),
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这样我们每次在开发中调用<code>apis.get['/longtime']</code>时就不需要再定义<code>timeout</code>了。</p>
+<p>额外说一种情况，如果请求里的<code>body</code>需要放入<code>FormData</code>类型的表单数据，则可以用下面的情况处理:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;/register&#34;</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">makeRequest</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">null</span>, { <span style="color:#a6e22e">username</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>; <span style="color:#a6e22e">password</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span> }<span style="color:#f92672">&gt;</span>({
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/register&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">method</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 把Content-Type设为multipart/form-data后，axios内部会自动把{ username: string; password: string }对象转换为待同属性的FormData类型的变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">headers</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;Content-Type&#34;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;multipart/form-data&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  }),
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>关于上述详情可看<a href="https://github.com/axios/axios#-automatic-serialization-to-formdata">axios#-automatic-serialization-to-formdata</a>。</p>
+<p>下面来看看定义<code>makeRequest</code>方法的<code>/api/request/index.ts</code>文件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">urlArgs</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./interceptor/url-args&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">axios</span>.<span style="color:#a6e22e">create</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">10000</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">baseURL</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/api&#34;</span>,
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 通过拦截器实现路径参数替换机制，之后会放出urlArgs代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">interceptors</span>.<span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">use</span>(<span style="color:#a6e22e">urlArgs</span>.<span style="color:#a6e22e">request</span>.<span style="color:#a6e22e">onFulfilled</span>, <span style="color:#66d9ef">undefined</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 定义返回结果的数据类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">ResultFormat</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">T</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">any</span><span style="color:#f92672">&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span> <span style="color:#f92672">|</span> <span style="color:#a6e22e">T</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">err</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">AxiosError</span> <span style="color:#f92672">|</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">response</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">AxiosResponse</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">|</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 重新定义RequestConfig，在AxiosRequestConfig基础上再加args数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">RequestConfig</span> <span style="color:#66d9ef">extends</span> <span style="color:#a6e22e">AxiosRequestConfig</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">args</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">Record</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">string</span>, <span style="color:#a6e22e">any</span><span style="color:#f92672">&gt;</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> * 允许定义四个可选的泛型参数：
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> *    Payload: 用于定义响应结果的数据类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> *    Data：用于定义data的数据类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> *    Params：用于定义parmas的数据类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> *    Args：用于定义存放路径参数的属性args的数据类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"> */</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 这里的定义中重点处理上述四个泛型在缺省和定义下的四种不同情况
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">MakeRequest</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Payload</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">any</span><span style="color:#f92672">&gt;</span>(<span style="color:#a6e22e">config</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">RequestConfig</span>)<span style="color:#f92672">:</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">requestConfig</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">Partial</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">RequestConfig</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span>  ) =&gt; Promise<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">ResultFormat</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Payload</span><span style="color:#f92672">&gt;&gt;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Payload</span>, <span style="color:#a6e22e">Data</span><span style="color:#f92672">&gt;</span>(<span style="color:#a6e22e">config</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">RequestConfig</span>)<span style="color:#f92672">:</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">requestConfig</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Partial</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Omit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">RequestConfig</span>, <span style="color:#e6db74">&#34;data&#34;</span><span style="color:#f92672">&gt;&gt;</span> <span style="color:#f92672">&amp;</span> { <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Data</span> }
+</span></span><span style="display:flex;"><span>  ) =&gt; Promise<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">ResultFormat</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Payload</span><span style="color:#f92672">&gt;&gt;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Payload</span>, <span style="color:#a6e22e">Data</span>, <span style="color:#a6e22e">Params</span><span style="color:#f92672">&gt;</span>(<span style="color:#a6e22e">config</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">RequestConfig</span>)<span style="color:#f92672">:</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">requestConfig</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Partial</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Omit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">RequestConfig</span>, <span style="color:#e6db74">&#34;data&#34;</span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#34;params&#34;</span><span style="color:#f92672">&gt;&gt;</span> <span style="color:#f92672">&amp;</span>
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">Data</span> <span style="color:#66d9ef">extends</span> <span style="color:#66d9ef">undefined</span> <span style="color:#f92672">?</span> { <span style="color:#a6e22e">data</span><span style="color:#f92672">?:</span> <span style="color:#66d9ef">undefined</span> } <span style="color:#f92672">:</span> { <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Data</span> }) <span style="color:#f92672">&amp;</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">params</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Params</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>  ) =&gt; Promise<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">ResultFormat</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Payload</span><span style="color:#f92672">&gt;&gt;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Payload</span>, <span style="color:#a6e22e">Data</span>, <span style="color:#a6e22e">Params</span>, <span style="color:#a6e22e">Args</span><span style="color:#f92672">&gt;</span>(<span style="color:#a6e22e">config</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">RequestConfig</span>)<span style="color:#f92672">:</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">requestConfig</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Partial</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Omit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">RequestConfig</span>, <span style="color:#e6db74">&#34;data&#34;</span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#34;params&#34;</span> <span style="color:#f92672">|</span> <span style="color:#e6db74">&#34;args&#34;</span><span style="color:#f92672">&gt;&gt;</span> <span style="color:#f92672">&amp;</span>
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">Data</span> <span style="color:#66d9ef">extends</span> <span style="color:#66d9ef">undefined</span> <span style="color:#f92672">?</span> { <span style="color:#a6e22e">data</span><span style="color:#f92672">?:</span> <span style="color:#66d9ef">undefined</span> } <span style="color:#f92672">:</span> { <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Data</span> }) <span style="color:#f92672">&amp;</span>
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">Params</span> <span style="color:#66d9ef">extends</span> <span style="color:#66d9ef">undefined</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">?</span> { <span style="color:#a6e22e">params</span><span style="color:#f92672">?:</span> <span style="color:#66d9ef">undefined</span> }
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">:</span> { <span style="color:#a6e22e">params</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Params</span> }) <span style="color:#f92672">&amp;</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">args</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Args</span>;
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>  ) =&gt; Promise<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">ResultFormat</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Payload</span><span style="color:#f92672">&gt;&gt;</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">makeRequest</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">MakeRequest</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span>(<span style="color:#a6e22e">config</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">RequestConfig</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">requestConfig</span><span style="color:#f92672">?:</span> <span style="color:#a6e22e">Partial</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">RequestConfig</span><span style="color:#f92672">&gt;</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 合并在service中定义的config和调用时从外部传入的config
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">mergedConfig</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">RequestConfig</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>      ...<span style="color:#a6e22e">config</span>,
+</span></span><span style="display:flex;"><span>      ...<span style="color:#a6e22e">requestConfig</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">headers</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        ...<span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">headers</span>,
+</span></span><span style="display:flex;"><span>        ...<span style="color:#a6e22e">requestConfig</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">headers</span>,
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 统一处理返回类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">response</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">AxiosResponse</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">T</span>, <span style="color:#a6e22e">RequestConfig</span><span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">instance</span>.<span style="color:#a6e22e">request</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span>(<span style="color:#a6e22e">mergedConfig</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">data</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">response</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> { <span style="color:#a6e22e">err</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>, <span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">response</span> };
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">err</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> { <span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span>, <span style="color:#a6e22e">response</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">null</span> };
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">makeRequest</span>;
+</span></span></code></pre></div><p>上面代码中重点在于<code>MakeRequest</code>类型中对泛型的处理，其余逻辑都很简单。</p>
+<p>最后展示一下支持路径参数替换的拦截器<code>urlArgs</code>对应的代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">urlArgsHandler</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">request</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">onFulfilled</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">config</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">AxiosRequestConfig</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">url</span>, <span style="color:#a6e22e">args</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">config</span> <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">RequestConfig</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 检查config中是否有args属性，没有则跳过以下代码逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">args</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">lostParams</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>[] <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 使用String.prototype.replace和正则表达式进行匹配替换
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">replacedUrl</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">url</span><span style="color:#f92672">!</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">/\{([^}]+)\}/g</span>, (<span style="color:#a6e22e">res</span>, <span style="color:#a6e22e">arg</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>) =&gt; {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">args</span>[<span style="color:#a6e22e">arg</span>]) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">lostParams</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">arg</span>);
+</span></span><span style="display:flex;"><span>          }
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">args</span>[<span style="color:#a6e22e">arg</span>] <span style="color:#a6e22e">as</span> <span style="color:#a6e22e">string</span>;
+</span></span><span style="display:flex;"><span>        });
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 如果url存在未替换的路径参数，则会直接报错
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">lostParams</span>.<span style="color:#a6e22e">length</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">return</span> Promise.<span style="color:#a6e22e">reject</span>(<span style="color:#66d9ef">new</span> Error(<span style="color:#e6db74">&#34;在args中找不到对应的路径参数&#34;</span>));
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> { ...<span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">replacedUrl</span> };
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">config</span>;
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>已上就是整个二次封装的过程了，如果有不懂的可以直接查看<a href="https://gitee.com/Hitotsubashi/enhance-axios-frame">项目 enhance-axios-frame</a>里的代码或在评论区讨论。</p>
+<h2 id="进阶">进阶：</h2>
+<p>我在之前的<a href="https://juejin.cn/post/7131759714458664990">文章</a>里有介绍如何给<code>axios</code>附加更多高级功能，如果有兴趣的可以点击以下链接看看：</p>
+<ol>
+<li><a href="https://juejin.cn/post/7131759714458664990#heading-15">反馈请求结果</a></li>
+<li><a href="https://juejin.cn/post/7131759714458664990#heading-17">接口限流</a></li>
+<li><a href="https://juejin.cn/post/7131759714458664990#heading-20">数据缓存</a></li>
+<li><a href="https://juejin.cn/post/7131759714458664990#heading-21">错误自动重试</a></li>
+</ol>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/270/"
+      ><span class="mr-1.5">←</span><span>有意思的水平横向溢出滚动</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/268/"
+      ><span>「硬核JS」深入了解异步解决方案</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>如何使用Map处理Dom节点 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="本文浅析一下为什么Map（和 WeakMap）在处理大量 DOM 节点时特别有用。
+我们在 JavaScript 中使用了很多普通的、古老的对象来存储键/值数据，它们处理的非常出色：
+const person = { firstName: &#34;Alex&#34;, lastName: &#34;MacArthur&#34;, isACommunist: false, }; 但是，当你开始处理较大的实体，其属性经常被读取、更改和添加时，人们越来越多地使用Map来代替。这是有原因的：在某些情况下，Map 跟对象相比有多种优势，特别是那些有敏感的性能问题或插入的顺序非常重要的情况。
+但最近，我意识到我特别喜欢用它们来处理大量的 DOM 节点集合。
+这个想法是在阅读 Caleb Porzio最近的一篇博文时产生的。在这篇文章中，他正在处理一个假设的例子，即一个由 10,000 行组成的表，其中一条可以是&quot;active&quot;。为了管理不同行被选中的状态，一个对象被用于键/值存储。下面是他的一个迭代的注释版本。
+import { ref, watchEffect } from &#34;vue&#34;; let rowStates = {}; let activeRow; document.querySelectorAll(&#34;tr&#34;).forEach((row) =&gt; { // Set row state. rowStates[row.id] = ref(false); row.addEventListener(&#34;click&#34;, () =&gt; { // Update row state. if (activeRow) rowStates[activeRow].value = false; activeRow = row.id; rowStates[row.id].value = true; }); watchEffect(() =&gt; { // Read row state." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="如何使用Map处理Dom节点" />
+<meta property="og:description" content="本文浅析一下为什么Map（和 WeakMap）在处理大量 DOM 节点时特别有用。
+我们在 JavaScript 中使用了很多普通的、古老的对象来存储键/值数据，它们处理的非常出色：
+const person = { firstName: &#34;Alex&#34;, lastName: &#34;MacArthur&#34;, isACommunist: false, }; 但是，当你开始处理较大的实体，其属性经常被读取、更改和添加时，人们越来越多地使用Map来代替。这是有原因的：在某些情况下，Map 跟对象相比有多种优势，特别是那些有敏感的性能问题或插入的顺序非常重要的情况。
+但最近，我意识到我特别喜欢用它们来处理大量的 DOM 节点集合。
+这个想法是在阅读 Caleb Porzio最近的一篇博文时产生的。在这篇文章中，他正在处理一个假设的例子，即一个由 10,000 行组成的表，其中一条可以是&quot;active&quot;。为了管理不同行被选中的状态，一个对象被用于键/值存储。下面是他的一个迭代的注释版本。
+import { ref, watchEffect } from &#34;vue&#34;; let rowStates = {}; let activeRow; document.querySelectorAll(&#34;tr&#34;).forEach((row) =&gt; { // Set row state. rowStates[row.id] = ref(false); row.addEventListener(&#34;click&#34;, () =&gt; { // Update row state. if (activeRow) rowStates[activeRow].value = false; activeRow = row.id; rowStates[row.id].value = true; }); watchEffect(() =&gt; { // Read row state." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/626/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-05-25T10:51:38+08:00" />
+<meta property="article:modified_time" content="2023-05-25T10:51:38+08:00" />
+
+  
+  <meta itemprop="name" content="如何使用Map处理Dom节点">
+<meta itemprop="description" content="本文浅析一下为什么Map（和 WeakMap）在处理大量 DOM 节点时特别有用。
+我们在 JavaScript 中使用了很多普通的、古老的对象来存储键/值数据，它们处理的非常出色：
+const person = { firstName: &#34;Alex&#34;, lastName: &#34;MacArthur&#34;, isACommunist: false, }; 但是，当你开始处理较大的实体，其属性经常被读取、更改和添加时，人们越来越多地使用Map来代替。这是有原因的：在某些情况下，Map 跟对象相比有多种优势，特别是那些有敏感的性能问题或插入的顺序非常重要的情况。
+但最近，我意识到我特别喜欢用它们来处理大量的 DOM 节点集合。
+这个想法是在阅读 Caleb Porzio最近的一篇博文时产生的。在这篇文章中，他正在处理一个假设的例子，即一个由 10,000 行组成的表，其中一条可以是&quot;active&quot;。为了管理不同行被选中的状态，一个对象被用于键/值存储。下面是他的一个迭代的注释版本。
+import { ref, watchEffect } from &#34;vue&#34;; let rowStates = {}; let activeRow; document.querySelectorAll(&#34;tr&#34;).forEach((row) =&gt; { // Set row state. rowStates[row.id] = ref(false); row.addEventListener(&#34;click&#34;, () =&gt; { // Update row state. if (activeRow) rowStates[activeRow].value = false; activeRow = row.id; rowStates[row.id].value = true; }); watchEffect(() =&gt; { // Read row state."><meta itemprop="datePublished" content="2023-05-25T10:51:38+08:00" />
+<meta itemprop="dateModified" content="2023-05-25T10:51:38+08:00" />
+<meta itemprop="wordCount" content="440">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="如何使用Map处理Dom节点"/>
+<meta name="twitter:description" content="本文浅析一下为什么Map（和 WeakMap）在处理大量 DOM 节点时特别有用。
+我们在 JavaScript 中使用了很多普通的、古老的对象来存储键/值数据，它们处理的非常出色：
+const person = { firstName: &#34;Alex&#34;, lastName: &#34;MacArthur&#34;, isACommunist: false, }; 但是，当你开始处理较大的实体，其属性经常被读取、更改和添加时，人们越来越多地使用Map来代替。这是有原因的：在某些情况下，Map 跟对象相比有多种优势，特别是那些有敏感的性能问题或插入的顺序非常重要的情况。
+但最近，我意识到我特别喜欢用它们来处理大量的 DOM 节点集合。
+这个想法是在阅读 Caleb Porzio最近的一篇博文时产生的。在这篇文章中，他正在处理一个假设的例子，即一个由 10,000 行组成的表，其中一条可以是&quot;active&quot;。为了管理不同行被选中的状态，一个对象被用于键/值存储。下面是他的一个迭代的注释版本。
+import { ref, watchEffect } from &#34;vue&#34;; let rowStates = {}; let activeRow; document.querySelectorAll(&#34;tr&#34;).forEach((row) =&gt; { // Set row state. rowStates[row.id] = ref(false); row.addEventListener(&#34;click&#34;, () =&gt; { // Update row state. if (activeRow) rowStates[activeRow].value = false; activeRow = row.id; rowStates[row.id].value = true; }); watchEffect(() =&gt; { // Read row state."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">如何使用Map处理Dom节点</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>May 25, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>本文浅析一下为什么<code>Map</code>（和 WeakMap）在处理大量 DOM 节点时特别有用。</p>
+<p>我们在 JavaScript 中使用了很多普通的、古老的对象来存储键/值数据，它们处理的非常出色：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">person</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">firstName</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Alex&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">lastName</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;MacArthur&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">isACommunist</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>但是，当你开始处理较大的实体，其属性经常被读取、更改和添加时，人们越来越多地使用<code>Map</code>来代替。这是有原因的：在某些情况下，Map 跟对象相比有多种优势，特别是那些有敏感的性能问题或插入的顺序非常重要的情况。</p>
+<p>但最近，我意识到我特别喜欢用它们来处理大量的 DOM 节点集合。</p>
+<p>这个想法是在阅读 Caleb Porzio<a href="https://calebporzio.com/reactive-switchboard?ref=alex-macarthur">最近的一篇博文</a>时产生的。在这篇文章中，他正在处理一个假设的例子，即一个由 10,000 行组成的表，其中一条可以是&quot;active&quot;。为了管理不同行被选中的状态，一个对象被用于键/值存储。下面是他的一个迭代的注释版本。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">ref</span>, <span style="color:#a6e22e">watchEffect</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;vue&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">rowStates</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">activeRow</span>;
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">querySelectorAll</span>(<span style="color:#e6db74">&#34;tr&#34;</span>).<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">row</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// Set row state.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">rowStates</span>[<span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">id</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">ref</span>(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;click&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Update row state.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">activeRow</span>) <span style="color:#a6e22e">rowStates</span>[<span style="color:#a6e22e">activeRow</span>].<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">activeRow</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">id</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rowStates</span>[<span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">id</span>].<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">watchEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Read row state.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">rowStates</span>[<span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">id</span>].<span style="color:#a6e22e">value</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">classList</span>.<span style="color:#a6e22e">add</span>(<span style="color:#e6db74">&#34;active&#34;</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">classList</span>.<span style="color:#a6e22e">remove</span>(<span style="color:#e6db74">&#34;active&#34;</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>这能很好地完成工作。但是，它使用一个对象作为一个大型的类散列表，所以用于关联值的键必须是一个字符串，从而要求每个项目有一个唯一的 ID（或其他字符串值）。这带来了一些额外的程序性开销，以便在需要时生成和读取这些值。</p>
+<h2 id="对象即-key">对象即 key</h2>
+<p>与之对应的是，<code>Map</code>允许我们使用 HTML 节点作为自身的键。上面的代码片段最终会是这样：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">ref</span>, <span style="color:#a6e22e">watchEffect</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;vue&#39;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">-</span> <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">rowStates</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">rowStates</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Map</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">activeRow</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">querySelectorAll</span>(<span style="color:#e6db74">&#39;tr&#39;</span>).<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">row</span>) =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">-</span>   <span style="color:#a6e22e">rowStates</span>[<span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">id</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">ref</span>(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>   <span style="color:#a6e22e">rowStates</span>.<span style="color:#a6e22e">set</span>(<span style="color:#a6e22e">row</span>, <span style="color:#a6e22e">ref</span>(<span style="color:#66d9ef">false</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#39;click&#39;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">-</span>       <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">activeRow</span>) <span style="color:#a6e22e">rowStates</span>[<span style="color:#a6e22e">activeRow</span>].<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">activeRow</span>) <span style="color:#a6e22e">rowStates</span>.<span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">activeRow</span>).<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">activeRow</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">row</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">-</span>       <span style="color:#a6e22e">rowStates</span>[<span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">id</span>].<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#a6e22e">rowStates</span>.<span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">activeRow</span>).<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">watchEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">-</span>       <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">rowStates</span>[<span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">id</span>].<span style="color:#a6e22e">value</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>       <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">rowStates</span>.<span style="color:#a6e22e">get</span>(<span style="color:#a6e22e">row</span>).<span style="color:#a6e22e">value</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">classList</span>.<span style="color:#a6e22e">add</span>(<span style="color:#e6db74">&#39;active&#39;</span>);
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">row</span>.<span style="color:#a6e22e">classList</span>.<span style="color:#a6e22e">remove</span>(<span style="color:#e6db74">&#39;active&#39;</span>);
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>这里最明显的好处是，我不需要担心每一行都有唯一的 ID。具有唯一性的节点本身就可以作为键。正因为如此，设置或读取任何属性都是不必要的。它更简单，也更有弹性。</p>
+<h2 id="读写性能更佳">读写性能更佳</h2>
+<p>在大多数情况下，这种差别是可以忽略不计的。但是，当你处理更大的数据集时，操作的性能就会明显提高。这甚至体现在规范中&ndash;<code>Map</code>的构建方式必须能够在项目数量不断增加时保持性能：</p>
+<blockquote>
+<p><code>Map</code>必须使用哈希表或其他机制来实现，平均来说，这些机制提供的访问时间是集合中元素数量的亚线性。</p>
+</blockquote>
+<p>&ldquo;亚线性&quot;只是意味着性能不会以与<code>Map</code>大小成比例的速度下降。因此，即使是大的 Map 也应该保持相当快的速度。</p>
+<p>但即使在此基础上，也不需要搞乱 DOM 属性或通过一个类似字符串的 ID 进行查找。每个键本身就是一个引用，这意味着我们可以跳过一两个步骤。</p>
+<p>我做了一些基本的性能测试来确认这一切。首先，按照 Caleb 的方案，我在一个页面上生成了 10,000 个<code>&lt;tr&gt;</code>元素：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">table</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;table&#34;</span>);
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">append</span>(<span style="color:#a6e22e">table</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">count</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">10_000</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">count</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">item</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;tr&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">id</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">i</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">textContent</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;item&#34;</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">table</span>.<span style="color:#a6e22e">append</span>(<span style="color:#a6e22e">item</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>接下来，我建立了一个模板，用于测量循环所有这些行并将一些相关的状态存储在一个对象或<code>Map</code>中需要多长时间。我还在<code>for</code>循环中多次运行同一过程，然后确定写入和读取的平均时间。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">rows</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">querySelectorAll</span>(<span style="color:#e6db74">&#34;tr&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">times</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">testMap</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Map</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">testObj</span> <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1000</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">start</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">rows</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">row</span>, <span style="color:#a6e22e">index</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Test Case #1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// testObj[row.id] = index;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// const result = testObj[row.id];
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// Test Case #2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// testMap.set(row, index);
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// const result = testMap.get(row);
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">times</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>() <span style="color:#f92672">-</span> <span style="color:#a6e22e">start</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">average</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">times</span>.<span style="color:#a6e22e">reduce</span>((<span style="color:#a6e22e">acc</span>, <span style="color:#a6e22e">i</span>) =&gt; <span style="color:#a6e22e">acc</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">i</span>, <span style="color:#ae81ff">0</span>) <span style="color:#f92672">/</span> <span style="color:#a6e22e">times</span>.<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">average</span>);
+</span></span></code></pre></div><p>下面是测试结果：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>100 行</th>
+<th>10000 行</th>
+<th>100000 行</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Object</td>
+<td>0.023ms</td>
+<td>3.45ms</td>
+<td>89.9ms</td>
+</tr>
+<tr>
+<td>Map</td>
+<td>0.019ms</td>
+<td>2.1ms</td>
+<td>48.7ms</td>
+</tr>
+<tr>
+<td></td>
+<td>17%</td>
+<td>39%</td>
+<td>46%</td>
+</tr>
+</tbody>
+</table>
+<p>请记住，这些结果在稍有不同的情况下可能会有相当大的差异，但总的来说，它们总体上符合我的期望。当处理相对较少的项目时，<code>Map</code>和对象之间的性能是相当的。但随着项目数量的增加，<code>Map</code>开始拉开距离。这种性能上的亚线性变化开始显现出来。</p>
+<h2 id="weakmaps-更有效地管理内存">WeakMaps 更有效地管理内存</h2>
+<p>有一个特殊版本的<code>Map</code>接口被设计用来更好地管理内存&ndash;<code>WeakMap</code>。它通过持有对其键的&quot;弱&quot;引用来做到这一点，所以如果这些对象键中的任何一个不再有其他地方的引用与之绑定，它就有资格进行垃圾回收。因此，当不再需要该键时，整个条目就会自动从<code>WeakMap</code>中删除，从而清除更多的内存。这也适用于 DOM 节点。</p>
+<p>为了解决这个问题，我们将使用<code>FinalizationRegistry</code>，每当你所监听的引用被垃圾回收时，它就会<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry?ref=alex-macarthur">触发一个回调</a>（我从未想到会发现这样的好东西）。我们将从几个列表项开始：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">ul</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">li</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;item1&#34;</span>&gt;first&lt;/<span style="color:#f92672">li</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">li</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;item2&#34;</span>&gt;second&lt;/<span style="color:#f92672">li</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">li</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;item3&#34;</span>&gt;third&lt;/<span style="color:#f92672">li</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">ul</span>&gt;
+</span></span></code></pre></div><p>接下来，我们将把这些项放在<code>WeakMap</code>中并注册<code>item2</code>，使其受到注册的监听。我们将删除它，只要它被垃圾回收，回调就会被触发，我们就能看到<code>WeakMap</code>的变化。</p>
+<p>但是&hellip;&hellip;垃圾收集是不可预测的，而且没有正式的方法来使它发生，所以为了让垃圾回收产生，我们将定期生成一堆对象并将它们持久化在内存中。下面是整个脚本代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>(<span style="color:#66d9ef">async</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">listMap</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">WeakMap</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// Stick each item in a WeakMap.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  document.<span style="color:#a6e22e">querySelectorAll</span>(<span style="color:#e6db74">&#34;li&#34;</span>).<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">node</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">listMap</span>.<span style="color:#a6e22e">set</span>(<span style="color:#a6e22e">node</span>, <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">id</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">registry</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">FinalizationRegistry</span>((<span style="color:#a6e22e">heldValue</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Garbage collection has happened!
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;After collection:&#34;</span>, <span style="color:#a6e22e">heldValue</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">registry</span>.<span style="color:#a6e22e">register</span>(document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;item2&#34;</span>), <span style="color:#a6e22e">listMap</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;Before collection:&#34;</span>, <span style="color:#a6e22e">listMap</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// Remove node, freeing up reference!
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;item2&#34;</span>).<span style="color:#a6e22e">remove</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// Periodically create a bunch o&#39; objects to trigger collection.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">objs</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span> (<span style="color:#66d9ef">true</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">100</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">objs</span>.<span style="color:#a6e22e">push</span>(...<span style="color:#66d9ef">new</span> Array(<span style="color:#ae81ff">100</span>));
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>) =&gt; <span style="color:#a6e22e">setTimeout</span>(<span style="color:#a6e22e">resolve</span>, <span style="color:#ae81ff">10</span>));
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>})();
+</span></span></code></pre></div><p>在任何事情发生之前，<code>WeakMap</code>持有三个项，正如预期的那样。但在第二个项从 DOM 中被移除并发生垃圾回收后，它看起来有点不同：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/824af738276c484a8add0e2552a44d71~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>由于节点引用不再存在于 DOM 中，整个条目都被从<code>WeakMap</code>中删除，释放了一点内存。这是一个我很欣赏的功能，有助于保持环境的内存更加整洁。</p>
+<h2 id="太长不看版">太长不看版</h2>
+<p>我喜欢为 DOM 节点使用<code>Map</code>，因为：</p>
+<ul>
+<li>节点本身可以作为键。我不需要先在每个节点上设置或读取独特的属性。</li>
+<li>和具有大量成员的对象相比，<code>Map</code>（被设计成）更具有性能。</li>
+<li>使用以节点为键的<code>WeakMap</code>意味着如果一个节点从 DOM 中被移除，条目将被自动垃圾回收。</li>
+</ul>
+<p>本文译自：<a href="https://www.macarthur.me/posts/maps-for-dom-nodes">www.macarthur.me/posts/maps-…</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/627/"
+      ><span class="mr-1.5">←</span><span>你可能不需要微前端，但你一定会需要微内核</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/625/"
+      ><span>都2023了，还在用传统CSS UI 框架</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

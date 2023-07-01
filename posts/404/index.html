@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>React 中的 &#39;最新 Ref 模式&#39; - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="原文： https://epicreact.dev/the-latest-ref-pattern-in-react/
+博文 《&ldquo;How React Uses Closures to Avoid Bugs&rdquo;》(https://epicreact.dev/how-react-uses-closures-to-avoid-bugs) 解释了当 React 从类和生命周期转换到函数和 hooks 时所做的一些权衡；我想在这个主题上深入一下。
+在那篇文章中，有以下示例：
+function useDebounce(callback, delay) { const callbackRef = React.useRef(callback); React.useLayoutEffect(() =&gt; { callbackRef.current = callback; }); return React.useMemo( () =&gt; debounce((...args) =&gt; callbackRef.current(...args), delay), [delay] ); } hook 的创始人 Yago 喜欢称之为“最新 Ref 模式”的模式。
+这个模式本身非常简单。这就是模式的部分：
+const callbackRef = React.useRef(callback); React.useLayoutEffect(() =&gt; { callbackRef.current = callback; }); 就是这样而已。
+那么为什么要这样做呢？好吧，让我们考虑何时使用 useRef。当你想跟踪一个值但不想在更新它时触发重新渲染时，就可以使用useRef。所以在例子中，我们正试图跟踪callback。这样做的原因是，我们希望始终调用最新版本的callback，而不是旧渲染中的版本。
+但是为什么不使用useState呢？是否可以在实际的状态值中跟踪这个最新的回调值？我们不想使用useState，因为当更新到最新值时，不需要触发组件重新渲染。实际上，在我们的例子中，如果尝试这样做，将触发一个无限循环（试试看吧 😈）。
+由于不需要也不希望在将callback更新为最新值时重新渲染组件，这意味着我们也不需要（而且实际上不应该）将它包含在useEffect、useCallback或例子的useMemo依赖数组中。这是一个重要的观点，因此我想深入探讨一下。
+遵循eslint-plugin-react-hooks/exhaustive-deps规则并始终包括所有依赖项非常重要。但是您应该跳过引用的“current”值。所以永远不要这样做：
+// ❌ 永远不要这样做 React." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="React 中的 &#39;最新 Ref 模式&#39;" />
+<meta property="og:description" content="原文： https://epicreact.dev/the-latest-ref-pattern-in-react/
+博文 《&ldquo;How React Uses Closures to Avoid Bugs&rdquo;》(https://epicreact.dev/how-react-uses-closures-to-avoid-bugs) 解释了当 React 从类和生命周期转换到函数和 hooks 时所做的一些权衡；我想在这个主题上深入一下。
+在那篇文章中，有以下示例：
+function useDebounce(callback, delay) { const callbackRef = React.useRef(callback); React.useLayoutEffect(() =&gt; { callbackRef.current = callback; }); return React.useMemo( () =&gt; debounce((...args) =&gt; callbackRef.current(...args), delay), [delay] ); } hook 的创始人 Yago 喜欢称之为“最新 Ref 模式”的模式。
+这个模式本身非常简单。这就是模式的部分：
+const callbackRef = React.useRef(callback); React.useLayoutEffect(() =&gt; { callbackRef.current = callback; }); 就是这样而已。
+那么为什么要这样做呢？好吧，让我们考虑何时使用 useRef。当你想跟踪一个值但不想在更新它时触发重新渲染时，就可以使用useRef。所以在例子中，我们正试图跟踪callback。这样做的原因是，我们希望始终调用最新版本的callback，而不是旧渲染中的版本。
+但是为什么不使用useState呢？是否可以在实际的状态值中跟踪这个最新的回调值？我们不想使用useState，因为当更新到最新值时，不需要触发组件重新渲染。实际上，在我们的例子中，如果尝试这样做，将触发一个无限循环（试试看吧 😈）。
+由于不需要也不希望在将callback更新为最新值时重新渲染组件，这意味着我们也不需要（而且实际上不应该）将它包含在useEffect、useCallback或例子的useMemo依赖数组中。这是一个重要的观点，因此我想深入探讨一下。
+遵循eslint-plugin-react-hooks/exhaustive-deps规则并始终包括所有依赖项非常重要。但是您应该跳过引用的“current”值。所以永远不要这样做：
+// ❌ 永远不要这样做 React." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/404/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-23T23:09:01+08:00" />
+<meta property="article:modified_time" content="2023-03-23T23:09:01+08:00" />
+
+  
+  <meta itemprop="name" content="React 中的 &#39;最新 Ref 模式&#39;">
+<meta itemprop="description" content="原文： https://epicreact.dev/the-latest-ref-pattern-in-react/
+博文 《&ldquo;How React Uses Closures to Avoid Bugs&rdquo;》(https://epicreact.dev/how-react-uses-closures-to-avoid-bugs) 解释了当 React 从类和生命周期转换到函数和 hooks 时所做的一些权衡；我想在这个主题上深入一下。
+在那篇文章中，有以下示例：
+function useDebounce(callback, delay) { const callbackRef = React.useRef(callback); React.useLayoutEffect(() =&gt; { callbackRef.current = callback; }); return React.useMemo( () =&gt; debounce((...args) =&gt; callbackRef.current(...args), delay), [delay] ); } hook 的创始人 Yago 喜欢称之为“最新 Ref 模式”的模式。
+这个模式本身非常简单。这就是模式的部分：
+const callbackRef = React.useRef(callback); React.useLayoutEffect(() =&gt; { callbackRef.current = callback; }); 就是这样而已。
+那么为什么要这样做呢？好吧，让我们考虑何时使用 useRef。当你想跟踪一个值但不想在更新它时触发重新渲染时，就可以使用useRef。所以在例子中，我们正试图跟踪callback。这样做的原因是，我们希望始终调用最新版本的callback，而不是旧渲染中的版本。
+但是为什么不使用useState呢？是否可以在实际的状态值中跟踪这个最新的回调值？我们不想使用useState，因为当更新到最新值时，不需要触发组件重新渲染。实际上，在我们的例子中，如果尝试这样做，将触发一个无限循环（试试看吧 😈）。
+由于不需要也不希望在将callback更新为最新值时重新渲染组件，这意味着我们也不需要（而且实际上不应该）将它包含在useEffect、useCallback或例子的useMemo依赖数组中。这是一个重要的观点，因此我想深入探讨一下。
+遵循eslint-plugin-react-hooks/exhaustive-deps规则并始终包括所有依赖项非常重要。但是您应该跳过引用的“current”值。所以永远不要这样做：
+// ❌ 永远不要这样做 React."><meta itemprop="datePublished" content="2023-03-23T23:09:01+08:00" />
+<meta itemprop="dateModified" content="2023-03-23T23:09:01+08:00" />
+<meta itemprop="wordCount" content="105">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="React 中的 &#39;最新 Ref 模式&#39;"/>
+<meta name="twitter:description" content="原文： https://epicreact.dev/the-latest-ref-pattern-in-react/
+博文 《&ldquo;How React Uses Closures to Avoid Bugs&rdquo;》(https://epicreact.dev/how-react-uses-closures-to-avoid-bugs) 解释了当 React 从类和生命周期转换到函数和 hooks 时所做的一些权衡；我想在这个主题上深入一下。
+在那篇文章中，有以下示例：
+function useDebounce(callback, delay) { const callbackRef = React.useRef(callback); React.useLayoutEffect(() =&gt; { callbackRef.current = callback; }); return React.useMemo( () =&gt; debounce((...args) =&gt; callbackRef.current(...args), delay), [delay] ); } hook 的创始人 Yago 喜欢称之为“最新 Ref 模式”的模式。
+这个模式本身非常简单。这就是模式的部分：
+const callbackRef = React.useRef(callback); React.useLayoutEffect(() =&gt; { callbackRef.current = callback; }); 就是这样而已。
+那么为什么要这样做呢？好吧，让我们考虑何时使用 useRef。当你想跟踪一个值但不想在更新它时触发重新渲染时，就可以使用useRef。所以在例子中，我们正试图跟踪callback。这样做的原因是，我们希望始终调用最新版本的callback，而不是旧渲染中的版本。
+但是为什么不使用useState呢？是否可以在实际的状态值中跟踪这个最新的回调值？我们不想使用useState，因为当更新到最新值时，不需要触发组件重新渲染。实际上，在我们的例子中，如果尝试这样做，将触发一个无限循环（试试看吧 😈）。
+由于不需要也不希望在将callback更新为最新值时重新渲染组件，这意味着我们也不需要（而且实际上不应该）将它包含在useEffect、useCallback或例子的useMemo依赖数组中。这是一个重要的观点，因此我想深入探讨一下。
+遵循eslint-plugin-react-hooks/exhaustive-deps规则并始终包括所有依赖项非常重要。但是您应该跳过引用的“current”值。所以永远不要这样做：
+// ❌ 永远不要这样做 React."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">React 中的 &#39;最新 Ref 模式&#39;</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 23, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>原文： <a href="https://epicreact.dev/the-latest-ref-pattern-in-react/">https://epicreact.dev/the-latest-ref-pattern-in-react/</a></p>
+<p>博文 《&ldquo;How React Uses Closures to Avoid Bugs&rdquo;》(<a href="https://epicreact.dev/how-react-uses-closures-to-avoid-bugs">https://epicreact.dev/how-react-uses-closures-to-avoid-bugs</a>) 解释了当 React 从类和生命周期转换到函数和 hooks 时所做的一些权衡；我想在这个主题上深入一下。</p>
+<p>在那篇文章中，有以下示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">useDebounce</span>(<span style="color:#a6e22e">callback</span>, <span style="color:#a6e22e">delay</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">callbackRef</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">useRef</span>(<span style="color:#a6e22e">callback</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">useLayoutEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">callbackRef</span>.<span style="color:#a6e22e">current</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">callback</span>;
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">useMemo</span>(
+</span></span><span style="display:flex;"><span>    () =&gt; <span style="color:#a6e22e">debounce</span>((...<span style="color:#a6e22e">args</span>) =&gt; <span style="color:#a6e22e">callbackRef</span>.<span style="color:#a6e22e">current</span>(...<span style="color:#a6e22e">args</span>), <span style="color:#a6e22e">delay</span>),
+</span></span><span style="display:flex;"><span>    [<span style="color:#a6e22e">delay</span>]
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>hook 的创始人 Yago 喜欢称之为“最新 Ref 模式”的模式。</p>
+<p>这个模式本身非常简单。这就是模式的部分：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">callbackRef</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">useRef</span>(<span style="color:#a6e22e">callback</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">useLayoutEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">callbackRef</span>.<span style="color:#a6e22e">current</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">callback</span>;
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>就是这样而已。</p>
+<p>那么为什么要这样做呢？好吧，让我们考虑何时使用 <code>useRef</code>。当你想跟踪一个值但不想在更新它时触发重新渲染时，就可以使用<code>useRef</code>。所以在例子中，我们正试图跟踪<code>callback</code>。这样做的原因是，我们希望始终调用最新版本的<code>callback</code>，而不是旧渲染中的版本。</p>
+<p>但是为什么不使用<code>useState</code>呢？是否可以在实际的状态值中跟踪这个最新的回调值？我们不想使用<code>useState</code>，因为当更新到最新值时，不需要触发组件重新渲染。实际上，在我们的例子中，如果尝试这样做，将触发一个无限循环（试试看吧 😈）。</p>
+<p>由于不需要也不希望在将<code>callback</code>更新为最新值时重新渲染组件，这意味着我们也不需要（而且实际上不应该）将它包含在<code>useEffect</code>、<code>useCallback</code>或例子的<code>useMemo</code>依赖数组中。这是一个重要的观点，因此我想深入探讨一下。</p>
+<p>遵循<code>eslint-plugin-react-hooks/exhaustive-deps</code>规则并始终包括所有依赖项非常重要。但是您应该跳过引用的“current”值。所以永远不要这样做：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">// ❌ 永远不要这样做
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">useEffect</span>(() =&gt; {}, [<span style="color:#a6e22e">ref</span>.<span style="color:#a6e22e">current</span>]);
+</span></span></code></pre></div><p>这是因为更新引用不会触发重新渲染，所以 React 无法在更新引用时调用 effect 回调函数或更新记忆化值。因此，如果将 <code>ref.current</code> 包含在依赖项数组中，你将触发怪异且难以调试的行为。顺便说一下，由于 <code>ref</code> 本身是一个稳定的对象，因此是否在依赖项数组中包含 <code>ref</code> 对象本身并不重要：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">// 🤷‍♂️ 是否包含 ref 都没关系
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">useEffect</span>(() =&gt; {}, [<span style="color:#a6e22e">ref</span>]);
+</span></span></code></pre></div><p>但是，如果没有包含所有非 ref 依赖项，可能会遇到一些严重的错误，因此请不要忽略 <a href="https://www.npmjs.com/package/eslint-plugin-react-hooks">https://www.npmjs.com/package/eslint-plugin-react-hooks</a> 规则。</p>
+<h2 id="结论">结论</h2>
+<p>在到处使用“最新 Ref 模式”之前，我建议您充分了解您正在规避的内容，因此，如果还没有这样做，请仔细阅读 《React 如何使用闭包避免错误》(<a href="https://epicreact.dev/how-react-uses-closures-to-avoid-bugs">https://epicreact.dev/how-react-uses-closures-to-avoid-bugs</a>)。这将帮助您更好地了解何时可以使用此特定模式。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/405/"
+      ><span class="mr-1.5">←</span><span>2023 前端性能优化清单</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/403/"
+      ><span>这一次彻底搞懂 Pinia！（保姆级教程）</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

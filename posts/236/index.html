@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>React-应用规模化之状态管理 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="我们将学到如下核心知识点：
+如何选择一个状态管理库 如何在 React 中引入 Redux 如何编写模块化的 Redux 代码 如何通过 RTK 避免模版代码 如何编写 Redux 中间件 理解不可变数据的思想 进一步优化拆分组件结构 &hellip; 常用状态库选择 现在 react 社区中的状态管理库有一打那么多，随便说几个：
+redux、mobx、recoil、zustand、jotai、valtio、resso、&hellip;
+我说一下自己对它们的一些个人看法：
+redux：老牌劲旅，59k Star；使用复杂且臃肿，RTK 的出现让redux焕发了青春。 mobx：中坚力量，26k Star；使用简单，响应式，但是 &ldquo;不够 React&rdquo; recoil：贵族血统，18k Star；Meta 推出，使用简单、原子化；但是处于试验状态 zustand：后起之秀，23.4k Star；小、快、灵，简单版 redux jotai：10.7k Star；元数据化，hooks 写法，符合 hooks 理念 valtio：5.7k Star；proxy 理念，&ldquo;不太 React&rdquo;，用起来简单 resso：0.3K Star；号称世界上最简洁的状态管理库，适用于 RN、SSR、小程序 看完这些之后，大家很容易做选择：
+想要大众稳定一点，redux，mobx 想要简单，后续新出这几个都属于这种风格 想要时髦选recoil 想要小巧选resso 本次案例我将选用redux来做演示，它最具有代表性，设计理念也比较有学习价值。
+之前案例问题分析 现在我们来看一下前面的案例中一些比较别扭的地方：
+TodoList传递很多属性和方法比较冗长： &lt;TodoList {...{ todos: filteredTodos, removeTodo, updateTodo }}&gt;&lt;/TodoList&gt; visibility，setVisibility 明显是 TodoFilter 内部状态，现在因为过滤结果要传给 TodoList 而不得不写在外面： &lt;TodoFilter visibility={visibility} setVisibility={setVisibility}&gt;&lt;/TodoFilter&gt; 如果提取新增功能到独立组件里也会遇到同样的问题：操作的是todos，关心的却是TodoList，很不好写吧？ 我们期待的App." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="React-应用规模化之状态管理" />
+<meta property="og:description" content="我们将学到如下核心知识点：
+如何选择一个状态管理库 如何在 React 中引入 Redux 如何编写模块化的 Redux 代码 如何通过 RTK 避免模版代码 如何编写 Redux 中间件 理解不可变数据的思想 进一步优化拆分组件结构 &hellip; 常用状态库选择 现在 react 社区中的状态管理库有一打那么多，随便说几个：
+redux、mobx、recoil、zustand、jotai、valtio、resso、&hellip;
+我说一下自己对它们的一些个人看法：
+redux：老牌劲旅，59k Star；使用复杂且臃肿，RTK 的出现让redux焕发了青春。 mobx：中坚力量，26k Star；使用简单，响应式，但是 &ldquo;不够 React&rdquo; recoil：贵族血统，18k Star；Meta 推出，使用简单、原子化；但是处于试验状态 zustand：后起之秀，23.4k Star；小、快、灵，简单版 redux jotai：10.7k Star；元数据化，hooks 写法，符合 hooks 理念 valtio：5.7k Star；proxy 理念，&ldquo;不太 React&rdquo;，用起来简单 resso：0.3K Star；号称世界上最简洁的状态管理库，适用于 RN、SSR、小程序 看完这些之后，大家很容易做选择：
+想要大众稳定一点，redux，mobx 想要简单，后续新出这几个都属于这种风格 想要时髦选recoil 想要小巧选resso 本次案例我将选用redux来做演示，它最具有代表性，设计理念也比较有学习价值。
+之前案例问题分析 现在我们来看一下前面的案例中一些比较别扭的地方：
+TodoList传递很多属性和方法比较冗长： &lt;TodoList {...{ todos: filteredTodos, removeTodo, updateTodo }}&gt;&lt;/TodoList&gt; visibility，setVisibility 明显是 TodoFilter 内部状态，现在因为过滤结果要传给 TodoList 而不得不写在外面： &lt;TodoFilter visibility={visibility} setVisibility={setVisibility}&gt;&lt;/TodoFilter&gt; 如果提取新增功能到独立组件里也会遇到同样的问题：操作的是todos，关心的却是TodoList，很不好写吧？ 我们期待的App." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/236/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-11-10T22:37:10+08:00" />
+<meta property="article:modified_time" content="2022-11-10T22:37:10+08:00" />
+
+  
+  <meta itemprop="name" content="React-应用规模化之状态管理">
+<meta itemprop="description" content="我们将学到如下核心知识点：
+如何选择一个状态管理库 如何在 React 中引入 Redux 如何编写模块化的 Redux 代码 如何通过 RTK 避免模版代码 如何编写 Redux 中间件 理解不可变数据的思想 进一步优化拆分组件结构 &hellip; 常用状态库选择 现在 react 社区中的状态管理库有一打那么多，随便说几个：
+redux、mobx、recoil、zustand、jotai、valtio、resso、&hellip;
+我说一下自己对它们的一些个人看法：
+redux：老牌劲旅，59k Star；使用复杂且臃肿，RTK 的出现让redux焕发了青春。 mobx：中坚力量，26k Star；使用简单，响应式，但是 &ldquo;不够 React&rdquo; recoil：贵族血统，18k Star；Meta 推出，使用简单、原子化；但是处于试验状态 zustand：后起之秀，23.4k Star；小、快、灵，简单版 redux jotai：10.7k Star；元数据化，hooks 写法，符合 hooks 理念 valtio：5.7k Star；proxy 理念，&ldquo;不太 React&rdquo;，用起来简单 resso：0.3K Star；号称世界上最简洁的状态管理库，适用于 RN、SSR、小程序 看完这些之后，大家很容易做选择：
+想要大众稳定一点，redux，mobx 想要简单，后续新出这几个都属于这种风格 想要时髦选recoil 想要小巧选resso 本次案例我将选用redux来做演示，它最具有代表性，设计理念也比较有学习价值。
+之前案例问题分析 现在我们来看一下前面的案例中一些比较别扭的地方：
+TodoList传递很多属性和方法比较冗长： &lt;TodoList {...{ todos: filteredTodos, removeTodo, updateTodo }}&gt;&lt;/TodoList&gt; visibility，setVisibility 明显是 TodoFilter 内部状态，现在因为过滤结果要传给 TodoList 而不得不写在外面： &lt;TodoFilter visibility={visibility} setVisibility={setVisibility}&gt;&lt;/TodoFilter&gt; 如果提取新增功能到独立组件里也会遇到同样的问题：操作的是todos，关心的却是TodoList，很不好写吧？ 我们期待的App."><meta itemprop="datePublished" content="2022-11-10T22:37:10+08:00" />
+<meta itemprop="dateModified" content="2022-11-10T22:37:10+08:00" />
+<meta itemprop="wordCount" content="1029">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="React-应用规模化之状态管理"/>
+<meta name="twitter:description" content="我们将学到如下核心知识点：
+如何选择一个状态管理库 如何在 React 中引入 Redux 如何编写模块化的 Redux 代码 如何通过 RTK 避免模版代码 如何编写 Redux 中间件 理解不可变数据的思想 进一步优化拆分组件结构 &hellip; 常用状态库选择 现在 react 社区中的状态管理库有一打那么多，随便说几个：
+redux、mobx、recoil、zustand、jotai、valtio、resso、&hellip;
+我说一下自己对它们的一些个人看法：
+redux：老牌劲旅，59k Star；使用复杂且臃肿，RTK 的出现让redux焕发了青春。 mobx：中坚力量，26k Star；使用简单，响应式，但是 &ldquo;不够 React&rdquo; recoil：贵族血统，18k Star；Meta 推出，使用简单、原子化；但是处于试验状态 zustand：后起之秀，23.4k Star；小、快、灵，简单版 redux jotai：10.7k Star；元数据化，hooks 写法，符合 hooks 理念 valtio：5.7k Star；proxy 理念，&ldquo;不太 React&rdquo;，用起来简单 resso：0.3K Star；号称世界上最简洁的状态管理库，适用于 RN、SSR、小程序 看完这些之后，大家很容易做选择：
+想要大众稳定一点，redux，mobx 想要简单，后续新出这几个都属于这种风格 想要时髦选recoil 想要小巧选resso 本次案例我将选用redux来做演示，它最具有代表性，设计理念也比较有学习价值。
+之前案例问题分析 现在我们来看一下前面的案例中一些比较别扭的地方：
+TodoList传递很多属性和方法比较冗长： &lt;TodoList {...{ todos: filteredTodos, removeTodo, updateTodo }}&gt;&lt;/TodoList&gt; visibility，setVisibility 明显是 TodoFilter 内部状态，现在因为过滤结果要传给 TodoList 而不得不写在外面： &lt;TodoFilter visibility={visibility} setVisibility={setVisibility}&gt;&lt;/TodoFilter&gt; 如果提取新增功能到独立组件里也会遇到同样的问题：操作的是todos，关心的却是TodoList，很不好写吧？ 我们期待的App."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">React-应用规模化之状态管理</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Nov 10, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><img src="/imgs/8/01.jpg" />
+<p>我们将学到如下核心知识点：</p>
+<ul>
+<li>如何选择一个状态管理库</li>
+<li>如何在 React 中引入 Redux</li>
+<li>如何编写模块化的 Redux 代码</li>
+<li>如何通过 RTK 避免模版代码</li>
+<li>如何编写 Redux 中间件</li>
+<li>理解不可变数据的思想</li>
+<li>进一步优化拆分组件结构</li>
+<li>&hellip;</li>
+</ul>
+<h2 id="常用状态库选择">常用状态库选择</h2>
+<p>现在 react 社区中的状态管理库有一打那么多，随便说几个：</p>
+<p>redux、mobx、recoil、zustand、jotai、valtio、resso、&hellip;</p>
+<p>我说一下自己对它们的一些个人看法：</p>
+<ul>
+<li><code>redux</code>：老牌劲旅，59k Star；使用复杂且臃肿，RTK 的出现让<code>redux</code>焕发了青春。</li>
+<li><code>mobx</code>：中坚力量，26k Star；使用简单，响应式，但是 &ldquo;不够 React&rdquo;</li>
+<li><code>recoil</code>：贵族血统，18k Star；Meta 推出，使用简单、原子化；但是处于试验状态</li>
+<li><code>zustand</code>：后起之秀，23.4k Star；小、快、灵，简单版 redux</li>
+<li><code>jotai</code>：10.7k Star；元数据化，hooks 写法，符合 hooks 理念</li>
+<li><code>valtio</code>：5.7k Star；proxy 理念，&ldquo;不太 React&rdquo;，用起来简单</li>
+<li><code>resso</code>：0.3K Star；号称世界上最简洁的状态管理库，适用于 RN、SSR、小程序</li>
+</ul>
+<p>看完这些之后，大家很容易做选择：</p>
+<ul>
+<li>想要大众稳定一点，redux，mobx</li>
+<li>想要简单，后续新出这几个都属于这种风格</li>
+<li>想要时髦选<code>recoil</code></li>
+<li>想要小巧选<code>resso</code></li>
+</ul>
+<p>本次案例我将选用<code>redux</code>来做演示，它最具有代表性，设计理念也比较有学习价值。</p>
+<h2 id="之前案例问题分析">之前案例问题分析</h2>
+<p>现在我们来看一下前面的案例中一些比较别扭的地方：</p>
+<ul>
+<li><code>TodoList</code>传递很多属性和方法比较冗长：</li>
+</ul>
+<pre tabindex="0"><code>&lt;TodoList {...{ todos: filteredTodos, removeTodo, updateTodo }}&gt;&lt;/TodoList&gt;
+</code></pre><ul>
+<li>visibility，setVisibility 明显是 TodoFilter 内部状态，现在因为过滤结果要传给 TodoList 而不得不写在外面：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>&lt;<span style="color:#f92672">TodoFilter</span> <span style="color:#a6e22e">visibility</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">visibility</span>} <span style="color:#a6e22e">setVisibility</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">setVisibility</span>}&gt;&lt;/<span style="color:#f92672">TodoFilter</span>&gt;
+</span></span></code></pre></div><ul>
+<li>如果提取新增功能到独立组件里也会遇到同样的问题：操作的是<code>todos</code>，关心的却是<code>TodoList</code>，很不好写吧？</li>
+</ul>
+<img src="/imgs/8/02.jpg" />
+<p>我们期待的<code>App.jsx</code>应该是这样的：简单组合，组件之间又可以轻松共享数据和通信。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span>&lt;<span style="color:#f92672">AddTodo</span>&gt;&lt;/<span style="color:#f92672">AddTodo</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">TodoList</span>&gt;&lt;/<span style="color:#f92672">TodoList</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">TodoFilter</span>&gt;&lt;/<span style="color:#f92672">TodoFilter</span>&gt;
+</span></span></code></pre></div><p>在组件内部，也应该很容易取到想要的数据和方法，比如<code>TodoList</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">TodoList</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 一个hook可以轻松获取数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">todos</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useSelector</span>((<span style="color:#a6e22e">state</span>) =&gt; <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">todos</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 一个hook可以获取修改数据的方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dispatch</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useDispatch</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 需要修改数据时派发action即可
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">dispatch</span>(<span style="color:#a6e22e">deleteTodoAction</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>像上面这样的需求，通过 redux 这样的同一状态管理库就可以很容易实现，下面我们来看一下具体做法。</p>
+<h2 id="引入-redux">引入 Redux</h2>
+<p>以前我使用 redux 需要安装：<code>redux</code> + react-redux。痛点是概念多，代码复杂冗长，心智负担严重。</p>
+<p>现在官方推出了<code>Redux Toolkit</code>，以下简称<code>RTK</code>，我们可以使用<code>RTK</code> + react-redux 组合。</p>
+<p><code>RTK</code>主要用来简化和优化<code>redux</code>代码。使用它可以轻松实现模块化和可变数据写法，简直不要太好用，这也是我改变最初准备使用<code>mobx</code>给大家演示的原因！</p>
+<p>下面我们引入<code>RTK</code> 和 react-redux：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>yarn add @reduxjs/toolkit react-redux
+</span></span></code></pre></div><p>我想要快速尝试一下，<code>store/index.js</code>：创建<code>Store</code>实例，用来存储状态</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">configureStore</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@reduxjs/toolkit&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">counterReducer</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./counterSlice&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// configureStore()创建一个store实例
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">store</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">configureStore</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">reducer</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// counter即为模块名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">counter</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">counterReducer</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>再看看<code>counterSlice</code>中的<code>reducer</code>定义部分：<code>createSlice({...})</code>定义子模块，这样可以很容易拆分代码</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">createSlice</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@reduxjs/toolkit&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// createSlice定义子模块
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">counterSlice</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">createSlice</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;counter&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">initialState</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">value</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// `reducers`就是我们用来修改状态的方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">reducers</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">increment</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">state</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// Redux Toolkit 使我们可以直接修改状态，大幅减少模版代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">value</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">decrement</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">state</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">value</span> <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 导出actionsCreator便于用户使用，例如：dispatch(increment())
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">increment</span>, <span style="color:#a6e22e">decrement</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">counterSlice</span>.<span style="color:#a6e22e">actions</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 导出子模块reducer
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">counterSlice</span>.<span style="color:#a6e22e">reducer</span>;
+</span></span></code></pre></div><p>下面是在主文件中设置 store，<code>main.jsx</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">store</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./store&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">Provider</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react-redux&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ReactDOM</span>.<span style="color:#a6e22e">createRoot</span>(document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;root&#34;</span>)).<span style="color:#a6e22e">render</span>(
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// Provider可以将store透传下去
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  &lt;<span style="color:#f92672">Provider</span> <span style="color:#a6e22e">store</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">store</span>}&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">React.StrictMode</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">App</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">React.StrictMode</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">Provider</span>&gt;
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><p>这就准备好了，下面在组件中使用数据：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useSelector</span>, <span style="color:#a6e22e">useDispatch</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react-redux&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">decrement</span>, <span style="color:#a6e22e">increment</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./store/counterSlice&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">Counter</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// useSelector(selector)获取需要的子模块数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">count</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useSelector</span>((<span style="color:#a6e22e">state</span>) =&gt; <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">counter</span>.<span style="color:#a6e22e">value</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// dispatch(action)用来修改状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dispatch</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useDispatch</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{() =&gt; <span style="color:#a6e22e">dispatch</span>(<span style="color:#a6e22e">decrement</span>())}&gt;<span style="color:#f92672">-</span>&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">span</span>&gt;{<span style="color:#a6e22e">count</span>}&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">button</span> <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{() =&gt; <span style="color:#a6e22e">dispatch</span>(<span style="color:#a6e22e">increment</span>())}&gt;<span style="color:#f92672">+</span>&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>看看效果吧！</p>
+<img src="/imgs/8/01.gif" />
+<h2 id="重构-todo-应用">重构 Todo 应用</h2>
+<p>下面我们着手重构<code>TodoMVC</code>，首先将 todos 数据和操作移入独立的<code>todoSlice.js</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">createSlice</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@reduxjs/toolkit&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">initialState</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">value</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">JSON</span>.<span style="color:#a6e22e">parse</span>(<span style="color:#a6e22e">localStorage</span>.<span style="color:#a6e22e">getItem</span>(<span style="color:#e6db74">&#34;todomvc-react&#34;</span>) <span style="color:#f92672">||</span> <span style="color:#e6db74">&#34;[]&#34;</span>),
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 创建todoSlice保存todos状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 将之前修改方法移至reducers中用来修改todos状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">todoSlice</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">createSlice</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;todos&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">initialState</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">reducers</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">addTodo</span><span style="color:#f92672">:</span> ({ <span style="color:#a6e22e">value</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">todos</span> }, { <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">title</span> }) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">id</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">todos</span>[<span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>] <span style="color:#f92672">?</span> <span style="color:#a6e22e">todos</span>[<span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>].<span style="color:#a6e22e">id</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">push</span>({
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">id</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">title</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">completed</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">removeTodo</span><span style="color:#f92672">:</span> ({ <span style="color:#a6e22e">value</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">todos</span> }, { <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">id</span> }) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">idx</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">findIndex</span>((<span style="color:#a6e22e">todo</span>) =&gt; <span style="color:#a6e22e">todo</span>.<span style="color:#a6e22e">id</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">id</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">splice</span>(<span style="color:#a6e22e">idx</span>, <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">updateTodo</span><span style="color:#f92672">:</span> ({ <span style="color:#a6e22e">value</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">todos</span> }, { <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">editTodo</span> }) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">todo</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">find</span>((<span style="color:#a6e22e">todo</span>) =&gt; <span style="color:#a6e22e">todo</span>.<span style="color:#a6e22e">id</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">editTodo</span>.<span style="color:#a6e22e">id</span>);
+</span></span><span style="display:flex;"><span>      Object.<span style="color:#a6e22e">assign</span>(<span style="color:#a6e22e">todo</span>, <span style="color:#a6e22e">editTodo</span>);
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// selector用于选出想要的数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">selectTodos</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">state</span>) =&gt; <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">value</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// actionCreator用于创建dispatch()需要的action
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">addTodo</span>, <span style="color:#a6e22e">removeTodo</span>, <span style="color:#a6e22e">updateTodo</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">todoSlice</span>.<span style="color:#a6e22e">actions</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">todoSlice</span>.<span style="color:#a6e22e">reducer</span>;
+</span></span></code></pre></div><p>现在我们不再需要在 app.jsx 中声明 todos，也不需要给 TodoList 传递数据：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">App</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// const {todos, addTodo, removeTodo, updateTodo} = useTodos(todoStorage.fetch())
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;App&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>      {<span style="color:#75715e">/* ... */</span>}
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">TodoList</span>&gt;&lt;/<span style="color:#f92672">TodoList</span>&gt;
+</span></span><span style="display:flex;"><span>      {<span style="color:#75715e">/* ... */</span>}
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>todos 发生变化持久化到 localStorage 可以先注释掉，随后我们通过中间件的方式写到 todoSlice 中</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">// useEffect(() =&gt; {
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// todoStorage.save(todos);
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// }, [todos]);
+</span></span></span></code></pre></div><p>我们再重构一下<code>TodoList.jsx</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useDispatch</span>, <span style="color:#a6e22e">useSelector</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react-redux&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">selectTodos</span>, <span style="color:#a6e22e">removeTodo</span>, <span style="color:#a6e22e">updateTodo</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./store/todos&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">TodoList</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 获取todos和dispatch
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">todos</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useSelector</span>(<span style="color:#a6e22e">selectTodos</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dispatch</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useDispatch</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">changeState</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">currentTodo</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// currentTodo.completed = e.target.checked;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 此处通过dispatch(updateTodo())方式通知更新todos状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">dispatch</span>(<span style="color:#a6e22e">updateTodo</span>({ ...<span style="color:#a6e22e">currentTodo</span>, <span style="color:#a6e22e">completed</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">checked</span> }));
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onEditing</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">title</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">value</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">title</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setEditedTodo</span>({ ...<span style="color:#a6e22e">editedTodo</span>, <span style="color:#a6e22e">title</span> });
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// removeTodo(editedTodo.id);
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// 使用dispatch(removeTodo())删除指定项
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">dispatch</span>(<span style="color:#a6e22e">removeTodo</span>(<span style="color:#a6e22e">editedTodo</span>.<span style="color:#a6e22e">id</span>));
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onEdited</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">code</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;Enter&#34;</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">editedTodo</span>.<span style="color:#a6e22e">title</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// updateTodo(editedTodo)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// 使用dispatch(updateTodo())更新
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">dispatch</span>(<span style="color:#a6e22e">updateTodo</span>(<span style="color:#a6e22e">editedTodo</span>));
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setEditedTodo</span>(<span style="color:#a6e22e">initial</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>我们再提取新增组件感受一下变化，创建一个 AddTodo.jsx：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useState</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useDispatch</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react-redux&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">addTodo</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./store/todoSlice&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">AddTodo</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#75715e">// 这里只需要dispatch通知新增
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dispatch</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useDispatch</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">onAddTodo</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">code</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;Enter&#34;</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">newTodo</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// addTodo(newTodo)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">// 修改新增待办调用方式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">dispatch</span>(<span style="color:#a6e22e">addTodo</span>(<span style="color:#a6e22e">newTodo</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setNewTodo</span>(<span style="color:#e6db74">&#34;&#34;</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>下面修改过滤组件<code>FilterTodo</code>的实现：这里需要提取<code>visibility</code>这个状态到全局，因为修改组件是<code>FilterTodo</code>，关心它的却是<code>TodoList</code>，创建<code>visibilitySlice.js</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">createSlice</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@reduxjs/toolkit&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">VisibilityFilters</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">SHOW_ALL</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;SHOW_ALL&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">SHOW_COMPLETED</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;SHOW_COMPLETED&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">SHOW_ACTIVE</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;SHOW_ACTIVE&#34;</span>,
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">visibilitySlice</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">createSlice</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;visibility&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">initialState</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_ALL</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">reducers</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setVisibilityFilter</span>(<span style="color:#a6e22e">state</span>, { <span style="color:#a6e22e">payload</span> }) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">payload</span>;
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">setVisibilityFilter</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">visibilitySlice</span>.<span style="color:#a6e22e">actions</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">visibilitySlice</span>.<span style="color:#a6e22e">reducer</span>;
+</span></span></code></pre></div><p>注册 slice，store/index.js</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">visibilitySlice</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./visibilitySlice&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">configureStore</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">reducer</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">visibility</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">visibilitySlice</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>修改<code>FilterTodo.jsx</code>：可以看到 FilterTodo 通过<code>dispatch()</code>方式设置<code>visibility</code>。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useDispatch</span>, <span style="color:#a6e22e">useSelector</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react-redux&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">VisibilityFilters</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setVisibilityFilter</span>,
+</span></span><span style="display:flex;"><span>} <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./store/visibilitySlice&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">TodoFilter</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 引入visibility
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">visibility</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useSelector</span>((<span style="color:#a6e22e">state</span>) =&gt; <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">visibility</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 获取选中状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">getSelectedClass</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">filter</span>) =&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">visibility</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">filter</span> <span style="color:#f92672">?</span> <span style="color:#e6db74">&#34;selected&#34;</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 引入dispatch
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dispatch</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useDispatch</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 设置过滤
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">setFilter</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">filter</span>) =&gt; <span style="color:#a6e22e">dispatch</span>(<span style="color:#a6e22e">setVisibilityFilter</span>(<span style="color:#a6e22e">filter</span>));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">ul</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;filters&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">li</span>&gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">button</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">getSelectedClass</span>(<span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_ALL</span>)}
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{() =&gt; <span style="color:#a6e22e">setFilter</span>(<span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_ALL</span>)}
+</span></span><span style="display:flex;"><span>        &gt;
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">All</span>
+</span></span><span style="display:flex;"><span>        &lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">li</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">li</span>&gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">button</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">getSelectedClass</span>(<span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_ACTIVE</span>)}
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{() =&gt; <span style="color:#a6e22e">setFilter</span>(<span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_ACTIVE</span>)}
+</span></span><span style="display:flex;"><span>        &gt;
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">Active</span>
+</span></span><span style="display:flex;"><span>        &lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">li</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">li</span>&gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">button</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">getSelectedClass</span>(<span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_COMPLETED</span>)}
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">onClick</span><span style="color:#f92672">=</span>{() =&gt; <span style="color:#a6e22e">setFilter</span>(<span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_COMPLETED</span>)}
+</span></span><span style="display:flex;"><span>        &gt;
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">Completed</span>
+</span></span><span style="display:flex;"><span>        &lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">li</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">ul</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>现在 App.jsx 中不在需要 visibility 状态，也不需要传递他们给 FilterTodo</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#75715e">// const {visibility, setVisibility, filteredTodos} = useFilter(todos)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>&lt;<span style="color:#f92672">TodoFilter</span>&gt;&lt;/<span style="color:#f92672">TodoFilter</span>&gt;
+</span></span></code></pre></div><p>下面我们看一下<code>visibility</code>发生变化之后，<code>todoSlice</code>中如何做出响应：我们添加一个<code>selectFilteredTodos</code>选择器</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">selectFilteredTodos</span> <span style="color:#f92672">=</span> ({ <span style="color:#a6e22e">visibility</span>, <span style="color:#a6e22e">todos</span> }) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">visibility</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_ALL</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">value</span>;
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">visibility</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_ACTIVE</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">value</span>.<span style="color:#a6e22e">filter</span>((<span style="color:#a6e22e">todo</span>) =&gt; <span style="color:#a6e22e">todo</span>.<span style="color:#a6e22e">completed</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">value</span>.<span style="color:#a6e22e">filter</span>((<span style="color:#a6e22e">todo</span>) =&gt; <span style="color:#a6e22e">todo</span>.<span style="color:#a6e22e">completed</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>TodoList 中只需要替换<code>selectTodos</code>为<code>selectFilteredTodos</code>即可：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">todos</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useSelector</span>(<span style="color:#a6e22e">selectFilteredTodos</span>);
+</span></span></code></pre></div><p>大家看这像不像 Vue 中的<code>计算属性</code>，或者 Vuex 中的<code>getters</code>，那既然要像，就要彻底一些，因此最好引入缓存性，即：todos 和 visibility 不变化就没有必要重新过滤。</p>
+<p>这就需要用到 RTK 提供的<code>createSelector</code>方法，它的前身就是<code>reselect</code>，来看看具体用法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">createSelector</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@reduxjs/toolkit&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 代码真是相当舒适！
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">selectFilteredTodos</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">createSelector</span>(
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">state</span>) =&gt; <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">visibility</span>, <span style="color:#75715e">// 选出所需状态作为输入
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  (<span style="color:#a6e22e">state</span>) =&gt; <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">value</span>, <span style="color:#75715e">// 选出所需状态作为输入
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  (<span style="color:#a6e22e">visibility</span>, <span style="color:#a6e22e">todos</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 接收输入并执行派生逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">switch</span> (<span style="color:#a6e22e">visibility</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">case</span> <span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_ACTIVE</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">filter</span>((<span style="color:#a6e22e">todo</span>) =&gt; <span style="color:#a6e22e">todo</span>.<span style="color:#a6e22e">completed</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">case</span> <span style="color:#a6e22e">VisibilityFilters</span>.<span style="color:#a6e22e">SHOW_COMPLETED</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">filter</span>((<span style="color:#a6e22e">todo</span>) =&gt; <span style="color:#a6e22e">todo</span>.<span style="color:#a6e22e">completed</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">todos</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>);
+</span></span></code></pre></div><p>全部搞定！现在再看看 App.jsx，已经短小到不能再精悍了！</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">App</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;App&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">header</span>&gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">h1</span>&gt;<span style="color:#a6e22e">我的待办事项</span>&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">reactLogo</span>} <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;logo&#34;</span> <span style="color:#a6e22e">alt</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;logo&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">header</span>&gt;
+</span></span><span style="display:flex;"><span>      {<span style="color:#75715e">/* 新增 */</span>}
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">AddTodo</span>&gt;&lt;/<span style="color:#f92672">AddTodo</span>&gt;
+</span></span><span style="display:flex;"><span>      {<span style="color:#75715e">/* 列表 */</span>}
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">TodoList</span>&gt;&lt;/<span style="color:#f92672">TodoList</span>&gt;
+</span></span><span style="display:flex;"><span>      {<span style="color:#75715e">/* 过滤 */</span>}
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">TodoFilter</span>&gt;&lt;/<span style="color:#f92672">TodoFilter</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">App</span>;
+</span></span></code></pre></div><h2 id="使用-redux-中间件">使用 Redux 中间件</h2>
+<p>还有最后一件事，就是 todos 信息变化之后要存入 localStorage。</p>
+<p>之前我们通过观察 todos 变化触发保存行为：这需要我们在 App 中额外引入 todos，破坏了 App 短小精悍的感觉</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">useSelector</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;react-redux&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">App</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 这需要我们在App中额外引入todos
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">todos</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">useSelector</span>((<span style="color:#a6e22e">state</span>) =&gt; <span style="color:#a6e22e">state</span>.<span style="color:#a6e22e">todos</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">storage</span>.<span style="color:#a6e22e">save</span>(<span style="color:#a6e22e">todos</span>);
+</span></span><span style="display:flex;"><span>  }, [<span style="color:#a6e22e">todos</span>]);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>实际上，我们可以利用 redux<code>中间件</code>完成这个需求，store/index.js：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">todoStorage</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;../utils/storage&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 声明一个中间件：只要是和todos相关的action，我们都触发保存行为
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">storageMiddleware</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">store</span>) =&gt; (<span style="color:#a6e22e">next</span>) =&gt; (<span style="color:#a6e22e">action</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">action</span>.<span style="color:#a6e22e">type</span>.<span style="color:#a6e22e">startsWith</span>(<span style="color:#e6db74">&#34;todos/&#34;</span>)) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">next</span>(<span style="color:#a6e22e">action</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">todoStorage</span>.<span style="color:#a6e22e">save</span>(<span style="color:#a6e22e">store</span>.<span style="color:#a6e22e">getState</span>().<span style="color:#a6e22e">todos</span>.<span style="color:#a6e22e">value</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">store</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">configureStore</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 引入我们编写的中间件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">middleware</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">gDM</span>) =&gt; <span style="color:#a6e22e">gDM</span>().<span style="color:#a6e22e">concat</span>(<span style="color:#a6e22e">storageMiddleware</span>),
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h2 id="后续更新计划">后续更新计划</h2>
+<p>终于写完了！掌握了好多redux知识，但我们还是不满足：</p>
+<ul>
+<li>
+<p>我们能否将TodoMVC变成多页面应用</p>
+</li>
+<li>
+<p>能否引入权限控制，使得只有管理员才能创建和删除待办</p>
+</li>
+<li>
+<p>随着Todo的逐渐复杂，看起来编辑Todo需要一个弹出表单</p>
+</li>
+<li>
+<p>等等&hellip;</p>
+</li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/237/"
+      ><span class="mr-1.5">←</span><span>2022 VSCode 前端插件推荐</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/235/"
+      ><span>巧妙构建页面结构的 3D Visualization</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

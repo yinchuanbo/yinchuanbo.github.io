@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>一款轻量级前端监控sdk - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="背景 无论是初创的小公司，还是互联网大厂。只要是能赚钱的业务，那它的前端项目必定是需要监控的。
+什么？你们的项目直接果奔？不需要任何监控？ 那没事了。
+但是，有木有一种可能，你们一路果奔的前端项目，在不久的将来，出现了本不该出现的 bug，关键这个 bug 还不是你们内部自己发现的，而是客户发现的；然后，你们的线上 bug 数就喜加一了。在你吭哧吭哧地排查问题的时候，你还得反复问客户 “您是怎么操作的？我可以远程看一下吗？（微笑）”，有的客户愿意告诉你，有的客户只会礼貌问候你或者问候一线
+不出意外的话，你今天、明天、大后天，甚至下周、下下周，都会陷入深深的自我怀疑中
+“为什么，明明没问题啊，怎么回事”
+这个时候你就需要一款强大的前端监控了
+前端监控已经不是个新鲜玩意儿了，市面上也已经有成熟的监控系统了，强大如 Sentry，但是，它们有一个共同点，那就是
+贵
+当然贵是相对小项目而言，对于大项目更关注的是安全性以及更多的定制化
+同时作为使用方，一旦监控系统出了问题，就会显得比较被动
+因此，不如自己动手撸一个前端监控
+成品 直接上菜 heimdallr-sdk
+一款轻量级、插件化的前端监控 sdk
+能够不侵入业务代码并及时上报系统状态（报错、使用情况等）。 为了防止功能过剩，避免引入过多的包，使得整个项目过于臃肿；除了基座是必须引入的，其余 sdk 的功能都将以插件的方式按需引入。 sdk 已经能够覆盖大部分场景，不说全栈吧，至少能覆盖常见的前端场景了，如：浏览器、小程序。 采用了插件化架构，所以容易扩展，允许引入自定义开发的插件，扩展 sdk 的能力 sdk 的引入不需要复杂的配置，初始化时提供一下应用名称、监控服务接口地址即可，其余配置按需调整，配置项少。 提供了 监控管理后台 与 监控服务，可以使用 cli 工具完成快速部署，支持二开 完全开源，不收费 架构 为了实现功能的按需引入与可扩展性，整体采用插件化架构
+如上图，不同端继承自 Core，每个端各自有多种功能的插件，根据需要引入即可
+为了能统一工作流，降低项目基建成本，提高团队协作性；项目采用目前主流的 monorepo 方式进行代码管理，即把多个 packages 放在同一仓库中，插件也将作为独立的子包放在 packages 下，统一编译、调试、发布
+整体架构如下图所示
+大致分为：应用接入层、数据存储层、数据服务层、监控平台层
+应用接入层即 sdk 的核心部分，负责收集应用信息并上报
+数据存储使用的是 Mysql，为了方便操作数据库，额外引入了个 ORM 库
+数据服务层、监控平台层后文细说
+数据流 这里我实现了两种模式的服务
+单服务 该模式下日志的上报、写入，与监控后台日志的读取在同一 node 服务中，如下图" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="一款轻量级前端监控sdk" />
+<meta property="og:description" content="背景 无论是初创的小公司，还是互联网大厂。只要是能赚钱的业务，那它的前端项目必定是需要监控的。
+什么？你们的项目直接果奔？不需要任何监控？ 那没事了。
+但是，有木有一种可能，你们一路果奔的前端项目，在不久的将来，出现了本不该出现的 bug，关键这个 bug 还不是你们内部自己发现的，而是客户发现的；然后，你们的线上 bug 数就喜加一了。在你吭哧吭哧地排查问题的时候，你还得反复问客户 “您是怎么操作的？我可以远程看一下吗？（微笑）”，有的客户愿意告诉你，有的客户只会礼貌问候你或者问候一线
+不出意外的话，你今天、明天、大后天，甚至下周、下下周，都会陷入深深的自我怀疑中
+“为什么，明明没问题啊，怎么回事”
+这个时候你就需要一款强大的前端监控了
+前端监控已经不是个新鲜玩意儿了，市面上也已经有成熟的监控系统了，强大如 Sentry，但是，它们有一个共同点，那就是
+贵
+当然贵是相对小项目而言，对于大项目更关注的是安全性以及更多的定制化
+同时作为使用方，一旦监控系统出了问题，就会显得比较被动
+因此，不如自己动手撸一个前端监控
+成品 直接上菜 heimdallr-sdk
+一款轻量级、插件化的前端监控 sdk
+能够不侵入业务代码并及时上报系统状态（报错、使用情况等）。 为了防止功能过剩，避免引入过多的包，使得整个项目过于臃肿；除了基座是必须引入的，其余 sdk 的功能都将以插件的方式按需引入。 sdk 已经能够覆盖大部分场景，不说全栈吧，至少能覆盖常见的前端场景了，如：浏览器、小程序。 采用了插件化架构，所以容易扩展，允许引入自定义开发的插件，扩展 sdk 的能力 sdk 的引入不需要复杂的配置，初始化时提供一下应用名称、监控服务接口地址即可，其余配置按需调整，配置项少。 提供了 监控管理后台 与 监控服务，可以使用 cli 工具完成快速部署，支持二开 完全开源，不收费 架构 为了实现功能的按需引入与可扩展性，整体采用插件化架构
+如上图，不同端继承自 Core，每个端各自有多种功能的插件，根据需要引入即可
+为了能统一工作流，降低项目基建成本，提高团队协作性；项目采用目前主流的 monorepo 方式进行代码管理，即把多个 packages 放在同一仓库中，插件也将作为独立的子包放在 packages 下，统一编译、调试、发布
+整体架构如下图所示
+大致分为：应用接入层、数据存储层、数据服务层、监控平台层
+应用接入层即 sdk 的核心部分，负责收集应用信息并上报
+数据存储使用的是 Mysql，为了方便操作数据库，额外引入了个 ORM 库
+数据服务层、监控平台层后文细说
+数据流 这里我实现了两种模式的服务
+单服务 该模式下日志的上报、写入，与监控后台日志的读取在同一 node 服务中，如下图" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/465/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-10T21:41:53+08:00" />
+<meta property="article:modified_time" content="2023-04-10T21:41:53+08:00" />
+
+  
+  <meta itemprop="name" content="一款轻量级前端监控sdk">
+<meta itemprop="description" content="背景 无论是初创的小公司，还是互联网大厂。只要是能赚钱的业务，那它的前端项目必定是需要监控的。
+什么？你们的项目直接果奔？不需要任何监控？ 那没事了。
+但是，有木有一种可能，你们一路果奔的前端项目，在不久的将来，出现了本不该出现的 bug，关键这个 bug 还不是你们内部自己发现的，而是客户发现的；然后，你们的线上 bug 数就喜加一了。在你吭哧吭哧地排查问题的时候，你还得反复问客户 “您是怎么操作的？我可以远程看一下吗？（微笑）”，有的客户愿意告诉你，有的客户只会礼貌问候你或者问候一线
+不出意外的话，你今天、明天、大后天，甚至下周、下下周，都会陷入深深的自我怀疑中
+“为什么，明明没问题啊，怎么回事”
+这个时候你就需要一款强大的前端监控了
+前端监控已经不是个新鲜玩意儿了，市面上也已经有成熟的监控系统了，强大如 Sentry，但是，它们有一个共同点，那就是
+贵
+当然贵是相对小项目而言，对于大项目更关注的是安全性以及更多的定制化
+同时作为使用方，一旦监控系统出了问题，就会显得比较被动
+因此，不如自己动手撸一个前端监控
+成品 直接上菜 heimdallr-sdk
+一款轻量级、插件化的前端监控 sdk
+能够不侵入业务代码并及时上报系统状态（报错、使用情况等）。 为了防止功能过剩，避免引入过多的包，使得整个项目过于臃肿；除了基座是必须引入的，其余 sdk 的功能都将以插件的方式按需引入。 sdk 已经能够覆盖大部分场景，不说全栈吧，至少能覆盖常见的前端场景了，如：浏览器、小程序。 采用了插件化架构，所以容易扩展，允许引入自定义开发的插件，扩展 sdk 的能力 sdk 的引入不需要复杂的配置，初始化时提供一下应用名称、监控服务接口地址即可，其余配置按需调整，配置项少。 提供了 监控管理后台 与 监控服务，可以使用 cli 工具完成快速部署，支持二开 完全开源，不收费 架构 为了实现功能的按需引入与可扩展性，整体采用插件化架构
+如上图，不同端继承自 Core，每个端各自有多种功能的插件，根据需要引入即可
+为了能统一工作流，降低项目基建成本，提高团队协作性；项目采用目前主流的 monorepo 方式进行代码管理，即把多个 packages 放在同一仓库中，插件也将作为独立的子包放在 packages 下，统一编译、调试、发布
+整体架构如下图所示
+大致分为：应用接入层、数据存储层、数据服务层、监控平台层
+应用接入层即 sdk 的核心部分，负责收集应用信息并上报
+数据存储使用的是 Mysql，为了方便操作数据库，额外引入了个 ORM 库
+数据服务层、监控平台层后文细说
+数据流 这里我实现了两种模式的服务
+单服务 该模式下日志的上报、写入，与监控后台日志的读取在同一 node 服务中，如下图"><meta itemprop="datePublished" content="2023-04-10T21:41:53+08:00" />
+<meta itemprop="dateModified" content="2023-04-10T21:41:53+08:00" />
+<meta itemprop="wordCount" content="677">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="一款轻量级前端监控sdk"/>
+<meta name="twitter:description" content="背景 无论是初创的小公司，还是互联网大厂。只要是能赚钱的业务，那它的前端项目必定是需要监控的。
+什么？你们的项目直接果奔？不需要任何监控？ 那没事了。
+但是，有木有一种可能，你们一路果奔的前端项目，在不久的将来，出现了本不该出现的 bug，关键这个 bug 还不是你们内部自己发现的，而是客户发现的；然后，你们的线上 bug 数就喜加一了。在你吭哧吭哧地排查问题的时候，你还得反复问客户 “您是怎么操作的？我可以远程看一下吗？（微笑）”，有的客户愿意告诉你，有的客户只会礼貌问候你或者问候一线
+不出意外的话，你今天、明天、大后天，甚至下周、下下周，都会陷入深深的自我怀疑中
+“为什么，明明没问题啊，怎么回事”
+这个时候你就需要一款强大的前端监控了
+前端监控已经不是个新鲜玩意儿了，市面上也已经有成熟的监控系统了，强大如 Sentry，但是，它们有一个共同点，那就是
+贵
+当然贵是相对小项目而言，对于大项目更关注的是安全性以及更多的定制化
+同时作为使用方，一旦监控系统出了问题，就会显得比较被动
+因此，不如自己动手撸一个前端监控
+成品 直接上菜 heimdallr-sdk
+一款轻量级、插件化的前端监控 sdk
+能够不侵入业务代码并及时上报系统状态（报错、使用情况等）。 为了防止功能过剩，避免引入过多的包，使得整个项目过于臃肿；除了基座是必须引入的，其余 sdk 的功能都将以插件的方式按需引入。 sdk 已经能够覆盖大部分场景，不说全栈吧，至少能覆盖常见的前端场景了，如：浏览器、小程序。 采用了插件化架构，所以容易扩展，允许引入自定义开发的插件，扩展 sdk 的能力 sdk 的引入不需要复杂的配置，初始化时提供一下应用名称、监控服务接口地址即可，其余配置按需调整，配置项少。 提供了 监控管理后台 与 监控服务，可以使用 cli 工具完成快速部署，支持二开 完全开源，不收费 架构 为了实现功能的按需引入与可扩展性，整体采用插件化架构
+如上图，不同端继承自 Core，每个端各自有多种功能的插件，根据需要引入即可
+为了能统一工作流，降低项目基建成本，提高团队协作性；项目采用目前主流的 monorepo 方式进行代码管理，即把多个 packages 放在同一仓库中，插件也将作为独立的子包放在 packages 下，统一编译、调试、发布
+整体架构如下图所示
+大致分为：应用接入层、数据存储层、数据服务层、监控平台层
+应用接入层即 sdk 的核心部分，负责收集应用信息并上报
+数据存储使用的是 Mysql，为了方便操作数据库，额外引入了个 ORM 库
+数据服务层、监控平台层后文细说
+数据流 这里我实现了两种模式的服务
+单服务 该模式下日志的上报、写入，与监控后台日志的读取在同一 node 服务中，如下图"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">一款轻量级前端监控sdk</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 10, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="背景">背景</h2>
+<p>无论是初创的小公司，还是互联网大厂。只要是能赚钱的业务，那它的前端项目必定是需要监控的。</p>
+<p>什么？你们的项目直接果奔？不需要任何监控？ 那没事了。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5d2db7d92210485c8fb3a029dae95ac3~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="要保持微笑"></p>
+<p>但是，有木有一种可能，你们一路果奔的前端项目，在不久的将来，出现了本不该出现的 bug，关键这个 bug 还不是你们内部自己发现的，而是客户发现的；然后，你们的线上 bug 数就喜加一了。在你吭哧吭哧地排查问题的时候，你还得反复问客户 “您是怎么操作的？我可以远程看一下吗？（微笑）”，有的客户愿意告诉你，有的客户只会礼貌问候你或者问候一线</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c30517b00d524c11a495835a85ea1302~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="开心"></p>
+<p>不出意外的话，你今天、明天、大后天，甚至下周、下下周，都会陷入深深的自我怀疑中</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d9d96ba6f6ad46198d8f6f7ecd195a74~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="令人头秃"></p>
+<p>“为什么，明明没问题啊，怎么回事”</p>
+<p>这个时候你就需要一款强大的前端监控了</p>
+<p>前端监控已经不是个新鲜玩意儿了，市面上也已经有成熟的监控系统了，强大如 Sentry，但是，它们有一个共同点，那就是</p>
+<p><strong>贵</strong></p>
+<p>当然贵是相对小项目而言，对于大项目更关注的是安全性以及更多的定制化</p>
+<p>同时作为使用方，一旦监控系统出了问题，就会显得比较被动</p>
+<p>因此，不如自己动手撸一个前端监控</p>
+<h2 id="成品">成品</h2>
+<p>直接上菜 <a href="https://github.com/LuciferHuang/heimdallr-sdk">heimdallr-sdk</a></p>
+<p>一款轻量级、插件化的前端监控 sdk</p>
+<ul>
+<li>能够不侵入业务代码并及时上报系统状态（报错、使用情况等）。</li>
+<li>为了防止功能过剩，避免引入过多的包，使得整个项目过于臃肿；除了基座是必须引入的，其余 sdk 的功能都将以插件的方式按需引入。</li>
+<li>sdk 已经能够覆盖大部分场景，不说全栈吧，至少能覆盖常见的前端场景了，如：浏览器、小程序。</li>
+<li>采用了插件化架构，所以容易扩展，允许引入自定义开发的插件，扩展 sdk 的能力</li>
+<li>sdk 的引入不需要复杂的配置，初始化时提供一下应用名称、监控服务接口地址即可，其余配置按需调整，配置项少。</li>
+<li>提供了 监控管理后台 与 监控服务，可以使用 cli 工具完成快速部署，支持二开</li>
+<li>完全开源，不收费</li>
+</ul>
+<h2 id="架构">架构</h2>
+<p>为了实现功能的按需引入与可扩展性，整体采用插件化架构</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/606720642b1f446bb64c6334880ae303~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="插件化"></p>
+<p>如上图，不同端继承自 Core，每个端各自有多种功能的插件，根据需要引入即可</p>
+<p>为了能统一工作流，降低项目基建成本，提高团队协作性；项目采用目前主流的 <code>monorepo</code> 方式进行代码管理，即把多个 packages 放在同一仓库中，插件也将作为独立的子包放在 packages 下，统一编译、调试、发布</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/49fda9cb63cb42da8061901a2ababfb6~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="monorepo"></p>
+<p>整体架构如下图所示</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0f8cf3deb3fa4038b460a64afc09e114~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="framework"></p>
+<p>大致分为：<code>应用接入层</code>、<code>数据存储层</code>、<code>数据服务层</code>、<code>监控平台层</code></p>
+<p>应用接入层即 sdk 的核心部分，负责收集应用信息并上报</p>
+<p>数据存储使用的是 Mysql，为了方便操作数据库，额外引入了个 ORM 库</p>
+<p>数据服务层、监控平台层后文细说</p>
+<h2 id="数据流">数据流</h2>
+<p>这里我实现了两种模式的服务</p>
+<h3 id="单服务">单服务</h3>
+<p>该模式下日志的上报、写入，与监控后台日志的读取在同一 node 服务中，如下图</p>
+<p>node 服务既负责接收日志，也负责读写数据库</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c608b08006284ee2877a970c2400328f~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="node server"></p>
+<h3 id="多服务">多服务</h3>
+<p>该模式拆分了“消费服务”与“生产服务”，同时使用了 RabbitMQ 达到削峰填谷的效果，如下图所示</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6b1c62fbbb5e4308ac5c126297992bc2~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="server with rabbitMQ"></p>
+<p>producer 即生产者，负责接收客户端上报的日志，并推入消息队列。</p>
+<p>consumer 也即消费者，从消息队列中读取消息，拼接日志信息，写入数据库中；同时处理监控后台发来的请求，从数据库中读取相应信息，处理后返回给监控后台。</p>
+<h2 id="core">Core</h2>
+<p>Core 是 SDK 的核心抽象类，完成一些基础的初始化操作，负责提供 SDK 内与平台无关的代码，同时规范各个客户端的属性与方法。</p>
+<p>Core 主要做了以下事情</p>
+<ol>
+<li>完成 SDK 配置项的初始化与绑定</li>
+<li>实现引用插件的功能</li>
+<li>使用发布订阅模式完成日志的捕获与上报</li>
+<li>统一控制台的输出方法</li>
+<li>提供面包屑功能，给各个插件使用（暂不支持手动增加面包屑，可以使用 @heimdallr-sdk/customer 上报）</li>
+<li>规范初始化应用方法，各客户端所需的应用信息不一致，因此这里只提供抽象方法，需要各个客户端自己实现</li>
+<li>规范数据转换方法，与上一条一样，这里也只提供抽象方法，需要客户端自行实现</li>
+<li>规范数据上报方法，因为不同客户端支持的网络请求方式不一致，如：浏览器端有多种网络请求 API 可用，而 wx 只能使用 wx.request 方法发起请求，因此这里也只提供抽象方法，得客户端自己实现</li>
+</ol>
+<h2 id="client">Client</h2>
+<p>Client 即客户端，也就是在不同平台使用的 sdk 基座</p>
+<h3 id="browser">Browser</h3>
+<p>Browser 即浏览器端的监控基座，以浏览器为载体的应用都可以使用该基座</p>
+<p>继承自 Core 抽象类，实现了 Core 中的抽象方法：</p>
+<ul>
+<li>初始化应用</li>
+<li>数据转换</li>
+<li>数据上报：支持 sendBeacon、图片上报、get 三种上报方式，默认使用 sendBeacon</li>
+</ul>
+<p>Browser 基座同时内置了错误监控 sdk，以内置插件的方式集成在基座中，可以监听到以下三种类型的错误：</p>
+<ul>
+<li>代码错误（支持 sourcemap，需上传 sourcemap 文件）</li>
+<li>资源加载错误</li>
+<li>代码中未捕获的错误</li>
+</ul>
+<p>此外还监听了页面的加载与卸载，作为一次访问会话上报，以页面加载作为会话开始、页面卸载视为会话结束</p>
+<p>Browser 基座支持 CDN 与 NPM 两种引入方式，这也就意味着绝大多数技术栈的前端应用都可以使用该基座</p>
+<p>CDN 方式引入如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>  window.<span style="color:#a6e22e">__HEIMDALLR_OPTIONS__</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dsn</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">host</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;localhost:8888&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">init</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/project/init&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">upload</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/log/upload&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">app</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;playgroundAPP&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">leader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;test&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">desc</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;test proj&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">userIdentify</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;__state__.a.0.user.id&#34;</span>, <span style="color:#75715e">// window.__state__ = { a: [{ user: { id:&#39;123&#39; } }] }
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">position</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;global&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">async</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;/browser-dist/browser.iife.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p>NPM 引入</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">heimdallr</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@heimdallr-sdk/browser&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">heimdallr</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">dsn</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">host</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;localhost:8888&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">init</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/project/init&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">upload</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;/log/upload&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">app</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;playgroundAPP&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">leader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;test&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">desc</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;test proj&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">userIdentify</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;__state__.a.0.user.id&#34;</span>, <span style="color:#75715e">// window.__state__ = { a: [{ user: { id:&#39;123&#39; } }] }
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">position</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;global&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><h3 id="node">Node</h3>
+<p>Node 即 nodejs 服务端的监控基座</p>
+<p>同样继承自 Core 抽象类，实现了应用初始化、上报数据最后的转换、数据上报三个方法</p>
+<p>这里的上报方式使用了第三方库来实现，<code>node-fetch</code></p>
+<p>Node 基座同样默认集成了错误监听的能力，监听了 <code>uncaughtException</code> 的错误并上报</p>
+<p>Node 服务端一般不以“会话”为监控维度，更关注接口与服务器性能，因此没有 Browser 中的“会话”的概念</p>
+<p>该基座可以通过 NPM 方式引入，与 Browser 引入方式类似</p>
+<h3 id="wx">Wx</h3>
+<p>Wx 即微信小程序的监控基座</p>
+<p>老规矩，继承自 Core 抽象类，实现初始化、转换、上报三个方法</p>
+<p>同样的，Wx 基座也集成了基础的错误监控，本质上就是重写了 <code>APP.onError</code>，捕获到错误并上报</p>
+<p>与 Browser 最大的区别就是如何监听一个完整的会话，这里人为规定以 onShow 为一次会话的开始，以 onHide 为一次会话的结束，同时提供了两种方式去监听会话：</p>
+<ol>
+<li>提供 <code>trace</code> 函数，在每个页面的 onShow 与 onHide 方法内手动添加埋点</li>
+<li>重写小程序的 Page 方法，返回 <code>heimdallrPage</code> 方法，在页面中直接使用 heimdallrPage 替代 Page 方法</li>
+</ol>
+<p>通过 NPM 方式引入，引入方式参考微信官方文档啦</p>
+<h2 id="plugins">Plugins</h2>
+<p>当前仅有 Browser 基座与 Wx 基座的插件</p>
+<p>篇幅有限，只能罗列一下了，没法一个个单独讲</p>
+<h3 id="for-browser">For Browser</h3>
+<p>Browser 基座的所有插件均提供 CDN 与 NPM 两种引入方式</p>
+<ul>
+<li><strong>@heimdallr-sdk/console</strong>
+<ul>
+<li>监听浏览器控制台的输出并上报，debug 为 false 时，控制台所有信息都不会打印</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/customer</strong>
+<ul>
+<li>自动读取存储在 cookie、localStorage、sessionStorage、window 上的数据并上报，同时也可以通过调用 <code>window.HEIMDALLR_REPORT(type: string, data: any)</code> 手动上报</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/dom</strong>
+<ul>
+<li>监听页面的点击事件并上报</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/fetch</strong>
+<ul>
+<li>监听页面发起的 fetch 请求，reportResponds 为 true 时，将连同接口返回值一同上报</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/xhr</strong>
+<ul>
+<li>监听页面发起的 XMLHttpRequest 请求，reportResponds 为 true 时，将连同接口返回值一同上报</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/hash</strong>
+<ul>
+<li>监听页面路由的 hash 变化，记录来源与跳转地址并上报</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/history</strong>
+<ul>
+<li>监听页面路由的变化，包括手动点击浏览器按钮的跳转，自动记录来源与跳转地址并上报</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/performance</strong>
+<ul>
+<li>页面性能监控，可以得到下列性能指标</li>
+<li><em>dnsSearch:</em> DNS 解析耗时</li>
+<li><em>tcpConnect:</em> TCP 连接耗时</li>
+<li><em>sslConnect:</em> SSL 安全连接耗时</li>
+<li><em>request:</em> TTFB 网络请求耗时</li>
+<li><em>response:</em> 数据传输耗时</li>
+<li><em>parseDomTree:</em> DOM 解析耗时</li>
+<li><em>resource:</em> 资源加载耗时</li>
+<li><em>domReady:</em> DOM Ready</li>
+<li><em>httpHead:</em> http 头部大小</li>
+<li><em>interactive:</em> 首次可交互时间</li>
+<li><em>complete:</em> 页面完全加载</li>
+<li><em>redirect:</em> 重定向次数</li>
+<li><em>redirectTime:</em> 重定向耗时</li>
+<li><em>duration</em></li>
+<li><em>fp:</em> 渲染出第一个像素点，白屏时间</li>
+<li><em>fcp:</em> 渲染出第一个内容，首屏结束时间</li>
+<li><em>fmp:</em> 有意义内容渲染时间</li>
+<li><em>fps:</em> 刷新率</li>
+<li><em>lcp:</em> 最大内容渲染时间，2.5s 内</li>
+<li><em>fid:</em> 交互性能，应小于 100ms</li>
+<li><em>cls:</em> 视觉稳定性，应小于 0.1</li>
+<li><em>resource:</em> 页面资源加载耗时</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/record</strong>
+<ul>
+<li>录制当前会话所有操作并上报</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/page_crash</strong>
+<ul>
+<li>监听页面崩溃，需配合 <code>@heimdallr-sdk/page-crash-worker</code> 使用，不走基座的上报与数据转换，在 page-crash-worker 文件中使用 get 方法上报崩溃数据。从命名就能看出来，核心原理就是使用 Worker (狗头)</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/vue</strong>
+<ul>
+<li>捕获 vue 抛出的错误并上报，支持 sourcemap（需上传 sourcemap 文件）</li>
+</ul>
+</li>
+</ul>
+<h3 id="for-wx">For Wx</h3>
+<p>小程序基座的插件较少，但也不太需要那么多，毕竟小程序自己就有一套性能、错误监控；因此，只写了几个常用但小程序没提供的监控插件</p>
+<ul>
+<li><strong>@heimdallr-sdk/wx-dom</strong>
+<ul>
+<li>监听小程序的点击事件，记录触发的函数名以及附带信息并上报</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/wx-request</strong>
+<ul>
+<li>监听小程序发起的请求，包括 request、downloadFile、uploadFile，同样可通过 reportResponds 配置决定是否上报接口返回结果</li>
+</ul>
+</li>
+<li><strong>@heimdallr-sdk/wx-route</strong>
+<ul>
+<li>捕获小程序的路由跳转，记录来源、跳转地址与跳转状态（成功与否）并上报</li>
+</ul>
+</li>
+</ul>
+<h3 id="自定义插件">自定义插件</h3>
+<p>插件本质上就是一个个 Plugin 类型对象</p>
+<p>基础的 Plugin 类型如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">BasePluginType</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">string</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">monitor</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">notify</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">collectedData</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span>) =&gt; <span style="color:#66d9ef">void</span>) =&gt; <span style="color:#66d9ef">void</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">transform</span><span style="color:#f92672">?:</span> (<span style="color:#a6e22e">collectedData</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span>) =&gt; <span style="color:#a6e22e">ReportDataType</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">any</span><span style="color:#f92672">&gt;</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ul>
+<li><em>name:</em> 当前插件名称（不能写中文）</li>
+<li><em>monitor:</em> 插件逻辑的具体实现放在这个函数体中
+<ul>
+<li>notify 函数负责将数据上报，collectedData 还不是最终上报到服务器的数据，会在基座的 transform 内包装一下再上报</li>
+</ul>
+</li>
+<li><em>transform:</em> 可选配置，即接收 notify 中上报的数据，在这里转换一下；最终也是会到基座的 transform 方法内做最后的“包装”</li>
+</ul>
+<p>因此，只需要实现并返回一个符合 BasePluginType 的对象，即可接入到 heimdallr-sdk 的基座中作为插件使用</p>
+<h2 id="server">Server</h2>
+<p>服务端作为私有子包，不发布，可通过 <a href="https://www.npmjs.com/package/@heimdallr-sdk/cli"><strong>@heimdallr-sdk/cli</strong></a> 脚手架快速部署</p>
+<p>服务端使用 express 作为 Node 服务端框架，ORM 库使用 Prisma，数据库则使用的是 MySQL</p>
+<p>正如前面说的，这里我提供了两种服务端，我把它称为“单服务”与“多服务”</p>
+<h3 id="单服务-1">“单服务”</h3>
+<p>“单服务”采用的是传统的 MVC 架构，不过这里默认的 View 不调用 API，而是作为接口文档，方便查阅；也可以修改 route 指向不同的页面</p>
+<p>实现的主要功能如下：</p>
+<ul>
+<li>项目的初始化（其实就是应用信息入库）</li>
+<li>会话的创建与写入</li>
+<li>日志信息的接收与写入（同时支持 post 与 get）</li>
+<li>应用列表</li>
+<li>会话列表</li>
+<li>日志列表</li>
+<li>接收 sourcemap 文件</li>
+<li>解析 sourcemap</li>
+</ul>
+<p>“单服务”既负责接收，也负责提供接口给监控后台（Manager）使用，能直接读写数据库</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9c5d75483cf04cd1aa57ee566f40ba2c~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="node server"></p>
+<h3 id="多服务-1">“多服务”</h3>
+<p>“多服务”将服务端一分为二，分为“消费服务”与“生产服务”</p>
+<p>使用 RabbitMQ 完成对流量的削峰填谷</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e2dae76bf22a4ed9b546a67b80cf3484~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="server with rabbitMQ"></p>
+<h4 id="producer">Producer</h4>
+<p>“生产服务” 也就是图中的 producer，即生产者，面向监控 SDK，从 SDK 接收上报数据</p>
+<p>主要功能如下：</p>
+<ul>
+<li>接收应用信息，并推入应用队列</li>
+<li>接收日志信息（会话就是两条一前一后的日志），并推入日志队列</li>
+<li>接收 sourcemap 文件</li>
+</ul>
+<h4 id="consumer">Consumer</h4>
+<p>“消费服务” 也就是上图的 consumer，也即消费者，面向监控后台，提供读取接口给监控后台调用。</p>
+<p>主要功能如下：</p>
+<ul>
+<li>从应用队列中提取应用消息，写入数据库</li>
+<li>从日志队列中提取日志消息，完成日志消息的“组装”，再写入数据库</li>
+<li>解析 sourcemap 文件</li>
+<li>提供统计数据接口</li>
+<li>提供应用/项目列表接口</li>
+<li>提供会话列表接口</li>
+<li>提供日志列表接口</li>
+</ul>
+<h2 id="manager">Manager</h2>
+<p>Manager 即监控服务的管理后台，私有包，不发布，同样可以通过 <a href="https://www.npmjs.com/package/@heimdallr-sdk/cli">@heimdallr-sdk/cli</a> 脚手架工具快速部署</p>
+<p>使用了自己写的 Vue3 脚手架 <a href="https://github.com/LuciferHuang/vva-cli">vva-cli</a> 快速开发的，技术栈是 Vue3 + Typescript + Element-Plus，使用 Vite 打包编译</p>
+<p>有以下四个模块：</p>
+<ol>
+<li>
+<p>总览</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/39a8ed585e4044e0a9529ebc57a6009e~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="总览"></p>
+</li>
+<li>
+<p>应用列表</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/026ec65a748e4f6f9fc2c5d733e9087a~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="应用/项目列表"></p>
+</li>
+<li>
+<p>会话</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a3c5ad81bbff425fb8ba7d5143409a59~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="会话列表"></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4d61334a9c834352b167b437570a2441~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="会话详情"> 详情不单开页面，在列表页右侧增加抽屉式弹层展示</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ad4a7c4695c6469e8c51ac3b75fb660c~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="会话回放"> （回放功能需引入 <code>@heimdallr-sdk/record</code> 插件）</p>
+</li>
+<li>
+<p>日志</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/94c24eab86ef49d68da54f4055ddd7a8~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="日志列表"></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e10c1738b83e4f27938cc37bfbd22dd6~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="日志详情"> 同样的，日志详情也不单开页面，在列表页右侧增加抽屉式弹层展示</p>
+</li>
+</ol>
+<h2 id="tools">Tools</h2>
+<h3 id="heimdallr-sdkcli">@heimdallr-sdk/cli</h3>
+<p>heimdallr-sdk 的脚手架工具</p>
+<p>主要作用就是为了能够快速部署“监控服务端”与“监控管理后台”</p>
+<p>全局安装脚手架</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>npm i @heimdallr-sdk/cli
+</span></span></code></pre></div><p>安装完成后输入 <code>heimdallr-create</code> 命令，即可开始选择相应的模板</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5ac95d845129408bbeed2580c26a09e1~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="命令提示行"></p>
+<p>提供<code>监控后台管理台</code>和<code>监控服务</code>以及<code>带消息队列的监控服务</code> 三类模板</p>
+<p>依次完成配置（作答）后，在当前目录下将自动创建项目文件夹</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/72d3728fefeb4b10b036b586ed829abf~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="创建成功"></p>
+<p>三个模板前文已经介绍了，这里就不再赘述了</p>
+<h3 id="heimdallr-sdkwebpack-plugin-sourcemap-upload">@heimdallr-sdk/webpack-plugin-sourcemap-upload</h3>
+<p>这个插件，件如其名（doge），主要功能就是在以 webpack 为构建工具的项目中,自动完成 sourcemap 文件的上传</p>
+<p>它将在 webpack 构建完成后，将产出的 sourcemap 文件自动上传到指定服务器</p>
+<p>用法也很简单，指定一下初始化 sdk 时使用的应用名称，以及文件上传的接口地址即可</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">UploadSourceMapPlugin</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@heimdallr-sdk/webpack-plugin-sourcemap-upload&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">config</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">UploadSourceMapPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">appname</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;playground&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`http://localhost:8001/sourcemap/upload`</span>,
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// TODO--
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>};
+</span></span></code></pre></div><h3 id="heimdallr-sdkvite-plugin-sourcemap-upload">@heimdallr-sdk/vite-plugin-sourcemap-upload</h3>
+<p>这个插件功能同上，不同点在于：上一个插件是针对以 webpack 为构建工具的项目，而这个插件是针对以 vite 为构建工具的项目</p>
+<p>同样是在 vite 构建工作完成后，将产出的 sourcemap 文件自动上传到指定服务器</p>
+<p>因为 vite 底层其实是使用 rollup 构建，因此，该插件监听的是 <code>writeBundle</code> 和 <code>closeBundle</code> 两个阶段的 hook</p>
+<p>用法如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">sourceMapUpload</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;@heimdallr-sdk/vite-plugin-sourcemap-upload&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">defineConfig</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">vue</span>(),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sourceMapUpload</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">appname</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;playground&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">url</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`http://localhost:8001/sourcemap/upload`</span>,
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">build</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sourcemap</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// TODO--
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>});
+</span></span></code></pre></div><p>使用时需要注意的是，<code>@heimdallr-sdk/webpack-plugin-sourcemap-upload</code> 对外暴露的是一个类，而 <code>@heimdallr-sdk/vite-plugin-sourcemap-upload</code> 对外暴露的则是一个函数</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/466/"
+      ><span class="mr-1.5">←</span><span>如何用js实现瀑布流布局</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/464/"
+      ><span>JavaScript知识点Import Maps</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

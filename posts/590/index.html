@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>批量任务导致卡死？试试 requestIdleCallback 对任务进行拆分 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="需求背景 需要基于高德地图展示海量点位（大概几万个），点位样式要自定义（创建 DOM），虽然使用了聚合点，但初始化时仍需要将几万个点位的 DOM 结构都创建出来。
+这里补充一句，高德地图在 2.0 版本对这种方式进行了优化，但同时少了某些功能，我的需求要使用 1.4 版本的这种方式渲染。
+问题及定位分析 功能实现后，发现从开始加载点位，到点位出现的过程中，页面会卡死，无法响应用户交互，可以点击Demo的常规模式查看效果（实际业务下有更多逻辑，阻塞时间会更久）。
+可以看到，当我开始渲染点位后，点击输入框进行输入，是没有立即响应的，点位加载完后才会对之前的交互做响应。
+问题分析 其实从上面高德地图的点位渲染逻辑很容易想到主要是批量创建点位的 DOM 结构占用了主线程。
+可以看到，批量的genMarker任务占用了大量时间，genMarker 会在每次创建点位时执行一次，一次创建 4w 个点位，就会连续执行 4w 次。
+// 生成点位，创建DOM自定义样式 genMarker(device) { const innerHTML = ` &lt;div class=&#34;camera&#34;&gt;&lt;/div&gt; ` const size = [48, 49] const markerOffset = new AMap.Pixel(-size[0] / 2, -size[1] / 2) const marker = new AMap.Marker({ position: device.lnglat, extData: device, size, }) const container = document.createElement(&#39;div&#39;) container.className = &#39;map-marker&#39; container.innerHTML = innerHTML marker." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="批量任务导致卡死？试试 requestIdleCallback 对任务进行拆分" />
+<meta property="og:description" content="需求背景 需要基于高德地图展示海量点位（大概几万个），点位样式要自定义（创建 DOM），虽然使用了聚合点，但初始化时仍需要将几万个点位的 DOM 结构都创建出来。
+这里补充一句，高德地图在 2.0 版本对这种方式进行了优化，但同时少了某些功能，我的需求要使用 1.4 版本的这种方式渲染。
+问题及定位分析 功能实现后，发现从开始加载点位，到点位出现的过程中，页面会卡死，无法响应用户交互，可以点击Demo的常规模式查看效果（实际业务下有更多逻辑，阻塞时间会更久）。
+可以看到，当我开始渲染点位后，点击输入框进行输入，是没有立即响应的，点位加载完后才会对之前的交互做响应。
+问题分析 其实从上面高德地图的点位渲染逻辑很容易想到主要是批量创建点位的 DOM 结构占用了主线程。
+可以看到，批量的genMarker任务占用了大量时间，genMarker 会在每次创建点位时执行一次，一次创建 4w 个点位，就会连续执行 4w 次。
+// 生成点位，创建DOM自定义样式 genMarker(device) { const innerHTML = ` &lt;div class=&#34;camera&#34;&gt;&lt;/div&gt; ` const size = [48, 49] const markerOffset = new AMap.Pixel(-size[0] / 2, -size[1] / 2) const marker = new AMap.Marker({ position: device.lnglat, extData: device, size, }) const container = document.createElement(&#39;div&#39;) container.className = &#39;map-marker&#39; container.innerHTML = innerHTML marker." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/590/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-05-08T09:50:21+08:00" />
+<meta property="article:modified_time" content="2023-05-08T09:50:21+08:00" />
+
+  
+  <meta itemprop="name" content="批量任务导致卡死？试试 requestIdleCallback 对任务进行拆分">
+<meta itemprop="description" content="需求背景 需要基于高德地图展示海量点位（大概几万个），点位样式要自定义（创建 DOM），虽然使用了聚合点，但初始化时仍需要将几万个点位的 DOM 结构都创建出来。
+这里补充一句，高德地图在 2.0 版本对这种方式进行了优化，但同时少了某些功能，我的需求要使用 1.4 版本的这种方式渲染。
+问题及定位分析 功能实现后，发现从开始加载点位，到点位出现的过程中，页面会卡死，无法响应用户交互，可以点击Demo的常规模式查看效果（实际业务下有更多逻辑，阻塞时间会更久）。
+可以看到，当我开始渲染点位后，点击输入框进行输入，是没有立即响应的，点位加载完后才会对之前的交互做响应。
+问题分析 其实从上面高德地图的点位渲染逻辑很容易想到主要是批量创建点位的 DOM 结构占用了主线程。
+可以看到，批量的genMarker任务占用了大量时间，genMarker 会在每次创建点位时执行一次，一次创建 4w 个点位，就会连续执行 4w 次。
+// 生成点位，创建DOM自定义样式 genMarker(device) { const innerHTML = ` &lt;div class=&#34;camera&#34;&gt;&lt;/div&gt; ` const size = [48, 49] const markerOffset = new AMap.Pixel(-size[0] / 2, -size[1] / 2) const marker = new AMap.Marker({ position: device.lnglat, extData: device, size, }) const container = document.createElement(&#39;div&#39;) container.className = &#39;map-marker&#39; container.innerHTML = innerHTML marker."><meta itemprop="datePublished" content="2023-05-08T09:50:21+08:00" />
+<meta itemprop="dateModified" content="2023-05-08T09:50:21+08:00" />
+<meta itemprop="wordCount" content="570">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="批量任务导致卡死？试试 requestIdleCallback 对任务进行拆分"/>
+<meta name="twitter:description" content="需求背景 需要基于高德地图展示海量点位（大概几万个），点位样式要自定义（创建 DOM），虽然使用了聚合点，但初始化时仍需要将几万个点位的 DOM 结构都创建出来。
+这里补充一句，高德地图在 2.0 版本对这种方式进行了优化，但同时少了某些功能，我的需求要使用 1.4 版本的这种方式渲染。
+问题及定位分析 功能实现后，发现从开始加载点位，到点位出现的过程中，页面会卡死，无法响应用户交互，可以点击Demo的常规模式查看效果（实际业务下有更多逻辑，阻塞时间会更久）。
+可以看到，当我开始渲染点位后，点击输入框进行输入，是没有立即响应的，点位加载完后才会对之前的交互做响应。
+问题分析 其实从上面高德地图的点位渲染逻辑很容易想到主要是批量创建点位的 DOM 结构占用了主线程。
+可以看到，批量的genMarker任务占用了大量时间，genMarker 会在每次创建点位时执行一次，一次创建 4w 个点位，就会连续执行 4w 次。
+// 生成点位，创建DOM自定义样式 genMarker(device) { const innerHTML = ` &lt;div class=&#34;camera&#34;&gt;&lt;/div&gt; ` const size = [48, 49] const markerOffset = new AMap.Pixel(-size[0] / 2, -size[1] / 2) const marker = new AMap.Marker({ position: device.lnglat, extData: device, size, }) const container = document.createElement(&#39;div&#39;) container.className = &#39;map-marker&#39; container.innerHTML = innerHTML marker."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">批量任务导致卡死？试试 requestIdleCallback 对任务进行拆分</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>May 8, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bd057cb631d644cfb83a378d61ed6420~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="批量任务导致页面卡死？试试requestIdleCallback对任务进行拆分"></p>
+<h2 id="需求背景">需求背景</h2>
+<p>需要基于高德地图展示海量点位（大概几万个），点位样式要自定义（创建 DOM），虽然使用了聚合点，但初始化时仍需要将几万个点位的 DOM 结构都创建出来。</p>
+<blockquote>
+<p><em>这里补充一句，高德地图在 2.0 版本对这种方式进行了优化，但同时少了某些功能，我的需求要使用 1.4 版本的这种方式渲染。</em></p>
+</blockquote>
+<h2 id="问题及定位分析">问题及定位分析</h2>
+<p>功能实现后，发现从开始加载点位，到点位出现的过程中，页面会卡死，无法响应用户交互，可以点击<a href="https://huangx.top/static/rid-map/">Demo</a>的常规模式查看效果（实际业务下有更多逻辑，阻塞时间会更久）。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/650c94df68ca4df5be8842dbe2379f29~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="2023-04-10 17.16.50.gif"> 可以看到，当我开始渲染点位后，点击输入框进行输入，是没有立即响应的，点位加载完后才会对之前的交互做响应。</p>
+<h3 id="问题分析">问题分析</h3>
+<p>其实从上面高德地图的点位渲染逻辑很容易想到主要是批量创建点位的 DOM 结构占用了主线程。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c99f616531d94447a3d2ce7eb5ae0160~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>可以看到，批量的<code>genMarker</code>任务占用了大量时间，genMarker 会在每次创建点位时执行一次，一次创建 4w 个点位，就会连续执行 4w 次。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 生成点位，创建DOM自定义样式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">genMarker</span>(<span style="color:#a6e22e">device</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">innerHTML</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">      &lt;div class=&#34;camera&#34;&gt;&lt;/div&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    `</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">size</span> <span style="color:#f92672">=</span> [<span style="color:#ae81ff">48</span>, <span style="color:#ae81ff">49</span>]
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">markerOffset</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">AMap</span>.<span style="color:#a6e22e">Pixel</span>(<span style="color:#f92672">-</span><span style="color:#a6e22e">size</span>[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>, <span style="color:#f92672">-</span><span style="color:#a6e22e">size</span>[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">marker</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">AMap</span>.<span style="color:#a6e22e">Marker</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">position</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">lnglat</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">extData</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">device</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">size</span>,
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">container</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;div&#39;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">className</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;map-marker&#39;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">innerHTML</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">innerHTML</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">marker</span>.<span style="color:#a6e22e">setContent</span>(<span style="color:#a6e22e">container</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">marker</span>.<span style="color:#a6e22e">setOffset</span>(<span style="color:#a6e22e">markerOffset</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">marker</span>.<span style="color:#a6e22e">selected</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">marker</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="页面显示机制">页面显示机制</h2>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c52490cc24f247f1912858120e5fb258~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="image.png"></p>
+<p>动的画面其实是由一帧一帧的静态图快速切换组成的，人眼的反应速度有限，当画面切换的够快，人眼看着就是连续的动画了。</p>
+<p>对于人眼来说，当每秒切换 60 张图片时，就会认为是连贯的。所以主流的显示器是 60hz 的，1s 刷新 60 次，那么每 16.7ms 需要刷新一次，浏览器会自动适配这个频率，这时对应我们前端页面就是每 16.7ms 需要渲染一次。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ccab4f1de41e4ef0a38eff72d5ad61cd~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>页面每隔 16.7ms 才会渲染一次，那么在两次渲染的中间时间，就是浏览器的<code>空闲时间</code>，在这段空闲时间执行的任务，是不会阻塞到页面渲染的流畅性的。</p>
+<p>反之，对于上面的案例，数万个<code>genMarker</code>在一个帧区间内连续的执行，下一帧一直不能渲染，页面看起来就被卡住了。</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e0dc319fdd4e41a6801b0e892e171294~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h2 id="任务拆分">任务拆分</h2>
+<blockquote>
+<p>对于大量的计算或许首先考虑的是<code>Web Worker</code>使其不占用主线程，但是由于要操作 DOM，不适合当前场景。</p>
+</blockquote>
+<p>对于页面的流畅性来说，这些点位的创建属于「低优先级任务」。既然卡顿的原因是这些<code>genMarker</code>任务一个接一个的「连续」的在执行，一直占用着主线程，那么我们可以将这些批量的任务进行拆分，保证这些任务只在<code>空闲时间</code>执行。每次执行下一个任务的时候，先检查一下当前页面是否该渲染下一帧了，这时需要「把主线程让出来」，让页面进行渲染（了解 react 的人应该感觉很熟悉，思路来自<code>react</code>的<code>Fiber</code>）</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a0ba3d637be146409f34408d29b02869~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="requestidlecallback">requestIdleCallback</h3>
+<p>「让出主线程」，关键的一点在于我们如何知道什么时候是<code>空闲时间</code>，什么时候<code>空闲时间结束</code>，该进行渲染了。<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Window/requestIdleCallback"><code>requestIdleCallback</code></a>就是浏览器提供给我们用来判断这个时机的 api，它会在浏览器的<code>空闲时间</code>来执行传给它的回调函数。另外如果指定了超时时间，会在超时后的下一帧强制执行</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">id</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestIdleCallback</span>(
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">deadline</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 当前帧剩余时间大于0，或任务已超时
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">deadline</span>.<span style="color:#a6e22e">timeRemaining</span>() <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">deadline</span>.<span style="color:#a6e22e">didTimeout</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// do something
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  { <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">2000</span> }
+</span></span><span style="display:flex;"><span>); <span style="color:#75715e">// 指定超时时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// window.cancelIdleCallback(id) 与定时器类似，支持取消
+</span></span></span></code></pre></div><p><code>requestIdleCallback</code>在<code>Event Loop</code>的执行时机如下图所示，蓝色区域代表一帧内的渲染任务，当这些任务执行完后，剩余的时间被认为是<code>空闲时间</code></p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/dee7f0b3a7584d2ea9b13db62b9b8c93~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b69a6693b9c1453186fa6b1dcb902465~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h3 id="举个-">举个 🌰</h3>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAAJElEQVRoge3BMQEAAADCoPVP7WkJoAAAAAAAAAAAAAAAAAAAbjh8AAFte11jAAAAAElFTkSuQmCC" alt=""></p>
+<p>点击常规模式，页面会被卡住；点击 rid 模式，页面流畅渲染。</p>
+<p>以一个简单的任务(<code>singlTask</code>)为例，以常规模式连续执行 2w 次，全部执行完需要大概 2s 时间（依赖机器性能变化），这期间主线程被一直被占用，页面会被卡住。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">singleTask</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">now</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span> (<span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>() <span style="color:#f92672">-</span> <span style="color:#a6e22e">now</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0.001</span>) {} <span style="color:#75715e">// 模拟耗时操作，每次任务耗时约0.001ms
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">data</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Array(<span style="color:#ae81ff">20000</span>).<span style="color:#a6e22e">fill</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">normarlRun</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 2w个任务连续执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">singleTask</span>(<span style="color:#a6e22e">data</span>[<span style="color:#a6e22e">i</span>]);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">result</span>(<span style="color:#e6db74">&#34;done&#34;</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>对其使用<code>requestIdleCallback</code>进行拆分，只在<code>空闲时间</code>执行部分任务，若当前帧的空闲时间结束，则暂停批量任务，让出主线程：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">ridRun</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">option</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">200</span> }; <span style="color:#75715e">// 任务超时时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">handler</span>(<span style="color:#a6e22e">idleDeadline</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 每次执行任务前，判断当前帧是否还有空闲时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">while</span> (
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">idleDeadline</span>.<span style="color:#a6e22e">timeRemaining</span>() <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">idleDeadline</span>.<span style="color:#a6e22e">didTimeout</span>) <span style="color:#f92672">&amp;&amp;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">length</span>
+</span></span><span style="display:flex;"><span>    ) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 当前帧有剩余时间，或任务已等待超时强制执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">singleTask</span>(<span style="color:#a6e22e">data</span>[<span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>]);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// idleDeadline.timeRemaining() === 0 当前帧已没有空闲时间，让出主线程
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">length</span>) {
+</span></span><span style="display:flex;"><span>      window.<span style="color:#a6e22e">requestIdleCallback</span>(<span style="color:#a6e22e">handler</span>, <span style="color:#a6e22e">option</span>); <span style="color:#75715e">// 任务未执行完，继续等待下次空闲时间执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">result</span>(<span style="color:#e6db74">&#34;done&#34;</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  window.<span style="color:#a6e22e">requestIdleCallback</span>(<span style="color:#a6e22e">handler</span>, <span style="color:#a6e22e">option</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="模拟-requestidlecallback">模拟 requestIdleCallback</h3>
+<p>不幸的是<code>requestIdleCallback</code>兼容性不够好，<code>Safari</code>完全不支持：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/31ad975271ad429baa70fe742a8241f1~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>requestIdleCallback 的兼容性</p>
+<p>参考<code>react</code>的实现，我们可以使用<code>requestAnimationFrame</code>和<code>MessageChannel</code>来模拟实现一个<code>requestIdleCallback</code></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/46ea139bf463466dbc912e81830a582a~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>requestAnimationFrame 的兼容性</p>
+<p><code>requestAnimationFrame</code>在每一帧开始渲染前执行（见上面的 Event Loopt 图），当帧开始渲染前，我们标记开始时间(<code>start</code>)，并使用<code>MessageChannel</code>创建一个宏任务，根据上面的 Event Loop 流程，渲染完毕后，会执行刚才创建出的宏任务，这时在宏任务中判断当前帧渲染耗费的时间(<code>current - start</code>)，判断渲染耗时是否小于 16.7ms(<code>current - start &lt; 16.7</code>)，来判断当前是否是空闲时间。</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f68b68d0962942688f265a1cd9203994~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<blockquote>
+<p>setTimeout 即使指定时间为 0 浏览器实际也会延时几毫秒后才执行（chrome 大概为 4ms），因此使用 MessageChannel 而不是 setTimeout 来创建宏任务</p>
+</blockquote>
+<p>模拟<code>requestIdleCallback</code>的具体实现：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">genId</span> <span style="color:#f92672">=</span> (<span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">id</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#f92672">++</span><span style="color:#a6e22e">id</span>;
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>})();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">idMap</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>  [<span style="color:#a6e22e">key</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">number</span>]<span style="color:#f92672">:</span> <span style="color:#a6e22e">number</span>,
+</span></span><span style="display:flex;"><span>} <span style="color:#f92672">=</span> {};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">_requestIdleCallback</span><span style="color:#f92672">:</span> (
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cb</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">idleDeadline</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">IdleDeadline</span>) =&gt; <span style="color:#66d9ef">void</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">options</span><span style="color:#f92672">?:</span> { <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">number</span> }
+</span></span><span style="display:flex;"><span>) =&gt; <span style="color:#a6e22e">number</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">cb</span>, <span style="color:#a6e22e">options</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">channel</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MessageChannel</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">port1</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">port1</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">port2</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">channel</span>.<span style="color:#a6e22e">port2</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">deadlineTime</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">number</span>; <span style="color:#75715e">// 超时时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">frameDeadlineTime</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">number</span>; <span style="color:#75715e">// 当前帧的截止时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">callback</span><span style="color:#f92672">:</span> (<span style="color:#a6e22e">idleDeadline</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">IdleDeadline</span>) =&gt; <span style="color:#66d9ef">void</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">id</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">genId</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">port2</span>.<span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">frameTimeRemaining</span> <span style="color:#f92672">=</span> () =&gt; <span style="color:#a6e22e">frameDeadlineTime</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>(); <span style="color:#75715e">// 获取当前帧剩余时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">didTimeout</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>() <span style="color:#f92672">&gt;=</span> <span style="color:#a6e22e">deadlineTime</span>; <span style="color:#75715e">// 是否超时
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">didTimeout</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">frameTimeRemaining</span>() <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">idleDeadline</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">timeRemaining</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">frameTimeRemaining</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">didTimeout</span>,
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">callback</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">callback</span>(<span style="color:#a6e22e">idleDeadline</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">idMap</span>[<span style="color:#a6e22e">id</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">requestAnimationFrame</span>((<span style="color:#a6e22e">timeStamp</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">frameDeadlineTime</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">timeStamp</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">16.7</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">port1</span>.<span style="color:#a6e22e">postMessage</span>(<span style="color:#66d9ef">null</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">idMap</span>[<span style="color:#a6e22e">id</span>] <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">requestAnimationFrame</span>((<span style="color:#a6e22e">timeStamp</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">frameDeadlineTime</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">timeStamp</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">16.7</span>; <span style="color:#75715e">// 当前帧截止时间，按照 60fps 计算
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">deadlineTime</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">options</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">timeout</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">timeStamp</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">options</span>.<span style="color:#a6e22e">timeout</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">Infinity</span>; <span style="color:#75715e">// 超时时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">callback</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">cb</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">port1</span>.<span style="color:#a6e22e">postMessage</span>(<span style="color:#66d9ef">null</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">id</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">_cancelIdleCallback</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">id</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">number</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">idMap</span>[<span style="color:#a6e22e">id</span>]) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  window.<span style="color:#a6e22e">cancelAnimationFrame</span>(<span style="color:#a6e22e">idMap</span>[<span style="color:#a6e22e">id</span>]);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">delete</span> <span style="color:#a6e22e">idMap</span>[<span style="color:#a6e22e">id</span>];
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">requestIdleCallback</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>  window.<span style="color:#a6e22e">requestIdleCallback</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">_requestIdleCallback</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">cancelIdleCallback</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>  window.<span style="color:#a6e22e">cancelIdleCallback</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">_cancelIdleCallback</span>;
+</span></span></code></pre></div><h3 id="使用-requestidlecallback-拆分点位生成">使用 requestIdleCallback 拆分点位生成</h3>
+<p>将<code>genMarker</code>批量任务进行拆分，只在<code>空闲时间</code>时间进行拆分：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">addMarkersByRid</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cancelIdleCallback</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ridId</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">markerList</span>, <span style="color:#a6e22e">points</span>, <span style="color:#a6e22e">genMarker</span>, <span style="color:#a6e22e">genCluster</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">index</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ridOption</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">timeout</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">20</span> }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handler</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">idleDeadline</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">timeRemaining</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">idleDeadline</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 只在空闲时间生成点位
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">while</span> (<span style="color:#a6e22e">timeRemaining</span>() <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">index</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">points</span>.<span style="color:#a6e22e">length</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">device</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">points</span>[<span style="color:#a6e22e">index</span>]
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">marker</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">genMarker</span>(<span style="color:#a6e22e">device</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">markerList</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">marker</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">index</span><span style="color:#f92672">++</span>
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">index</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">points</span>.<span style="color:#a6e22e">length</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ridId</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">requestIdleCallback</span>(<span style="color:#a6e22e">handler</span>, <span style="color:#a6e22e">ridOption</span>)
+</span></span><span style="display:flex;"><span>      } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;done&#39;</span>) <span style="color:#75715e">// 全部点位生成完毕
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">ridId</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">requestIdleCallback</span>(<span style="color:#a6e22e">handler</span>, <span style="color:#a6e22e">ridOption</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/636b63e4e23e4cf399298b7a8817ed84~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="2023-04-14 15.43.50.gif"></p>
+<p>可以看到，点位的渲染并没有再影响到页面的响应了，可以在<a href="https://huangx.top/static/rid-map/">这里</a>自己体验一下差异。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/591/"
+      ><span class="mr-1.5">←</span><span>如何实现原生 JS 的拖拽效果</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/589/"
+      ><span>如何完成一个完全不依赖客户端时间的倒计时</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

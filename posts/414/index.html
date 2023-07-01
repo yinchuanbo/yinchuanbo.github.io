@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>webpack5之性能优化 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="性能分析工具 性能优化一直是我们一直关注的问题，对于性能优化分析的角度，我们可以从构建过程和构建产物两方面谈起。
+构建过程分析 对于构建过程，如果我们希望看到每一个loader、每一个Plugin消耗的打包时间，可以借助于一个插件: speed-measure-webpack-plugin，安装npm install speed-measure-webpack-plugin -D。 使用配置如下
+const SpeedMeasurePlugin = require(&#39;speed-measure-webpack-plugin&#39;) const smp = new SpeedMeasurePlugin() module.exports = (env) =&gt; { const config = { // 配置属性 } return smp.wrap(config) } 该插件在最新的webpack版本中存在一些兼容性的问题(和部分Plugin不兼容)，因此我们只能先加有兼容的插件删除或者注释掉
+构建产物分析 对于构建产物，我们可以使用webpack命令生成文件分析产物stats.json和分析工具webpack-bundle-analyzer两种方案
+stats.json 我们在package.json的script中添加&quot;build:stats&quot;: &quot;webpack --config ./config/webpack.common.js --env production --profile --json=stats.json&quot;，我们执行npm run build:stats，现在我们能够在当前目录下生成一个stats.json文件，并对其格式化一下 该产物记录了构建产物的模块大小，模块之前的引入关系等，我们也可以将生成的stats.json文件放到github.com/webpack/ana… ，进行分析
+webpack-bundle-analyzer 我们还可以通过一个查看包大小的分析工具webpack-bundle-analyzer，安装npm install webpack-bundle-analyzer -D，使用配置插件，并且打包
+const { BundleAnalyzerPlugin } = require(&#39;webpack-bundle-analyzer&#39;) { plugins: [ //... new BundleAnalyzerPlugin() ] } 该插件在打包结束后，启一个8888端口上的服务，我们可以直接的浏览器上访问该端口页面看到每个包的大小。
+性能优化方案 目前在实际项目中，具体的场景有对应的优化方案，现在我们来看一下的一些常用的性能优化方案" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="webpack5之性能优化" />
+<meta property="og:description" content="性能分析工具 性能优化一直是我们一直关注的问题，对于性能优化分析的角度，我们可以从构建过程和构建产物两方面谈起。
+构建过程分析 对于构建过程，如果我们希望看到每一个loader、每一个Plugin消耗的打包时间，可以借助于一个插件: speed-measure-webpack-plugin，安装npm install speed-measure-webpack-plugin -D。 使用配置如下
+const SpeedMeasurePlugin = require(&#39;speed-measure-webpack-plugin&#39;) const smp = new SpeedMeasurePlugin() module.exports = (env) =&gt; { const config = { // 配置属性 } return smp.wrap(config) } 该插件在最新的webpack版本中存在一些兼容性的问题(和部分Plugin不兼容)，因此我们只能先加有兼容的插件删除或者注释掉
+构建产物分析 对于构建产物，我们可以使用webpack命令生成文件分析产物stats.json和分析工具webpack-bundle-analyzer两种方案
+stats.json 我们在package.json的script中添加&quot;build:stats&quot;: &quot;webpack --config ./config/webpack.common.js --env production --profile --json=stats.json&quot;，我们执行npm run build:stats，现在我们能够在当前目录下生成一个stats.json文件，并对其格式化一下 该产物记录了构建产物的模块大小，模块之前的引入关系等，我们也可以将生成的stats.json文件放到github.com/webpack/ana… ，进行分析
+webpack-bundle-analyzer 我们还可以通过一个查看包大小的分析工具webpack-bundle-analyzer，安装npm install webpack-bundle-analyzer -D，使用配置插件，并且打包
+const { BundleAnalyzerPlugin } = require(&#39;webpack-bundle-analyzer&#39;) { plugins: [ //... new BundleAnalyzerPlugin() ] } 该插件在打包结束后，启一个8888端口上的服务，我们可以直接的浏览器上访问该端口页面看到每个包的大小。
+性能优化方案 目前在实际项目中，具体的场景有对应的优化方案，现在我们来看一下的一些常用的性能优化方案" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/414/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-28T22:19:32+08:00" />
+<meta property="article:modified_time" content="2023-03-28T22:19:32+08:00" />
+
+  
+  <meta itemprop="name" content="webpack5之性能优化">
+<meta itemprop="description" content="性能分析工具 性能优化一直是我们一直关注的问题，对于性能优化分析的角度，我们可以从构建过程和构建产物两方面谈起。
+构建过程分析 对于构建过程，如果我们希望看到每一个loader、每一个Plugin消耗的打包时间，可以借助于一个插件: speed-measure-webpack-plugin，安装npm install speed-measure-webpack-plugin -D。 使用配置如下
+const SpeedMeasurePlugin = require(&#39;speed-measure-webpack-plugin&#39;) const smp = new SpeedMeasurePlugin() module.exports = (env) =&gt; { const config = { // 配置属性 } return smp.wrap(config) } 该插件在最新的webpack版本中存在一些兼容性的问题(和部分Plugin不兼容)，因此我们只能先加有兼容的插件删除或者注释掉
+构建产物分析 对于构建产物，我们可以使用webpack命令生成文件分析产物stats.json和分析工具webpack-bundle-analyzer两种方案
+stats.json 我们在package.json的script中添加&quot;build:stats&quot;: &quot;webpack --config ./config/webpack.common.js --env production --profile --json=stats.json&quot;，我们执行npm run build:stats，现在我们能够在当前目录下生成一个stats.json文件，并对其格式化一下 该产物记录了构建产物的模块大小，模块之前的引入关系等，我们也可以将生成的stats.json文件放到github.com/webpack/ana… ，进行分析
+webpack-bundle-analyzer 我们还可以通过一个查看包大小的分析工具webpack-bundle-analyzer，安装npm install webpack-bundle-analyzer -D，使用配置插件，并且打包
+const { BundleAnalyzerPlugin } = require(&#39;webpack-bundle-analyzer&#39;) { plugins: [ //... new BundleAnalyzerPlugin() ] } 该插件在打包结束后，启一个8888端口上的服务，我们可以直接的浏览器上访问该端口页面看到每个包的大小。
+性能优化方案 目前在实际项目中，具体的场景有对应的优化方案，现在我们来看一下的一些常用的性能优化方案"><meta itemprop="datePublished" content="2023-03-28T22:19:32+08:00" />
+<meta itemprop="dateModified" content="2023-03-28T22:19:32+08:00" />
+<meta itemprop="wordCount" content="876">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="webpack5之性能优化"/>
+<meta name="twitter:description" content="性能分析工具 性能优化一直是我们一直关注的问题，对于性能优化分析的角度，我们可以从构建过程和构建产物两方面谈起。
+构建过程分析 对于构建过程，如果我们希望看到每一个loader、每一个Plugin消耗的打包时间，可以借助于一个插件: speed-measure-webpack-plugin，安装npm install speed-measure-webpack-plugin -D。 使用配置如下
+const SpeedMeasurePlugin = require(&#39;speed-measure-webpack-plugin&#39;) const smp = new SpeedMeasurePlugin() module.exports = (env) =&gt; { const config = { // 配置属性 } return smp.wrap(config) } 该插件在最新的webpack版本中存在一些兼容性的问题(和部分Plugin不兼容)，因此我们只能先加有兼容的插件删除或者注释掉
+构建产物分析 对于构建产物，我们可以使用webpack命令生成文件分析产物stats.json和分析工具webpack-bundle-analyzer两种方案
+stats.json 我们在package.json的script中添加&quot;build:stats&quot;: &quot;webpack --config ./config/webpack.common.js --env production --profile --json=stats.json&quot;，我们执行npm run build:stats，现在我们能够在当前目录下生成一个stats.json文件，并对其格式化一下 该产物记录了构建产物的模块大小，模块之前的引入关系等，我们也可以将生成的stats.json文件放到github.com/webpack/ana… ，进行分析
+webpack-bundle-analyzer 我们还可以通过一个查看包大小的分析工具webpack-bundle-analyzer，安装npm install webpack-bundle-analyzer -D，使用配置插件，并且打包
+const { BundleAnalyzerPlugin } = require(&#39;webpack-bundle-analyzer&#39;) { plugins: [ //... new BundleAnalyzerPlugin() ] } 该插件在打包结束后，启一个8888端口上的服务，我们可以直接的浏览器上访问该端口页面看到每个包的大小。
+性能优化方案 目前在实际项目中，具体的场景有对应的优化方案，现在我们来看一下的一些常用的性能优化方案"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">webpack5之性能优化</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 28, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h1 id="性能分析工具">性能分析工具</h1>
+<p>性能优化一直是我们一直关注的问题，对于性能优化分析的角度，我们可以从<code>构建过程</code>和<code>构建产物</code>两方面谈起。</p>
+<h2 id="构建过程分析">构建过程分析</h2>
+<p>对于<code>构建过程</code>，如果我们希望看到每一个loader、每一个Plugin消耗的打包时间，可以借助于一个插件: <code>speed-measure-webpack-plugin</code>，安装<code>npm install speed-measure-webpack-plugin -D</code>。 使用配置如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">SpeedMeasurePlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;speed-measure-webpack-plugin&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">smp</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">SpeedMeasurePlugin</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">env</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">config</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 配置属性
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">smp</span>.<span style="color:#a6e22e">wrap</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><blockquote>
+<p>该插件在最新的webpack版本中存在一些兼容性的问题(和部分Plugin不兼容)，因此我们只能先加有兼容的插件删除或者注释掉</p>
+</blockquote>
+<h2 id="构建产物分析">构建产物分析</h2>
+<p>对于<code>构建产物</code>，我们可以使用webpack命令生成文件分析产物<code>stats.json</code>和分析工具<code>webpack-bundle-analyzer</code>两种方案</p>
+<h3 id="statsjson">stats.json</h3>
+<p>我们在package.json的script中添加<code>&quot;build:stats&quot;: &quot;webpack --config ./config/webpack.common.js --env production --profile --json=stats.json&quot;</code>，我们执行<code>npm run build:stats</code>，现在我们能够在当前目录下生成一个<code>stats.json</code>文件，并对其格式化一下 <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/35d7621b52ca47dab31b26c3c981daf6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_14-16-33.png"> 该产物记录了构建产物的模块大小，模块之前的引入关系等，我们也可以将生成的stats.json文件放到<a href="https://github.com/webpack/analyse">github.com/webpack/ana…</a> ，进行分析</p>
+<h3 id="webpack-bundle-analyzer">webpack-bundle-analyzer</h3>
+<p>我们还可以通过一个查看包大小的分析工具<code>webpack-bundle-analyzer</code>，安装<code>npm install webpack-bundle-analyzer -D</code>，使用配置插件，并且打包</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">BundleAnalyzerPlugin</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;webpack-bundle-analyzer&#39;</span>)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">BundleAnalyzerPlugin</span>()
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d3f5cea19c884418aed4f67cd8e86f7a~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Snipaste_2022-03-26_14-25-16.png"></p>
+<p>该插件在打包结束后，启一个8888端口上的服务，我们可以直接的浏览器上访问该端口页面看到每个包的大小。</p>
+<h1 id="性能优化方案">性能优化方案</h1>
+<p>目前在实际项目中，具体的场景有对应的优化方案，现在我们来看一下的一些常用的性能优化方案</p>
+<h2 id="打包代码分离">打包代码分离</h2>
+<p>代码分离的方式有三种</p>
+<ul>
+<li>入口起点 : 使用entry配置手动分离代码</li>
+<li>防止重复 : 使用Entry Dependencies或者SplitChunksPlugin去重和分离代码</li>
+<li>动态导入 : 通过模块的内联函数调用来分离代码</li>
+</ul>
+<h3 id="entry配置手动分离代码">entry配置手动分离代码</h3>
+<p><code>entry</code>属性除了可以传字符串，也可以传对象，相关配置如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">entry</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">main</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;src/main.js&#39;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">index</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;src/index.js&#39;</span>)
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">output</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">path</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;build&#39;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;js/[name].bundle.js&#39;</span>, <span style="color:#75715e">// 通过[name]占位符来导出不同的bundle文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">clean</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9f0c71566d1b419a9f2aecd8052bcc1b~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>可以看到打包后输出index.bundle.js和main.bundle.js这两个文件，并且在index.html中引入这两个bundle文件，该方式一般可以用来打包多页面项目。</p>
+<h3 id="entry-dependencies">Entry Dependencies</h3>
+<p>现在我们使用一个lodash包分别在index.js里和main.js文件中使用</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// index.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">_</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;lodash&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">_</span>.<span style="color:#a6e22e">join</span>(<span style="color:#e6db74">&#39;hello&#39;</span>, <span style="color:#e6db74">&#39;index.js&#39;</span>))
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// main.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">_</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;lodash&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">_</span>.<span style="color:#a6e22e">join</span>(<span style="color:#e6db74">&#39;hello&#39;</span>, <span style="color:#e6db74">&#39;main.js&#39;</span>))
+</span></span></code></pre></div><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/eb851eddd2b94533b9c459bf33f8e7a1~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f15f610691004c2f8c2ad3f036a46456~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>可以看到lodash都打包进了两个bundle文件中，那么体积就大了一倍，我们能否将重复引入的依赖包给抽离成一个公共的呢，可以看如下配置</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">entry</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">main</span><span style="color:#f92672">:</span> {<span style="color:#66d9ef">import</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;src/main.js&#39;</span>), <span style="color:#a6e22e">dependOn</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;lodash&#39;</span>},
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">index</span><span style="color:#f92672">:</span> {<span style="color:#66d9ef">import</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;src/index.js&#39;</span>), <span style="color:#a6e22e">dependOn</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;lodash&#39;</span>},
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">lodash</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;lodash&#39;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f306ff00016b4959b31dd0f562223f2f~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>现在可以看到，通过配置dependOn去指出依赖项lodash，打包后可以看到抽离出lodash.bundle.js文件。如果两个文件又依赖另一个包，比如都是用的dayjs，那么配置和打包如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">entry</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">main</span><span style="color:#f92672">:</span> {<span style="color:#66d9ef">import</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;src/main.js&#39;</span>), <span style="color:#a6e22e">dependOn</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;shared&#39;</span>},
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">index</span><span style="color:#f92672">:</span> {<span style="color:#66d9ef">import</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;src/index.js&#39;</span>), <span style="color:#a6e22e">dependOn</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;shared&#39;</span>},
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">shared</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#39;lodash&#39;</span>, <span style="color:#e6db74">&#39;dayjs&#39;</span>]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f1148f0bd22844b59a9acae86cc2f6ac~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>现在loadsh和dayjs都打包进了shared.bundle.js里面了。</p>
+<h3 id="splitchunkspluginhttpswebpackdocschinaorgpluginssplit-chunks-plugin"><a href="https://webpack.docschina.org/plugins/split-chunks-plugin/">SplitChunksPlugin</a></h3>
+<p>我们可以使用 SplitChunks 的分块策略，我们介绍几个常用的属性</p>
+<ul>
+<li><code>chunks</code> : 默认值是async，另一个值是initial，表示对通过的代码进行处理，all表示对同步和异步代码都进行处理</li>
+<li><code>minSize</code> : 拆分包的大小，至少为minSize，如果一个包拆分出来达不到minSize，那么这个包就不会拆分</li>
+<li><code>maxSize</code> : 将大于maxSize的包，拆分为不小于minSize的包</li>
+<li><code>minChunks</code> : 至少被引入的次数，默认是1，如果我们写一个2，但是引入了一次，那么不会被单独拆分</li>
+<li><code>name</code> : 设置拆包的名称，可以设置一个名称，也可以设置为false，设置为false后，需要在cacheGroups中设置名称</li>
+<li><code>cacheGroups</code> : 用于对拆分的包就行分组，比如一个lodash在拆分之后，并不会立即打包，而是会等到有没有其他符合规则的包一起来打包
+<ul>
+<li><code>test</code> : 匹配符合规则的包</li>
+<li><code>name</code> : 拆分包的name属性</li>
+<li><code>filename</code> : 拆分包的名称，可以自己使用placeholder属性</li>
+<li><code>priority</code> : 打包优先级</li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">optimization</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">splitChunks</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// async异步导入
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// initoal同步导入
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// all 异步/同步
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">chunks</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;all&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">minSize</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">20000</span>,  <span style="color:#75715e">// 最小尺寸，拆分出来的一个包的大小最小为minSize 默认 20kb
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">maxSize</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">20000</span>,  <span style="color:#75715e">// 将大于maxSize的包，拆成不小于minSize的包 默认 0， 一般会设置和minSize一样
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">minChunks</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">2</span>,    <span style="color:#75715e">// 引入的包，至少被导入几次 默认 1次
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cacheGroups</span><span style="color:#f92672">:</span> {   <span style="color:#75715e">// 缓存分组
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">vendor</span><span style="color:#f92672">:</span> {  <span style="color:#75715e">// 第三方打包到vendor
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/[\/]node_modules[\/]/</span>,  <span style="color:#75715e">// 匹配node_modules
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;js/[id]_vendors.js&#39;</span>,  <span style="color:#75715e">// 与name属性区别是 filename可用占位符, name固定名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// name: &#39;js/check_vendors.js&#39;,  
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">priority</span><span style="color:#f92672">:</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">10</span>  <span style="color:#75715e">// 当所有打包条件都满足时，按priority优先级来打包，大的先打包
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      },
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">default</span><span style="color:#f92672">:</span> {  <span style="color:#75715e">// 默认打包，当其他条件不满足
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">minChunks</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">2</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;js/[id]_common.js&#39;</span>,  <span style="color:#75715e">// 一般是多入口会打包common.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">priority</span><span style="color:#f92672">:</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">20</span>
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="动态导入模块">动态导入模块</h3>
+<p>还有一种代码拆分的方式是动态导入时，webpack提供了两种实现动态导入的方式</p>
+<ul>
+<li>使用ECMAScript中的<code>import()</code>语法来完成，也是目前推荐的方式</li>
+<li>使用webpack遗留的<code>require.ensure</code>，目前已经不推荐使用</li>
+</ul>
+<p>比如一个模块在初始页面打开是并不会用到，而是在点击某一处使用该模块，那么我们希望一开始不需要将这个模块一起加载下来，而是等到需要用到的时候import动态导入后再加载。</p>
+<p>我们可以通过配置<code>output.chunkFilename</code>来改变异步打包文件名</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">output</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">chunkFilename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;js/chunk.[id].[name].js&#39;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bd79a789d154450382eb2f6b47391814~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""> </p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7810f236635b4dfeaccf745f52261ac5~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>我们通过import异步加载foo.js，打包后可以看到chunk.604.604.js，但是id和name却是相同，我们可通过<strong>魔法注释(magic comments)</strong> 来改变name</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fe909d043ecb46309b894b90fd223b16~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/794c44aa476d4d129daca6c84f37b12d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>现在重新打包后可以看到异步模块名已经替换成我们配置的名称。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/85fe1f9553d14acba762acb6e512a825~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>我们在浏览器中打开后经过2秒后这个依赖包被异步加载出来。我们实际上在很多框架如vue中加载路由会通过import懒加载的方式，就是我们上面所说的这种。</p>
+<p>在异步加载模块中，我们还可以通过魔法注释(magic comments)配置一个<code>prefetch</code>和<code>preload</code></p>
+<ul>
+<li><code>prefetch</code> (预获取) : 将来某些导航下可能需要的资源，prefetch会在父chunk加载结束后会开始加载。</li>
+<li><code>preload</code> (预加载) : 当前导航下可能需要资源，和父chunk一起请求</li>
+</ul>
+<p>目前我们推荐使用<code>prefetch</code> ，配置 <code>/*webpackPrefetch: true*/</code> 如下</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8ad542bfff7b40629a39ec19be5f6449~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bb300569e3b5407db61c2e6d0d59bfb6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b73178a6a1a748ee9bebbb9435131c9f~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>打包后可以看到浏览器中引入的chunk通过<code>&lt;link rel=&quot;prefetch&quot; as=&quot;script&quot;&gt;</code> 引入，并且在network中也可以看到当前模块在所以模块加载之后在加载并从 <code>prefetch cache</code> 中取出并执行，所以该资源预先下载完了资源，当我们使用到的时候再重缓存中读取加载。</p>
+<h2 id="tree-shaking">Tree Shaking</h2>
+<p>Tree Shaking就是摇晃树的意思，将我们没有用到的代码给摇晃(<strong>删除</strong>)下来，一般Tree Shaking分为javascript和css的tree shaking。而javascript的Tree Shaking方法中又借助了Teser压缩工具，所以我们先介绍一下javascript和css的压缩工具。</p>
+<h3 id="javascript压缩">Javascript压缩</h3>
+<p>我们先讲讲如何使用压缩工具，早期我们会使用 <strong>uglify-js</strong> 来压缩、丑化我们的JavaScript代码，但是目前已经不再维护，并且不支持ES6+的语法，现在我们主要使用了<code>TerserPlugin</code>这个插件配置，这个插件在安装webpack5的时候自动安装上了</p>
+<ul>
+<li>在webpack中有一个<code>minimizer</code>属性，在production模式下，默认就是使用<code>TerserPlugin</code>来处理我们的代码的，如果我们对默认的配置不满意，也可以自己来创建<code>TerserPlugin</code>的实例，并且覆盖相关的配置</li>
+<li>首先，我们需要打开<code>minimize</code>，让其对我们的代码进行压缩(默认production模式下已经打开了)</li>
+<li>其次，我们可以在minimizer创建一个<code>TerserPlugin</code></li>
+<li>
+<ul>
+<li><code>extractComments</code> : 默认值为true，表示会将注释抽取到一个单独的文件中，在开发中，我们不希望保留这个注释时，可以设置为false
+<ul>
+<li><code>parallel</code> : 使用多进程并发运行提高构建的速度，默认值是true，并发运行的默认数量: os.cpus().length - 1，我们也可以设置自己的个数，但是使用默认值即可</li>
+<li><code>terserOptions</code> : 设置我们的terser相关的配置
+<ul>
+<li><code>compress</code> : 设置压缩相关的选项</li>
+<li><code>mangle</code> : 设置丑化相关的选项，可以直接设置为true</li>
+<li><code>toplevel</code> : 底层变量是否进行转换</li>
+<li><code>keep_classnames</code> : 保留类的名称</li>
+<li><code>keep_fnames</code> : 保留函数的名称</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>TeserPlugin配置如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">TerserPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;terser-webpack-plugin&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">optimization</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">minimize</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,  <span style="color:#75715e">// minimizer配置开关
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">minimizer</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">TerserPlugin</span>({   <span style="color:#75715e">// 默认不需要去配置, 压缩js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">parallel</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,   <span style="color:#75715e">// 使用cpu多核来构建
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">extractComments</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,  <span style="color:#75715e">// 打包后的 LICENSE.txt 注释文件去吃
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">terserOptions</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">compress</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">arguments</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">dead_code</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        }, <span style="color:#75715e">// 设置压缩相关的选项；
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">mangle</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">// 设置丑化相关的选项，可以直接设置为true；
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">toplevel</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>, <span style="color:#75715e">// 底层变量是否进行转换；
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">keep_classnames</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>, <span style="color:#75715e">// 保留类的名称；
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">keep_fnames</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>, <span style="color:#75715e">// 保留函数的名称；
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      }
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="css压缩">CSS压缩</h3>
+<p>除了JS压缩之外，我们使用也有对于css的压缩，css压缩通常是去除无用的空格等，因为很难去修改选择器、属性的名称、值等，我们可以使用一个插件: <code>css-minimizer-webpack-plugin</code>，<strong>css-minimizer-webpack-plugin是使用cssnano工具来优化、压缩CSS(也可以单独使用)</strong>，安装 <code>npm install css-minimizer-webpack-plugin -d</code> 。配置如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">TerserPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;terser-webpack-plugin&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">CssMinimizerWebpackPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;css-minimizer-webpack-plugin&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">optimization</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">minimize</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,  <span style="color:#75715e">// minimizer配置开关
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">minimizer</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">TerserPlugin</span>({   <span style="color:#75715e">// 默认不需要去配置, 压缩js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }),
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">CssMinimizerWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">parallel</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>打包后可以看到css文件已被压缩</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/99c75615052e4e2c8a28b8971b3d8369~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<h3 id="javascript-tree-shaking">Javascript Tree Shaking</h3>
+<p>现在我们再来介绍下什么是<strong>Javascript Tree Shaking</strong>，Tree Shaking是一个术语，在计算机中表示消除死代码(dead_code)，Tree Shaking依赖于ES Module的静态语法分析(不执行任何的代码，可以明确知道模块的依赖关系)，tree shaking在webpack实现的过程如下</p>
+<ul>
+<li>webpack2正式内置支持了ES2015模块，和检测未使用模块的能力</li>
+<li>在webpack4正式扩展了这个能力，并且通过 package.json的<code>sideEffects</code>属性作为标记，告知webpack在编译时， 哪里文件可以安全的删除掉</li>
+<li>webpack5中，也提供了对部分CommonJS的tree shaking的支持</li>
+</ul>
+<p>目前webpack实现Tree Shaking采用了两种不同的方案</p>
+<ul>
+<li><strong>usedExports</strong>: 通过标记某些函数是否被使用，之后通过Terser来进行优化的</li>
+<li><strong>sideEffects</strong>: 跳过整个模块/文件，直接查看该文件是否有副作用</li>
+</ul>
+<h4 id="usedexports">usedExports</h4>
+<p>为了可以看到 usedExports带来的效果，我们需要设置为<code>development</code>模式，因为在<code>production</code>模式下，webpack默认的一些优化会带来很大额影响。</p>
+<p>现在准备我们的<strong>priceFormat.js</strong>文件和入口文件<strong>main.js</strong>，<strong>main.js</strong>只引入<strong>priceFormat.js</strong>文件中的<strong>add</strong>函数</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// priceFormat.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">add</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">a</span>, <span style="color:#a6e22e">b</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">a</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">b</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">minus</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">a</span>, <span style="color:#a6e22e">b</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">a</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">b</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// console.log(add(1, 2))
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">add</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">minus</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">add</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;./js/priceFormat&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">dom</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;div&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">dom</span>.<span style="color:#a6e22e">innerHTML</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;div&#39;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">add</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>)
+</span></span><span style="display:flex;"><span>document.<span style="color:#a6e22e">body</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">dom</span>)
+</span></span></code></pre></div><p>配置webpack并重新打包</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">mode</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;development&#39;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">devtool</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;source-map&#39;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">optimization</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">usedExports</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3bde7983f0f6474eae9df348ceba8d0a~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>在<code>usedExports</code>设置为true时，会有一段注释: <strong>unused harmony export minus</strong>，这段注释的意义是告知<code>Terser</code>在优化时，可以删除掉这段代码。</p>
+<p>现在这个时候，我们将<code>minimize</code>设置true，并重新打包</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">mode</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;development&#39;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">devtool</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;source-map&#39;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">optimization</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">usedExports</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">minimize</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>现在在来看打包文件，<strong>minus</strong>函数已经被消除，所以<strong>usedExports</strong>实现Tree Shaking是结合<strong>Terser</strong>来完成的。</p>
+<h4 id="sideeffects">sideEffects</h4>
+<ul>
+<li><strong>sideEffects</strong>用于告知webpack compiler哪些模块时有副作用的，副作用的意思是这里面的代码有执行一些特殊的任务，不能仅仅通过export来判断这段代码的意义</li>
+<li>在package.json中设置<strong>sideEffects</strong>的值，默认为true，表示所有引入的文件都是存在副作用的，不会删除掉
+<ul>
+<li>如果我们将<strong>sideEffects</strong>设置为false，就是告知webpack可以安全的删除未用到的exports</li>
+<li>如果有一些我们希望保留，可以设置为数组</li>
+</ul>
+</li>
+</ul>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/af9e820048694eacbcfa9082fce4f584~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>现在我们在package.json中将<strong>sideEffects</strong>设置成false，表示都没有副作用，之后在<strong>main.js</strong>中引入 foo.js文件，并重新打包</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// foo.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;foo&#39;</span>)
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// main.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#39;./js/foo&#39;</span>
+</span></span></code></pre></div><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/40bc6cde114c4bf1ac5d9125e30e3e12~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>我们可以看到打包后的文件里面并没有出现foo.js的代码，因为它认为foo.js不是一个副作用文件，因此在打包过程中将其删除了。</p>
+<p>我们也可以将<strong>sideEffects</strong>设置为数组，并将副作用的文件存放进去，打包就不会删除。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/15faa1b36c0a4d3aad80fa16e435aa45~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>比如我们将<strong>sideEffects</strong>设置为<code>[&quot;./src/js/foo.js&quot;]</code>，重新打包后</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ef3f1d6595174aa88184c78ba307d938~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>现在我们可以看到打包文件内出现了foo的代码，因此配置已生效。在引入css模块时，我们也可以在rules配置sideEffects，这样css模块就会被认为是副作用文件不会被删除，配置如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.less$/</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">isProduction</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">MiniCssExtractPlugin</span>.<span style="color:#a6e22e">loader</span> <span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;style-loader&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;css-loader&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;postcss-loader&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;less-loader&#39;</span>
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">sideEffects</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> 
+</span></span><span style="display:flex;"><span>},
+</span></span></code></pre></div><h3 id="css-tree-shaking">CSS Tree Shaking</h3>
+<p>除了JS的Tree Shaking外，CSS也有Tree Shaking。CSS的Tree Shaking需要借助于一些其他的插件，在早期的时候，我们会使用 PurifyCss 插件来完成CSS的tree shaking，但是目前该库已经不再维护了，目前我们可以使用另外一个库来完成CSS的Tree Shaking，<code>PurgeCSS</code>，也是一个帮助我们删除未使用的CSS 的工具，安装 <code>npm install purgecss-webpack-plugin -D</code> 。相关配置如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">PurgecssWebpackPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;purgecss-webpack-plugin&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">glob</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;glob&#39;</span>)  <span style="color:#75715e">// webpack自带安装的插件 用来匹配文件夹或者文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">PurgecssWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">paths</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">glob</span>.<span style="color:#a6e22e">sync</span>(<span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;./src&#39;</span>)<span style="color:#e6db74">}</span><span style="color:#e6db74">/**/*`</span>, {<span style="color:#a6e22e">nodir</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>}),  <span style="color:#75715e">// 匹配src目录下所有文件，不包括文件夹
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">safelist</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">function</span>() {  <span style="color:#75715e">// 安全的白名单，不会被tree shaking
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">standard</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#39;html&#39;</span>, <span style="color:#e6db74">&#39;body&#39;</span>]
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><blockquote>
+<p>该插件目前并不能对vue模版写法中style里面的css tree shaking，有小伙伴知道如何配置么！</p>
+</blockquote>
+<h2 id="动态链接库">动态链接库</h2>
+<p>DLL是一种软件链接库，我们可以共享，不经常改变的代码，将其抽取成一个共享的库，这个库在之后编译的过程中，会被引入到其他项目的代码中。DLL库的使用分为两步:</p>
+<h3 id="1打包一个dll库">1.打包一个DLL库</h3>
+<p>我们新建一个项目，添加webpack配置文件，我们使用一个webpack内置的 <code>DllPlugin</code> 插件，我们将vue打包成一个DLL库</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">DllPlugin</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;webpack&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;path&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">resolve</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">src</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#a6e22e">src</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">mode</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;production&#39;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">entry</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">vue</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#39;vue&#39;</span>]
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">output</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">path</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;./dll&#39;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;dll_[name].js&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">library</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;dll_[name]&#39;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">DllPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;dll_[name]&#39;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">path</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;./dll/[name].manifest.json&#39;</span>)
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>重新打包后我们得到一个dll构建目录，里面有 <code>dll_vue.js</code> 和 <code>vue.manifest.json</code> 文件</p>
+<h3 id="2项目中引入dll库">2.项目中引入DLL库</h3>
+<p>我们将构建目录复制到需要引用的项目下，并使用如下配置，该配置中我们使用webpack内置的 <code>DllReferencePlugin</code> 插件，除此外我们还需要安装一个 <code>add-asset-html-webpack-plugin</code> 依赖包，该依赖用于将静态资源引入到html中，这里其实做了两个操作，一个是将静态资源赋值到构建目录中，第二是在html注入script并引用该静态资源，安装 <code>npm install add-asset-html-webpack-plugin -d</code> 。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">AddAssetHtmlPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;add-asset-html-webpack-plugin&#39;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">DllReferencePlugin</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;webpack&#39;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">DllReferencePlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">context</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;./&#39;</span>),
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">manifest</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;./dll/vue.manifest.json&#39;</span>)
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">AddAssetHtmlPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">outputPath</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;./auto&#39;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">filepath</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;./dll/dll_vue.js&#39;</span>)
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="cdn引入">CDN引入</h2>
+<p>CDN的全称是Content Delivery Network，即<a href="https://baike.baidu.com/item/%E5%86%85%E5%AE%B9%E5%88%86%E5%8F%91%E7%BD%91%E7%BB%9C/4034265">内容分发网络</a>。CDN是构建在现有网络基础之上的智能虚拟网络，依靠部署在各地的边缘服务器，通过中心平台的负载均衡、内容分发、调度等功能模块，使用户就近获取所需内容，降低网络拥塞，提高用户访问响应速度和命中率。CDN的关键技术主要有内容存储和分发技术。在实际项目中，我们使用CDN的主要方式主要有两种</p>
+<ol>
+<li>打包的所有静态资源，放到CDN服务器，用户所有资源都是通过CDN服务器加载</li>
+<li>一些第三方资源放到CDN服务器上</li>
+</ol>
+<p>一般大厂会购买自己的CDN服务，但是正常我们还是会使用第二种方法，比如我们使用了lodash和dayjs这两个库，在生产环境，我们可以配置<code>externals</code>属性，传入一个对象，key为引入的安装包，value是安装包使用到的全局变量</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">externals</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">lodash</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;_&#39;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">dayjs</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;dayjs&#39;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1a5a81400c12477d8a37bc607a2058ea~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>我们在模版<strong>index.html</strong>通过ejs语法配置上依赖包的cdn链接，重新打包后<strong>vender.js</strong>中就没有了我们依赖的包的内容了。</p>
+<h2 id="gizp压缩">GIZP压缩</h2>
+<p>HTTP压缩是一种内置在服务器和客户端之间的，以改进传输速度和带宽利用率的方式，HTTP压缩的流程什么呢</p>
+<ol>
+<li>HTTP数据在服务器发送前就已经被压缩了(可以在webpack中完成)</li>
+<li>兼容的浏览器在向服务器发送请求时，会告知服务器自己支持哪些压缩格式</li>
+<li>服务器在浏览器支持的压缩格式下，直接返回对应的压缩后的文件，并且在响应头中告知浏览器</li>
+</ol>
+<p>目前的压缩格式非常的多，如下可见</p>
+<ul>
+<li><strong>compress</strong> – UNIX的“compress”程序的方法(历史性原因，不推荐大多数应用使用，应该使用gzip或 deflate)</li>
+<li><strong>deflate</strong> – 基于deflate算法(定义于RFC 1951)的压缩，使用zlib数据格式封装</li>
+<li><strong>gzip</strong> – GNU zip格式(定义于RFC 1952)，是目前使用比较广泛的压缩算法</li>
+<li><strong>br</strong> – 一种新的开源压缩算法，专为HTTP内容的编码而设计</li>
+</ul>
+<p>webpack中相当于是实现了HTTP压缩的第一步操作，我们可以使用 <code>CompressionPlugin</code> ，安装 <code>npm install compression-webpack-plugin -D</code> ，配置如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">CompressionWebpackPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;compression-webpack-plugin&#39;</span>)  <span style="color:#75715e">// 压缩打包文件插件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">CompressionWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">threshold</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/.(css|js)$/i</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">minRatio</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0.8</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">algorithm</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;gzip&#39;</span>
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="chunk内联html">Chunk内联Html</h2>
+<p>另外有一个插件，可以辅助将一些chunk出来的模块，内联到html中，减少http请求数量</p>
+<ul>
+<li>比如runtime的代码，代码量不大，但是是必须加载的</li>
+<li>那么我们可以直接内联到html中</li>
+</ul>
+<p>这个插件是在<strong>react-dev-utils</strong>中实现的，但是不会删除runtime文件，我们可以安装另一个插件， <code>script-ext-html-webpack-plugin</code>，安装 <code>npm install script-ext-html-webpack-plugin -D</code>。配置如下</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ScriptExtHtmlWebpackPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;script-ext-html-webpack-plugin&#39;</span>) <span style="color:#75715e">// 辅助将一些chunk出来的模块，内联到html中（会删除runtime-chunk）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">ScriptExtHtmlWebpackPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">inline</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/runtime.*.js(.gz)?$/</span>  <span style="color:#75715e">//正则匹配runtime文件名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    })
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上述正则如果我们配置了<strong>gzip压缩</strong>，那么生成的<strong>gz文件</strong>也会被匹配被删除掉。</p>
+<h2 id="hash值合理配置">Hash值合理配置</h2>
+<p>在我们给打包的文件进行命名的时候，会使用placeholder，placeholder中有几个属性比较相似: <code>hash</code>、<code>chunkhash</code>、<code>contenthash</code>，hash本身是通过MD4的散列函数处理后，生成一个128位的hash值(32个十六进制)</p>
+<ul>
+<li><strong>hash</strong>值的生成和整个项目有关系，比如我们有两个入口文件index.js和main.js，比如我们使用了hash，然后修改了main.js，那么我们的index.js文件名也是会改变。</li>
+<li><strong>chunkhash</strong>能解决上面的问题，如果我们修改了其中其中一个入口文件，那么另一个入口文件名就不会改变。</li>
+<li>但是如果比如index.js中引入了css文件，css是通过单独抽离出来的，当我们修改了index.js文件时，css文件名也是会改变，这个时候我们可以使用<strong>contenthash</strong>，<strong>contenthash</strong>跟内容有关，内容不变文件名不变</li>
+</ul>
+<p>所以我们一般会对<strong>runtime chunk</strong>或者<strong>css chunk</strong>用<strong>contenthash</strong>，入口文件用<strong>chunkhash</strong>。</p>
+<h2 id="scope-hoisting">Scope Hoisting</h2>
+<p><strong>Scope Hoisting</strong>从webpack3开始增加的一个新功能，功能是对作用域进行提升，并且让webpack打包后的代码更小、运行更快</p>
+<p>默认情况下webpack打包会有很多的函数作用域，包括一些(比如最外层的)IIFE: 无论是从最开始的代码运行，还是加载一个模块，都需要执行一系列的函数，Scope Hoisting可以将函数合并到一个模块中来运行。</p>
+<p>使用Scope Hoisting非常的简单，webpack已经内置了对应的模块:</p>
+<ul>
+<li>在<code>production</code>模式下，默认这个模块就会启用</li>
+<li>在<code>development</code>模式下，我们需要自己来打开该模块，配置如下。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">new</span> <span style="color:#a6e22e">webpack</span>.<span style="color:#a6e22e">optimize</span>.<span style="color:#a6e22e">ModuleConcatenationPlugin</span>()
+</span></span></code></pre></div></section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/415/"
+      ><span class="mr-1.5">←</span><span>webpack5之Loader和Plugin的实现</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/413/"
+      ><span>webpack5之Babel/ESlint/浏览器兼容</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

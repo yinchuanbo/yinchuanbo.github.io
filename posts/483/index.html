@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>搞懂EventLoop - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 Event Loop即事件循环，是指浏览器或Node的一种解决javaScript单线程运行时不会阻塞的一种机制，也就是我们经常使用异步的原理。
+为啥要弄懂 Event Loop Event Loop 是 JavaScript 异步编程的核心思想，也是前端进阶必须跨越的一关。同时，它又是面试的必考点，特别是在 Promise 出现之后，各种各样的面试题层出不穷，花样百出。这篇文章从现实生活中的例子入手，让你彻底理解 Event Loop 的原理和机制，并能游刃有余的解决此类面试题。
+是要增加自己技术的深度，也就是懂得JavaScript的运行机制。 现在在前端领域各种技术层出不穷，掌握底层原理，可以让自己以不变，应万变。 应对各大互联网公司的面试，懂其原理，题目任其发挥。 常见面试题 async function async1() { console.log(&#34;async1 start&#34;); await async2(); console.log(&#34;async1 end&#34;); } async function async2() { console.log(&#34;async2&#34;); } console.log(&#34;script start&#34;); setTimeout(function () { console.log(&#34;setTimeout&#34;); }, 0); async1(); new Promise(function (resolve) { console.log(&#34;promise1&#34;); resolve(); }).then(function () { console.log(&#34;promise2&#34;); }); console.log(&#34;script end&#34;); 如果上面的面试题，还没有搞明白的话，那么接下来的内容，你需要仔细阅读喽。
+为什么 JavaScript 是单线程的？ 我们都知道 JavaScript 是一门 单线程 语言，也就是说同一时间只能做一件事。这是因为 JavaScript 生来作为浏览器脚本语言，主要用来处理与用户的交互、网络以及操作 DOM。 这就决定了它只能是单线程的，否则会带来很复杂的同步问题。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="搞懂EventLoop" />
+<meta property="og:description" content="前言 Event Loop即事件循环，是指浏览器或Node的一种解决javaScript单线程运行时不会阻塞的一种机制，也就是我们经常使用异步的原理。
+为啥要弄懂 Event Loop Event Loop 是 JavaScript 异步编程的核心思想，也是前端进阶必须跨越的一关。同时，它又是面试的必考点，特别是在 Promise 出现之后，各种各样的面试题层出不穷，花样百出。这篇文章从现实生活中的例子入手，让你彻底理解 Event Loop 的原理和机制，并能游刃有余的解决此类面试题。
+是要增加自己技术的深度，也就是懂得JavaScript的运行机制。 现在在前端领域各种技术层出不穷，掌握底层原理，可以让自己以不变，应万变。 应对各大互联网公司的面试，懂其原理，题目任其发挥。 常见面试题 async function async1() { console.log(&#34;async1 start&#34;); await async2(); console.log(&#34;async1 end&#34;); } async function async2() { console.log(&#34;async2&#34;); } console.log(&#34;script start&#34;); setTimeout(function () { console.log(&#34;setTimeout&#34;); }, 0); async1(); new Promise(function (resolve) { console.log(&#34;promise1&#34;); resolve(); }).then(function () { console.log(&#34;promise2&#34;); }); console.log(&#34;script end&#34;); 如果上面的面试题，还没有搞明白的话，那么接下来的内容，你需要仔细阅读喽。
+为什么 JavaScript 是单线程的？ 我们都知道 JavaScript 是一门 单线程 语言，也就是说同一时间只能做一件事。这是因为 JavaScript 生来作为浏览器脚本语言，主要用来处理与用户的交互、网络以及操作 DOM。 这就决定了它只能是单线程的，否则会带来很复杂的同步问题。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/483/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-13T17:31:57+08:00" />
+<meta property="article:modified_time" content="2023-04-13T17:31:57+08:00" />
+
+  
+  <meta itemprop="name" content="搞懂EventLoop">
+<meta itemprop="description" content="前言 Event Loop即事件循环，是指浏览器或Node的一种解决javaScript单线程运行时不会阻塞的一种机制，也就是我们经常使用异步的原理。
+为啥要弄懂 Event Loop Event Loop 是 JavaScript 异步编程的核心思想，也是前端进阶必须跨越的一关。同时，它又是面试的必考点，特别是在 Promise 出现之后，各种各样的面试题层出不穷，花样百出。这篇文章从现实生活中的例子入手，让你彻底理解 Event Loop 的原理和机制，并能游刃有余的解决此类面试题。
+是要增加自己技术的深度，也就是懂得JavaScript的运行机制。 现在在前端领域各种技术层出不穷，掌握底层原理，可以让自己以不变，应万变。 应对各大互联网公司的面试，懂其原理，题目任其发挥。 常见面试题 async function async1() { console.log(&#34;async1 start&#34;); await async2(); console.log(&#34;async1 end&#34;); } async function async2() { console.log(&#34;async2&#34;); } console.log(&#34;script start&#34;); setTimeout(function () { console.log(&#34;setTimeout&#34;); }, 0); async1(); new Promise(function (resolve) { console.log(&#34;promise1&#34;); resolve(); }).then(function () { console.log(&#34;promise2&#34;); }); console.log(&#34;script end&#34;); 如果上面的面试题，还没有搞明白的话，那么接下来的内容，你需要仔细阅读喽。
+为什么 JavaScript 是单线程的？ 我们都知道 JavaScript 是一门 单线程 语言，也就是说同一时间只能做一件事。这是因为 JavaScript 生来作为浏览器脚本语言，主要用来处理与用户的交互、网络以及操作 DOM。 这就决定了它只能是单线程的，否则会带来很复杂的同步问题。"><meta itemprop="datePublished" content="2023-04-13T17:31:57+08:00" />
+<meta itemprop="dateModified" content="2023-04-13T17:31:57+08:00" />
+<meta itemprop="wordCount" content="704">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="搞懂EventLoop"/>
+<meta name="twitter:description" content="前言 Event Loop即事件循环，是指浏览器或Node的一种解决javaScript单线程运行时不会阻塞的一种机制，也就是我们经常使用异步的原理。
+为啥要弄懂 Event Loop Event Loop 是 JavaScript 异步编程的核心思想，也是前端进阶必须跨越的一关。同时，它又是面试的必考点，特别是在 Promise 出现之后，各种各样的面试题层出不穷，花样百出。这篇文章从现实生活中的例子入手，让你彻底理解 Event Loop 的原理和机制，并能游刃有余的解决此类面试题。
+是要增加自己技术的深度，也就是懂得JavaScript的运行机制。 现在在前端领域各种技术层出不穷，掌握底层原理，可以让自己以不变，应万变。 应对各大互联网公司的面试，懂其原理，题目任其发挥。 常见面试题 async function async1() { console.log(&#34;async1 start&#34;); await async2(); console.log(&#34;async1 end&#34;); } async function async2() { console.log(&#34;async2&#34;); } console.log(&#34;script start&#34;); setTimeout(function () { console.log(&#34;setTimeout&#34;); }, 0); async1(); new Promise(function (resolve) { console.log(&#34;promise1&#34;); resolve(); }).then(function () { console.log(&#34;promise2&#34;); }); console.log(&#34;script end&#34;); 如果上面的面试题，还没有搞明白的话，那么接下来的内容，你需要仔细阅读喽。
+为什么 JavaScript 是单线程的？ 我们都知道 JavaScript 是一门 单线程 语言，也就是说同一时间只能做一件事。这是因为 JavaScript 生来作为浏览器脚本语言，主要用来处理与用户的交互、网络以及操作 DOM。 这就决定了它只能是单线程的，否则会带来很复杂的同步问题。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">搞懂EventLoop</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 13, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h1 id="前言">前言</h1>
+<p><code>Event Loop</code>即事件循环，是指浏览器或<code>Node</code>的一种解决<code>javaScript</code>单线程运行时不会阻塞的一种机制，也就是我们经常使用<strong>异步</strong>的原理。</p>
+<h1 id="为啥要弄懂-event-loop">为啥要弄懂 Event Loop</h1>
+<p>Event Loop 是 JavaScript 异步编程的核心思想，也是前端进阶必须跨越的一关。同时，它又是面试的必考点，特别是在 Promise 出现之后，各种各样的面试题层出不穷，花样百出。这篇文章从现实生活中的例子入手，让你彻底理解 Event Loop 的原理和机制，并能游刃有余的解决此类面试题。</p>
+<ul>
+<li>是要增加自己技术的深度，也就是懂得<code>JavaScript</code>的运行机制。</li>
+<li>现在在前端领域各种技术层出不穷，掌握底层原理，可以让自己以不变，应万变。</li>
+<li>应对各大互联网公司的面试，懂其原理，题目任其发挥。</li>
+</ul>
+<h1 id="常见面试题">常见面试题</h1>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">async1</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;async1 start&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">async2</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;async1 end&#34;</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">async2</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;async2&#34;</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;script start&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">setTimeout</span>(<span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;setTimeout&#34;</span>);
+</span></span><span style="display:flex;"><span>}, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">async1</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">new</span> Promise(<span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">resolve</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;promise1&#34;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span>}).<span style="color:#a6e22e">then</span>(<span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;promise2&#34;</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;script end&#34;</span>);
+</span></span></code></pre></div><p>如果上面的面试题，还没有搞明白的话，那么接下来的内容，你需要仔细阅读喽。</p>
+<h1 id="为什么-javascript-是单线程的">为什么 JavaScript 是单线程的？</h1>
+<p>我们都知道 JavaScript 是一门 <code>单线程</code> 语言，也就是说同一时间只能做一件事。这是因为 JavaScript 生来作为浏览器脚本语言，主要用来处理与用户的交互、网络以及操作 DOM。 这就决定了它只能是单线程的，否则会带来很复杂的同步问题。</p>
+<p>所以就是说在一行代码执行的过程中，必然不会存在同时执行的另一行代码，就像使用<code>alert()</code>以后进行疯狂<code>console.log</code>，如果没有关闭弹框，控制台是不会显示出一条<code>log</code>信息的。</p>
+<p>亦或者有些代码执行了大量计算，比方说在前端暴力破解密码之类的鬼操作，这就会导致后续代码一直在等待，页面处于假死状态，因为前边的代码并没有执行完。</p>
+<p>所以如果全部代码都是同步执行的，这会引发很严重的问题，比方说我们要从远端获取一些数据，难道要一直循环代码去判断是否拿到了返回结果么？<em>就像去饭店点餐，肯定不能说点完了以后就去后厨催着人炒菜的，会被打出去的。</em></p>
+<p>于是就有了异步事件的概念，注册一个回调函数，比如说发一个网络请求，我们告诉主程序等到接收到数据后通知我，然后我们就可以去做其他的事情了。</p>
+<p>然后在异步完成后，会通知到我们，但是此时可能程序正在做其他的事情，所以即使异步完成了也需要在一旁等待，等到程序空闲下来才有时间去看哪些异步已经完成了，可以去执行。</p>
+<p><em>比如说打了个车，如果司机先到了，但是你手头还有点儿事情要处理，这时司机是不可能自己先开着车走的，一定要等到你处理完事情上了车才能走。</em></p>
+<p>既然 Javascript 是单线程的，它就像是只有一个窗口的银行，客户不得不排队一个一个的等待办理。同理 JavaScript 的任务也要一个接一个的执行，如果某个任务（比如加载高清图片）是个耗时任务，那浏览器岂不得一直卡着？为了防止主线程的阻塞，JavaScript 有了 <code>同步</code> 和 <code>异步</code> 的概念。</p>
+<h1 id="同步和异步">同步和异步</h1>
+<h2 id="同步">同步</h2>
+<p>如果在一个函数返回的时候，调用者就能够得到预期结果，那么这个函数就是同步的。也就是说同步方法调用一旦开始，调用者必须等到该函数调用返回后，才能继续后续的行为。下面这段代码首先会弹出 alert 框，如果你不点击 <code>确定</code> 按钮，所有的页面交互都被锁死，并且后续的 <code>console</code> 语句不会被打印出来。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">alert</span>(<span style="color:#e6db74">&#34;furmen&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;is&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;the&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;best&#34;</span>);
+</span></span></code></pre></div><h2 id="异步">异步</h2>
+<p>如果在函数返回的时候，调用者还不能够得到预期结果，而是需要在将来通过一定的手段得到，那么这个函数就是异步的。比如说发一个网络请求，我们告诉主程序等到接收到数据后再通知我，然后我们就可以去做其他的事情了。当异步完成后，会通知到我们，但是此时可能程序正在做其他的事情，所以即使异步完成了也需要在一旁等待，等到程序空闲下来才有时间去看哪些异步已经完成了，再去执行。</p>
+<p>这也就是定时器并不能精确在指定时间后输出回调函数结果的原因。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span> <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;furmen&#39;</span>);
+</span></span><span style="display:flex;"><span>}, <span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">​</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">100000000</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span> <span style="color:#75715e">// todo
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><h1 id="堆栈任务队列">堆、栈、任务队列</h1>
+<h2 id="堆heap">堆(heap)</h2>
+<p>堆是基于树抽象数据类型的一种特殊的数据结构。是利用完全二叉树维护的一组数据，<strong>堆</strong>分为两种，一种为最大<strong>堆</strong>，一种为<strong>最小堆</strong>，将根节点<strong>最大</strong>的<strong>堆</strong>叫做<strong>最大堆</strong>或<strong>大根堆</strong>，根节点<strong>最小</strong>的<strong>堆</strong>叫做<strong>最小堆</strong>或<strong>小根堆</strong>。 <strong>堆</strong>是<strong>线性数据结构</strong>，相当于<strong>一维数组</strong>，有唯一后继。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/052ea90984a943abacb5e5ee107101a5~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="图片"></p>
+<h2 id="栈-stack">栈 (stack)</h2>
+<p>栈是遵循后进先出 (LIFO) 原则的有序集合，新添加或待删除的元素都保存在同一端，称为栈顶，另一端叫做栈底。在栈里，新元素都靠近栈顶，旧元素都接近栈底。栈在编程语言的编译器和内存中存储基本数据类型和对象的指针、方法调用等。</p>
+<p>栈被称为是一种后入先出（LIFO last-in-first-out）的数据结构。由于栈具有后入先出的特点，所以任何不在栈顶的元素都无法访问，为了得到栈顶的元素，必须先拿掉上面的元素。 在这里，为方便理解，通过类比乒乓球盒子来分析栈的存放方式。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d9ef3b47c1ef417fa42254035486bf79~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="图片"></p>
+<p>这种乒乓球的存放方式与栈中存取数据的方式如出一辙。 处于盒子中最顶层的乒乓球 5，它一定是最后被放进去，但可以最先被使用。 而我们想要使用底层的乒乓球 1，就必须将上面的 4 个乒乓球取出来，让乒乓球 1 处于盒子顶层。 这就是栈空间先进后出，后进先出的特点。</p>
+<h2 id="队列-queue">队列 (queue)</h2>
+<p>队列是遵循先进先出 (FIFO) 原则的有序集合，队列在尾部添加新元素，并在顶部移除元素，最新添加的元素必须排在队列的末尾。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/937ee9011ab4426684e620eaa857a70c~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="图片"></p>
+<p>特殊之处在于它只允许在表的前端（<code>front</code>）进行<strong>删除</strong>操作，而在表的后端（<code>rear</code>）进行<strong>插入</strong>操作，和<strong>栈</strong>一样，<strong>队列</strong>是一种操作受限制的线性表。 进行<strong>插入</strong>操作的端称为<strong>队尾</strong>，进行<strong>删除</strong>操作的端称为<strong>队头</strong>。 队列中没有元素时，称为<strong>空队列</strong>。</p>
+<p><strong>队列</strong>的数据元素又称为<strong>队列元素</strong>。在队列中插入一个队列元素称为<strong>入队</strong>，从<strong>队列</strong>中<strong>删除</strong>一个队列元素称为<strong>出队</strong>。因为队列<strong>只允许</strong>在一端<strong>插入</strong>，在另一端<strong>删除</strong>，所以只有<strong>最早</strong>进入<strong>队列</strong>的元素<strong>才能最先从队列中</strong>删除，故队列又称为<strong>先进先出</strong>（<code>FIFO—first in first out</code>）。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2de38586087e4d8bba77ca894f323d79~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="图片"></p>
+<p>如上图所示，JavaScript 中的内存分为 <code>堆内存</code> 和 <code>栈内存</code>,</p>
+<p>JavaScript 中引用类型值的大小是不固定的，因此它们会被存储到 <code>堆内存</code> 中，由系统自动分配存储空间。JavaScript 不允许直接访问堆内存中的位置，因此我们不能直接操作对象的堆内存空间，而是操作 <code>对象的引用</code>。</p>
+<p>而 JavaScript 中的基础数据类型都有固定的大小，因此它们被存储到 <code>栈内存</code> 中。我们可以直接操作保存在栈内存空间的值，因此基础数据类型都是 <code>按值访问</code>。此外，栈内存还会存储 <code>对象的引用 (指针)</code> 以及 <code>函数执行时的运行空间</code>。</p>
+<h2 id="执行栈">执行栈</h2>
+<p>当我们调用一个方法的时候，JavaScript 会生成一个与这个方法对应的执行环境，又叫执行上下文(context)。这个执行环境中保存着该方法的私有作用域、上层作用域(作用域链)、方法的参数，以及这个作用域中定义的变量和 this 的指向，而当一系列方法被依次调用的时候。由于 JavaScript 是单线程的，这些方法就会按顺序被排列在一个单独的地方，这个地方就是所谓执行栈。</p>
+<h2 id="任务队列">任务队列</h2>
+<p>事件队列是一个存储着 <code>异步任务</code> 的队列，其中的任务严格按照时间先后顺序执行，排在队头的任务将会率先执行，而排在队尾的任务会最后执行。事件队列每次仅执行一个任务，在该任务执行完毕之后，再执行下一个任务。执行栈则是一个类似于函数调用栈的运行容器，当执行栈为空时，JS 引擎便检查事件队列，如果事件队列不为空的话，事件队列便将第一个任务压入执行栈中运行。</p>
+<h1 id="事件循环event-loop">事件循环（Event Loop）</h1>
+<p>我们注意到，在异步代码完成后仍有可能要在一旁等待，因为此时程序可能在做其他的事情，等到程序空闲下来才有时间去看哪些异步已经完成了。所以 JavaScript 有一套机制去处理同步和异步操作，那就是事件循环 (Event Loop)。</p>
+<p>下面就是事件循环的示意图</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9a2b044755e04c7aa6890297f74fc6ea~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="图片"></p>
+<p>用文字描述的话，大致是这样的:</p>
+<ul>
+<li>所有同步任务都在主线程上执行，形成一个执行栈 (Execution Context Stack)。</li>
+<li>而异步任务会被放置到 Task Table，也就是上图中的异步处理模块，当异步任务有了运行结果，就将该函数移入任务队列。</li>
+<li>一旦执行栈中的所有同步任务执行完毕，引擎就会读取任务队列，然后将任务队列中的第一个任务压入执行栈中运行。</li>
+</ul>
+<p>主线程不断重复第三步，也就是 <code>只要主线程空了，就会去读取任务队列</code>，该过程不断重复，这就是所谓的 <code>事件循环</code>。</p>
+<h1 id="宏任务和微任务">宏任务和微任务</h1>
+<p>在<code>JavaScript</code>中，任务被分为两种，一种宏任务（<code>MacroTask</code>）也叫<code>Task</code>，一种叫微任务（<code>MicroTask</code>）。</p>
+<h2 id="宏任务">宏任务</h2>
+<p>script(整体代码)、setTimeout、setInterval、I/O、事件、postMessage、 MessageChannel、setImmediate (Node.js)</p>
+<h2 id="微任务">微任务</h2>
+<p>Promise.then、 MutaionObserver、process.nextTick (Node.js)</p>
+<h2 id="宏任务和微任务的区别">宏任务和微任务的区别</h2>
+<p>这个就像去银行办业务一样，先要取号进行排号。 一般上边都会印着类似：“您的号码为 XX，前边还有 XX 人。”之类的字样。</p>
+<p>因为柜员同时职能处理一个来办理业务的客户，这时每一个来办理业务的人就可以认为是银行柜员的一个宏任务来存在的，当柜员处理完当前客户的问题以后，选择接待下一位，广播报号，也就是下一个宏任务的开始。 所以多个宏任务合在一起就可以认为说有一个任务队列在这，里边是当前银行中所有排号的客户。 <strong>任务队列中的都是已经完成的异步操作，而不是说注册一个异步任务就会被放在这个任务队列中，就像在银行中排号，如果叫到你的时候你不在，那么你当前的号牌就作废了，柜员会选择直接跳过进行下一个客户的业务处理，等你回来以后还需要重新取号</strong></p>
+<p>而且一个宏任务在执行的过程中，是可以添加一些微任务的，就像在柜台办理业务，你前边的一位老大爷可能在存款，在存款这个业务办理完以后，柜员会问老大爷还有没有其他需要办理的业务，这时老大爷想了一下：“最近 P2P 爆雷有点儿多，是不是要选择稳一些的理财呢”，然后告诉柜员说，要办一些理财的业务，这时候柜员肯定不能告诉老大爷说：“您再上后边取个号去，重新排队”。 所以本来快轮到你来办理业务，会因为老大爷临时添加的“<strong>理财业务</strong>”而往后推。 也许老大爷在办完理财以后还想 <strong>再办一个信用卡</strong>？或者 <strong>再买点儿纪念币</strong>？ 无论是什么需求，只要是柜员能够帮她办理的，都会在处理你的业务之前来做这些事情，这些都可以认为是微任务。</p>
+<p>这就说明：~你大爷永远是你大爷~ <strong>在当前的微任务没有执行完成时，是不会执行下一个宏任务的。</strong></p>
+<p>所以就有了那个经常在面试题、各种博客中的代码片段：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">setTimeout</span>((<span style="color:#a6e22e">_</span>) =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>));
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>}).<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">_</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>);
+</span></span></code></pre></div><p><code>setTimeout</code>就是作为宏任务来存在的，而<code>Promise.then</code>则是具有代表性的微任务，上述代码的执行顺序就是按照序号来输出的。</p>
+<p><strong>所有会进入的异步都是指的事件回调中的那部分代码</strong> 也就是说<code>new Promise</code>在实例化的过程中所执行的代码都是同步进行的，而<code>then</code>中注册的回调才是异步执行的。 在同步代码执行完成后才回去检查是否有异步任务完成，并执行对应的回调，而微任务又会在宏任务之前执行。 所以就得到了上述的输出结论<code>1、2、3、4</code>。</p>
+<p><em>+部分表示同步执行的代码</em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#f92672">+</span><span style="color:#a6e22e">setTimeout</span>(<span style="color:#a6e22e">_</span> =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">-</span> <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>)
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>})
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span><span style="color:#66d9ef">new</span> Promise(<span style="color:#a6e22e">resolve</span> =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span> <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>}).<span style="color:#a6e22e">then</span>(<span style="color:#a6e22e">_</span> =&gt; {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">-</span> <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>)
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span>})
+</span></span><span style="display:flex;"><span><span style="color:#f92672">+</span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>)
+</span></span></code></pre></div><p>本来<code>setTimeout</code>已经先设置了定时器（相当于取号），然后在当前进程中又添加了一些<code>Promise</code>的处理（临时添加业务）。</p>
+<p>所以进阶的，即便我们继续在<code>Promise</code>中实例化<code>Promise</code>，其输出依然会早于<code>setTimeout</code>的宏任务。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">setTimeout</span>((<span style="color:#a6e22e">_</span>) =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>));
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>}).<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">_</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>  Promise.<span style="color:#a6e22e">resolve</span>()
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">_</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;before timeout&#34;</span>);
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>    .<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">_</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      Promise.<span style="color:#a6e22e">resolve</span>().<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">_</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;also before timeout&#34;</span>);
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>);
+</span></span></code></pre></div><p>当然了，实际情况下很少会有简单的这么调用<code>Promise</code>的，一般都会在里边有其他的异步操作，比如<code>fetch</code>、<code>fs.readFile</code>之类的操作。 而这些其实就相当于注册了一个宏任务，而非是微任务。</p>
+<h1 id="来做几道题">来做几道题</h1>
+<p>看看下面这道题你能不能做出来。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;A&#34;</span>);
+</span></span><span style="display:flex;"><span>}, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">obj</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">func</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setTimeout</span>(<span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;B&#34;</span>);
+</span></span><span style="display:flex;"><span>    }, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise(<span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">resolve</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;C&#34;</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">func</span>().<span style="color:#a6e22e">then</span>(<span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;D&#34;</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;E&#34;</span>);
+</span></span></code></pre></div><p>第一个 <code>setTimeout</code> 放到宏任务队列，此时宏任务队列为 [&lsquo;A&rsquo;]</p>
+<p>接着执行 obj 的 func 方法，将 <code>setTimeout</code> 放到宏任务队列，此时宏任务队列为 [&lsquo;A&rsquo;, &lsquo;B&rsquo;]</p>
+<p>函数返回一个 Promise，因为这是一个同步操作，所以先打印出 <code>'C'</code></p>
+<p>接着将 <code>then</code> 放到微任务队列，此时微任务队列为 [&lsquo;D&rsquo;]</p>
+<p>接着执行同步任务 <code>console.log('E');</code>，打印出 <code>'E'</code></p>
+<p>因为微任务优先执行，所以先输出 <code>'D'</code></p>
+<p>最后依次输出 <code>'A'</code> 和 <code>'B'</code></p>
+<p>再来看一道阮一峰老师出的题目，其实也不难。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">p</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">resolve</span>(<span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  Promise.<span style="color:#a6e22e">resolve</span>().<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">2</span>));
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">4</span>);
+</span></span><span style="display:flex;"><span>}).<span style="color:#a6e22e">then</span>((<span style="color:#a6e22e">t</span>) =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">t</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#ae81ff">3</span>);
+</span></span></code></pre></div><p>首先将 <code>Promise.resolve()</code> 的 then() 方法放到微任务队列，此时微任务队列为 [&lsquo;2&rsquo;]</p>
+<p>然后打印出同步任务 <code>4</code></p>
+<p>接着将 <code>p</code> 的 then() 方法放到微任务队列，此时微任务队列为 [&lsquo;2&rsquo;, &lsquo;1&rsquo;]</p>
+<p>打印出同步任务 <code>3</code></p>
+<p>最后依次打印微任务 <code>2</code> 和 <code>1</code></p>
+<h1 id="当-event-loop-遇到-asyncawait">当 Event Loop 遇到 async/await</h1>
+<p>我们知道，async/await 仅仅是生成器的语法糖，所以不要怕，只要把它转换成 Promise 的形式即可。下面这段代码是 async/await 函数的经典形式。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">foo</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// await 前面的代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">bar</span>(); <span style="color:#75715e">// await 后面的代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#66d9ef">function</span> <span style="color:#a6e22e">bar</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// do something...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">foo</span>();
+</span></span></code></pre></div><p>其中 <code>await 前面的代码</code> 是同步的，调用此函数时会直接执行；而 <code>await bar();</code> 这句可以被转换成 <code>Promise.resolve(bar())</code>；<code>await 后面的代码</code> 则会被放到 Promise 的 then() 方法里。因此上面的代码可以被转换成如下形式:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">foo</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// await 前面的代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  Promise.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">bar</span>()).<span style="color:#a6e22e">then</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// await 后面的代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  });
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">bar</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// do something...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">foo</span>();
+</span></span></code></pre></div><p>这样是不是就很清晰了？</p>
+<p>回到开篇的那道面试题，我们&quot;重构&quot;一下代码，再做解析，是不是很轻松了？</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">async1</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;async1 start&#34;</span>); <span style="color:#75715e">// 2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  Promise.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">async2</span>()).<span style="color:#a6e22e">then</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;async1 end&#34;</span>); <span style="color:#75715e">// 6
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  });
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">async2</span>() {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;async2&#34;</span>); <span style="color:#75715e">// 3
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;script start&#34;</span>); <span style="color:#75715e">// 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">setTimeout</span>(<span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;settimeout&#34;</span>); <span style="color:#75715e">// 8
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">async1</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">new</span> Promise(<span style="color:#66d9ef">function</span> (<span style="color:#a6e22e">resolve</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;promise1&#34;</span>); <span style="color:#75715e">// 4
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">resolve</span>();
+</span></span><span style="display:flex;"><span>}).<span style="color:#a6e22e">then</span>(<span style="color:#66d9ef">function</span> () {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;promise2&#34;</span>); <span style="color:#75715e">// 7
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;script end&#34;</span>); <span style="color:#75715e">// 5
+</span></span></span></code></pre></div><p>首先打印出 <code>script start</code></p>
+<p>接着将 <code>settimeout</code> 添加到宏任务队列，此时宏任务队列为 <code>['settimeout']</code></p>
+<p>然后执行函数 <code>async1</code>，先打印出 <code>async1 start</code>，又因为 <code>Promise.resolve(async2())</code> 是同步任务，所以打印出 <code>async2</code>，接着将 <code>async1 end</code> 添加到微任务队列，此时微任务队列为 [&lsquo;async1 end&rsquo;]</p>
+<p>接着打印出 <code>promise1</code>，将 <code>promise2</code> 添加到微任务队列，此时微任务队列为 <code>['async1 end', promise2]</code></p>
+<p>打印出 <code>script end</code></p>
+<p>因为微任务优先级高于宏任务，所以先依次打印出 <code>async1 end</code> 和 <code>promise2</code></p>
+<p>最后打印出宏任务 <code>settimeout</code></p>
+<h1 id="在-node-中的表现">在 Node 中的表现</h1>
+<p>Node 也是单线程，但是在处理<code>Event Loop</code>上与浏览器稍微有些不同。</p>
+<p>就单从 API 层面上来理解，Node 新增了两个方法可以用来使用：微任务的<code>process.nextTick</code>以及宏任务的<code>setImmediate</code>。</p>
+<h2 id="setimmediate-与-settimeout-的区别">setImmediate 与 setTimeout 的区别</h2>
+<p>在官方文档中的定义，<code>setImmediate</code>为一次<code>Event Loop</code>执行完毕后调用。 <code>setTimeout</code>则是通过计算一个延迟时间后进行执行。</p>
+<p>但是同时还提到了如果在主进程中直接执行这两个操作，很难保证哪个会先触发。 因为如果主进程中先注册了两个任务，然后执行的代码耗时超过<code>XXs</code>，而这时定时器已经处于可执行回调的状态了。 所以会先执行定时器，而执行完定时器以后才是结束了一次<code>Event Loop</code>，这时才会执行<code>setImmediate</code>。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">setTimeout</span>((<span style="color:#a6e22e">_</span>) =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;setTimeout&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">setImmediate</span>((<span style="color:#a6e22e">_</span>) =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;setImmediate&#34;</span>));
+</span></span></code></pre></div><p>有兴趣的可以自己试验一下，执行多次真的会得到不同的结果。</p>
+<p>但是如果后续添加一些代码以后，就可以保证<code>setTimeout</code>一定会在<code>setImmediate</code>之前触发了：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">setTimeout</span>((<span style="color:#a6e22e">_</span>) =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;setTimeout&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">setImmediate</span>((<span style="color:#a6e22e">_</span>) =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;setImmediate&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">countdown</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1e9</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">while</span> (<span style="color:#a6e22e">countdown</span><span style="color:#f92672">--</span>) {} <span style="color:#75715e">// 我们确保这个循环的执行速度会超过定时器的倒计时，导致这轮循环没有结束时，setTimeout已经可以执行回调了，所以会先执行`setTimeout`再结束这一轮循环，也就是说开始执行`setImmediate`
+</span></span></span></code></pre></div><p>如果在另一个宏任务中，必然是<code>setImmediate</code>先执行：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;fs&#34;</span>).<span style="color:#a6e22e">readFile</span>(<span style="color:#a6e22e">__dirname</span>, (<span style="color:#a6e22e">_</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setTimeout</span>((<span style="color:#a6e22e">_</span>) =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;timeout&#34;</span>));
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">setImmediate</span>((<span style="color:#a6e22e">_</span>) =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;immediate&#34;</span>));
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 如果使用一个设置了延迟的setTimeout也可以实现相同的效果
+</span></span></span></code></pre></div><h2 id="processnexttick">process.nextTick</h2>
+<p>就像上边说的，这个可以认为是一个类似于<code>Promise</code>和<code>MutationObserver</code>的微任务实现，在代码执行的过程中可以随时插入<code>nextTick</code>，并且会保证在下一个宏任务开始之前所执行。</p>
+<p>在使用方面的一个最常见的例子就是一些事件绑定类的操作：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Lib</span> <span style="color:#66d9ef">extends</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;events&#34;</span>).<span style="color:#a6e22e">EventEmitter</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">super</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">emit</span>(<span style="color:#e6db74">&#34;init&#34;</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">lib</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Lib</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">lib</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;init&#34;</span>, (<span style="color:#a6e22e">_</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 这里将永远不会执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;init!&#34;</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>因为上述的代码在实例化<code>Lib</code>对象时是同步执行的，在实例化完成以后就立马发送了<code>init</code>事件。 而这时在外层的主程序还没有开始执行到<code>lib.on('init')</code>监听事件的这一步。 所以会导致发送事件时没有回调，回调注册后事件不会再次发送。</p>
+<p>我们可以很轻松的使用<code>process.nextTick</code>来解决这个问题：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Lib</span> <span style="color:#66d9ef">extends</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;events&#34;</span>).<span style="color:#a6e22e">EventEmitter</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">constructor</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">super</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">process</span>.<span style="color:#a6e22e">nextTick</span>((<span style="color:#a6e22e">_</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">emit</span>(<span style="color:#e6db74">&#34;init&#34;</span>);
+</span></span><span style="display:flex;"><span>    }); <span style="color:#75715e">// 同理使用其他的微任务 // 比如Promise.resolve().then(_ =&gt; this.emit(&#39;init&#39;)) // 也可以实现相同的效果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这样会在主进程的代码执行完毕后，程序空闲时触发<code>Event Loop</code>流程查找有没有微任务，然后再发送<code>init</code>事件。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/484/"
+      ><span class="mr-1.5">←</span><span>认识前端规范</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/482/"
+      ><span>前端应该了解的Http知识</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

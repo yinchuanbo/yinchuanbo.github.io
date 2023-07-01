@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>快速上手前端自动化测试 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 最近团队落地实践了前端单元测试和 E2E (端到端) 测试方案，在此之前我基本没有在实际项目里用过自动化测试方案，总觉得这类方案耗时太大，没什么收益，但自从写自动化测试代码两个月以来，我发现还是有一定收益的，下面是我的一些思考和总结，希望对大家有一点点帮助。
+什么是自动化测试 在正常的软件开发流程中，我们一定会有一个很重要的环节那就是测试，而对于一个大型项目来说，测试的环节尤为重要，它是软件发布前最后一个“关卡”，也是我们软件质量的重要保障，所以我们通常会留一些时间用于软件测试。测试的方式主要分为两大类：人工测试 和 自动化测试。
+人工测试：通过开发人员或测试人员与程序的交互来完成，即手动操作验证。 自动化测试：通过自动化脚本与程序的交互来完成，除了刚开始编写的自动化脚本时间，基本上无需手动操作。 那自动化测试解决了什么问题呢？
+解决了什么问题 假设有一个前端开发工程师 A 和一个测试人员 B，A 在开发完一个模块后往往会在页面上操作一下页面的流程，输入数据，查看页面是否正常工作，假如他开发的这个模块又依赖于之前已有的模块，于是他又测试了一下以前的模块，防止带来关联改动的 BUG。
+A 测试完成之后，他推送了代码到远程仓库并合入稳定分支。测试 B 拉取仓库，然后部署一个测试环境，接着按照之前写的测试用例一条条去验证功能，测试 B 发现也有关联改动于是也顺带验证了之前的功能&hellip;&hellip;
+这种测试方式就是人工测试，简单直接，但是很繁琐，除了模块的基本功能测试，还需要对以前的功能做回归测试，如果这个模块的功能很复杂，比如一个很大数据量的表单输入，那耗费的时间就更多了，如果碰上项目紧急，就难免就导致天天加班去搞测试，而且很容易导致功能漏测，从而引发质量问题。
+终于 A 实在忍受不了这种手动重复点击页面的操作了，于是决定在下一个迭代接入前端自动化测试。首先在确认了迭代二的需求之后，测试首先写好了测试需求用例，并且给产品线中的人做了评审，确定需求最终的验收条件。前端工程师 A 拿到测试给的需求后，并没有着急写代码，而是先做好相关的需求分析和模块设计，接着开始编写自动化脚本。然后完成所有的功能编码后，在本地触发脚本跑通所有的测试用例，确认没有问题后，推送到远程仓库。
+回归测试是指 修改了旧代码后，重新进行测试以确认修改没有引入新的错误或导致其他代码产生错误。
+此时远程仓库也有一套流水线，会启动一个前端测试环境，然后自动打包前端代码，触发自动化测试脚本。如果该分支代码成功跑过了流水线，接着在 Code Review 环节（如果有）再审核代码，最后才会被合入主干稳定分支。
+上面这种方式就是自动化测试的方案（前端），这种方案基本上能做到不漏测一个功能，而且不需要我们手动去输入数据和点击页面去验证了，提升了代码的质量。但是也是有缺点的：
+要保证写的测试脚本覆盖所有的需求点，不然就是自欺欺人了（比如 100% 的测试覆盖率，若漏写了测试用例就完犊子了&hellip;）。 需求变更的时候要及时去更新需求测试脚本。 整个自动化流程的基建设施要完善，比如 CI/CD 流程，只有自动化脚本没有 CI/CD 流程效率会低很多。 业务繁忙，没时间写测试脚本。 测试脚本有一定的上手成本。 即使满足了上述条件下，还是存在一些问题的：自动化测试那么好，但是要如何做呢？必须要全部测试吗？特殊场景的测试问题该如何解决呢？下面就来介绍一下前端测试的一些方法和工具使用。
+自动化测试的应用场景 前端自动化测试方法主要是两大类，白盒测试和黑盒测试（当然还有其他更细分的测试比如灰盒测试，这里不多说了，因为大学的测试理论忘的差不多了 😂）。
+白盒测试：说白了就是代码的逻辑是否正确，流程逻辑，函数调用，异常处理等等，比如常见的单元测试。 黑盒测试：主要是对一个功能的验证，不关心代码的具体实现，比如端到端测试（E2E，也是集成测试的一种类别）。 当然，细分的类别我们能接触到的就是单元测试、集成测试、UI 测试、端到端测试了，它们各有千秋，但是在某些场景都有不可替代性。下面我通过几个场景来简单介绍一下它们的概念。
+单元测试的场景 假如我们要写一个数字类型的加法函数，我们要先想好它的输入和输出：
+输入：接受两个数字参数。 输出：输出两个参数的和。 于是我们的代码是：
+function sum(a, b) { return a &#43; b; } export default sum; 而对应的测试代码（以 Jest 为例）是：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="快速上手前端自动化测试" />
+<meta property="og:description" content="前言 最近团队落地实践了前端单元测试和 E2E (端到端) 测试方案，在此之前我基本没有在实际项目里用过自动化测试方案，总觉得这类方案耗时太大，没什么收益，但自从写自动化测试代码两个月以来，我发现还是有一定收益的，下面是我的一些思考和总结，希望对大家有一点点帮助。
+什么是自动化测试 在正常的软件开发流程中，我们一定会有一个很重要的环节那就是测试，而对于一个大型项目来说，测试的环节尤为重要，它是软件发布前最后一个“关卡”，也是我们软件质量的重要保障，所以我们通常会留一些时间用于软件测试。测试的方式主要分为两大类：人工测试 和 自动化测试。
+人工测试：通过开发人员或测试人员与程序的交互来完成，即手动操作验证。 自动化测试：通过自动化脚本与程序的交互来完成，除了刚开始编写的自动化脚本时间，基本上无需手动操作。 那自动化测试解决了什么问题呢？
+解决了什么问题 假设有一个前端开发工程师 A 和一个测试人员 B，A 在开发完一个模块后往往会在页面上操作一下页面的流程，输入数据，查看页面是否正常工作，假如他开发的这个模块又依赖于之前已有的模块，于是他又测试了一下以前的模块，防止带来关联改动的 BUG。
+A 测试完成之后，他推送了代码到远程仓库并合入稳定分支。测试 B 拉取仓库，然后部署一个测试环境，接着按照之前写的测试用例一条条去验证功能，测试 B 发现也有关联改动于是也顺带验证了之前的功能&hellip;&hellip;
+这种测试方式就是人工测试，简单直接，但是很繁琐，除了模块的基本功能测试，还需要对以前的功能做回归测试，如果这个模块的功能很复杂，比如一个很大数据量的表单输入，那耗费的时间就更多了，如果碰上项目紧急，就难免就导致天天加班去搞测试，而且很容易导致功能漏测，从而引发质量问题。
+终于 A 实在忍受不了这种手动重复点击页面的操作了，于是决定在下一个迭代接入前端自动化测试。首先在确认了迭代二的需求之后，测试首先写好了测试需求用例，并且给产品线中的人做了评审，确定需求最终的验收条件。前端工程师 A 拿到测试给的需求后，并没有着急写代码，而是先做好相关的需求分析和模块设计，接着开始编写自动化脚本。然后完成所有的功能编码后，在本地触发脚本跑通所有的测试用例，确认没有问题后，推送到远程仓库。
+回归测试是指 修改了旧代码后，重新进行测试以确认修改没有引入新的错误或导致其他代码产生错误。
+此时远程仓库也有一套流水线，会启动一个前端测试环境，然后自动打包前端代码，触发自动化测试脚本。如果该分支代码成功跑过了流水线，接着在 Code Review 环节（如果有）再审核代码，最后才会被合入主干稳定分支。
+上面这种方式就是自动化测试的方案（前端），这种方案基本上能做到不漏测一个功能，而且不需要我们手动去输入数据和点击页面去验证了，提升了代码的质量。但是也是有缺点的：
+要保证写的测试脚本覆盖所有的需求点，不然就是自欺欺人了（比如 100% 的测试覆盖率，若漏写了测试用例就完犊子了&hellip;）。 需求变更的时候要及时去更新需求测试脚本。 整个自动化流程的基建设施要完善，比如 CI/CD 流程，只有自动化脚本没有 CI/CD 流程效率会低很多。 业务繁忙，没时间写测试脚本。 测试脚本有一定的上手成本。 即使满足了上述条件下，还是存在一些问题的：自动化测试那么好，但是要如何做呢？必须要全部测试吗？特殊场景的测试问题该如何解决呢？下面就来介绍一下前端测试的一些方法和工具使用。
+自动化测试的应用场景 前端自动化测试方法主要是两大类，白盒测试和黑盒测试（当然还有其他更细分的测试比如灰盒测试，这里不多说了，因为大学的测试理论忘的差不多了 😂）。
+白盒测试：说白了就是代码的逻辑是否正确，流程逻辑，函数调用，异常处理等等，比如常见的单元测试。 黑盒测试：主要是对一个功能的验证，不关心代码的具体实现，比如端到端测试（E2E，也是集成测试的一种类别）。 当然，细分的类别我们能接触到的就是单元测试、集成测试、UI 测试、端到端测试了，它们各有千秋，但是在某些场景都有不可替代性。下面我通过几个场景来简单介绍一下它们的概念。
+单元测试的场景 假如我们要写一个数字类型的加法函数，我们要先想好它的输入和输出：
+输入：接受两个数字参数。 输出：输出两个参数的和。 于是我们的代码是：
+function sum(a, b) { return a &#43; b; } export default sum; 而对应的测试代码（以 Jest 为例）是：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/170/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-12T22:26:00+08:00" />
+<meta property="article:modified_time" content="2022-10-12T22:26:00+08:00" />
+
+  
+  <meta itemprop="name" content="快速上手前端自动化测试">
+<meta itemprop="description" content="前言 最近团队落地实践了前端单元测试和 E2E (端到端) 测试方案，在此之前我基本没有在实际项目里用过自动化测试方案，总觉得这类方案耗时太大，没什么收益，但自从写自动化测试代码两个月以来，我发现还是有一定收益的，下面是我的一些思考和总结，希望对大家有一点点帮助。
+什么是自动化测试 在正常的软件开发流程中，我们一定会有一个很重要的环节那就是测试，而对于一个大型项目来说，测试的环节尤为重要，它是软件发布前最后一个“关卡”，也是我们软件质量的重要保障，所以我们通常会留一些时间用于软件测试。测试的方式主要分为两大类：人工测试 和 自动化测试。
+人工测试：通过开发人员或测试人员与程序的交互来完成，即手动操作验证。 自动化测试：通过自动化脚本与程序的交互来完成，除了刚开始编写的自动化脚本时间，基本上无需手动操作。 那自动化测试解决了什么问题呢？
+解决了什么问题 假设有一个前端开发工程师 A 和一个测试人员 B，A 在开发完一个模块后往往会在页面上操作一下页面的流程，输入数据，查看页面是否正常工作，假如他开发的这个模块又依赖于之前已有的模块，于是他又测试了一下以前的模块，防止带来关联改动的 BUG。
+A 测试完成之后，他推送了代码到远程仓库并合入稳定分支。测试 B 拉取仓库，然后部署一个测试环境，接着按照之前写的测试用例一条条去验证功能，测试 B 发现也有关联改动于是也顺带验证了之前的功能&hellip;&hellip;
+这种测试方式就是人工测试，简单直接，但是很繁琐，除了模块的基本功能测试，还需要对以前的功能做回归测试，如果这个模块的功能很复杂，比如一个很大数据量的表单输入，那耗费的时间就更多了，如果碰上项目紧急，就难免就导致天天加班去搞测试，而且很容易导致功能漏测，从而引发质量问题。
+终于 A 实在忍受不了这种手动重复点击页面的操作了，于是决定在下一个迭代接入前端自动化测试。首先在确认了迭代二的需求之后，测试首先写好了测试需求用例，并且给产品线中的人做了评审，确定需求最终的验收条件。前端工程师 A 拿到测试给的需求后，并没有着急写代码，而是先做好相关的需求分析和模块设计，接着开始编写自动化脚本。然后完成所有的功能编码后，在本地触发脚本跑通所有的测试用例，确认没有问题后，推送到远程仓库。
+回归测试是指 修改了旧代码后，重新进行测试以确认修改没有引入新的错误或导致其他代码产生错误。
+此时远程仓库也有一套流水线，会启动一个前端测试环境，然后自动打包前端代码，触发自动化测试脚本。如果该分支代码成功跑过了流水线，接着在 Code Review 环节（如果有）再审核代码，最后才会被合入主干稳定分支。
+上面这种方式就是自动化测试的方案（前端），这种方案基本上能做到不漏测一个功能，而且不需要我们手动去输入数据和点击页面去验证了，提升了代码的质量。但是也是有缺点的：
+要保证写的测试脚本覆盖所有的需求点，不然就是自欺欺人了（比如 100% 的测试覆盖率，若漏写了测试用例就完犊子了&hellip;）。 需求变更的时候要及时去更新需求测试脚本。 整个自动化流程的基建设施要完善，比如 CI/CD 流程，只有自动化脚本没有 CI/CD 流程效率会低很多。 业务繁忙，没时间写测试脚本。 测试脚本有一定的上手成本。 即使满足了上述条件下，还是存在一些问题的：自动化测试那么好，但是要如何做呢？必须要全部测试吗？特殊场景的测试问题该如何解决呢？下面就来介绍一下前端测试的一些方法和工具使用。
+自动化测试的应用场景 前端自动化测试方法主要是两大类，白盒测试和黑盒测试（当然还有其他更细分的测试比如灰盒测试，这里不多说了，因为大学的测试理论忘的差不多了 😂）。
+白盒测试：说白了就是代码的逻辑是否正确，流程逻辑，函数调用，异常处理等等，比如常见的单元测试。 黑盒测试：主要是对一个功能的验证，不关心代码的具体实现，比如端到端测试（E2E，也是集成测试的一种类别）。 当然，细分的类别我们能接触到的就是单元测试、集成测试、UI 测试、端到端测试了，它们各有千秋，但是在某些场景都有不可替代性。下面我通过几个场景来简单介绍一下它们的概念。
+单元测试的场景 假如我们要写一个数字类型的加法函数，我们要先想好它的输入和输出：
+输入：接受两个数字参数。 输出：输出两个参数的和。 于是我们的代码是：
+function sum(a, b) { return a &#43; b; } export default sum; 而对应的测试代码（以 Jest 为例）是："><meta itemprop="datePublished" content="2022-10-12T22:26:00+08:00" />
+<meta itemprop="dateModified" content="2022-10-12T22:26:00+08:00" />
+<meta itemprop="wordCount" content="1437">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="快速上手前端自动化测试"/>
+<meta name="twitter:description" content="前言 最近团队落地实践了前端单元测试和 E2E (端到端) 测试方案，在此之前我基本没有在实际项目里用过自动化测试方案，总觉得这类方案耗时太大，没什么收益，但自从写自动化测试代码两个月以来，我发现还是有一定收益的，下面是我的一些思考和总结，希望对大家有一点点帮助。
+什么是自动化测试 在正常的软件开发流程中，我们一定会有一个很重要的环节那就是测试，而对于一个大型项目来说，测试的环节尤为重要，它是软件发布前最后一个“关卡”，也是我们软件质量的重要保障，所以我们通常会留一些时间用于软件测试。测试的方式主要分为两大类：人工测试 和 自动化测试。
+人工测试：通过开发人员或测试人员与程序的交互来完成，即手动操作验证。 自动化测试：通过自动化脚本与程序的交互来完成，除了刚开始编写的自动化脚本时间，基本上无需手动操作。 那自动化测试解决了什么问题呢？
+解决了什么问题 假设有一个前端开发工程师 A 和一个测试人员 B，A 在开发完一个模块后往往会在页面上操作一下页面的流程，输入数据，查看页面是否正常工作，假如他开发的这个模块又依赖于之前已有的模块，于是他又测试了一下以前的模块，防止带来关联改动的 BUG。
+A 测试完成之后，他推送了代码到远程仓库并合入稳定分支。测试 B 拉取仓库，然后部署一个测试环境，接着按照之前写的测试用例一条条去验证功能，测试 B 发现也有关联改动于是也顺带验证了之前的功能&hellip;&hellip;
+这种测试方式就是人工测试，简单直接，但是很繁琐，除了模块的基本功能测试，还需要对以前的功能做回归测试，如果这个模块的功能很复杂，比如一个很大数据量的表单输入，那耗费的时间就更多了，如果碰上项目紧急，就难免就导致天天加班去搞测试，而且很容易导致功能漏测，从而引发质量问题。
+终于 A 实在忍受不了这种手动重复点击页面的操作了，于是决定在下一个迭代接入前端自动化测试。首先在确认了迭代二的需求之后，测试首先写好了测试需求用例，并且给产品线中的人做了评审，确定需求最终的验收条件。前端工程师 A 拿到测试给的需求后，并没有着急写代码，而是先做好相关的需求分析和模块设计，接着开始编写自动化脚本。然后完成所有的功能编码后，在本地触发脚本跑通所有的测试用例，确认没有问题后，推送到远程仓库。
+回归测试是指 修改了旧代码后，重新进行测试以确认修改没有引入新的错误或导致其他代码产生错误。
+此时远程仓库也有一套流水线，会启动一个前端测试环境，然后自动打包前端代码，触发自动化测试脚本。如果该分支代码成功跑过了流水线，接着在 Code Review 环节（如果有）再审核代码，最后才会被合入主干稳定分支。
+上面这种方式就是自动化测试的方案（前端），这种方案基本上能做到不漏测一个功能，而且不需要我们手动去输入数据和点击页面去验证了，提升了代码的质量。但是也是有缺点的：
+要保证写的测试脚本覆盖所有的需求点，不然就是自欺欺人了（比如 100% 的测试覆盖率，若漏写了测试用例就完犊子了&hellip;）。 需求变更的时候要及时去更新需求测试脚本。 整个自动化流程的基建设施要完善，比如 CI/CD 流程，只有自动化脚本没有 CI/CD 流程效率会低很多。 业务繁忙，没时间写测试脚本。 测试脚本有一定的上手成本。 即使满足了上述条件下，还是存在一些问题的：自动化测试那么好，但是要如何做呢？必须要全部测试吗？特殊场景的测试问题该如何解决呢？下面就来介绍一下前端测试的一些方法和工具使用。
+自动化测试的应用场景 前端自动化测试方法主要是两大类，白盒测试和黑盒测试（当然还有其他更细分的测试比如灰盒测试，这里不多说了，因为大学的测试理论忘的差不多了 😂）。
+白盒测试：说白了就是代码的逻辑是否正确，流程逻辑，函数调用，异常处理等等，比如常见的单元测试。 黑盒测试：主要是对一个功能的验证，不关心代码的具体实现，比如端到端测试（E2E，也是集成测试的一种类别）。 当然，细分的类别我们能接触到的就是单元测试、集成测试、UI 测试、端到端测试了，它们各有千秋，但是在某些场景都有不可替代性。下面我通过几个场景来简单介绍一下它们的概念。
+单元测试的场景 假如我们要写一个数字类型的加法函数，我们要先想好它的输入和输出：
+输入：接受两个数字参数。 输出：输出两个参数的和。 于是我们的代码是：
+function sum(a, b) { return a &#43; b; } export default sum; 而对应的测试代码（以 Jest 为例）是："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">快速上手前端自动化测试</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Oct 12, 2022</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="前言">前言</h2>
+<p>最近团队落地实践了前端单元测试和 <code>E2E</code> (端到端) 测试方案，在此之前我基本没有在实际项目里用过自动化测试方案，总觉得这类方案耗时太大，没什么收益，但自从写自动化测试代码两个月以来，我发现还是有一定收益的，下面是我的一些思考和总结，希望对大家有一点点帮助。</p>
+<h2 id="什么是自动化测试">什么是自动化测试</h2>
+<p>在正常的软件开发流程中，我们一定会有一个很重要的环节那就是测试，而对于一个大型项目来说，测试的环节尤为重要，它是软件发布前最后一个“关卡”，也是我们软件质量的重要保障，所以我们通常会留一些时间用于软件测试。测试的方式主要分为两大类：<strong>人工测试</strong> 和 <strong>自动化测试</strong>。</p>
+<ul>
+<li>人工测试：通过开发人员或测试人员与程序的交互来完成，即手动操作验证。</li>
+<li>自动化测试：通过自动化脚本与程序的交互来完成，除了刚开始编写的自动化脚本时间，基本上无需手动操作。</li>
+</ul>
+<p>那自动化测试解决了什么问题呢？</p>
+<h2 id="解决了什么问题">解决了什么问题</h2>
+<p>假设有一个前端开发工程师 A 和一个测试人员 B，A 在开发完一个模块后往往会在页面上操作一下页面的流程，输入数据，查看页面是否正常工作，假如他开发的这个模块又依赖于之前已有的模块，于是他又测试了一下以前的模块，防止带来关联改动的 BUG。</p>
+<p>A 测试完成之后，他推送了代码到远程仓库并合入稳定分支。测试 B 拉取仓库，然后部署一个测试环境，接着按照之前写的测试用例一条条去验证功能，测试 B 发现也有关联改动于是也顺带验证了之前的功能&hellip;&hellip;</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9b5100f08f734aef89c40fdb99c798f3~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>这种测试方式就是人工测试，简单直接，但是很繁琐，除了模块的基本功能测试，还需要对以前的功能做回归测试，如果这个模块的功能很复杂，比如一个很大数据量的表单输入，那耗费的时间就更多了，如果碰上项目紧急，就难免就导致天天加班去搞测试，而且很容易导致功能漏测，从而引发质量问题。</p>
+<p>终于 A 实在忍受不了这种手动重复点击页面的操作了，于是决定在下一个迭代接入前端自动化测试。首先在确认了迭代二的需求之后，测试首先写好了测试需求用例，并且给产品线中的人做了评审，确定需求最终的验收条件。前端工程师 A 拿到测试给的需求后，并没有着急写代码，而是先做好相关的需求分析和模块设计，接着开始编写自动化脚本。然后完成所有的功能编码后，在本地触发脚本跑通所有的测试用例，确认没有问题后，推送到远程仓库。</p>
+<blockquote>
+<p>回归测试是指 <strong>修改了旧代码后，重新进行测试以确认修改没有引入新的错误或导致其他代码产生错误</strong>。</p>
+</blockquote>
+<p>此时远程仓库也有一套流水线，会启动一个前端测试环境，然后自动打包前端代码，触发自动化测试脚本。如果该分支代码成功跑过了流水线，接着在 <code>Code Review</code> 环节（如果有）再审核代码，最后才会被合入主干稳定分支。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c0990989ecf34d4d9ae1b5659da66402~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="自动化测试.png"></p>
+<p>上面这种方式就是自动化测试的方案（前端），这种方案基本上能做到不漏测一个功能，而且不需要我们手动去输入数据和点击页面去验证了，提升了代码的质量。但是也是有缺点的：</p>
+<ul>
+<li>要保证写的测试脚本覆盖所有的需求点，不然就是自欺欺人了（比如 <code>100%</code> 的测试覆盖率，若漏写了测试用例就完犊子了&hellip;）。</li>
+<li>需求变更的时候要及时去更新需求测试脚本。</li>
+<li>整个自动化流程的基建设施要完善，比如 <code>CI/CD</code> 流程，只有自动化脚本没有 <code>CI/CD</code> 流程效率会低很多。</li>
+<li>业务繁忙，没时间写测试脚本。</li>
+<li>测试脚本有一定的上手成本。</li>
+</ul>
+<p>即使满足了上述条件下，还是存在一些问题的：自动化测试那么好，但是要如何做呢？必须要全部测试吗？特殊场景的测试问题该如何解决呢？下面就来介绍一下前端测试的一些方法和工具使用。</p>
+<h2 id="自动化测试的应用场景">自动化测试的应用场景</h2>
+<p>前端自动化测试方法主要是两大类，<strong>白盒测试</strong>和<strong>黑盒测试</strong>（当然还有其他更细分的测试比如灰盒测试，这里不多说了，因为大学的测试理论忘的差不多了 😂）。</p>
+<ul>
+<li>白盒测试：说白了就是代码的逻辑是否正确，流程逻辑，函数调用，异常处理等等，比如常见的单元测试。</li>
+<li>黑盒测试：主要是对一个功能的验证，不关心代码的具体实现，比如端到端测试（E2E，也是集成测试的一种类别）。</li>
+</ul>
+<p>当然，细分的类别我们能接触到的就是<strong>单元测试</strong>、<strong>集成测试</strong>、<strong>UI 测试</strong>、<strong>端到端测试</strong>了，它们各有千秋，但是在某些场景都有不可替代性。下面我通过几个场景来简单介绍一下它们的概念。</p>
+<h3 id="单元测试的场景">单元测试的场景</h3>
+<p>假如我们要写一个数字类型的加法函数，我们要先想好它的<strong>输入</strong>和<strong>输出</strong>：</p>
+<ul>
+<li>输入：接受两个数字参数。</li>
+<li>输出：输出两个参数的和。</li>
+</ul>
+<p>于是我们的代码是：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">a</span>, <span style="color:#a6e22e">b</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">a</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">b</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">sum</span>;
+</span></span></code></pre></div><p>而对应的测试代码（以 <code>Jest</code> 为例）是：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">sum</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;./sum&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">test</span>(<span style="color:#e6db74">&#34;adds 1 + 2 to equal 3&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">sum</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>)).<span style="color:#a6e22e">toBe</span>(<span style="color:#ae81ff">3</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>当然你也可以做一些边界值的测试，比如输入非数字类型的参数和空值，有兴趣的同学可以继续补充。</p>
+<p>这就是单元测试的一种表现形式，<strong>它一般是对程序最小单元运行测试的过程</strong>，除此之外我们可能会接触到的其它单测场景：</p>
+<ul>
+<li>组件的单元测试：<code>UI</code> 组件、无状态组件、基础组件。</li>
+<li>纯函数的单元测试，我们可能会封装一些 <code>util</code> 工具等等，但是要保证我们写的函数是易于测试的，即没有副作用，函数的输入和输出是稳定的。</li>
+</ul>
+<p>单元测试的优点：</p>
+<ul>
+<li>测试速度很快。</li>
+<li>代码覆盖率较高。</li>
+<li>有助于模块的设计。</li>
+<li>易于代码维护。</li>
+</ul>
+<p>而缺点就是无法验证多个单元运行到一起是否正确，能做到这一点的是我们要介绍的集成测试。</p>
+<h3 id="集成测试端到端测试的场景">集成测试/端到端测试的场景</h3>
+<p>集成测试是<strong>把不同的模块集成在一起，来测试模块与模块之前的配合是否正常工作</strong>。比如在前端我们点击一个按钮会进行表单提交，而这涉及到按钮的点击事件是否正常，表单的校验或者发送请求是否正常触发。</p>
+<p>而 <code>E2E</code>的定义和集成测试是差不多的，它们通常都是站在用户视角并且以真正的运行环境来测试整个流程和功能的。集成测试和端到端的定义的边界是较模糊的，所以我们可以放在一起介绍。下面是一个用户使用某个系统的简单场景：</p>
+<ul>
+<li>访问某个系统主页</li>
+<li>点击某个元素，然后进入另外一个页面</li>
+</ul>
+<p>那么它的测试代码可以这么写（以 <code>Cypress</code> 为例）：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">describe</span>(<span style="color:#e6db74">&#34;My First Test&#34;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#39;clicking &#34;type&#34; navigates to a new url&#39;</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 1.访问 https://example.cypress.io -&gt; 模拟用户输入 URL
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cy</span>.<span style="color:#a6e22e">visit</span>(<span style="color:#e6db74">&#34;https://example.cypress.io&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 2.点击某个元素 -&gt; 模拟用户点击
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cy</span>.<span style="color:#a6e22e">contains</span>(<span style="color:#e6db74">&#34;type&#34;</span>).<span style="color:#a6e22e">click</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 3.跳转新页面的断言
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// includes &#39;/commands/actions&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cy</span>.<span style="color:#a6e22e">url</span>().<span style="color:#a6e22e">should</span>(<span style="color:#e6db74">&#34;include&#34;</span>, <span style="color:#e6db74">&#34;/commands/actions&#34;</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><blockquote>
+<p>做自动化测试一般有一个流程：<strong>输入 - 断言 - 验证</strong>。不管是单测还是 <code>E2E</code> 都可以遵循这个原则，如果不知道如何开始，可以考虑我们的预期结果是什么，以终为始，再去慢慢实现函数或组件的具体功能，这就是 <code>TDD</code> 的一种模式，这在后面我们会介绍到。</p>
+</blockquote>
+<p>相信大家看了上面两个案例之后对测试有了一定的感性认知了，那么前端自动化测试框架或工具有哪些，以及怎么上手使用呢？下面我给大家简单介绍一下我所了解的一些工具吧。</p>
+<h2 id="自动化测试框架介绍">自动化测试框架介绍</h2>
+<h3 id="单元测试框架">单元测试框架</h3>
+<p>目前市面上比较流行的一些前端单元测试框架主要是：</p>
+<ul>
+<li><a href="https://github.com/vitest-dev/vitest">Vitest</a></li>
+<li><a href="https://github.com/facebook/jest">Jest</a></li>
+<li><a href="https://github.com/mochajs/mocha">Mocha</a></li>
+<li><a href="https://github.com/jasmine/jasmine">Jasmine</a></li>
+<li><a href="https://github.com/karma-runner/karma">Karma</a></li>
+<li><a href="https://github.com/avajs/ava">ava</a></li>
+<li><a href="https://github.com/substack/tape">Tape</a></li>
+</ul>
+<p>上面的几个库都很优秀，但是目前大部分项目里可能比较常用的是 <code>Jest</code>、<code>Mocha</code>、<code>Vitest</code> 这几个库。下面是它们的几个特点：</p>
+<p>测试框架</p>
+<p>优点</p>
+<p>缺点</p>
+<p><code>Jest</code></p>
+<p>功能很丰富，基本开箱即用。内置断言、快照、隔离环境、覆盖率、<code>Mock</code> 等功能，社区活跃，基于<code>Jasmine</code>，测试速度相对较快。</p>
+<p>对于较大的快照文件，无法进行。当然最重要的是无法共享项目的构建系统，这点可以在<a href="https://cn.vitest.dev/guide/comparisons.html">Vitest 官网</a>的介绍。</p>
+<p><code>Vitest</code></p>
+<p>适用于 <code>Vite</code> 构建的项目，特点就是字：极快！。兼容大部分 <code>Jest</code> 的 API，如果原来是 <code>Jest</code>，则可以无缝切换到 <code>Vitest</code>。</p>
+<p>框架比较新，生态还不是很成熟，主要应用于 <code>Vite</code> 的项目（非 <code>Vite</code> 构建的项目也是支持的）。</p>
+<p><code>Mocha</code></p>
+<p>灵活自由，允许开发者自由配置，无内置断言，但可以自主选择断言库，支持浏览器和 <code>Node</code></p>
+<p>灵活性高也带来了需要配合多个库使用，前期学习成本较高。</p>
+<p>由于本篇文章的主题不是深入某个测试框架的研究，大家初始接触上面的概念可能也会和我一样比较模糊，所以我建议直接上手一个工具来体验，这样理解概念就会容易一些了。下面我以 <code>Vitest</code> 为例，带大家快速体验一下它的魅力。</p>
+<h3 id="体验-vitest">体验 Vitest</h3>
+<h4 id="集成-vitest-到项目">集成 Vitest 到项目</h4>
+<ul>
+<li>先初始化一个 <code>vite</code> 项目</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span> <span style="color:#75715e"># 创建项目模板</span>
+</span></span><span style="display:flex;"><span> pnpm create vite test-demo --template vue-ts
+</span></span></code></pre></div><ul>
+<li>安装 <code>vitest</code> 和 <code>vue</code> 官方封装的一些测试函数</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pnpm add -D vitest @vue/test-utils jsdom
+</span></span></code></pre></div><p><code>vitest</code> 会使用项目根目录下的 <code>vite.config.ts</code> ，当然也可以自己创建一个 <code>vitest.config.ts</code> ，它的优先级最高。为了共享 <code>vite</code> 的配置，就在 <code>vite.config.ts</code> 简单配置一下测试的环境。</p>
+<p><strong>vite.config.ts</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">defineConfig</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;vite&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">vue</span> <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;@vitejs/plugin-vue&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">path</span> <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;path&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">defineConfig</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">resolve</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// vite 中的别名解析
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">alias</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#34;@&#34;</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#a6e22e">__dirname</span>, <span style="color:#e6db74">&#34;src&#34;</span>),
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [<span style="color:#a6e22e">vue</span>()],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">include</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;test/**/*.test.ts&#34;</span>],
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">environment</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;jsdom&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p><code>defineConfig</code> 中的 <code>test</code> 配置就是用于 <code>vitest</code> 的。其中 <code>include</code> 用于告诉 vitest 去找哪些测试文件，而 <code>environment</code> 用于模拟环境的，比如我们接下来要进行组件的单元测试是跑在浏览器的，但是 <code>vitest</code> 的运行时是 <code>Node.js</code> ，所以我们需要使用 <code>jsdom</code> 来进行浏览器的模拟。</p>
+<p>当然，类型提示也是很重要的，我们刚刚创建的模板是包括两个 <code>tsconfig</code> 的：<code>tsconfig.json</code> 和 <code>tsconfig.node.json</code>，你可以理解为一个通用的配置，一个用于 Node 环境。</p>
+<p><strong>tsconfig.json</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;compilerOptions&#34;</span>: {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// (省略已有配置)...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 添加下面的别名解析
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#f92672">&#34;baseUrl&#34;</span>: <span style="color:#e6db74">&#34;./&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;paths&#34;</span>: {
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;@/*&#34;</span>: [<span style="color:#e6db74">&#34;src/*&#34;</span>]
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;include&#34;</span>: [
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// (省略已有配置)...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 添加下面这一行，告诉 ts 解析 test 目录下的 ts 文件。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#e6db74">&#34;test/**/*.ts&#34;</span>,
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;references&#34;</span>: [{ <span style="color:#f92672">&#34;path&#34;</span>: <span style="color:#e6db74">&#34;./tsconfig.node.json&#34;</span> }]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>tsconfig.node.json</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;compilerOptions&#34;</span>: {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// (省略已有配置)...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 添加 types 获取 vite 和 vitest 的提示
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#f92672">&#34;types&#34;</span>: [<span style="color:#e6db74">&#34;vite/client&#34;</span>, <span style="color:#e6db74">&#34;vitest&#34;</span>]
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;include&#34;</span>: [<span style="color:#e6db74">&#34;vite.config.ts&#34;</span>]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>最后把测试的命令配置到 <code>package.json</code> 就完成环境的准备了。</p>
+<p><strong>package.json</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;scripts&#34;</span>: {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;test&#34;</span>: <span style="color:#e6db74">&#34;vitest&#34;</span>,
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="组件单元测试">组件单元测试</h4>
+<p>搞定了环境，我们先来看看 Vue 组件的单元测试怎么搞。假设我们现在有一个 <code>Stepper</code> 组件，具有单步加减功能，我们简单实现如下：</p>
+<p><strong>src/components/Stepper.vue</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">&lt;!-- tid 属性用于测试，可以快速获取 DOM --&gt;</span>
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#960050;background-color:#1e0010">@</span><span style="color:#a6e22e">click</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;count--&#34;</span> <span style="color:#a6e22e">tid</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;dec-btn&#34;</span>&gt;-&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">span</span>&gt;{{ count }}&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#960050;background-color:#1e0010">@</span><span style="color:#a6e22e">click</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;count++&#34;</span> <span style="color:#a6e22e">tid</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;inc-btn&#34;</span>&gt;+&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">setup</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;ts&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">ref</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;vue&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">Props</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">initial</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">number</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">props</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">withDefaults</span>(<span style="color:#a6e22e">defineProps</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">Props</span><span style="color:#f92672">&gt;</span>(), {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">initial</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">count</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">ref</span>(<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">initial</span>);
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p>效果如图：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7a9291d8a17744e19413fcc42dc28c11~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="Kapture 2022-09-04 at 18.13.51.gif"></p>
+<p>此时我们要想一下测试代码要怎么写？前文我们有提过，测试大体上有三步：<strong>输入 - 断言 - 验证</strong>。在 <code>vitest</code> 中你可以获得与 <code>jest expect</code> 一样的体验。</p>
+<p>在 <code>Stepper</code> 组件中，它的输入是 <code>initial</code> ，那它的输出是什么呢？</p>
+<p>对于组件来说它的单元测试比较特殊，因为它有一个 “渲染” 的过程，所以我们也可以把渲染的过程当成一次特殊的输出。这里我们借助 <code>@vue/test-utils</code> 中的 <code>mount</code> 方法来获取渲染的状态。</p>
+<p><strong>test/Stepper.test.ts</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">mount</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;@vue/test-utils&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">describe</span>, <span style="color:#a6e22e">expect</span>, <span style="color:#a6e22e">it</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;vitest&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Stepper</span> <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;@/components/Stepper.vue&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">describe</span>(<span style="color:#e6db74">&#34;Stepper.vue 组件单元测试&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;should render&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 输入：传递初始值 10
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">wrapper</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">mount</span>(<span style="color:#a6e22e">Stepper</span>, { <span style="color:#a6e22e">props</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">initial</span>: <span style="color:#66d9ef">10</span> } });
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 断言 -&gt; 验证：渲染的 DOM 中是否包含 10
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">wrapper</span>.<span style="color:#a6e22e">text</span>()).<span style="color:#a6e22e">toContain</span>(<span style="color:#e6db74">&#34;10&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 生成快照
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">wrapper</span>.<span style="color:#a6e22e">html</span>()).<span style="color:#a6e22e">toMatchSnapshot</span>();
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><blockquote>
+<p>注意，我们在最后一行添加了一个快照断言，一般组件的单元测试都会去对 UI 进行比对，比对前后两次快照来判断 UI 是否发生变化，这通常在组件库比较常见。</p>
+</blockquote>
+<p>接下来我们需要验证该组件的交互性功能，拆分成单元测试即：</p>
+<ul>
+<li>按钮是否正常渲染</li>
+<li>点击两个按钮，断言文本的变化</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">mount</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;@vue/test-utils&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">describe</span>, <span style="color:#a6e22e">expect</span>, <span style="color:#a6e22e">it</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;vitest&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Stepper</span> <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;@/components/Stepper.vue&#34;</span>; <span style="color:#75715e">// 直接通过别名引，从这就可以说明 vitest 是和 vite 共享配置的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">describe</span>(<span style="color:#e6db74">&#34;Stepper.vue 组件单元测试&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 提前定义选择器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">SELECTOR</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dec</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;[tid=dec-btn]&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">inc</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;[tid=inc-btn]&#34;</span>,
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 测试默认渲染
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;should render&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">wrapper</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">mount</span>(<span style="color:#a6e22e">Stepper</span>, { <span style="color:#a6e22e">props</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">initial</span>: <span style="color:#66d9ef">10</span> } });
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">wrapper</span>.<span style="color:#a6e22e">text</span>()).<span style="color:#a6e22e">toContain</span>(<span style="color:#e6db74">&#34;10&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">wrapper</span>.<span style="color:#a6e22e">html</span>()).<span style="color:#a6e22e">toMatchSnapshot</span>();
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 测试交互性
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;should be interactive&#34;</span>, <span style="color:#66d9ef">async</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">wrapper</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">mount</span>(<span style="color:#a6e22e">Stepper</span>, { <span style="color:#a6e22e">props</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">initial</span>: <span style="color:#66d9ef">0</span> } });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 判断两个按钮是否正常渲染
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">wrapper</span>.<span style="color:#a6e22e">text</span>()).<span style="color:#a6e22e">toContain</span>(<span style="color:#e6db74">&#34;0&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">wrapper</span>.<span style="color:#a6e22e">find</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">dec</span>).<span style="color:#a6e22e">exists</span>()).<span style="color:#a6e22e">toBe</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">wrapper</span>.<span style="color:#a6e22e">find</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">dec</span>).<span style="color:#a6e22e">exists</span>()).<span style="color:#a6e22e">toBe</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 点击增加按钮（异步事件所以用 await）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">wrapper</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">inc</span>).<span style="color:#a6e22e">trigger</span>(<span style="color:#e6db74">&#34;click&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">wrapper</span>.<span style="color:#a6e22e">text</span>()).<span style="color:#a6e22e">toContain</span>(<span style="color:#e6db74">&#34;1&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 点击减少按钮（异步事件所以用 await）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">wrapper</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">dec</span>).<span style="color:#a6e22e">trigger</span>(<span style="color:#e6db74">&#34;click&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">wrapper</span>.<span style="color:#a6e22e">text</span>()).<span style="color:#a6e22e">toContain</span>(<span style="color:#e6db74">&#34;0&#34;</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>如果你的控制台一片 “绿” 说明你的组件通过单元测试啦。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f2ea1eb93cc646af8de49ee040af5215~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>当然如果你注意到你每次修改代码时，你一定会有一个感觉：<code>vitest</code> 是真的快！</p>
+<h4 id="util-单元测试">util 单元测试</h4>
+<p>我们平时在项目里通常比较常见的有日期格式化、正则校验等工具函数，我们就以密码的校验为例。函数实现功能如下：</p>
+<ul>
+<li>最小 8 位</li>
+<li>至少一个字母</li>
+<li>至少有一位数字</li>
+<li>至少有一个特殊字符</li>
+<li>不符合要返回错误消息</li>
+</ul>
+<p>我们简单实现如下：</p>
+<p><strong>src/util/validator.ts</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">DEFAULT_MESSAGE</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;密码至少八个字符，至少一个字母，一个数字和一个特殊字符&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">passwordValidator</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">str</span>: <span style="color:#66d9ef">string</span>, <span style="color:#a6e22e">msg</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">DEFAULT_MESSAGE</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">reg</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&amp;])[A-Za-z\d@$!%*#?&amp;]{8,}$/</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">reg</span>.<span style="color:#a6e22e">test</span>(<span style="color:#a6e22e">str</span>)) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">msg</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>测试代码：</p>
+<p><strong>test/validator.test.ts</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">passwordValidator</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;@/util/validator&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">describe</span>, <span style="color:#a6e22e">expect</span>, <span style="color:#a6e22e">it</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;vitest&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">describe</span>(<span style="color:#e6db74">&#34;密码校验&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">DEFAULT_MESSAGE</span> <span style="color:#f92672">=</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;密码至少八个字符，至少一个字母，一个数字和一个特殊字符&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;正常情况&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">passwordValidator</span>(<span style="color:#e6db74">&#34;As12345@&#34;</span>)).<span style="color:#a6e22e">toBe</span>(<span style="color:#66d9ef">true</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;密码长度不低于8位&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">passwordValidator</span>(<span style="color:#e6db74">&#34;As1.&#34;</span>)).<span style="color:#a6e22e">toBe</span>(<span style="color:#a6e22e">DEFAULT_MESSAGE</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;密码至少包含一个字母&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">passwordValidator</span>(<span style="color:#e6db74">&#34;1234567@&#34;</span>)).<span style="color:#a6e22e">toBe</span>(<span style="color:#a6e22e">DEFAULT_MESSAGE</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;密码至少包含一个数字&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">passwordValidator</span>(<span style="color:#e6db74">&#34;abcdefg@&#34;</span>)).<span style="color:#a6e22e">toBe</span>(<span style="color:#a6e22e">DEFAULT_MESSAGE</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;密码至少包含一个特殊字符&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expect</span>(<span style="color:#a6e22e">passwordValidator</span>(<span style="color:#e6db74">&#34;1abcdefg&#34;</span>)).<span style="color:#a6e22e">toBe</span>(<span style="color:#a6e22e">DEFAULT_MESSAGE</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p><code>Vitest</code> 的案例是不是很简单呢？上面我们只用到了<code>Vitest</code> 的一小部分功能，如果想要学习更多的用法可以直接看文档学习哦。</p>
+<h3 id="e2e-测试框架">E2E 测试框架</h3>
+<p><code>Cypress</code> 是一款很具有代表性的 E2E 测试工具，可以模拟出用户与浏览器的交互行为，但是除了 E2E 测试其实它也可以做组件的单元测试，而且比 <code>Vitest</code>、<code>Jest</code> 这类框架更加有说服力，因为它是真实的浏览器环境，这是 <code>jsdom</code>、<code>happydom</code> 这类库无法媲美的，毕竟它们只是模拟出来的。</p>
+<h3 id="体验-cypress">体验 cypress</h3>
+<h4 id="集成-cypress">集成 cypress</h4>
+<ul>
+<li>安装（建议开启代理，或者设置 <code>CYPRESS_INSTALL_BINARY</code>环境变量）</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pnpm i cypress -D
+</span></span></code></pre></div><ul>
+<li>启动 cypress</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>pnpm exec cypress open
+</span></span></code></pre></div><p>cypress 默认会读取项目根目录下的 <code>cypress.config.js</code> ，如果项目没有任何配置，则会在启动的时候让你选择：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3f8140793c6d4e95bff18073c0f5bcef~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>左边是做 E2E 测试，而右边是做组件的单元测试，我们随便选择一个开始就可以了，这里我选择的是组件测试(<code>Component Testing</code>)，接下来 <code>cypress</code> 会识别我们的框架和构建工具以及是不是 TS 项目，点击 <code>Continue</code> 之后会帮我们在根目录下创建一个 <code>cypress 目录</code> 和一个 <code>cypress.config.ts</code> 。</p>
+<p><code>cypress</code> 目录会包含以下目录结构：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cypress
+</span></span><span style="display:flex;"><span>├── fixtures <span style="color:#75715e"># 存放测试数据</span>
+</span></span><span style="display:flex;"><span>│   └── example.json
+</span></span><span style="display:flex;"><span>└── support <span style="color:#75715e"># 增强 Cypress ，在所有测试用例之前加载</span>
+</span></span><span style="display:flex;"><span>    ├── commands.ts <span style="color:#75715e"># 可以自定义命令或者覆盖内置已有的命令</span>
+</span></span><span style="display:flex;"><span>    ├── component-index.html <span style="color:#75715e"># 测试启动的入口文件，可以配置全局的样式、CDN</span>
+</span></span><span style="display:flex;"><span>    └── component.ts <span style="color:#75715e"># 添加了组件测试命令支持，这里增加了 `mount` 命令</span>
+</span></span></code></pre></div><p>我们再看到 <code>cypress.config.ts</code> 也增加了一些默认配置：</p>
+<p><strong>cypress.config.ts</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">defineConfig</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;cypress&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">defineConfig</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 组件测试相关配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">component</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 配置组件测试的开发服务器（框架是 Vue，使用 Vite 构建的项目）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">devServer</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">framework</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;vue&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">bundler</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;vite&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>如果看不懂上面的配置没关系，刚开始入门我们也不需要太关注这些东西，重点是来明白 E2E 的测试是怎么做的，我们接下来动手来实践一下。</p>
+<blockquote>
+<p>如果你是其他类型项目可以参考<a href="https://github.com/cypress-io/cypress-component-testing-examples">cypress-component-testing-examples</a> 中的 demo 进行配置。</p>
+</blockquote>
+<h4 id="使用-cypress-进行-组件测试">使用 cypress 进行 组件测试</h4>
+<p>为了方便下次使用，我们可以在 <code>package.json</code> 中配置一个组件测试命令：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;scripts&#34;</span><span style="color:#960050;background-color:#1e0010">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;test:component&#34;</span>: <span style="color:#e6db74">&#34;cypress open --component -b chrome&#34;</span>,
+</span></span><span style="display:flex;"><span>  }<span style="color:#960050;background-color:#1e0010">,</span>
+</span></span></code></pre></div><ul>
+<li><code>--component</code> 表示测试的类型。</li>
+<li><code>-b</code> 表示使用浏览器环境，并指定 <code>chrome</code> 浏览器。</li>
+</ul>
+<p>有了这些准备后，我们稍微改造一下上面的 <code>Stepper.vue</code> 组件，让其支持传递事件。这里我采用就近原则，把文件放到了组件同级目录。</p>
+<p><strong>components/<strong>test</strong>/Stepper.cy.ts</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span>&lt;<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">&lt;!--</span> <span style="color:#a6e22e">tid</span> <span style="color:#960050;background-color:#1e0010">属性用于测试，可以快速获取</span> <span style="color:#a6e22e">DOM</span> <span style="color:#f92672">--&gt;</span>
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#960050;background-color:#1e0010">@</span><span style="color:#a6e22e">click</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;decrement&#34;</span> <span style="color:#a6e22e">tid</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;dec-btn&#34;</span>&gt;<span style="color:#f92672">-</span>&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">tid</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;counter&#34;</span>&gt;{{ <span style="color:#a6e22e">count</span> }}&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">button</span> <span style="color:#960050;background-color:#1e0010">@</span><span style="color:#a6e22e">click</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;increment&#34;</span> <span style="color:#a6e22e">tid</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;inc-btn&#34;</span>&gt;<span style="color:#f92672">+</span>&lt;/<span style="color:#f92672">button</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">setup</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;ts&#34;</span>&gt;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">ref</span> } <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#39;vue&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">Props</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">initial?</span>: <span style="color:#66d9ef">number</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">emit</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">defineEmits</span><span style="color:#f92672">&lt;</span>{
+</span></span><span style="display:flex;"><span>  (<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;change&#39;</span>, <span style="color:#a6e22e">val</span>: <span style="color:#66d9ef">number</span>)<span style="color:#f92672">:</span> <span style="color:#66d9ef">void</span>
+</span></span><span style="display:flex;"><span>}<span style="color:#f92672">&gt;</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">props</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">withDefaults</span>(<span style="color:#a6e22e">defineProps</span>&lt;<span style="color:#f92672">Props</span>&gt;(), {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">initial</span>: <span style="color:#66d9ef">0</span>
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">count</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">ref</span>(<span style="color:#a6e22e">props</span>.<span style="color:#a6e22e">initial</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">increment</span> <span style="color:#f92672">=</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">count</span>.<span style="color:#a6e22e">value</span><span style="color:#f92672">++</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">emit</span>(<span style="color:#e6db74">&#39;change&#39;</span>, <span style="color:#a6e22e">count</span>.<span style="color:#a6e22e">value</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">decrement</span> <span style="color:#f92672">=</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">count</span>.<span style="color:#a6e22e">value</span><span style="color:#f92672">--</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">emit</span>(<span style="color:#e6db74">&#39;change&#39;</span>, <span style="color:#a6e22e">count</span>.<span style="color:#a6e22e">value</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p>我们需要测试几个功能：</p>
+<ul>
+<li>组件的默认渲染</li>
+<li>传递初始值</li>
+<li>事件是否正常触发</li>
+</ul>
+<p>测试代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">Stepper</span> <span style="color:#66d9ef">from</span> <span style="color:#e6db74">&#34;../Stepper.vue&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">describe</span>(<span style="color:#e6db74">&#34;Stepper.vue Unit Test&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 定义选择器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">SELECTOR</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">counter</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;[tid=counter]&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dec</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;[tid=dec-btn]&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">inc</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;[tid=inc-btn]&#34;</span>,
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;组件默认渲染&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#a6e22e">mount</span>(<span style="color:#a6e22e">Stepper</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">counter</span>).<span style="color:#a6e22e">should</span>(<span style="color:#e6db74">&#34;have.text&#34;</span>, <span style="color:#e6db74">&#34;0&#34;</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;传递 initial&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#a6e22e">mount</span>(<span style="color:#a6e22e">Stepper</span>, {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">props</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">initial</span>: <span style="color:#66d9ef">10</span>,
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">counter</span>).<span style="color:#a6e22e">should</span>(<span style="color:#e6db74">&#34;have.text&#34;</span>, <span style="color:#e6db74">&#34;10&#34;</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;事件测试&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#a6e22e">mount</span>(<span style="color:#a6e22e">Stepper</span>, {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">props</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">initial</span>: <span style="color:#66d9ef">10</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">onChange</span>: <span style="color:#66d9ef">cy.spy</span>().<span style="color:#66d9ef">as</span>(<span style="color:#e6db74">&#34;change&#34;</span>),
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">inc</span>).<span style="color:#a6e22e">click</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#e6db74">&#34;@change&#34;</span>).<span style="color:#a6e22e">should</span>(<span style="color:#e6db74">&#34;have.been.calledWith&#34;</span>, <span style="color:#ae81ff">11</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">dec</span>).<span style="color:#a6e22e">click</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#e6db74">&#34;@change&#34;</span>).<span style="color:#a6e22e">should</span>(<span style="color:#e6db74">&#34;have.been.calledWith&#34;</span>, <span style="color:#ae81ff">10</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>我们可以看到 <code>Cypress</code> 给的 API 非常语义化，基本上没有上手成本，步骤一般都是这样：</p>
+<ul>
+<li>获取某个 DOM</li>
+<li>对 DOM 进行操作</li>
+<li>断言</li>
+</ul>
+<p>这个步骤和我们之前介绍的测试方法都是一样的。</p>
+<p>接着启动 <code>pnpm test:component</code> 就可以看到测试的结果了：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ce0b85b79c9943f7ac1c08793d2d72ba~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<blockquote>
+<p><code>cy.spy()</code> 在上面案例中用于监听事件，当然还可以监听值的变化，详情<a href="https://example.cypress.io/commands/spies-stubs-clocks#spy">请戳</a>。</p>
+</blockquote>
+<h4 id="使用-cypress-进行-e2e-测试">使用 cypress 进行 E2E 测试</h4>
+<p>上面我们只对组件测试进行的配置，而 E2E 还没有配置，当然这也无需我们手动去配置，点击 <code>Cypress</code> 的 <code>Switch Test Type</code> 之后，点击 <code>E2E Testing</code> 就可以了，操作方式和组件测试差不多这里就不演示了。</p>
+<p>为了区分单元测试的文件，我们这里配置 E2E 测试文件的后缀为 <code>.e2e.ts</code>：</p>
+<p><strong>cypress.config.ts</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-diff" data-lang="diff"><span style="display:flex;"><span>import { defineConfig } from &#34;cypress&#34;;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>export default defineConfig({
+</span></span><span style="display:flex;"><span>  component: {
+</span></span><span style="display:flex;"><span>    devServer: {
+</span></span><span style="display:flex;"><span>      framework: &#34;vue&#34;,
+</span></span><span style="display:flex;"><span>      bundler: &#34;vite&#34;,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">+
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">+  e2e: {
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">+    setupNodeEvents(on, config) {
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">+      // implement node event listeners here
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">+   },
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">+   specPattern: &#39;**/*.e2e.ts&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">+ },
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e"></span>});
+</span></span></code></pre></div><p>然后我们创建一个 <code>index.e2e.ts</code> 的测试文件，意思是针对首页的测试，这个我们团队是放在页面组件的同级，当然这个没有严格的限制，遵循自己的团队规范即可。</p>
+<p>我们案例首页比较单调，为了测试方便，我们可以以掘金的登录和搜索功能为例子（免费帮掘金做测试，只写其中的小流程。</p>
+<p>登录测试：</p>
+<ul>
+<li>进入首页</li>
+<li>点击登录</li>
+<li>切换密码登录</li>
+<li>输入用户名和密码（故意输错）</li>
+<li>弹框提示</li>
+</ul>
+<p>搜索测试：</p>
+<ul>
+<li>进入首页</li>
+<li>聚焦搜索框</li>
+<li>输入 “不烧油的小火柴”</li>
+<li>切换搜索的结果</li>
+</ul>
+<p>这里的代码比较简单，我就直接贴代码了：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#a6e22e">describe</span>(<span style="color:#e6db74">&#34;掘金首页 E2E 测试&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">JUEJIN_PAGE_URL</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">index</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;https://juejin.cn/&#34;</span>,
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 定义选择器
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">SELECTOR</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">loginButton</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;.login-button&#34;</span>, <span style="color:#75715e">// 登录/注册按钮
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">noteMask</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;.flash-note-lead.mask .icon-close&#34;</span>, <span style="color:#75715e">// 闪念笔记 mask
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">authForm</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;.auth-form&#34;</span>, <span style="color:#75715e">// 登录弹窗
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">userNameInput</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;[name=loginPhoneOrEmail]&#34;</span>, <span style="color:#75715e">// 用户名输入 input
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">passwordInput</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;[name=loginPassword]&#34;</span>, <span style="color:#75715e">// 密码输入 input
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">loginSubmit</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;.panel .btn&#34;</span>, <span style="color:#75715e">// 登录按钮
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">errMessage</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;.alert-list .alert&#34;</span>, <span style="color:#75715e">// 错误信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">searchInput</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;.search-input&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">navBanner</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;.nav-banner .nav-item&#34;</span>, <span style="color:#75715e">// 导航
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">resultList</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;.result-list .main-list .item&#34;</span>, <span style="color:#75715e">//搜索的结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">beforeEach</span>(() <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#a6e22e">visit</span>(<span style="color:#a6e22e">JUEJIN_PAGE_URL</span>.<span style="color:#a6e22e">index</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">noteMask</span>).<span style="color:#a6e22e">click</span>(); <span style="color:#75715e">// 先关掉 mask
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;登录功能 - 异常情况&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 用户点击右上方登录/注册按钮
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">loginButton</span>).<span style="color:#a6e22e">click</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 用户此时看到登录弹窗
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">authForm</span>).<span style="color:#a6e22e">should</span>(<span style="color:#e6db74">&#34;be.visible&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 用户选择其他登录方式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">authForm</span><span style="color:#e6db74">}</span><span style="color:#e6db74"> .clickable`</span>).<span style="color:#a6e22e">click</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 输入用户名和密码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">userNameInput</span>).<span style="color:#a6e22e">focus</span>().<span style="color:#66d9ef">type</span>(<span style="color:#e6db74">&#34;admin&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">passwordInput</span>).<span style="color:#a6e22e">focus</span>().<span style="color:#66d9ef">type</span>(<span style="color:#e6db74">&#34;admin&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 提交
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">loginSubmit</span>).<span style="color:#a6e22e">click</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 报错
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">errMessage</span>).<span style="color:#a6e22e">should</span>(<span style="color:#e6db74">&#34;exist&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">errMessage</span>, { <span style="color:#a6e22e">timeout</span>: <span style="color:#66d9ef">3000</span> }).<span style="color:#a6e22e">should</span>(<span style="color:#e6db74">&#34;not.exist&#34;</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">it</span>(<span style="color:#e6db74">&#34;搜索功能测试&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">searchInput</span>).<span style="color:#66d9ef">type</span>(<span style="color:#e6db74">&#34;不烧油的小火柴&#34;</span>).<span style="color:#66d9ef">type</span>(<span style="color:#e6db74">&#34;{enter}&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">navBanner</span>).<span style="color:#a6e22e">last</span>().<span style="color:#a6e22e">click</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">cy</span>.<span style="color:#66d9ef">get</span>(<span style="color:#a6e22e">SELECTOR</span>.<span style="color:#a6e22e">resultList</span>).<span style="color:#a6e22e">eq</span>(<span style="color:#ae81ff">0</span>).<span style="color:#a6e22e">should</span>(<span style="color:#e6db74">&#34;contain.text&#34;</span>, <span style="color:#e6db74">&#34;不烧油的小火柴&#34;</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>我有一个小建议，那就是大家做测试的时候一定要把选择器提取放到前面去，这样下次网站内容变化的时候我们只需要改常量就行了。</p>
+<blockquote>
+<p>我们都有一个通用流程：进入首页，弹出“闪念笔记”的 <code>mask</code>。所以我将这两个步骤放到了 <code>beforeEach</code> 钩子里面，它会在所有测试用例执行之前执行。</p>
+</blockquote>
+<p>下面看一下 <code>Cypress</code> 的执行效果吧（我的鼠标是没动过的）：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3853c6b6bf20444d89c1b732138b071b~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="Kapture 2022-10-03 at 16.07.59.gif"></p>
+<p>如果我们测试的场景有一个超级大的表单输入，那么 <code>Cypress</code> 就会大大提升测试的效率。</p>
+<blockquote>
+<p>留个小作业吧：在登录的情况下，测试一下关注功能吧，嘿嘿。</p>
+</blockquote>
+<h2 id="如何衡量测试指标">如何衡量测试指标</h2>
+<p>通过上面的案例，我们对单元测试和 <code>E2E</code> 测试的区别和场景有所了解了吧，那在项目里面我该如何选择呢？选择的依据又是什么？如何知道测试的好坏？</p>
+<h3 id="测试金字塔">测试金字塔</h3>
+<p><code>Mike Cohn</code> 在他的著作《Succeeding with Agile》一书中提出了 <strong>测试金字塔</strong> 的概念，即测试需要分层：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0f8f8bc8f7804388bbca87217174481b~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>怎么理解呢？</p>
+<p>从图可以看出，底层的单元测试占比越高，越往上的集成测试占比越低，我们应该遵循这个原则。从实际场景出发的话，按照下面的建议去执行：</p>
+<ul>
+<li>开发纯函数/hook 库（<code>Lodash</code>，<code>VueUse</code> 这类的），建议写大量的单元测试，少量的集成测试。</li>
+<li>开发组件库，建议写大量的组件单元测试，每个组件编写快照测试（测试组件本身功能），少量的集成测试和 <code>E2E</code>（测试用户使用场景）。</li>
+<li>开发业务，建议为每个核心模块编写少量的 <code>E2E</code> 测试。</li>
+</ul>
+<blockquote>
+<p>建议归建议，任何事物都没有银弹。</p>
+</blockquote>
+<h3 id="测试覆盖率">测试覆盖率</h3>
+<p>如果说<strong>测试金字塔</strong>可以指导我们去更好的去写测试代码,那么<strong>测试覆盖率</strong>就是检验最终成果的一个很重要的指标。</p>
+<p>测试覆盖率分为代码覆盖率和需求覆盖率。前者好说我们可以通过一些工具（<code>istanbul</code>）去计算代码的执行行数来得出，而后者就比较麻烦了，这个需要人工计算了，或者通过一些标记手段（需求 ID）来计算得出。</p>
+<p>很多测试工具都内置代码的覆盖率的支持，比如 <code>Vitest</code> 内部默认用的就是 <code>c8</code> 来统计的，当然也可选择 <code>istanbul</code>，下图就很好的展示了执代码的执行情况：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8cb6e538a22346898faaaea9500f93a8~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<p>当然，如果团队的代码提交是比较严格，可以在 CI 流水线设置门禁，比如单测覆盖率 <code>80%</code> ，用例通过率 <code>100%</code>。但这个世界上没有十全十美的事情，代码覆盖率也是如此，要做到全覆盖还是比较难的，尤其是需求的覆盖率，我们一定要量力而行。</p>
+<h2 id="测试模式">测试模式</h2>
+<p>目前测试有两种模式，一个是被大家所知的 <code>TDD</code>（测试驱动开发），另一个则是 <code>BDD</code>（行为驱动开发）。</p>
+<ul>
+<li>TDD（Test-driven development）：测试驱动开发，先写测试后实现功能。</li>
+<li>BDD（Behavior-driven development）：行为驱动开发，先实现功能后写测试。</li>
+</ul>
+<h3 id="tdd">TDD</h3>
+<h4 id="开发流程">开发流程</h4>
+<p><code>TDD</code> 的核心要点在于在编码之前先编写测试用例，由测试来决定代码，整个流程如下：</p>
+<ul>
+<li>编写测试用例</li>
+<li>运行测试</li>
+<li>编码使测试用例通过</li>
+<li>重构/优化代码</li>
+<li>新增功能，重复流程</li>
+</ul>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ab1f924ecf0248158b20ed8b34bd4706~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<h4 id="优点">优点</h4>
+<p><code>TDD</code> 的有很多优点：</p>
+<ul>
+<li>功能代码未动，测试先行，能够用 “以终为始” 的开发思路来保证代码的质量。</li>
+<li>可以促进开发人员去思考模块设计和重构代码。</li>
+<li>测试的覆盖率较高，因为编写的代码需要按照测试的用例去跑，基本上每个用例都要考虑到。</li>
+</ul>
+<h4 id="缺点">缺点</h4>
+<p><code>TDD</code> 当然也有缺点比如：</p>
+<ul>
+<li>测试代码量增多，比如 Vue 2.x 中 的 <code>keep-alive</code> 源码实现只有 <code>100</code> 多行，而单元测试代码有 <code>800</code> 多行。</li>
+</ul>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3a5af9a438fb4fc3b6cf4db867c6ae8c~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?" alt="image.png"></p>
+<ul>
+<li>当代码调整时，测试代码也要调整，比如函数加了参数，函数里面加了 <code>if</code> 语句（这说明代码的设计不好）。</li>
+<li>最终做出来的东西和实际功能需求可能相偏离。</li>
+</ul>
+<p>如果大家对概念性的知识不是很理解，大家可以看看这篇文章<a href="https://juejin.cn/post/7106672456911290382">如何使用 Cypress 进行 TDD 组件测试</a>，作者很详细地介绍了这种开发模式，并且有相关案例来实践。</p>
+<h3 id="bdd">BDD</h3>
+<p>为了解决上面问题，<code>BDD</code> 应用而生，它是测试驱动开发延伸出来的一种敏捷软件开发技术。它的特点是：</p>
+<ul>
+<li>解决 <code>TDD</code> 模式下开发和实际功能需求不一致而诞生。</li>
+<li>不需要面向细节设计测试，而是面向行为测试。</li>
+<li>从产品的角度出发，鼓励开发与非开发人员之间的协作。</li>
+<li>注重功能测试，所以 <code>BDD</code> 更多结合的是集成测试，是黑盒的。</li>
+</ul>
+<h4 id="开发流程-1">开发流程</h4>
+<p>BDD 的开发流程大致为：</p>
+<ul>
+<li>需求确认（一般是从 PM 那获取需求）。</li>
+<li>以自动化的方式将需求建立起来（比如将需求录入某个迭代系统）。</li>
+<li>实现每个文档示例描述的行为，并从自动化测试开始以指导代码的开发。</li>
+</ul>
+<p><code>BDD</code> 的代表目前最流行的是<a href="https://cucumber.io/">Cucumber</a>，它使用描述性语言定义所有人员能看懂的语法，这种语法叫做 <code>Gherkin Syntax</code>，小黄瓜语法。下面是一个示例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-vbnet" data-lang="vbnet"><span style="display:flex;"><span>Feature: <span style="color:#960050;background-color:#1e0010">添加任务</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  Scenario: <span style="color:#960050;background-color:#1e0010">在输入框中输入任务名敲回车确定，输出到任务列表中</span>
+</span></span><span style="display:flex;"><span>    Given <span style="color:#e6db74">&#34;Hello World&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">When</span> <span style="color:#960050;background-color:#1e0010">在输入框中敲回车</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">Then</span> <span style="color:#960050;background-color:#1e0010">任务列表增加一个名称为</span> <span style="color:#e6db74">&#34;Hello World&#34;</span> <span style="color:#960050;background-color:#1e0010">的任务</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  Scenario: <span style="color:#960050;background-color:#1e0010">在输入框中输入空内容，不输出到任务列表中</span>
+</span></span><span style="display:flex;"><span>    Given <span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">When</span> <span style="color:#960050;background-color:#1e0010">在输入框中敲回车</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">Then</span> <span style="color:#960050;background-color:#1e0010">任务列表中不增加任何内容</span>
+</span></span></code></pre></div><p>之后的步骤就跟 <code>TDD</code> 很类似了，开发人员根据这个来编写测试用例，再开发源代码，新增功能再重复上述流程。</p>
+<h4 id="优点-1">优点</h4>
+<ul>
+<li>由于侧重于需求功能的完整度，所以能给开发人员增加更多对程序的信心。</li>
+<li>由于仅关注功能，不关注实现细节，有利于测试代码和实际代码解耦。</li>
+<li>由于大多数为编写集成测试，相比 <code>TDD</code> 有更好的开发效率。</li>
+</ul>
+<h4 id="缺点-1">缺点</h4>
+<ul>
+<li>以功能性的集成测试为主，因此不是那么关注每个函数功能，测试覆盖率比较低。</li>
+<li>没有 TDD 那么严格的保证代码质量。</li>
+</ul>
+<h3 id="如何权衡">如何权衡</h3>
+<p>这两种模式都有优缺点，那我们该如何选择呢？</p>
+<ul>
+<li><code>TDD</code> 这种开发模式更加注重代码的质量、更高的测试覆盖率，如果开发功能函数库、框架类（<code>Lodash</code>、<code>Vue</code>、<code>React</code>）就很适合用这种模式。</li>
+<li><code>BDD</code> 更加关注需求的完成度，不关心代码实现的细节，对于业务系统来说这是很好的一种模式。</li>
+</ul>
+<p>当然也没有绝对，其实这两种测试模式可以并行，我们在开发业务系统的时候难免要自己封装一些 <code>hook</code>、组件、工具函数，那么我们可以使用 <code>TDD</code> 来做（借助 <code>Vitest</code> 或者 <code>Cypress</code> 的单元测试功能），开发业务代码的时候使用 <code>BDD</code> 来做（借助 <code>Cypress</code> 的 <code>E2E</code> 测试功能 ）。</p>
+<p>不管怎么样，一切都是为了高质量和高效率，不能为了某种模式或工具去死搬硬套，假如你的开发周期很短、业务繁忙，你强上这套工具和模式，你觉得你的老板会认可吗？</p>
+<h2 id="总结">总结</h2>
+<p>本篇文章是笔者在实践了一段时间自动化测试之后的总结，主要讲述了自动化测试出现的原因，以及自动化测试一些流行的工具库，但是衡量测试的指标也是很重要的，所以也简单介绍了一下 “测试金字塔” 和测试覆盖率的概念，它们是衡量代码的最后一道关卡。最后介绍了 <code>TDD</code> 和 <code>BDD</code> 的概念和优缺点，两种测试模式都值得学习。但是记住：<strong>任何工具或模式的出现一定是解决某个问题出现的，任何的解决方案都不是银弹！</strong> 下期文章会结合前端模块设计与 <code>TDD</code> 来分享一个真实场景，帮助大家更好去践行这种开发模式。</p>
+<p>希望这篇文章对大家有所收获，笔者初入茅庐，文章难免有些瑕疵，恳请大家指正！</p>
+<h2 id="参考">参考</h2>
+<ul>
+<li><a href="https://kentcdodds.com/blog/static-vs-unit-vs-integration-vs-e2e-tests">Static vs Unit vs Integration vs E2E Testing for Frontend Apps</a></li>
+<li><a href="https://juejin.cn/post/7106672456911290382">如何使用 Cypress 进行 TDD 组件测试</a></li>
+<li><a href="https://juejin.cn/post/6844903923770195982">React 现代化测试</a></li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/171/"
+      ><span class="mr-1.5">←</span><span>Unicode 和 UTF-8</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/169/"
+      ><span>12 个常用的 JavaScript 函数</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

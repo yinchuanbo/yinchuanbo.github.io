@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>Websocket 异常处理 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="背景 花两天时间重构 Websocket 模块，关于链接异常处理的细节比较多，而且错误处理中容易出现冲突。本文主要是整理下链接异常 &amp;&amp; 消息异常的处理方案。
+建议可以先看一下我之前关于 tcp 消息丢失的文章。
+链接异常 &amp;&amp; 异常处理 一、关于 websocket 长链接的异常，主要分几种异常情况：
+1、创建连接异常； 测试在 chrome 下网络丢包频率高的话，大概 40s-50s 会报错，如果监听了 onerror 事件可以捕获到报错(WebSocket connection to &#39;wss://\*\*\*&#39; failed: Error in connection establishment: net::ERR_CONNECTION_TIMED_OUT);
+如果需要统一/固定时长，可以在创建时通过定时器监听(通过 socket.readyState 判断)超过多长时间没有创建成功则重新连接。
+但当自己来处理链接时长后，需要注意在重连的时候关闭连接且将前一个链接的事件绑定解绑。否则还可能会收到原链接的相关事件推送(e.g. 设置了 30s 重连，但 40 秒后链接超时触发 onerror)；
+// 我这里用了单例模式来实现 let instance; let onmessage, onopen, onerror, onclose; class Ws { static getInstance() { if (!instance) { instance = new Ws(); } return instance; } createSocket(url) { this." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="Websocket 异常处理" />
+<meta property="og:description" content="背景 花两天时间重构 Websocket 模块，关于链接异常处理的细节比较多，而且错误处理中容易出现冲突。本文主要是整理下链接异常 &amp;&amp; 消息异常的处理方案。
+建议可以先看一下我之前关于 tcp 消息丢失的文章。
+链接异常 &amp;&amp; 异常处理 一、关于 websocket 长链接的异常，主要分几种异常情况：
+1、创建连接异常； 测试在 chrome 下网络丢包频率高的话，大概 40s-50s 会报错，如果监听了 onerror 事件可以捕获到报错(WebSocket connection to &#39;wss://\*\*\*&#39; failed: Error in connection establishment: net::ERR_CONNECTION_TIMED_OUT);
+如果需要统一/固定时长，可以在创建时通过定时器监听(通过 socket.readyState 判断)超过多长时间没有创建成功则重新连接。
+但当自己来处理链接时长后，需要注意在重连的时候关闭连接且将前一个链接的事件绑定解绑。否则还可能会收到原链接的相关事件推送(e.g. 设置了 30s 重连，但 40 秒后链接超时触发 onerror)；
+// 我这里用了单例模式来实现 let instance; let onmessage, onopen, onerror, onclose; class Ws { static getInstance() { if (!instance) { instance = new Ws(); } return instance; } createSocket(url) { this." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/347/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-04T15:39:17+08:00" />
+<meta property="article:modified_time" content="2023-02-04T15:39:17+08:00" />
+
+  
+  <meta itemprop="name" content="Websocket 异常处理">
+<meta itemprop="description" content="背景 花两天时间重构 Websocket 模块，关于链接异常处理的细节比较多，而且错误处理中容易出现冲突。本文主要是整理下链接异常 &amp;&amp; 消息异常的处理方案。
+建议可以先看一下我之前关于 tcp 消息丢失的文章。
+链接异常 &amp;&amp; 异常处理 一、关于 websocket 长链接的异常，主要分几种异常情况：
+1、创建连接异常； 测试在 chrome 下网络丢包频率高的话，大概 40s-50s 会报错，如果监听了 onerror 事件可以捕获到报错(WebSocket connection to &#39;wss://\*\*\*&#39; failed: Error in connection establishment: net::ERR_CONNECTION_TIMED_OUT);
+如果需要统一/固定时长，可以在创建时通过定时器监听(通过 socket.readyState 判断)超过多长时间没有创建成功则重新连接。
+但当自己来处理链接时长后，需要注意在重连的时候关闭连接且将前一个链接的事件绑定解绑。否则还可能会收到原链接的相关事件推送(e.g. 设置了 30s 重连，但 40 秒后链接超时触发 onerror)；
+// 我这里用了单例模式来实现 let instance; let onmessage, onopen, onerror, onclose; class Ws { static getInstance() { if (!instance) { instance = new Ws(); } return instance; } createSocket(url) { this."><meta itemprop="datePublished" content="2023-02-04T15:39:17+08:00" />
+<meta itemprop="dateModified" content="2023-02-04T15:39:17+08:00" />
+<meta itemprop="wordCount" content="615">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Websocket 异常处理"/>
+<meta name="twitter:description" content="背景 花两天时间重构 Websocket 模块，关于链接异常处理的细节比较多，而且错误处理中容易出现冲突。本文主要是整理下链接异常 &amp;&amp; 消息异常的处理方案。
+建议可以先看一下我之前关于 tcp 消息丢失的文章。
+链接异常 &amp;&amp; 异常处理 一、关于 websocket 长链接的异常，主要分几种异常情况：
+1、创建连接异常； 测试在 chrome 下网络丢包频率高的话，大概 40s-50s 会报错，如果监听了 onerror 事件可以捕获到报错(WebSocket connection to &#39;wss://\*\*\*&#39; failed: Error in connection establishment: net::ERR_CONNECTION_TIMED_OUT);
+如果需要统一/固定时长，可以在创建时通过定时器监听(通过 socket.readyState 判断)超过多长时间没有创建成功则重新连接。
+但当自己来处理链接时长后，需要注意在重连的时候关闭连接且将前一个链接的事件绑定解绑。否则还可能会收到原链接的相关事件推送(e.g. 设置了 30s 重连，但 40 秒后链接超时触发 onerror)；
+// 我这里用了单例模式来实现 let instance; let onmessage, onopen, onerror, onclose; class Ws { static getInstance() { if (!instance) { instance = new Ws(); } return instance; } createSocket(url) { this."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">Websocket 异常处理</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Feb 4, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h3 id="背景">背景</h3>
+<p>花两天时间重构 Websocket 模块，关于链接异常处理的细节比较多，而且错误处理中容易出现冲突。本文主要是整理下链接异常 &amp;&amp; 消息异常的处理方案。<br>
+建议可以先看一下我之前关于 <a href="https://juejin.cn/post/7109035171390685215/" title="https://juejin.cn/post/7109035171390685215/">tcp 消息丢失的文章</a>。</p>
+<h2 id="链接异常--异常处理">链接异常 &amp;&amp; 异常处理</h2>
+<p>一、关于 websocket 长链接的异常，主要分几种异常情况：</p>
+<h3 id="1创建连接异常">1、创建连接异常；</h3>
+<p>测试在 chrome 下网络丢包频率高的话，大概 40s-50s 会报错，如果监听了 onerror 事件可以捕获到报错(<code>WebSocket connection to 'wss://\*\*\*' failed: Error in connection establishment: net::ERR_CONNECTION_TIMED_OUT</code>);<br>
+如果需要统一/固定时长，可以在创建时通过定时器监听(通过 <code>socket.readyState</code> 判断)超过多长时间没有创建成功则重新连接。</p>
+<p>但当自己来处理链接时长后，需要注意在重连的时候关闭连接且将前一个链接的事件绑定解绑。否则还可能会收到原链接的相关事件推送(<code>e.g.</code> 设置了 30s 重连，但 40 秒后链接超时触发 onerror)；</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 我这里用了单例模式来实现
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">instance</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">onmessage</span>, <span style="color:#a6e22e">onopen</span>, <span style="color:#a6e22e">onerror</span>, <span style="color:#a6e22e">onclose</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Ws</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">static</span> <span style="color:#a6e22e">getInstance</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">instance</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Ws</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">createSocket</span>(<span style="color:#a6e22e">url</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">WebSocket</span>(<span style="color:#a6e22e">url</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">binaryType</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;arraybuffer&#34;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 因为事件执行的this指向的是socket实例，需要修改this指向
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">onmessage</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">onmessage</span>.<span style="color:#a6e22e">bind</span>(<span style="color:#66d9ef">this</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">onopen</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">onopen</span>.<span style="color:#a6e22e">bind</span>(<span style="color:#66d9ef">this</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">onerror</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">onerror</span>.<span style="color:#a6e22e">bind</span>(<span style="color:#66d9ef">this</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">onclose</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">onclose</span>.<span style="color:#a6e22e">bind</span>(<span style="color:#66d9ef">this</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// socket 事件绑定
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;message&#34;</span>, <span style="color:#a6e22e">onmessage</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;open&#34;</span>, <span style="color:#a6e22e">onopen</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;error&#34;</span>, <span style="color:#a6e22e">onerror</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">addEventListener</span>(<span style="color:#e6db74">&#34;close&#34;</span>, <span style="color:#a6e22e">onclose</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 设置30s重连
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">timeoutEvent</span>(<span style="color:#ae81ff">30000</span>, () =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 创建连接超时重连
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">readyState</span> <span style="color:#f92672">!==</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">closeSocket</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">reconnection</span>();
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onmessage</span>() {}
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onopen</span>() {}
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onerror</span>() {}
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">onclose</span>() {}
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">closeSocket</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 解除事件绑定后，关闭连接
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">removeEventListener</span>(<span style="color:#e6db74">&#34;open&#34;</span>, <span style="color:#a6e22e">onopen</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">removeEventListener</span>(<span style="color:#e6db74">&#34;message&#34;</span>, <span style="color:#a6e22e">onmessage</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">removeEventListener</span>(<span style="color:#e6db74">&#34;error&#34;</span>, <span style="color:#a6e22e">onerror</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">removeEventListener</span>(<span style="color:#e6db74">&#34;close&#34;</span>, <span style="color:#a6e22e">onclose</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">close</span>();
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">reconnection</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">createSocket</span>(<span style="color:#e6db74">&#34;ws://127.0.0.1:8891/ws&#34;</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">Ws</span>.<span style="color:#a6e22e">getInstance</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">instance</span>;
+</span></span></code></pre></div><h3 id="2创建成功后的异常">2、创建成功后的异常；</h3>
+<p>首先，正常情况下由服务端/客户端主动触发的断线，都会通知到对方链接已断开，如：</p>
+<ol>
+<li>服务端/客户端 关闭进程/crash 等;</li>
+<li>服务端/客户端 断网;</li>
+<li>服务端/客户端 主动断开连接;</li>
+</ol>
+<p>例如浏览器的 webScoket onclose 事件可以监听到服务端通知链接断开(断开的信息<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/CloseEvent">CloseEvent code</a>一般为 1000, 服务端可以自行设置 code)，如果需要发送消息则需要重新建立链接；</p>
+<p>有一种情况是例外的，如果服务端和客户端之间的网络不稳定，丢包概率比较大，两端是无法感知的，所以需要通过心跳进行健康检查：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 连接监听到 onopen 后，进行心跳检查, 5s 一次
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">onopen</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clearInterval</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">heartbeatTimmer</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">heartbeatTimmer</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">setInterval</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">sendMessage</span>(<span style="color:#e6db74">&#39;ping&#39;</span>) <span style="color:#75715e">// 自定义心跳消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    }, <span style="color:#ae81ff">5000</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>但因为 tcp 是无状态的，我们无法监听到心跳是否发送成功，所以需要通过另外一种方式来监听链接状态是否正常，可以通过定时器监听服务端返回的心跳包(设置超时时间，如果超过 60s 没收到心跳回应则重新连接):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">onmessage</span>(<span style="color:#a6e22e">event</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span>(<span style="color:#a6e22e">isPong</span>(<span style="color:#a6e22e">event</span>)) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">listenPong</span>()
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">listenPong</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clearTimeout</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">pongTimmer</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 超过60s没收到服务端心跳则重连
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">pongTimmer</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">closeSocket</span>()
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">reconnection</span>()
+</span></span><span style="display:flex;"><span>    }, <span style="color:#ae81ff">60000</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="3关闭连接异常">3、关闭连接异常；</h3>
+<p>客户端和服务端都有自行关闭链接的机制(即使安排一样的超时机制也可能会不一致)，两边的状态可能会不一致， e.g.</p>
+<ol>
+<li>服务端仍正常连接，客户端已断开，并会发起重连;</li>
+<li>服务端已断开，客户端未断开(服务端断开的消息未收到，或已收到断开消息，但客户端未处理)；</li>
+<li>客户端自动关闭连接(测试在 chrome 超过 60s 没收到消息的情况下会自动断开连接，CloseEvent.code 是 1006)；</li>
+</ol>
+<p>对 1 来说，客户端断开连接发起重连后，按照最新的连接收发消息，不会出现异常。</p>
+<p>对 3 来说，不同的 client 有不一样的处理逻辑，我们需要在关闭后进行重连处理。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">onclose</span>(<span style="color:#a6e22e">event</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 1006 客户端主动关闭
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span>(<span style="color:#a6e22e">event</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">code</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">1006</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">readyState</span> <span style="color:#f92672">!==</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">closeSocket</span>()
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">reconnection</span>()
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>但 2 的情况，因为客户端记录仍是正常的，发送消息的时候会抛出异常：WebSocket is already in CLOSING or CLOSED state.我们需要做两个处理:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 当收到服务端断开消息时，需要重连
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">onclose</span>(<span style="color:#a6e22e">event</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 1006 客户端主动关闭
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 1000 服务端关闭
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span>(<span style="color:#a6e22e">event</span> <span style="color:#f92672">&amp;&amp;</span> (<span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">code</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">1006</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">code</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">1000</span>) <span style="color:#f92672">&amp;&amp;</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">readyState</span> <span style="color:#f92672">!==</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">closeSocket</span>()
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">reconnection</span>()
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 当发送消息时需要检查链接状态，如果状态异常则需要重连
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">sendMessage</span>(<span style="color:#a6e22e">message</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span> <span style="color:#f92672">||</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">readyState</span> <span style="color:#f92672">!==</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">closeSocket</span>()
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">reconnection</span>()
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="消息异常--异常捕获">消息异常 &amp;&amp; 异常捕获</h2>
+<p>同样因为 tcp 无状态，所以我们无法直接判断消息是否发送成功，需要在业务层面实现 AcKnowledgements (发送消息给服务端后，服务端需要返回一条确认消息，收到确认消息才认为消息已发送成功)。</p>
+<p>大部分业务只需要知道消息是否发送成功，所以通过 AcKnowledgements 已完成需求。但在一些稳定性要求较高的项目上，仍需要：</p>
+<ol>
+<li>确认消息发送失败(实际上，AcKnowledgements 也可能丢失);</li>
+<li>丢失的消息需要自动重发；</li>
+<li>基于 2 的情况，收到的消息可能是重复的(因为存在可能发送成功的消息，丢失了 也就是实际发送成功了，但客户端未收到 AcKnowledgements)，需要自行处理去重；</li>
+</ol>
+<p>为了更好的数据管理，我设置了队列来进行消息管理，每次发送的消息时，将消息放入发送队列：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">sendMessage</span>(<span style="color:#a6e22e">message</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span> <span style="color:#f92672">||</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">readyState</span> <span style="color:#f92672">!==</span> <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">closeSocket</span>()
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">reconnection</span>()
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">msgQueue</span>.<span style="color:#a6e22e">enqueue</span>(<span style="color:#a6e22e">message</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">socketInstance</span>.<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">message</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>当收到系统回执时，需要将消息从发送队列中删除：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">onmessage</span>(<span style="color:#a6e22e">message</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">msgQueue</span>.<span style="color:#a6e22e">dequeue</span>(<span style="color:#a6e22e">message</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>同时，队列管理需要进行定时的消息重发：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">instance</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 关键消息结构
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// localMsgId, 本地消息id
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// createTimestamp, 创建的时间戳(这里最好用服务器时间)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MsgQueue</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">msgList</span> <span style="color:#f92672">=</span> []; <span style="color:#75715e">// 发送消息列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">pending</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>; <span style="color:#75715e">// 是否在队列检查中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">period</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">5000</span>; <span style="color:#75715e">// 超时时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">static</span> <span style="color:#a6e22e">getInstance</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">instance</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MsgQueue</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">instance</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">enqueue</span>(<span style="color:#a6e22e">msg</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">msgList</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">msg</span>); <span style="color:#75715e">// 放入消息队列
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">pending</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 如果消息队列没有执行任务则开启执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">listen</span>();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">dequeue</span>(<span style="color:#a6e22e">msg</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">msgList</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">msgList</span>.<span style="color:#a6e22e">filter</span>(
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">item</span>) =&gt; <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">localMsgId</span> <span style="color:#f92672">!==</span> <span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">localMsgId</span>
+</span></span><span style="display:flex;"><span>    );
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">listen</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">msgList</span>.<span style="color:#a6e22e">length</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">pending</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">now</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>(); <span style="color:#75715e">// 同理，最好用服务器时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">msg</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">msgList</span>[<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">distance</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">now</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">msg</span>.<span style="color:#a6e22e">createTimestamp</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">pending</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">distance</span> <span style="color:#f92672">&gt;=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">period</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">sendMessage</span>(<span style="color:#a6e22e">msg</span>); <span style="color:#75715e">// 重发
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">dequeue</span>(<span style="color:#a6e22e">msg</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">listen</span>();
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">listen</span>();
+</span></span><span style="display:flex;"><span>      }, <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">period</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">distance</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">instance</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">MsgQueue</span>.<span style="color:#a6e22e">getInstance</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">default</span> <span style="color:#a6e22e">instance</span>;
+</span></span></code></pre></div><p>关于去重，我这里只需要在 onmessage 中进行检查，已有的消息直接忽略：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">onmessage</span>(<span style="color:#a6e22e">event</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span>(<span style="color:#a6e22e">isDuplicated</span>(<span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">data</span>)) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="socket-readystate">Socket readyState</h2>
+<ul>
+<li><strong>0</strong> (WebSocket.CONNECTING) 正在链接中</li>
+<li><strong>1</strong> (WebSocket.OPEN) 已经链接并且可以通讯</li>
+<li><strong>2</strong> (WebSocket.CLOSING) 连接正在关闭</li>
+<li><strong>3</strong> (WebSocket.CLOSED) 连接已关闭或者没有链接成功</li>
+</ul>
+<h2 id="涉及到的测试工具">涉及到的测试工具</h2>
+<ol>
+<li>断网，使用 chrome network 工具;</li>
+<li>客户端丢包， 使用 macOS 的 NLC 工具设置丢包率;</li>
+<li>服务端丢包， ubuntu 服务器，使用 linux tc 命令模拟丢包;</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 设置丢包率 10%
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">tc</span> <span style="color:#a6e22e">qdisc</span> <span style="color:#a6e22e">add</span> <span style="color:#a6e22e">dev</span> <span style="color:#a6e22e">eth0</span> <span style="color:#a6e22e">root</span> <span style="color:#a6e22e">netem</span> <span style="color:#a6e22e">loss</span> <span style="color:#ae81ff">10</span><span style="color:#f92672">%</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 查看配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">tc</span> <span style="color:#a6e22e">qdisc</span> <span style="color:#a6e22e">show</span> <span style="color:#75715e">// dev eth0 root refcnt 2 limit 1000 loss 10%
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 删除配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">tc</span> <span style="color:#a6e22e">qdisc</span> <span style="color:#a6e22e">del</span> <span style="color:#a6e22e">dev</span> <span style="color:#a6e22e">eth0</span> <span style="color:#a6e22e">root</span>
+</span></span></code></pre></div><p>备注：丢包率会影响 tcp 发送时间，因为 tcp 丢包后会重传，不同系统重传及超时机制不一样(e.g. linux 最小重传时间是 200ms, 最大重传时间是 120s, 重传次数为 15)</p>
+<h2 id="问题记录">问题记录</h2>
+<ol>
+<li>
+<p>为什么已经关闭的连接 onclose 仍会执行；<br>
+socketInstance 设置了 null,事件绑定未取消，对象仍在内存中。事件仍会执行，需要手动解除事件绑定。</p>
+</li>
+<li>
+<p>为什么 new Socket() 的错误(<code>WebSocket connection to 'wss://\*\*\*' failed: Error in connection establishment: net::ERR_CONNECTION_TIMED_OUT</code>)不能阻止错误冒泡？</p>
+</li>
+</ol>
+<p>根据 <a href="https://stackoverflow.com/questions/31002592/javascript-doesnt-catch-error-in-websocket-instantiation">javascript-doesnt-catch-error-in-websocket-instantiation</a>,这个答案描述的是因为这个错误是异步抛出的，所以无法捕获。<br>
+尝试像 settimeout 一样用 promise 包裹也无法捕获到，但这个错误不会影响代码的执行，而且也传播到 onerror 上可以被捕获到。</p>
+<ol start="3">
+<li>如何通过命令行查看 websocket 状态？<br>
+通过 top 命令查看进程 pid，通过 losf -p pid 查看对应的进程 TCP 链接。</li>
+</ol>
+<h2 id="参考文档">参考文档</h2>
+<p>1、WebSockets: <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/WebSockets_API">developer.mozilla.org/zh-CN/docs/…</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/348/"
+      ><span class="mr-1.5">←</span><span>js 端 websocket</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/346/"
+      ><span>React 实现路由监听（from, to）</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

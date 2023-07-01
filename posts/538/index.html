@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>并发任务控制 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="认识并发任务控制 什么是并发？ 因为 js 是单线程的，所以前端的并发指的是在极短时间内发送多个数据请求，比如说循环中发送 ajax。
+前端为什么要控制并发？ 前端需要控制并发的主要原因有:
+JS 单线程：JS 是单线程执行的,同一时间只能做一件事。如果有太多异步任务同时执行，会导致主线程被阻塞，影响页面性能。控制并发可以避免这种情况。 资源限制：浏览器资源有限，如 CPU、内存、网络等。如果太多任务同时执行，很容易导致页面卡顿甚至崩溃。控制并发可以保证在资源负载限制内正常执行。 防止互相影响：很多时候异步任务会操作相同的 DOM 元素或变量，如果同时执行很容易产生未定义的行为和莫名的 bug。控制并发可以避免这类问题。 代码可维护性：大量异步任务同时执行会让代码变得很难追踪和调试。控制并发让任务有序执行，可以大大提高代码的可读性和可维护性。 优先级：有些任务的优先级更高，需要先执行。并发控制可以根据优先级决定任务执行顺序。 错误处理：如果多个异步任务同时出错，很难定位具体错误原因。控制并发意味着每个任务都是在正常状态下执行的，如果出现错误也更容易捕获和处理。 所以总之，由于 JS 的单线程模型和浏览器资源限制，前端需要并发控制来确保程序的性能、稳定性和可维护性。控制异步任务的执行顺序，可以最大化的利用资源并避免各种意想不到的问题。这也是前端工程师需要掌握的一个很重要的技能。
+思考 我们已经了解了什么是并发，以及为什么要控制并发。那么就让我看下图中的一道题，来完成要求，实现一个异步任务的调度器。
+从上面的代码我们可以看出，图中需要我们去实现的是 SuperTask 类，这个类的作用是控制异步任务的调用，类中有一个 add 的方法，来添加异步任务，add 返回一个 Promise。
+通过 addTask 的五次调用我们发现，每次只有两个异步任务在执行，完成一个异步任务后，会有一个新的任务被调用执行，如下图所示。
+现在基本逻辑我们已经清楚，那么我们去实现一下吧！
+实现 根据思考中的描述，我们有了大概的方向，所以有了上图中的代码，那么还有一些问题我们没有思考到，比如何时判断执行队列中的任务已完成要调用新的任务呢？
+可能有些同学会说，我们可以直接在 add 函数中直接调用 task 啊？可是如果我们直接调用的话，当前执行队列中如果已经有两个了怎么办呢？所以在 add 函数中直接调用显然是不可取的，那么既然 add 中不可取，那就只能由一个新的函数负责了。
+那么新的问题又出现了，我们怎么知道任务何时成功与失败呢？在上图中我们仅仅将任务放在了任务队列中，并无法知道任务的状态，所以我们在向任务队列中添加任务的同时也要将状态加入其中。
+那么让我们来改造一下代码。
+改造完代码之后，我们就剩下实现 _run 函数了，首先我们要搞清楚，_run 到底要实现什么目标，其实也很简单就是依次运行任务队列里的所有任务，那很明显 _run 函数里应该是一个循环，那么我们应该使用什么循环合适呢？让我们思考一下，在循环之前我们肯定是要判断当前执行队列里的任务是否小于可允许并发数量以及任务队列是否还有数据，那么既然是先判断后循环 while 在这里就是最合适的了，那么我们去实现一下。
+到这里我们就完成啦！
+那么让我们在浏览器里运行一起看看结果吧。
+总结 我们写到最后其实已经发现了，这道题考察的就是最原始的 JS 代码，我们常常在工作中使用各种框架以及各种第三方库，往往会疏忽我们最基础的 JS，俗话说：‘基础不牢，地动山摇’，牢固的语言基础和理论基础，配合实践经验，才是我们成为一名优秀前端工程师的关键。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="并发任务控制" />
+<meta property="og:description" content="认识并发任务控制 什么是并发？ 因为 js 是单线程的，所以前端的并发指的是在极短时间内发送多个数据请求，比如说循环中发送 ajax。
+前端为什么要控制并发？ 前端需要控制并发的主要原因有:
+JS 单线程：JS 是单线程执行的,同一时间只能做一件事。如果有太多异步任务同时执行，会导致主线程被阻塞，影响页面性能。控制并发可以避免这种情况。 资源限制：浏览器资源有限，如 CPU、内存、网络等。如果太多任务同时执行，很容易导致页面卡顿甚至崩溃。控制并发可以保证在资源负载限制内正常执行。 防止互相影响：很多时候异步任务会操作相同的 DOM 元素或变量，如果同时执行很容易产生未定义的行为和莫名的 bug。控制并发可以避免这类问题。 代码可维护性：大量异步任务同时执行会让代码变得很难追踪和调试。控制并发让任务有序执行，可以大大提高代码的可读性和可维护性。 优先级：有些任务的优先级更高，需要先执行。并发控制可以根据优先级决定任务执行顺序。 错误处理：如果多个异步任务同时出错，很难定位具体错误原因。控制并发意味着每个任务都是在正常状态下执行的，如果出现错误也更容易捕获和处理。 所以总之，由于 JS 的单线程模型和浏览器资源限制，前端需要并发控制来确保程序的性能、稳定性和可维护性。控制异步任务的执行顺序，可以最大化的利用资源并避免各种意想不到的问题。这也是前端工程师需要掌握的一个很重要的技能。
+思考 我们已经了解了什么是并发，以及为什么要控制并发。那么就让我看下图中的一道题，来完成要求，实现一个异步任务的调度器。
+从上面的代码我们可以看出，图中需要我们去实现的是 SuperTask 类，这个类的作用是控制异步任务的调用，类中有一个 add 的方法，来添加异步任务，add 返回一个 Promise。
+通过 addTask 的五次调用我们发现，每次只有两个异步任务在执行，完成一个异步任务后，会有一个新的任务被调用执行，如下图所示。
+现在基本逻辑我们已经清楚，那么我们去实现一下吧！
+实现 根据思考中的描述，我们有了大概的方向，所以有了上图中的代码，那么还有一些问题我们没有思考到，比如何时判断执行队列中的任务已完成要调用新的任务呢？
+可能有些同学会说，我们可以直接在 add 函数中直接调用 task 啊？可是如果我们直接调用的话，当前执行队列中如果已经有两个了怎么办呢？所以在 add 函数中直接调用显然是不可取的，那么既然 add 中不可取，那就只能由一个新的函数负责了。
+那么新的问题又出现了，我们怎么知道任务何时成功与失败呢？在上图中我们仅仅将任务放在了任务队列中，并无法知道任务的状态，所以我们在向任务队列中添加任务的同时也要将状态加入其中。
+那么让我们来改造一下代码。
+改造完代码之后，我们就剩下实现 _run 函数了，首先我们要搞清楚，_run 到底要实现什么目标，其实也很简单就是依次运行任务队列里的所有任务，那很明显 _run 函数里应该是一个循环，那么我们应该使用什么循环合适呢？让我们思考一下，在循环之前我们肯定是要判断当前执行队列里的任务是否小于可允许并发数量以及任务队列是否还有数据，那么既然是先判断后循环 while 在这里就是最合适的了，那么我们去实现一下。
+到这里我们就完成啦！
+那么让我们在浏览器里运行一起看看结果吧。
+总结 我们写到最后其实已经发现了，这道题考察的就是最原始的 JS 代码，我们常常在工作中使用各种框架以及各种第三方库，往往会疏忽我们最基础的 JS，俗话说：‘基础不牢，地动山摇’，牢固的语言基础和理论基础，配合实践经验，才是我们成为一名优秀前端工程师的关键。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/538/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-20T12:01:17+08:00" />
+<meta property="article:modified_time" content="2023-04-20T12:01:17+08:00" />
+
+  
+  <meta itemprop="name" content="并发任务控制">
+<meta itemprop="description" content="认识并发任务控制 什么是并发？ 因为 js 是单线程的，所以前端的并发指的是在极短时间内发送多个数据请求，比如说循环中发送 ajax。
+前端为什么要控制并发？ 前端需要控制并发的主要原因有:
+JS 单线程：JS 是单线程执行的,同一时间只能做一件事。如果有太多异步任务同时执行，会导致主线程被阻塞，影响页面性能。控制并发可以避免这种情况。 资源限制：浏览器资源有限，如 CPU、内存、网络等。如果太多任务同时执行，很容易导致页面卡顿甚至崩溃。控制并发可以保证在资源负载限制内正常执行。 防止互相影响：很多时候异步任务会操作相同的 DOM 元素或变量，如果同时执行很容易产生未定义的行为和莫名的 bug。控制并发可以避免这类问题。 代码可维护性：大量异步任务同时执行会让代码变得很难追踪和调试。控制并发让任务有序执行，可以大大提高代码的可读性和可维护性。 优先级：有些任务的优先级更高，需要先执行。并发控制可以根据优先级决定任务执行顺序。 错误处理：如果多个异步任务同时出错，很难定位具体错误原因。控制并发意味着每个任务都是在正常状态下执行的，如果出现错误也更容易捕获和处理。 所以总之，由于 JS 的单线程模型和浏览器资源限制，前端需要并发控制来确保程序的性能、稳定性和可维护性。控制异步任务的执行顺序，可以最大化的利用资源并避免各种意想不到的问题。这也是前端工程师需要掌握的一个很重要的技能。
+思考 我们已经了解了什么是并发，以及为什么要控制并发。那么就让我看下图中的一道题，来完成要求，实现一个异步任务的调度器。
+从上面的代码我们可以看出，图中需要我们去实现的是 SuperTask 类，这个类的作用是控制异步任务的调用，类中有一个 add 的方法，来添加异步任务，add 返回一个 Promise。
+通过 addTask 的五次调用我们发现，每次只有两个异步任务在执行，完成一个异步任务后，会有一个新的任务被调用执行，如下图所示。
+现在基本逻辑我们已经清楚，那么我们去实现一下吧！
+实现 根据思考中的描述，我们有了大概的方向，所以有了上图中的代码，那么还有一些问题我们没有思考到，比如何时判断执行队列中的任务已完成要调用新的任务呢？
+可能有些同学会说，我们可以直接在 add 函数中直接调用 task 啊？可是如果我们直接调用的话，当前执行队列中如果已经有两个了怎么办呢？所以在 add 函数中直接调用显然是不可取的，那么既然 add 中不可取，那就只能由一个新的函数负责了。
+那么新的问题又出现了，我们怎么知道任务何时成功与失败呢？在上图中我们仅仅将任务放在了任务队列中，并无法知道任务的状态，所以我们在向任务队列中添加任务的同时也要将状态加入其中。
+那么让我们来改造一下代码。
+改造完代码之后，我们就剩下实现 _run 函数了，首先我们要搞清楚，_run 到底要实现什么目标，其实也很简单就是依次运行任务队列里的所有任务，那很明显 _run 函数里应该是一个循环，那么我们应该使用什么循环合适呢？让我们思考一下，在循环之前我们肯定是要判断当前执行队列里的任务是否小于可允许并发数量以及任务队列是否还有数据，那么既然是先判断后循环 while 在这里就是最合适的了，那么我们去实现一下。
+到这里我们就完成啦！
+那么让我们在浏览器里运行一起看看结果吧。
+总结 我们写到最后其实已经发现了，这道题考察的就是最原始的 JS 代码，我们常常在工作中使用各种框架以及各种第三方库，往往会疏忽我们最基础的 JS，俗话说：‘基础不牢，地动山摇’，牢固的语言基础和理论基础，配合实践经验，才是我们成为一名优秀前端工程师的关键。"><meta itemprop="datePublished" content="2023-04-20T12:01:17+08:00" />
+<meta itemprop="dateModified" content="2023-04-20T12:01:17+08:00" />
+<meta itemprop="wordCount" content="64">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="并发任务控制"/>
+<meta name="twitter:description" content="认识并发任务控制 什么是并发？ 因为 js 是单线程的，所以前端的并发指的是在极短时间内发送多个数据请求，比如说循环中发送 ajax。
+前端为什么要控制并发？ 前端需要控制并发的主要原因有:
+JS 单线程：JS 是单线程执行的,同一时间只能做一件事。如果有太多异步任务同时执行，会导致主线程被阻塞，影响页面性能。控制并发可以避免这种情况。 资源限制：浏览器资源有限，如 CPU、内存、网络等。如果太多任务同时执行，很容易导致页面卡顿甚至崩溃。控制并发可以保证在资源负载限制内正常执行。 防止互相影响：很多时候异步任务会操作相同的 DOM 元素或变量，如果同时执行很容易产生未定义的行为和莫名的 bug。控制并发可以避免这类问题。 代码可维护性：大量异步任务同时执行会让代码变得很难追踪和调试。控制并发让任务有序执行，可以大大提高代码的可读性和可维护性。 优先级：有些任务的优先级更高，需要先执行。并发控制可以根据优先级决定任务执行顺序。 错误处理：如果多个异步任务同时出错，很难定位具体错误原因。控制并发意味着每个任务都是在正常状态下执行的，如果出现错误也更容易捕获和处理。 所以总之，由于 JS 的单线程模型和浏览器资源限制，前端需要并发控制来确保程序的性能、稳定性和可维护性。控制异步任务的执行顺序，可以最大化的利用资源并避免各种意想不到的问题。这也是前端工程师需要掌握的一个很重要的技能。
+思考 我们已经了解了什么是并发，以及为什么要控制并发。那么就让我看下图中的一道题，来完成要求，实现一个异步任务的调度器。
+从上面的代码我们可以看出，图中需要我们去实现的是 SuperTask 类，这个类的作用是控制异步任务的调用，类中有一个 add 的方法，来添加异步任务，add 返回一个 Promise。
+通过 addTask 的五次调用我们发现，每次只有两个异步任务在执行，完成一个异步任务后，会有一个新的任务被调用执行，如下图所示。
+现在基本逻辑我们已经清楚，那么我们去实现一下吧！
+实现 根据思考中的描述，我们有了大概的方向，所以有了上图中的代码，那么还有一些问题我们没有思考到，比如何时判断执行队列中的任务已完成要调用新的任务呢？
+可能有些同学会说，我们可以直接在 add 函数中直接调用 task 啊？可是如果我们直接调用的话，当前执行队列中如果已经有两个了怎么办呢？所以在 add 函数中直接调用显然是不可取的，那么既然 add 中不可取，那就只能由一个新的函数负责了。
+那么新的问题又出现了，我们怎么知道任务何时成功与失败呢？在上图中我们仅仅将任务放在了任务队列中，并无法知道任务的状态，所以我们在向任务队列中添加任务的同时也要将状态加入其中。
+那么让我们来改造一下代码。
+改造完代码之后，我们就剩下实现 _run 函数了，首先我们要搞清楚，_run 到底要实现什么目标，其实也很简单就是依次运行任务队列里的所有任务，那很明显 _run 函数里应该是一个循环，那么我们应该使用什么循环合适呢？让我们思考一下，在循环之前我们肯定是要判断当前执行队列里的任务是否小于可允许并发数量以及任务队列是否还有数据，那么既然是先判断后循环 while 在这里就是最合适的了，那么我们去实现一下。
+到这里我们就完成啦！
+那么让我们在浏览器里运行一起看看结果吧。
+总结 我们写到最后其实已经发现了，这道题考察的就是最原始的 JS 代码，我们常常在工作中使用各种框架以及各种第三方库，往往会疏忽我们最基础的 JS，俗话说：‘基础不牢，地动山摇’，牢固的语言基础和理论基础，配合实践经验，才是我们成为一名优秀前端工程师的关键。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">并发任务控制</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 20, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="认识并发任务控制">认识并发任务控制</h2>
+<ol>
+<li>什么是并发？</li>
+</ol>
+<blockquote>
+<p>因为 js 是单线程的，所以前端的并发指的是在极短时间内发送多个数据请求，比如说循环中发送 ajax。</p>
+</blockquote>
+<ol start="2">
+<li>前端为什么要控制并发？</li>
+</ol>
+<blockquote>
+<p>前端需要控制并发的主要原因有:</p>
+</blockquote>
+<ol>
+<li>JS 单线程：JS 是单线程执行的,同一时间只能做一件事。如果有太多异步任务同时执行，会导致主线程被阻塞，影响页面性能。控制并发可以避免这种情况。</li>
+<li>资源限制：浏览器资源有限，如 CPU、内存、网络等。如果太多任务同时执行，很容易导致页面卡顿甚至崩溃。控制并发可以保证在资源负载限制内正常执行。</li>
+<li>防止互相影响：很多时候异步任务会操作相同的 DOM 元素或变量，如果同时执行很容易产生未定义的行为和莫名的 bug。控制并发可以避免这类问题。</li>
+<li>代码可维护性：大量异步任务同时执行会让代码变得很难追踪和调试。控制并发让任务有序执行，可以大大提高代码的可读性和可维护性。</li>
+<li>优先级：有些任务的优先级更高，需要先执行。并发控制可以根据优先级决定任务执行顺序。</li>
+<li>错误处理：如果多个异步任务同时出错，很难定位具体错误原因。控制并发意味着每个任务都是在正常状态下执行的，如果出现错误也更容易捕获和处理。</li>
+</ol>
+<blockquote>
+<p>所以总之，由于 JS 的单线程模型和浏览器资源限制，前端需要并发控制来确保程序的性能、稳定性和可维护性。控制异步任务的执行顺序，可以最大化的利用资源并避免各种意想不到的问题。这也是前端工程师需要掌握的一个很重要的技能。</p>
+</blockquote>
+<h1 id="思考">思考</h1>
+<p>我们已经了解了什么是并发，以及为什么要控制并发。那么就让我看下图中的一道题，来完成要求，实现一个异步任务的调度器。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f2d6891ae4c940f691e40528da8e225b~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>从上面的代码我们可以看出，图中需要我们去实现的是 <code>SuperTask</code> 类，这个类的作用是控制异步任务的调用，类中有一个 <code>add</code> 的方法，来添加异步任务，<code>add</code> 返回一个 Promise。</p>
+<p>通过 <code>addTask</code> 的五次调用我们发现，每次只有两个异步任务在执行，完成一个异步任务后，会有一个新的任务被调用执行，如下图所示。</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c53d1e79382f474e9961c656482e6434~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="未命名文件 (1).png"></p>
+<p>现在基本逻辑我们已经清楚，那么我们去实现一下吧！</p>
+<h2 id="实现">实现</h2>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3652c3c330564b48aeae606c2732be35~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>根据思考中的描述，我们有了大概的方向，所以有了上图中的代码，那么还有一些问题我们没有思考到，比如何时判断执行队列中的任务已完成要调用新的任务呢？</p>
+<p>可能有些同学会说，我们可以直接在 <code>add</code> 函数中直接调用 <code>task</code> 啊？可是如果我们直接调用的话，当前执行队列中如果已经有两个了怎么办呢？所以在 <code>add</code> 函数中直接调用显然是不可取的，那么既然 <code>add</code> 中不可取，那就只能由一个新的函数负责了。</p>
+<p>那么新的问题又出现了，我们怎么知道任务何时成功与失败呢？在上图中我们仅仅将任务放在了任务队列中，并无法知道任务的状态，所以我们在向任务队列中添加任务的同时也要将状态加入其中。</p>
+<p>那么让我们来改造一下代码。</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b651ad9be6f34bf1b7bf65009b780c94~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>改造完代码之后，我们就剩下实现 <code>_run</code> 函数了，首先我们要搞清楚，<code>_run</code> 到底要实现什么目标，其实也很简单就是依次运行任务队列里的所有任务，那很明显 <code>_run</code> 函数里应该是一个循环，那么我们应该使用什么循环合适呢？让我们思考一下，在循环之前我们肯定是要判断当前执行队列里的任务是否小于可允许并发数量以及任务队列是否还有数据，那么既然是先判断后循环 while 在这里就是最合适的了，那么我们去实现一下。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3aa3cea5a6654bc6b01b446ba0734492~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>到这里我们就完成啦！</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1554d4723980499eafaed69d379b7e04~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>那么让我们在浏览器里运行一起看看结果吧。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/14630a97082b4cbebce8f3b306a2da7d~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h2 id="总结">总结</h2>
+<p>我们写到最后其实已经发现了，这道题考察的就是最原始的 JS 代码，我们常常在工作中使用各种框架以及各种第三方库，往往会疏忽我们最基础的 JS，俗话说：‘基础不牢，地动山摇’，牢固的语言基础和理论基础，配合实践经验，才是我们成为一名优秀前端工程师的关键。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/539/"
+      ><span class="mr-1.5">←</span><span>useDeferredValue 举例</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/537/"
+      ><span>WEB前端奇淫巧计-奇妙的头像效果</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

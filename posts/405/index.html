@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>2023 前端性能优化清单 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 🎉 本文将从三个角度（页面渲染，打包优化，总体优化）分析前端性能优化的一些方案。如有错误，欢迎指出，也可以在评论区提出你对性能优化的一些见解，相互学习，共同进步！💪
+（ps: 小彬之前也总结过一篇关于性能检测的文章，有兴趣的可以看看提点建议传送门
+一、页面渲染 🌈 1. 减少页面重绘(repaint)和回流(reflow) 回流：计算可见节点的位置和几何信息;
+重绘：重新绘制节点，将渲染树的每个节点都转换为屏幕上的实际像素。
+🍀 减少使用 css 属性简写，如：用 border-width, border-style, border-color 代替 border。因为 css 简写把所有值初始化为initial，尽量不使用属性简写可以最小化重绘(repaint)和回流(reflow)，（实际工作中，由于 css 简写带来的性能影响微乎其微，再加上 css 全都展开写还会增加 code size，另外 css 简写还能解决一些样式覆盖的问题，写起来也比较简单快捷，所以实际工作个人怎么顺手怎么来就好～） 🍀 通过修改 className 批量修改元素样式； 🍀 复杂的动画元素定位要设置为 fixed 或 absoult，避免引起回流； 🍀 不使用 table 布局（table 元素一旦触发回流就会导致 table 里所有的其它元素回流）； 🍀 DOM 元素上下移动用用 translate 替代 top 修改 🍀 需要创建多个 DOM 节点时，使用 DocumentFragment 一次性创建。 🍀 css3 硬件加速（GPU 加速），它可以让 transform、opacity、filters 这些动画不会引起回流重绘。对于动画的其它属性，比如 background-color 这些，还是会引起回流重绘的，不过它还是可以提升这些动画的性能（但是不能滥用，会导致性能问题）。 🍀 元素适当地定义高度或最小高度，否则元素的动态内容载入时，会出现页面元素的晃动或位置，造成回流（比如图片要定义宽高，避免页面塌陷，同时减少回流）； 🍀 减少使用层级较深的选择器，或其他一些复杂的选择器，以提高 CSS 渲染效率； 🍀 在大量修改元素样式时，可以先用display： none将其隐藏，修改完再设置为display： block，这样只会造成两次回流； 2." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="2023 前端性能优化清单" />
+<meta property="og:description" content="前言 🎉 本文将从三个角度（页面渲染，打包优化，总体优化）分析前端性能优化的一些方案。如有错误，欢迎指出，也可以在评论区提出你对性能优化的一些见解，相互学习，共同进步！💪
+（ps: 小彬之前也总结过一篇关于性能检测的文章，有兴趣的可以看看提点建议传送门
+一、页面渲染 🌈 1. 减少页面重绘(repaint)和回流(reflow) 回流：计算可见节点的位置和几何信息;
+重绘：重新绘制节点，将渲染树的每个节点都转换为屏幕上的实际像素。
+🍀 减少使用 css 属性简写，如：用 border-width, border-style, border-color 代替 border。因为 css 简写把所有值初始化为initial，尽量不使用属性简写可以最小化重绘(repaint)和回流(reflow)，（实际工作中，由于 css 简写带来的性能影响微乎其微，再加上 css 全都展开写还会增加 code size，另外 css 简写还能解决一些样式覆盖的问题，写起来也比较简单快捷，所以实际工作个人怎么顺手怎么来就好～） 🍀 通过修改 className 批量修改元素样式； 🍀 复杂的动画元素定位要设置为 fixed 或 absoult，避免引起回流； 🍀 不使用 table 布局（table 元素一旦触发回流就会导致 table 里所有的其它元素回流）； 🍀 DOM 元素上下移动用用 translate 替代 top 修改 🍀 需要创建多个 DOM 节点时，使用 DocumentFragment 一次性创建。 🍀 css3 硬件加速（GPU 加速），它可以让 transform、opacity、filters 这些动画不会引起回流重绘。对于动画的其它属性，比如 background-color 这些，还是会引起回流重绘的，不过它还是可以提升这些动画的性能（但是不能滥用，会导致性能问题）。 🍀 元素适当地定义高度或最小高度，否则元素的动态内容载入时，会出现页面元素的晃动或位置，造成回流（比如图片要定义宽高，避免页面塌陷，同时减少回流）； 🍀 减少使用层级较深的选择器，或其他一些复杂的选择器，以提高 CSS 渲染效率； 🍀 在大量修改元素样式时，可以先用display： none将其隐藏，修改完再设置为display： block，这样只会造成两次回流； 2." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/405/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-27T21:40:48+08:00" />
+<meta property="article:modified_time" content="2023-03-27T21:40:48+08:00" />
+
+  
+  <meta itemprop="name" content="2023 前端性能优化清单">
+<meta itemprop="description" content="前言 🎉 本文将从三个角度（页面渲染，打包优化，总体优化）分析前端性能优化的一些方案。如有错误，欢迎指出，也可以在评论区提出你对性能优化的一些见解，相互学习，共同进步！💪
+（ps: 小彬之前也总结过一篇关于性能检测的文章，有兴趣的可以看看提点建议传送门
+一、页面渲染 🌈 1. 减少页面重绘(repaint)和回流(reflow) 回流：计算可见节点的位置和几何信息;
+重绘：重新绘制节点，将渲染树的每个节点都转换为屏幕上的实际像素。
+🍀 减少使用 css 属性简写，如：用 border-width, border-style, border-color 代替 border。因为 css 简写把所有值初始化为initial，尽量不使用属性简写可以最小化重绘(repaint)和回流(reflow)，（实际工作中，由于 css 简写带来的性能影响微乎其微，再加上 css 全都展开写还会增加 code size，另外 css 简写还能解决一些样式覆盖的问题，写起来也比较简单快捷，所以实际工作个人怎么顺手怎么来就好～） 🍀 通过修改 className 批量修改元素样式； 🍀 复杂的动画元素定位要设置为 fixed 或 absoult，避免引起回流； 🍀 不使用 table 布局（table 元素一旦触发回流就会导致 table 里所有的其它元素回流）； 🍀 DOM 元素上下移动用用 translate 替代 top 修改 🍀 需要创建多个 DOM 节点时，使用 DocumentFragment 一次性创建。 🍀 css3 硬件加速（GPU 加速），它可以让 transform、opacity、filters 这些动画不会引起回流重绘。对于动画的其它属性，比如 background-color 这些，还是会引起回流重绘的，不过它还是可以提升这些动画的性能（但是不能滥用，会导致性能问题）。 🍀 元素适当地定义高度或最小高度，否则元素的动态内容载入时，会出现页面元素的晃动或位置，造成回流（比如图片要定义宽高，避免页面塌陷，同时减少回流）； 🍀 减少使用层级较深的选择器，或其他一些复杂的选择器，以提高 CSS 渲染效率； 🍀 在大量修改元素样式时，可以先用display： none将其隐藏，修改完再设置为display： block，这样只会造成两次回流； 2."><meta itemprop="datePublished" content="2023-03-27T21:40:48+08:00" />
+<meta itemprop="dateModified" content="2023-03-27T21:40:48+08:00" />
+<meta itemprop="wordCount" content="789">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="2023 前端性能优化清单"/>
+<meta name="twitter:description" content="前言 🎉 本文将从三个角度（页面渲染，打包优化，总体优化）分析前端性能优化的一些方案。如有错误，欢迎指出，也可以在评论区提出你对性能优化的一些见解，相互学习，共同进步！💪
+（ps: 小彬之前也总结过一篇关于性能检测的文章，有兴趣的可以看看提点建议传送门
+一、页面渲染 🌈 1. 减少页面重绘(repaint)和回流(reflow) 回流：计算可见节点的位置和几何信息;
+重绘：重新绘制节点，将渲染树的每个节点都转换为屏幕上的实际像素。
+🍀 减少使用 css 属性简写，如：用 border-width, border-style, border-color 代替 border。因为 css 简写把所有值初始化为initial，尽量不使用属性简写可以最小化重绘(repaint)和回流(reflow)，（实际工作中，由于 css 简写带来的性能影响微乎其微，再加上 css 全都展开写还会增加 code size，另外 css 简写还能解决一些样式覆盖的问题，写起来也比较简单快捷，所以实际工作个人怎么顺手怎么来就好～） 🍀 通过修改 className 批量修改元素样式； 🍀 复杂的动画元素定位要设置为 fixed 或 absoult，避免引起回流； 🍀 不使用 table 布局（table 元素一旦触发回流就会导致 table 里所有的其它元素回流）； 🍀 DOM 元素上下移动用用 translate 替代 top 修改 🍀 需要创建多个 DOM 节点时，使用 DocumentFragment 一次性创建。 🍀 css3 硬件加速（GPU 加速），它可以让 transform、opacity、filters 这些动画不会引起回流重绘。对于动画的其它属性，比如 background-color 这些，还是会引起回流重绘的，不过它还是可以提升这些动画的性能（但是不能滥用，会导致性能问题）。 🍀 元素适当地定义高度或最小高度，否则元素的动态内容载入时，会出现页面元素的晃动或位置，造成回流（比如图片要定义宽高，避免页面塌陷，同时减少回流）； 🍀 减少使用层级较深的选择器，或其他一些复杂的选择器，以提高 CSS 渲染效率； 🍀 在大量修改元素样式时，可以先用display： none将其隐藏，修改完再设置为display： block，这样只会造成两次回流； 2."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">2023 前端性能优化清单</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 27, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h1 id="前言-">前言 🎉</h1>
+<p>本文将从<strong>三个角度</strong>（<code>页面渲染，打包优化，总体优化</code>）分析前端性能优化的一些方案。如有错误，欢迎指出，也可以在评论区提出你对性能优化的一些见解，相互学习，共同进步！💪</p>
+<p>（<strong>ps:</strong> 小彬之前也总结过一篇关于性能检测的文章，有兴趣的可以看看提点建议<a href="https://juejin.cn/post/7036257212578136100">传送门</a></p>
+<h2 id="一页面渲染-">一、页面渲染 🌈</h2>
+<h3 id="1-减少页面重绘repaint和回流reflow">1. 减少页面重绘(repaint)和回流(reflow)</h3>
+<blockquote>
+<p>回流：计算可见节点的位置和几何信息;<br>
+重绘：重新绘制节点，将渲染树的每个节点都转换为屏幕上的实际像素。</p>
+</blockquote>
+<ul>
+<li>🍀 减少使用 css 属性简写，如：用 border-width, border-style, border-color 代替 border。因为 css 简写把所有值初始化为<code>initial</code>，尽量不使用属性简写可以<strong>最小化重绘(repaint)和回流(reflow)</strong>，（实际工作中，由于 css 简写带来的性能影响微乎其微，再加上 css 全都展开写还会增加 code size，另外 css 简写还能解决一些样式覆盖的问题，写起来也比较简单快捷，所以实际工作个人怎么顺手怎么来就好～）</li>
+<li>🍀 通过修改 className 批量修改元素样式；</li>
+<li>🍀 复杂的动画元素定位要设置为 <code>fixed</code> 或 <code>absoult</code>，避免引起回流；</li>
+<li>🍀 不使用 table 布局（table 元素一旦触发回流就会导致 table 里所有的其它元素回流）；</li>
+<li>🍀 DOM 元素上下移动用用 translate 替代 top 修改</li>
+<li>🍀 需要创建多个 DOM 节点时，使用 DocumentFragment 一次性创建。</li>
+<li>🍀 css3 硬件加速（GPU 加速），它可以让 transform、opacity、filters 这些动画不会引起回流重绘。对于动画的其它属性，比如 background-color 这些，还是会引起回流重绘的，不过它还是可以提升这些动画的性能（但是不能滥用，会导致性能问题）。</li>
+<li>🍀 元素适当地定义高度或最小高度，否则元素的动态内容载入时，会出现页面元素的晃动或位置，造成回流（<strong>比如图片要定义宽高，避免页面塌陷，同时减少回流</strong>）；</li>
+<li>🍀 减少使用层级较深的选择器，或其他一些复杂的选择器，以提高 CSS 渲染效率；</li>
+<li>🍀 在大量修改元素样式时，可以先用<code>display： none</code>将其隐藏，修改完再设置为<code>display： block</code>，这样只会造成两次回流；</li>
+</ul>
+<h3 id="2-图片压缩图片分割精灵图">2. 图片压缩，图片分割，精灵图</h3>
+<ul>
+<li>🍀 <strong>图片压缩</strong>：开发中比较重要的一个环节，现在很多图床工具都自带压缩功能的。如果需要自己压缩的话，可以在<a href="https://tinypng.com/"><code>tinyPng</code></a> 网站压缩一下，一看就会；</li>
+<li>🍀 <strong>图片分割</strong>：如果页面需要加载一张效果图，比如真机渲染图，UI 设计师不允许压缩的时候，我们就可以将图片分割，然后再用 css 布局将图片拼接到一起。</li>
+<li>🍀 <strong>精灵图</strong>：与图片分割相反，精灵图是将很多小图片合并到一张大图里，这样加载页面的时候，只需要加载一张图片，就可以加载出来所有的页面元素。这样在一定程度上提高了页面加载速度。而我们使用精灵图的方式，也是通过定位，即通过 background-position 来移动背景图，从而显示出我们想要显示出来的部分。<br>
+但是精灵兔有个很大的不足，那就是牵一发而动全身，因为我们使用精灵图需要准确测量每个元素的位置，一旦要调整页面，将会是一项很麻烦的工作。</li>
+</ul>
+<h3 id="3-字体包压缩">3. 字体包压缩</h3>
+<ul>
+<li>🍀 <strong>问题描述：</strong> 在做类似活动 h5 的时候，难免需要使用 <code>@font-face</code> 接口引入一些字体包，以达到丰富的页面效果。但是完整的字体包文件一般都很好几兆，加载页面时，不仅会阻塞页面渲染，还会导致文字开始不会显示，直至字体包加载完才会显示文字。</li>
+<li>🍀 <strong>解决方式：</strong> 可以使用<code>font-spider</code>字蛛将要使用到的文字提取出来。</li>
+</ul>
+<h3 id="4-懒加载预加载资源">4. 懒加载/预加载资源</h3>
+<ul>
+<li>🍀 <strong>懒加载：</strong> 简言之就是只有当图片出现在浏览器的可视区域内时，才加载图片让图片显示出来（在此之前可以将所有图片元素的路径全都统一设置成一张 1*1px 的占位图）。<br>
+<strong>判断图片出现在浏览器可视区域的方法：</strong><code>图片距离顶部的高度（offsetTop） - 页面被卷去的高度（scrollTop） 〈= 浏览器的可视区域的高度（innerHeight）</code></li>
+<li>🍀 <strong>预加载：</strong> Resource Hints(资源预加载)包括预连接、资源与获取、资源预渲染等。<br>
+<strong>预加载的<code>思路</code>有如下两个：</strong><br>
+当前将要获取资源的列表;<br>
+通过当前页面或应用的状态、用户历史行为或 session 预测用户行为及必需的资源.<br>
+<strong>实现 Resource Hints 的方法</strong>有很多种，可分为基于 <code>link</code> 标签的 <code>DNS-prefetch、subresource、preload、 prefetch、preconnect、prerender</code>，和本地存储 <code>localStorage</code>。详情可查看： <a href="https://blog.csdn.net/Sncdma/article/details/109900138">预加载 5 种不同的方法</a> 、 <a href="https://www.bilibili.com/read/cv14694583/">3 种 Javascript 图片预加载的方法详解</a>。</li>
+</ul>
+<h2 id="二打包优化-">二、打包优化 🌞</h2>
+<h3 id="1-webpack-优化-resolvealias-配置vite-同理">1. webpack 优化 resolve.alias 配置（vite 同理）</h3>
+<p><strong>resolve.alias</strong> 配置通过别名来将原导入路径映射成一个新的导入路径。<br>
+可以起到两个作用：1.起别名；2.减少查找过程。<br>
+例如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">resolve</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">alias</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#39;vue$&#39;</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;vue/dist/vue.esm.js&#39;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#e6db74">&#39;@&#39;</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;src&#39;</span>),
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  },
+</span></span></code></pre></div><h3 id="2-webpack-优化-resolveextensions-配置vite-同理">2. webpack 优化 resolve.extensions 配置（vite 同理）</h3>
+<p><strong><code>resolve.extensions</code></strong> 代表后缀尝试列表，它也会影响构建的性能，默认是：<br>
+<code>extensions: ['.js', '.json']</code><br>
+例如遇到 require(&rsquo;./data&rsquo;)这样的导入语句时，Webpack 会先去寻找./data.js 文件，如果该文件不存在就去寻找./data.json 文件，如果还是找不到就报错。<br>
+<strong>【所以后缀尝试列表要尽可能的小，不要把项目中不可能存在的情况写到后缀尝试列表中，频率出现最高的文件后缀要优先放在最前面，以做到尽快的退出寻找过程。】</strong><br>
+在源码中写导入语句时，要尽可能的带上后缀，从而可以避免寻找过程。例如在你确定的情况下把 require(&rsquo;./data&rsquo;)写成 require(&rsquo;./data.json&rsquo;)。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">resolve</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">extensions</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#39;.js&#39;</span>, <span style="color:#e6db74">&#39;.vue&#39;</span>, <span style="color:#e6db74">&#39;.json&#39;</span>],
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="3-webpack-缩小-loader-范围">3. webpack 缩小 loader 范围</h3>
+<p>loader 是很消耗性能的一个点，我们在配置 loader 的时候，可以使用 include 和 except 来缩小 loader 执行范围，从而优化性能。 例如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.svg$/</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">loader</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;svg-sprite-loader&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">include</span><span style="color:#f92672">:</span> [<span style="color:#a6e22e">resolve</span>(<span style="color:#e6db74">&#39;src/icons&#39;</span>)]
+</span></span><span style="display:flex;"><span> },
+</span></span></code></pre></div><h3 id="4-split-chunks-代码分包">4. split chunks 代码分包</h3>
+<p>在没配置任何东西的情况下，webpack 4 就智能的帮你做了代码分包。入口文件依赖的文件都被打包进了 main.js，那些大于 30kb 的第三方包，如：echarts、xlsx、dropzone 等都被单独打包成了一个个独立 bundle。 其它被我们设置了异步加载的页面或者组件变成了一个个 chunk，也就是被打包成独立的 bundle。 它内置的代码分割策略是这样的：</p>
+<p>新的 chunk 是否被共享或者是来自 node_modules 的模块;<br>
+新的 chunk 体积在压缩之前是否大于 30kb;<br>
+按需加载 chunk 的并发请求数量小于等于 5 个;<br>
+页面初始加载时的并发请求数量小于等于 3 个;</p>
+<p>大家可以根据自己的项目环境来更改配置。<strong>webpack 配置代码如下：</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#a6e22e">splitChunks</span>({
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">cacheGroups</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">vendors</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`chunk-vendors`</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/[\\/]node_modules[\\/]/</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">priority</span><span style="color:#f92672">:</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">10</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">chunks</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;initial&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dll</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`chunk-dll`</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/[\\/]bizcharts|[\\/]\@antv[\\/]data-set/</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">priority</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">15</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">chunks</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;all&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">reuseExistingChunk</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">common</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`chunk-common`</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">minChunks</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">2</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">priority</span><span style="color:#f92672">:</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">20</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">chunks</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;all&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">reuseExistingChunk</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>没有使用 webpack4.x 版本的项目，可以通过按需加载的形式进行分包：<br>
+<a href="https://juejin.cn/post/6844903718387875847">webpack 如何使用按需加载</a></p>
+<p><strong>vite 配置代码如下：</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span> <span style="color:#a6e22e">build</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rollupOptions</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">output</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">chunkFileNames</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;js/[name]-[hash].js&#39;</span>,  <span style="color:#75715e">// 引入文件名的名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">entryFileNames</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;js/[name]-[hash].js&#39;</span>,  <span style="color:#75715e">// 包的入口文件名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">assetFileNames</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;[ext]/[name]-[hash].[ext]&#39;</span> <span style="color:#75715e">// 资源文件像 字体，图片等
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span> }
+</span></span></code></pre></div><h3 id="5-tree-shaking">5. tree shaking</h3>
+<p><strong><code>tree shaking</code></strong>（摇树）。望文生义，它是用来清除我们项目中的一些无用代码，它依赖于 ES 中的模块语法得以实现。 比如日常使用 lodash 的时候：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">_</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;lodash&#34;</span>;
+</span></span></code></pre></div><p>如果如上引用 lodash 库，在构建包的时候是会把整个 lodash 包打入到我们的 bundle 包中的。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">import</span> <span style="color:#a6e22e">_isEmpty</span> <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;lodash/isEmpty&#34;</span>;
+</span></span></code></pre></div><p>如果如上引用 lodash 库，在构建包的时候只会把 isEmpty 这个方法抽离出来再打入到我们的 bundle 包中。</p>
+<p><code>tree shaking</code>可以大大减少包体积，是性能优化中的重要一环。 在 vite 和 webpack4.x 中都已经默认开启 tree-shaking。</p>
+<h3 id="6-vite-关闭一些打包配置项">6. vite 关闭一些打包配置项()</h3>
+<p>webpack 也有类似的配置，自行查阅</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">build</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">terserOptions</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">compress</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">//生产环境时移除console
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">drop_console</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">drop_debugger</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//关闭文件计算
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">reportCompressedSize</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">//关闭生成map文件 可以达到缩小打包体积
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">sourcemap</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>, <span style="color:#75715e">// 这个生产环境一定要关闭，不然打包的产物会很大
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><h2 id="三总体优化-">三、总体优化 🌻</h2>
+<h3 id="1-ssr-服务端渲染">1. SSR 服务端渲染</h3>
+<p><strong><code>SSR</code></strong>(Server Side Rendering)，即服务端渲染。它指的是渲染过程在服务端完成，最终的渲染结果 HTML 页面通过 HTTP 协议发送给客户端，又叫“同构“。</p>
+<p>SSR 主要带来的好处就是 SEO 和首屏加载速度大大提高。<br>
+目前流行的 Vue/React 前端框架，都已经推出了 SSR 的解决方案：<br>
+<a href="https://www.nuxtjs.cn/">Vue 的 nuxt.js</a><br>
+<a href="https://www.nextjs.cn/">React 的 next.js</a><br>
+以前的一篇文章<a href="https://blog.csdn.net/qq_38974163/article/details/120779353">现有 Vue 项目改造 SSR（简单上手）</a></p>
+<h3 id="2-开启-gzip-压缩">2. 开启 gzip 压缩</h3>
+<p><strong><code>Gzip</code></strong> 对文件进行压缩，能大大提高首屏加载速度，对于纯文本文件我们可以至少压缩到原大小的 40%。<strong>注意：图片最好不要进行 gzip 压缩！</strong></p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/322602b33b9f4d14aaaf0b776c2f4125~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>为了减轻服务器压力，我们可以在打包时就生成 gzip 压缩文件，具体操作如下：</p>
+<p><strong>第一步</strong>，在 vue 项目中安装依赖并将 productionGzip 改为 true，开启 Gzip 压缩： npm install &ndash;save-dev compression-webpack-plugin <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2212265c864d410aa53c0e0b845270bf~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="在这里插入图片描述"> <strong>第二步</strong>，运行 npm run build 打包项目，这时可能会报错，提示 ValidationError: Compression Plugin Invalid Options。根据官网提示，需要将 CompressionWebpackPlugin 的设置由 asset 改为 filename。 <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f16914d576084ab5bc558645474f719e~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="在这里插入图片描述"> <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1694ce7bc3e74ccbb112187547117b50~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="在这里插入图片描述"> <strong>第三步</strong>，npm run build 打包项目，生成.gz 文件即为成功</p>
+<h3 id="3-brotli-算法压缩">3. Brotli 算法压缩</h3>
+<p><strong><code>Brotli 压缩算法</code></strong> 是 Google 2015 年推出的无损压缩算法。</p>
+<ul>
+<li>启用 Brotli 压缩算法，对比 Gzip 压缩 CDN 流量再减少 20%。</li>
+<li>针对常见的 Web 资源内容，Brotli 的性能相比 Gzip 提高了 17-25%；</li>
+<li>当 Brotli 压缩级别为 1 时，压缩率比 Gzip 压缩等级为 9（最高）时还要高；</li>
+<li>在处理不同 HTML 文档时，Brotli 依然能够提供非常高的压缩率。</li>
+<li>兼容性：目前除了 IE 和 Opera Mini 之外，几乎所有的主流浏览器都已支持 Brotli 算法。</li>
+</ul>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/70e8b68637c6480f9a630baf5dc6f575~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p><strong>使用条件</strong> &raquo;&gt;</p>
+<ul>
+<li>Content-Length 大于 256 字节；</li>
+<li>客户端请求头需携带 Accept-Encoding: br；</li>
+<li>Content-Type 满足如下 MIME 列表：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>text/plain
+</span></span><span style="display:flex;"><span>text/javascript
+</span></span><span style="display:flex;"><span>text/css
+</span></span><span style="display:flex;"><span>text/xml
+</span></span><span style="display:flex;"><span>text/x-component
+</span></span><span style="display:flex;"><span>application/javascript
+</span></span><span style="display:flex;"><span>application/x-javascript
+</span></span><span style="display:flex;"><span>application/xml
+</span></span><span style="display:flex;"><span>application/json
+</span></span><span style="display:flex;"><span>application/xhtml+xml
+</span></span><span style="display:flex;"><span>application/rss+xml
+</span></span><span style="display:flex;"><span>application/atom+xml
+</span></span><span style="display:flex;"><span>application/x-font-ttf
+</span></span><span style="display:flex;"><span>application/vnd.ms-fontobject
+</span></span><span style="display:flex;"><span>image/svg+xml
+</span></span><span style="display:flex;"><span>image/x-icon
+</span></span><span style="display:flex;"><span>font/opentype
+</span></span><span style="display:flex;"><span>text/html -- default
+</span></span></code></pre></div><p><strong>vite 项目开启 <code>brotli</code> 压缩</strong> &raquo;&gt;</p>
+<ul>
+<li>使用  <a href="https://github.com/vbenjs/vite-plugin-compression">vite-plugin-compression (opens new window)</a>对平台进行  <code>gzip</code>  或者  <code>brotli</code>  压缩，<code>nginx</code>  对这两种压缩模式都支持，压缩后部署到  <code>nginx</code>  将极大提高网页加载速度。</li>
+<li>修改 <code>.env.production</code> 文件，设置 <code>VITE_COMPRESSION</code> 全局变量即可，如下：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 不开启压缩，默认</span>
+</span></span><span style="display:flex;"><span>VITE_COMPRESSION <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;none&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 以下配置压缩时不删除原始文件的配置</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 开启 gzip 压缩，</span>
+</span></span><span style="display:flex;"><span>VITE_COMPRESSION <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;gzip&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#开启 brotli 压缩</span>
+</span></span><span style="display:flex;"><span>VITE_COMPRESSION <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;brotli&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 同时开启 gzip 与 brotli 压缩</span>
+</span></span><span style="display:flex;"><span>VITE_COMPRESSION <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;both&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 以下配置压缩时删除原始文件的配置</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 开启 gzip 压缩</span>
+</span></span><span style="display:flex;"><span>VITE_COMPRESSION <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;gzip-clear&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 开启 brotli 压缩</span>
+</span></span><span style="display:flex;"><span>VITE_COMPRESSION <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;brotli-clear&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 同时开启 gzip 与 brotli 压缩</span>
+</span></span><span style="display:flex;"><span>VITE_COMPRESSION <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;both-clear&#34;</span>
+</span></span></code></pre></div><h3 id="4-缓存">4. 缓存</h3>
+<p>缓存的原理就是更快读写的存储介质+减少 IO+减少 CPU 计算=性能优化。而性能优化的第一定律就是：优先考虑使用缓存。<br>
+缓存的主要手段有：浏览器缓存、CDN、反向代理、本地缓存、分布式缓存、数据库缓存。</p>
+<p><strong><code>浏览器缓存</code></strong> 可以看我的另一篇文章： <a href="https://juejin.cn/post/7215056364166479931">浅谈 强制缓存/协商缓存 怎么用？</a>，<strong>文中介绍了浏览器缓存的使用方式以及查看网站当前配置的缓存策略的方法。</strong></p>
+<h3 id="5-ajax-可缓存">5. Ajax 可缓存</h3>
+<p>Ajax 在发送的数据成功后，为了提高页面的响应速度和用户体验，会把请求的 URL 和返回的响应结果保存在缓存内，当下一次调用 Ajax 发送相同的请求（URL 和参数完全相同）时，它就会直接从缓存中拿数据。 在进行 Ajax 请求的时候，可以选择尽量使用 get 方法，这样可以使用客户端的缓存，提高请求速度。</p>
+<h3 id="6-组件按需引入">6. 组件按需引入</h3>
+<p>使用第三方组件库时，要按需引入，例如<code>import { Button } from 'vant';</code></p>
+<h3 id="7-动态加载">7. 动态加载</h3>
+<p>使用<code>import()</code>动态引入的语法引入一些第三方库和组件，例如我们在测试环境下开启 <code>vconsole</code> 调试：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">location</span>.<span style="color:#a6e22e">host</span> <span style="color:#f92672">!==</span> <span style="color:#e6db74">&#34;正式环境域名&#34;</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">import</span>(<span style="color:#e6db74">&#34;@/utils/vconsole&#34;</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="8-组件异步加载">8. 组件异步加载</h3>
+<p>组件异步加载有两种方式：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 1. import懒加载
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>() =&gt; <span style="color:#66d9ef">import</span>(<span style="color:#e6db74">&#34;@/pages/xxx.vue&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 2. 使用require
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>(<span style="color:#a6e22e">resolve</span>) =&gt; <span style="color:#a6e22e">require</span>([<span style="color:#e6db74">&#34;@/pages/xxx.vue&#34;</span>], <span style="color:#a6e22e">resolve</span>),;
+</span></span></code></pre></div><h3 id="9-路由懒加载">9. 路由懒加载</h3>
+<p>路由懒加载是组件异步加载的运用：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">//routes
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">path</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;/index&#39;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;index&#39;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">component</span><span style="color:#f92672">:</span> () =&gt; <span style="color:#66d9ef">import</span>(<span style="color:#e6db74">&#39;@view/xxx.vue&#39;</span>),
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">//或者 component: require([&#39;@/view/xxx.vue&#39;], resolve),
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">meta</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">title</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;首页&#39;</span> }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="10-cdn-内容分发">10. CDN 内容分发</h3>
+<p>CDN 的全称是 Content Delivery Network，即内容分发网络。静态文件，音频，视频，js 资源，图片等都可以放 CDN 上。<br>
+CDN 的原理类似于京东，其实就是将资源放在遍布世界各地的服务器上，访问资源的时候，请求会重定向到 离用户最近的服务节点上。</p>
+<h3 id="11-域名发散域名收敛">11. 域名发散（域名收敛）</h3>
+<p>就是将同一站点下的静态资源分布在不同域名下。例如：<br>
+主站域名www.a.com<br>
+访问图片的域名www.a-img.com<br>
+访问文件的域名www.a-link.com<br>
+<strong>详情可以查看我的另一篇文章:</strong><br>
+<a href="https://blog.csdn.net/qq_38974163/article/details/126667968?spm=1001.2014.3001.5502">（域名发散）为什么主页面和静态资源要置于不同的域名下？</a></p>
+<h3 id="12-dns-预解析">12. DNS 预解析</h3>
+<p>当你的网站第一次请求某个跨域域名时，需要先解析该域名（例如页面访问 cdn 资源，第一次访问需要先解析 cdn）。可以在请求的 Timing 上看到有一个 DNS Lookup 阶段，而在这个请求之后的其他该域名的请求都没有这项时间支出。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;dns-prefetch&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;xxx.com&#34;</span> /&gt;
+</span></span></code></pre></div><p><strong>使用说明：</strong> &raquo;&gt;</p>
+<ul>
+<li>http 页面下所有的 a 标签的 href 都会自动去启用 DNS Prefetch，也就是说，你网页的 a 标签 href 带的域名，是不需要在 head 里面加上 link 手动设置的。https 页面需要使用 meta 标签强制开启：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">http-equiv</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;x-dns-prefetch-control&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;on&#34;</span> /&gt;
+</span></span></code></pre></div><ul>
+<li>dns-prefetch 适用于网页引用了大量其他域名的资源，例如淘宝。</li>
+</ul>
+<h3 id="13-web-worker">13. web worker</h3>
+<blockquote>
+<p>Web Worker 的作用，就是为 JavaScript 创造多线程环境，允许主线程创建 Worker 线程，将一些任务分配给后者运行。在主线程运行的同时，Worker 线程在后台运行，两者互不干扰。等到 Worker 线程完成计算任务，再把结果返回给主线程。这样的好处是，一些计算密集型或高延迟的任务，被 Worker 线程负担了，主线程（通常负责 UI 交互）就会很流畅，不会被阻塞或拖慢。</p>
+</blockquote>
+<p>合理实用 web worker 可以优化复杂计算任务。这里直接抛阮一峰的入门文章：<a href="http://www.ruanyifeng.com/blog/2018/07/web-worker.html">传送门</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/406/"
+      ><span class="mr-1.5">←</span><span>二十张图片彻底讲明白 Webpack 设计理念，以看懂为目的</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/404/"
+      ><span>React 中的 &#39;最新 Ref 模式&#39;</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

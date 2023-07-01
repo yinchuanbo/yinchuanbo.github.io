@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>图片性能优化及体验优化-懒加载及异步图像解码方案 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="图片资源，在我们的业务中可谓是占据了非常大头的一环，尤其是其对带宽的消耗是十分巨大的。
+对图片的性能优化及体验优化在今天就显得尤为重要。本文，就将从各个方面阐述，在各种新特性满头飞的今天，我们可以如何尽可能的对我们的图片资源，进行性能优化及体验优化。
+懒加载/异步图像解码方案 继续下一个章节。本章节，我们来讨论下图片的懒加载与异步图像解码方案。
+图片的懒加载 懒加载是一种网页性能优化的常见方式，它能极大的提升用户体验。到今天，现在一张图片超过几 M 已经是常见事了。如果每次进入页面都需要请求页面上的所有的图片资源，会较大的影响用户体验，对用户的带宽也是一种极大的损耗。
+所以，图片懒加载的意义即是，当页面未滚动到相应区域，该区域内的图片资源（网络请求）不会被加载。反之，当页面滚动到相应区域，相关图片资源的请求才会被发起。
+在过去，我们通常都是使用 JavaScript 方案进行图片的懒加载。而今天，我们在图片的懒加载实现上，有了更多不一样的选择。
+JavaScript 方案实现图片的懒加载 首先，回顾一下过往最常见的，使用 JavaScript 方案实现图片的懒加载。
+通过 JavaScript 实现的懒加载，主要是两种方式：
+监听 onscroll 事件，通过 getBoundingClientRect API 获取元素图片距离视口顶部的距离，配合当前可视区域的位置实现图片的懒加载 通过 HTML5 的 IntersectionObserver API，Intersection Observer（交叉观察器） 配合监听元素的 isIntersecting 属性，判断元素是否在可视区内，能够实现比监听 onscroll 性能更佳的图片懒加载方案 但是，JavaScript 方案的一个劣势在于，不管如何，需要引入一定量的 JavaScript 代码，进行一定量的运算。
+到今天，其实我们有更多的其他便捷的方式去实现图片的懒加载。
+使用 content-visibility: auto 实现图片内容的延迟渲染 首先，介绍一个非常有用，但是相对较为冷门的属性 &ndash; content-visibility。
+content-visibility：属性控制一个元素是否渲染其内容，它允许用户代理（浏览器）潜在地省略大量布局和渲染工作，直到需要它为止。
+利用 content-visibility 的特性，我们可以实现如果该元素当前不在屏幕上，则不会渲染其后代元素。
+假设我们有这样一个 DEMO：
+&lt;div class=&#34;g-wrap&#34;&gt; &lt;!-- // 模块 1 --&gt; &lt;div class=&#34;paragraph&#34;&gt; &lt;p&gt;Lorem Start!&lt;/p&gt; &lt;img src=&#34;https://s1.ax1x.com/2023/02/20/pSX1xMV.png&#34; alt=&#34;&#34; /&gt; &lt;p&gt;Lorem End!" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="图片性能优化及体验优化-懒加载及异步图像解码方案" />
+<meta property="og:description" content="图片资源，在我们的业务中可谓是占据了非常大头的一环，尤其是其对带宽的消耗是十分巨大的。
+对图片的性能优化及体验优化在今天就显得尤为重要。本文，就将从各个方面阐述，在各种新特性满头飞的今天，我们可以如何尽可能的对我们的图片资源，进行性能优化及体验优化。
+懒加载/异步图像解码方案 继续下一个章节。本章节，我们来讨论下图片的懒加载与异步图像解码方案。
+图片的懒加载 懒加载是一种网页性能优化的常见方式，它能极大的提升用户体验。到今天，现在一张图片超过几 M 已经是常见事了。如果每次进入页面都需要请求页面上的所有的图片资源，会较大的影响用户体验，对用户的带宽也是一种极大的损耗。
+所以，图片懒加载的意义即是，当页面未滚动到相应区域，该区域内的图片资源（网络请求）不会被加载。反之，当页面滚动到相应区域，相关图片资源的请求才会被发起。
+在过去，我们通常都是使用 JavaScript 方案进行图片的懒加载。而今天，我们在图片的懒加载实现上，有了更多不一样的选择。
+JavaScript 方案实现图片的懒加载 首先，回顾一下过往最常见的，使用 JavaScript 方案实现图片的懒加载。
+通过 JavaScript 实现的懒加载，主要是两种方式：
+监听 onscroll 事件，通过 getBoundingClientRect API 获取元素图片距离视口顶部的距离，配合当前可视区域的位置实现图片的懒加载 通过 HTML5 的 IntersectionObserver API，Intersection Observer（交叉观察器） 配合监听元素的 isIntersecting 属性，判断元素是否在可视区内，能够实现比监听 onscroll 性能更佳的图片懒加载方案 但是，JavaScript 方案的一个劣势在于，不管如何，需要引入一定量的 JavaScript 代码，进行一定量的运算。
+到今天，其实我们有更多的其他便捷的方式去实现图片的懒加载。
+使用 content-visibility: auto 实现图片内容的延迟渲染 首先，介绍一个非常有用，但是相对较为冷门的属性 &ndash; content-visibility。
+content-visibility：属性控制一个元素是否渲染其内容，它允许用户代理（浏览器）潜在地省略大量布局和渲染工作，直到需要它为止。
+利用 content-visibility 的特性，我们可以实现如果该元素当前不在屏幕上，则不会渲染其后代元素。
+假设我们有这样一个 DEMO：
+&lt;div class=&#34;g-wrap&#34;&gt; &lt;!-- // 模块 1 --&gt; &lt;div class=&#34;paragraph&#34;&gt; &lt;p&gt;Lorem Start!&lt;/p&gt; &lt;img src=&#34;https://s1.ax1x.com/2023/02/20/pSX1xMV.png&#34; alt=&#34;&#34; /&gt; &lt;p&gt;Lorem End!" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/389/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-12T17:04:47+08:00" />
+<meta property="article:modified_time" content="2023-03-12T17:04:47+08:00" />
+
+  
+  <meta itemprop="name" content="图片性能优化及体验优化-懒加载及异步图像解码方案">
+<meta itemprop="description" content="图片资源，在我们的业务中可谓是占据了非常大头的一环，尤其是其对带宽的消耗是十分巨大的。
+对图片的性能优化及体验优化在今天就显得尤为重要。本文，就将从各个方面阐述，在各种新特性满头飞的今天，我们可以如何尽可能的对我们的图片资源，进行性能优化及体验优化。
+懒加载/异步图像解码方案 继续下一个章节。本章节，我们来讨论下图片的懒加载与异步图像解码方案。
+图片的懒加载 懒加载是一种网页性能优化的常见方式，它能极大的提升用户体验。到今天，现在一张图片超过几 M 已经是常见事了。如果每次进入页面都需要请求页面上的所有的图片资源，会较大的影响用户体验，对用户的带宽也是一种极大的损耗。
+所以，图片懒加载的意义即是，当页面未滚动到相应区域，该区域内的图片资源（网络请求）不会被加载。反之，当页面滚动到相应区域，相关图片资源的请求才会被发起。
+在过去，我们通常都是使用 JavaScript 方案进行图片的懒加载。而今天，我们在图片的懒加载实现上，有了更多不一样的选择。
+JavaScript 方案实现图片的懒加载 首先，回顾一下过往最常见的，使用 JavaScript 方案实现图片的懒加载。
+通过 JavaScript 实现的懒加载，主要是两种方式：
+监听 onscroll 事件，通过 getBoundingClientRect API 获取元素图片距离视口顶部的距离，配合当前可视区域的位置实现图片的懒加载 通过 HTML5 的 IntersectionObserver API，Intersection Observer（交叉观察器） 配合监听元素的 isIntersecting 属性，判断元素是否在可视区内，能够实现比监听 onscroll 性能更佳的图片懒加载方案 但是，JavaScript 方案的一个劣势在于，不管如何，需要引入一定量的 JavaScript 代码，进行一定量的运算。
+到今天，其实我们有更多的其他便捷的方式去实现图片的懒加载。
+使用 content-visibility: auto 实现图片内容的延迟渲染 首先，介绍一个非常有用，但是相对较为冷门的属性 &ndash; content-visibility。
+content-visibility：属性控制一个元素是否渲染其内容，它允许用户代理（浏览器）潜在地省略大量布局和渲染工作，直到需要它为止。
+利用 content-visibility 的特性，我们可以实现如果该元素当前不在屏幕上，则不会渲染其后代元素。
+假设我们有这样一个 DEMO：
+&lt;div class=&#34;g-wrap&#34;&gt; &lt;!-- // 模块 1 --&gt; &lt;div class=&#34;paragraph&#34;&gt; &lt;p&gt;Lorem Start!&lt;/p&gt; &lt;img src=&#34;https://s1.ax1x.com/2023/02/20/pSX1xMV.png&#34; alt=&#34;&#34; /&gt; &lt;p&gt;Lorem End!"><meta itemprop="datePublished" content="2023-03-12T17:04:47+08:00" />
+<meta itemprop="dateModified" content="2023-03-12T17:04:47+08:00" />
+<meta itemprop="wordCount" content="343">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="图片性能优化及体验优化-懒加载及异步图像解码方案"/>
+<meta name="twitter:description" content="图片资源，在我们的业务中可谓是占据了非常大头的一环，尤其是其对带宽的消耗是十分巨大的。
+对图片的性能优化及体验优化在今天就显得尤为重要。本文，就将从各个方面阐述，在各种新特性满头飞的今天，我们可以如何尽可能的对我们的图片资源，进行性能优化及体验优化。
+懒加载/异步图像解码方案 继续下一个章节。本章节，我们来讨论下图片的懒加载与异步图像解码方案。
+图片的懒加载 懒加载是一种网页性能优化的常见方式，它能极大的提升用户体验。到今天，现在一张图片超过几 M 已经是常见事了。如果每次进入页面都需要请求页面上的所有的图片资源，会较大的影响用户体验，对用户的带宽也是一种极大的损耗。
+所以，图片懒加载的意义即是，当页面未滚动到相应区域，该区域内的图片资源（网络请求）不会被加载。反之，当页面滚动到相应区域，相关图片资源的请求才会被发起。
+在过去，我们通常都是使用 JavaScript 方案进行图片的懒加载。而今天，我们在图片的懒加载实现上，有了更多不一样的选择。
+JavaScript 方案实现图片的懒加载 首先，回顾一下过往最常见的，使用 JavaScript 方案实现图片的懒加载。
+通过 JavaScript 实现的懒加载，主要是两种方式：
+监听 onscroll 事件，通过 getBoundingClientRect API 获取元素图片距离视口顶部的距离，配合当前可视区域的位置实现图片的懒加载 通过 HTML5 的 IntersectionObserver API，Intersection Observer（交叉观察器） 配合监听元素的 isIntersecting 属性，判断元素是否在可视区内，能够实现比监听 onscroll 性能更佳的图片懒加载方案 但是，JavaScript 方案的一个劣势在于，不管如何，需要引入一定量的 JavaScript 代码，进行一定量的运算。
+到今天，其实我们有更多的其他便捷的方式去实现图片的懒加载。
+使用 content-visibility: auto 实现图片内容的延迟渲染 首先，介绍一个非常有用，但是相对较为冷门的属性 &ndash; content-visibility。
+content-visibility：属性控制一个元素是否渲染其内容，它允许用户代理（浏览器）潜在地省略大量布局和渲染工作，直到需要它为止。
+利用 content-visibility 的特性，我们可以实现如果该元素当前不在屏幕上，则不会渲染其后代元素。
+假设我们有这样一个 DEMO：
+&lt;div class=&#34;g-wrap&#34;&gt; &lt;!-- // 模块 1 --&gt; &lt;div class=&#34;paragraph&#34;&gt; &lt;p&gt;Lorem Start!&lt;/p&gt; &lt;img src=&#34;https://s1.ax1x.com/2023/02/20/pSX1xMV.png&#34; alt=&#34;&#34; /&gt; &lt;p&gt;Lorem End!"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">图片性能优化及体验优化-懒加载及异步图像解码方案</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 12, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>图片资源，在我们的业务中可谓是占据了非常大头的一环，尤其是其对带宽的消耗是十分巨大的。</p>
+<p>对图片的性能优化及体验优化在今天就显得尤为重要。本文，就将从各个方面阐述，在各种新特性满头飞的今天，我们可以如何尽可能的对我们的图片资源，进行性能优化及体验优化。</p>
+<h2 id="懒加载异步图像解码方案">懒加载/异步图像解码方案</h2>
+<p>继续下一个章节。本章节，我们来讨论下图片的懒加载与异步图像解码方案。</p>
+<h3 id="图片的懒加载">图片的懒加载</h3>
+<p><strong>懒加载是一种网页性能优化的常见方式</strong>，它能极大的提升用户体验。到今天，现在一张图片超过几 M 已经是常见事了。如果每次进入页面都需要请求页面上的所有的图片资源，会较大的影响用户体验，对用户的带宽也是一种极大的损耗。</p>
+<p>所以，图片懒加载的意义即是，当页面未滚动到相应区域，该区域内的图片资源（网络请求）不会被加载。反之，当页面滚动到相应区域，相关图片资源的请求才会被发起。</p>
+<p>在过去，我们通常都是使用 JavaScript 方案进行图片的懒加载。而今天，我们在图片的懒加载实现上，有了更多不一样的选择。</p>
+<h3 id="javascript-方案实现图片的懒加载">JavaScript 方案实现图片的懒加载</h3>
+<p>首先，回顾一下过往最常见的，使用 JavaScript 方案实现图片的懒加载。</p>
+<p>通过 JavaScript 实现的懒加载，主要是两种方式：</p>
+<ol>
+<li>监听 onscroll 事件，通过 <code>getBoundingClientRect</code> API 获取元素图片距离视口顶部的距离，配合当前可视区域的位置实现图片的懒加载</li>
+<li>通过 HTML5 的 <code>IntersectionObserver</code> API，<strong><a href="https://link.zhihu.com/?target=https%3A//web.dev/lazy-loading-images/%23images-inline-intersection-observer">Intersection Observer（交叉观察器）</a></strong> 配合监听元素的 <code>isIntersecting</code> 属性，判断元素是否在可视区内，能够实现比监听 onscroll 性能更佳的图片懒加载方案</li>
+</ol>
+<p>但是，JavaScript 方案的一个劣势在于，不管如何，需要引入一定量的 JavaScript 代码，进行一定量的运算。</p>
+<p>到今天，其实我们有更多的其他便捷的方式去实现图片的懒加载。</p>
+<h3 id="使用-content-visibility-auto-实现图片内容的延迟渲染">使用 <code>content-visibility: auto</code> 实现图片内容的延迟渲染</h3>
+<p>首先，介绍一个非常有用，但是相对较为冷门的属性 &ndash; <code>content-visibility</code>。</p>
+<p><code>content-visibility</code>：属性控制一个元素是否渲染其内容，它允许用户代理（浏览器）潜在地省略大量布局和渲染工作，直到需要它为止。</p>
+<p>利用 <code>content-visibility</code> 的特性，我们可以实现<strong>如果该元素当前不在屏幕上，则不会渲染其后代元素</strong>。</p>
+<p>假设我们有这样一个 DEMO：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;g-wrap&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">&lt;!-- // 模块 1 --&gt;</span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;paragraph&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">p</span>&gt;Lorem Start!&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://s1.ax1x.com/2023/02/20/pSX1xMV.png&#34;</span> <span style="color:#a6e22e">alt</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">p</span>&gt;Lorem End!&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">&lt;!-- // 模块 2 --&gt;</span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;paragraph&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">p</span>&gt;Lorem Start!&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://s1.ax1x.com/2023/02/20/pSX1xMV.png&#34;</span> <span style="color:#a6e22e">alt</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">p</span>&gt;Lorem End!&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">&lt;!-- // ... 连续几十个上述类似的结构 --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><p>只需要给需要延迟（实时）渲染的元素，设置简单的 CSS 样式：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span>.<span style="color:#a6e22e">paragraph</span> {
+</span></span><span style="display:flex;"><span>  content-visibility: <span style="color:#66d9ef">auto</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>我们来看一下，设置了 <code>content-visibility: auto</code> 与没设置的区别。</p>
+<p>如果，不添加上述的 <code>content-visibility: auto</code> 代码，页面的滚动条及滚动效果如下：</p>
+<p><img src="https://pic3.zhimg.com/v2-1261f640d70909e95d09984f64fa34be_b.gif" alt=""></p>
+<p><img src="https://pic3.zhimg.com/v2-1261f640d70909e95d09984f64fa34be_b.jpg" alt="动图封面"></p>
+<p>那么，在添加了 <code>content-visibility: auto</code> 之后，注意观察页面的滚动条及滚动效果：</p>
+<p><img src="https://pic4.zhimg.com/v2-7b365c10e3cc8bfb499a377c8d050273_b.gif" alt=""></p>
+<p><img src="https://pic4.zhimg.com/v2-7b365c10e3cc8bfb499a377c8d050273_b.jpg" alt="动图封面"></p>
+<p>可以看到滚动条在向下滚动在<strong>不断的抽搐</strong>，这是由于下面不在可视区域内的内容，一开始是没有被渲染的，在每次滚动的过程中，才逐渐渲染，以此来提升性能。</p>
+<p><strong><a href="https://link.zhihu.com/?target=https%3A//codepen.io/Chokcoco/pen/poOEXZb">Codepen Deom &ndash; content-visibility: auto Image Load Demo</a></strong></p>
+<h3 id="content-visibility-auto-vs-图片懒加载"><code>content-visibility: auto</code> VS 图片懒加载</h3>
+<p>当然，其实使用 <code>content-visibility: auto</code> 并不能真正意义上实现图片的懒加载。</p>
+<p>这是因为，即便当前页面可视区域外的内容未被渲染，但是图片资源的 HTTP/HTTPS 请求，依然会在页面一开始被触发！</p>
+<p>因此，这也得到了一个非常重要的结论：</p>
+<p><code>content-visibility: auto</code> <strong>无法直接替代图片懒加载，设置了 <code>content-visibility: auto</code> 的元素在可视区外只是未被渲染，但是其中的静态资源仍旧会在页面初始化的时候被全部加载</strong>。因此，它更像是一个虚拟列表的替代方案。</p>
+<blockquote>
+<p>关于 <code>content-visibility</code> 本文限于篇幅，没有完全展开，但是它是一个非常有意思且对渲染性能有帮助的属性，完整的教程，你可以看我的这篇文章 &ndash; <strong><a href="https://link.zhihu.com/?target=https%3A//github.com/chokcoco/iCSS/issues/185">使用 content-visibility 优化渲染性能</a></strong></p>
+</blockquote>
+<h3 id="使用-loadinglazy-html-属性实现图片懒加载">使用 <code>loading=lazy</code> HTML 属性实现图片懒加载</h3>
+<p>OK，<code>content-visibility</code> 很不错，但是略有瑕疵。但是，我们还有其他方式。</p>
+<p>HTML5 新增了一个 <code>loading</code> 属性。</p>
+<p>到今天，除了 IE 系列浏览器，目前都支持通过 <code>loading</code> 属性实现延迟加载。此属性可以添加到 <code>&lt;img&gt;</code> 元素中，也可以添加到 <code>&lt;iframe&gt;</code> 元素中。</p>
+<p>属性的值为 <code>loading=lazy</code> 会告诉浏览器，如果图像位于可视区时，则立即加载图像，并在用户滚动到它们附近时获取其他图像。</p>
+<p>我们可以像是这样使用它：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;xxx.png&#34;</span> <span style="color:#a6e22e">loading</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;lazy&#34;</span> /&gt;
+</span></span></code></pre></div><p><strong>这样，便可以非常便捷的实现图片的懒加载，省去了添加繁琐的 JavaScript 代码的过程</strong>。</p>
+<p>看看 <code>loading=lazy</code> 到今天（2023-02-26）的兼容性，还是非常不错的：</p>
+<p><img src="https://pic3.zhimg.com/v2-597e3e684da57c7a097152c28698fc92_b.jpg" alt=""></p>
+<p><img src="https://pic3.zhimg.com/80/v2-597e3e684da57c7a097152c28698fc92_720w.webp" alt=""></p>
+<h3 id="使用-decodingasync-实现图片的异步解码">使用 <code>decoding=async</code> 实现图片的异步解码</h3>
+<p>除了 <code>loading=lazy</code>，HTML5 还新增了一个非常有意思的属性增强图片的用户体验。那就是 <code>decoding</code> 属性。</p>
+<p><a href="https://link.zhihu.com/?target=https%3A//developer.mozilla.org/zh-CN/docs/Web/API/HTMLImageElement">HTMLImageElement</a> 接口的 <code>decoding</code> 属性用于告诉浏览器使用何种方式解析图像数据。</p>
+<p>它的可选取值如下：</p>
+<ul>
+<li><code>sync</code>: 同步解码图像，保证与其他内容一起显示。</li>
+<li><code>async</code>: 异步解码图像，加快显示其他内容。</li>
+<li><code>auto</code>: 默认模式，表示不偏好解码模式。由浏览器决定哪种方式更适合用户。</li>
+</ul>
+<p>上文其实也提及了，浏览器在进行图片渲染展示的过程中，是需要对图片文件进行解码的，这一个过程快慢与图片格式有关。</p>
+<p>而如果我们不希望图片的渲染解码影响页面的其他内容的展示，可以使用 <code>decoding=async</code> 选项，像是这样：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;xxx.png&#34;</span> <span style="color:#a6e22e">decoding</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;async&#34;</span> /&gt;
+</span></span></code></pre></div><p>这样，浏览器便会异步解码图像，加快显示其他内容。这是图片优化方案中可选的一环。</p>
+<p>同样的，我们来看看到今天（2023-02-26），<code>decoding=&quot;async&quot;</code> 的兼容性，整体还是非常不错的，作为渐进增强方案使用，是非常好的选择。</p>
+<p><img src="https://pic2.zhimg.com/v2-6b27f095a18d419c66df5a6e119529d9_b.jpg" alt=""></p>
+<p><img src="https://pic2.zhimg.com/80/v2-6b27f095a18d419c66df5a6e119529d9_720w.webp" alt=""></p>
+<h3 id="实际检验-loadinglazy-与-decodingasync-效果">实际检验 <code>loading=lazy</code> 与 <code>decoding=async</code> 效果</h3>
+<p>OK，下面我们制作一个简单的 DEMO，试一下 <code>loading=lazy</code> 与 <code>decoding=async</code> 的效果。</p>
+<p>我们准备一个拥有 339 个图片的 HTML 页面，每个图片文件的 src 大小不一。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;g-container&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;image1.jpeg&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;image2.jpeg&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">&lt;!-- // ... 339 个 --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><p>CSS 的设置也很重要，由于是纯图片页面，如果不给图片设置默认高宽，最页面刷新的一瞬间，<code>&lt;img&gt;</code> 元素的高宽都是 0，会导致所有 <code>&lt;img&gt;</code> 元素都在可视区内，所以，我们需要给 <code>&lt;img&gt;</code> 设置一个默认的高宽：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#f92672">img</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">margin</span>: <span style="color:#ae81ff">8</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">width</span>: <span style="color:#ae81ff">300</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">200</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">object-fit</span>: <span style="color:#66d9ef">cover</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这样，再不添加 <code>loading=lazy</code> 与 <code>decoding=async</code> 的状态下，看看 <code>Network</code> 的表现：</p>
+<p><img src="https://pic3.zhimg.com/v2-b340555cecab58088b033a13ee39ead6_b.jpg" alt=""></p>
+<p>我这里没有模拟弱网环境，网速非常快，可以看到，发送了 339 个图片资源请求，也就是全部的图片资源在页面加载的过程中都请求了，页面 <code>Load</code> 事件完成的时间为 1.28s。</p>
+<p>好，我们给所有的图片元素，添加上 <code>loading=lazy</code> 与 <code>decoding=async</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;g-container&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;image1.jpeg&#34;</span> <span style="color:#a6e22e">loading</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;lazy&#34;</span> <span style="color:#a6e22e">decoding</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;async&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;image2.jpeg&#34;</span> <span style="color:#a6e22e">loading</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;lazy&#34;</span> <span style="color:#a6e22e">decoding</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;async&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">&lt;!-- // ... 339 个 --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><p>看看效果：</p>
+<p><img src="https://pic2.zhimg.com/v2-242420d759eff6ade456f73135542d89_b.jpg" alt=""></p>
+<p>可以看到，这一次只发送了 17 个图片资源请求，页面 <code>Load</code> 事件完成的时间为 26ms。</p>
+<table>
+<thead>
+<tr>
+<th>优化前</th>
+<th>优化后</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.28s</td>
+<td>26 ms</td>
+</tr>
+</tbody>
+</table>
+<p><strong>1.28s 到 26ms，效果是非常明显的，如果是弱网环境，对首屏加载性能的提升，会更为明显</strong>！</p>
+<p>当然，实际我测试的过程也，也单独试过 <code>decoding=&quot;async&quot;</code> 的作用，只是由于是纯图片页面，效果不那么明显。感兴趣的同学，可以自行尝试。</p>
+<h3 id="总结一下">总结一下</h3>
+<p>在本章节中，我们介绍了不同的方式实现图片的懒加载、延迟渲染、异步解码，它们分别是：</p>
+<ol>
+<li>通过 onscroll 事件与 <code>getBoundingClientRect</code> API 实现图片的懒加载方案</li>
+<li>通过 Intersection Observer（交叉观察器）实现比监听 onscroll 性能更佳的图片懒加载方案</li>
+<li>通过 <code>content-visibility: auto</code> 实现图片资源的延迟渲染</li>
+<li>通过 <code>loading=lazy</code> HTML 属性实现图片懒加载</li>
+<li>通过 <code>decoding=async</code> HTML 属性实现图片的异步解码</li>
+</ol>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/390/"
+      ><span class="mr-1.5">←</span><span>使用 content-visibility 优化渲染性能</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/388/"
+      ><span>图片性能优化及体验优化-缩放精细化展示及避免布局偏移、拉伸</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>JS 实现网络测速 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="一、背景知识 在我们的日常生活中离不开网络，而网络的快慢直接决定了用户的产品使用体验。最近我们的 WMS 系统在仓库使用过程中出现了网络卡顿导致的异常情况，因此需要提供一个网络检测功能，当仓库再遇到类似问题时可以先通过测量网速来排查是否网络出现了异常。
+名词解释：
+ping：给目标 IP 地址发送一个 ICMP 报文，再要求对方返回一个大小相同的数据包来确定两台网络机器是否能正常通信以及有多少时延。我们 ping 一下 github 试试： 这里的 time 指标就是时延数值。ping 可以作为网络情况的首要参考指标； jitter：抖动，用来描述网络的波动情况。比如每秒测量一次 ping 值，5s 后取五次测量结果的最大最小值求差，可以看出网络的波动情况，差值越小代表网络越稳定； bandwidth：带宽，用来描述理论上单位时间内网络传输数据的最高速率，它只是一个理论上的最大值。通常我们所说的 1 兆带宽就是 1Mb/s = 1000Kb/s = (1000/8)KB/s = 125KB/s。带宽越大自然越好，但是受用户计算机性能、网络设备质量、资源使用情况、网络高峰期、网站服务能力、线路衰耗，信号衰减等多因素的影响，它并不能直接反映当前的网络环境； throughput：吞吐量，用来描述单位时间内网络传输数据的实际速率。受多方面影响，吞吐量一般都小于真正的带宽值； 上传速度与下载速度：上传速度就是从本地上传一个文件的速度，相反，下载速度就是从网络上下载一个文件的速度，使用迅雷等下载软件的时候看到的那个数值就是下载速度，通常下载速度会大于上传速度。由于下载场景较多，我们更关心下载速度数值。 在网络检测中，没有单独哪一个指标可以说明问题，应尽可能多的结合各种指标来全面评估网络情况。接下来介绍几种测速方法。
+二、Network Information API 浏览器为我们提供了网络相关的 API ，NetworkInformation 提供了设备与网络进行通信的信息和链接类型变更时的有关事件，它是通过 Navigator 的 connection 属性进行访问的。connection 对象有一个 downlink 属性，返回以 Mb/s 为单位的有效带宽，MDN 上官方解释说该值是基于最近监测的保持活跃连接的应用层吞吐量，因此吞吐量的查询并不是实时的，如果距离上一个 http 请求间隔较长，这个数值并不准确。因此 downlink 值只具备有限的参考意义，且该功能还在实验中，不同浏览器兼容性也较差，因此不推荐使用这种方式来检测网络情况。
+补充一下，connection 对象还有一个 type 属性和 onChange 方法，type 属性返回的是当前设备联网的类型，枚举值有如下几种：
+bluetooth cellular ethernet none wifi wimax other unknown 当联网类型 type 发生改变时，会触发 change 事件，通过 onChange 回调函数能做一些事情：比如我们在播放视频时，从 wifi 环境切换为使用流量时，可以暂停视频并提示用户选择是否用流量继续播放。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="JS 实现网络测速" />
+<meta property="og:description" content="一、背景知识 在我们的日常生活中离不开网络，而网络的快慢直接决定了用户的产品使用体验。最近我们的 WMS 系统在仓库使用过程中出现了网络卡顿导致的异常情况，因此需要提供一个网络检测功能，当仓库再遇到类似问题时可以先通过测量网速来排查是否网络出现了异常。
+名词解释：
+ping：给目标 IP 地址发送一个 ICMP 报文，再要求对方返回一个大小相同的数据包来确定两台网络机器是否能正常通信以及有多少时延。我们 ping 一下 github 试试： 这里的 time 指标就是时延数值。ping 可以作为网络情况的首要参考指标； jitter：抖动，用来描述网络的波动情况。比如每秒测量一次 ping 值，5s 后取五次测量结果的最大最小值求差，可以看出网络的波动情况，差值越小代表网络越稳定； bandwidth：带宽，用来描述理论上单位时间内网络传输数据的最高速率，它只是一个理论上的最大值。通常我们所说的 1 兆带宽就是 1Mb/s = 1000Kb/s = (1000/8)KB/s = 125KB/s。带宽越大自然越好，但是受用户计算机性能、网络设备质量、资源使用情况、网络高峰期、网站服务能力、线路衰耗，信号衰减等多因素的影响，它并不能直接反映当前的网络环境； throughput：吞吐量，用来描述单位时间内网络传输数据的实际速率。受多方面影响，吞吐量一般都小于真正的带宽值； 上传速度与下载速度：上传速度就是从本地上传一个文件的速度，相反，下载速度就是从网络上下载一个文件的速度，使用迅雷等下载软件的时候看到的那个数值就是下载速度，通常下载速度会大于上传速度。由于下载场景较多，我们更关心下载速度数值。 在网络检测中，没有单独哪一个指标可以说明问题，应尽可能多的结合各种指标来全面评估网络情况。接下来介绍几种测速方法。
+二、Network Information API 浏览器为我们提供了网络相关的 API ，NetworkInformation 提供了设备与网络进行通信的信息和链接类型变更时的有关事件，它是通过 Navigator 的 connection 属性进行访问的。connection 对象有一个 downlink 属性，返回以 Mb/s 为单位的有效带宽，MDN 上官方解释说该值是基于最近监测的保持活跃连接的应用层吞吐量，因此吞吐量的查询并不是实时的，如果距离上一个 http 请求间隔较长，这个数值并不准确。因此 downlink 值只具备有限的参考意义，且该功能还在实验中，不同浏览器兼容性也较差，因此不推荐使用这种方式来检测网络情况。
+补充一下，connection 对象还有一个 type 属性和 onChange 方法，type 属性返回的是当前设备联网的类型，枚举值有如下几种：
+bluetooth cellular ethernet none wifi wimax other unknown 当联网类型 type 发生改变时，会触发 change 事件，通过 onChange 回调函数能做一些事情：比如我们在播放视频时，从 wifi 环境切换为使用流量时，可以暂停视频并提示用户选择是否用流量继续播放。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/333/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-01-14T10:07:28+08:00" />
+<meta property="article:modified_time" content="2023-01-14T10:07:28+08:00" />
+
+  
+  <meta itemprop="name" content="JS 实现网络测速">
+<meta itemprop="description" content="一、背景知识 在我们的日常生活中离不开网络，而网络的快慢直接决定了用户的产品使用体验。最近我们的 WMS 系统在仓库使用过程中出现了网络卡顿导致的异常情况，因此需要提供一个网络检测功能，当仓库再遇到类似问题时可以先通过测量网速来排查是否网络出现了异常。
+名词解释：
+ping：给目标 IP 地址发送一个 ICMP 报文，再要求对方返回一个大小相同的数据包来确定两台网络机器是否能正常通信以及有多少时延。我们 ping 一下 github 试试： 这里的 time 指标就是时延数值。ping 可以作为网络情况的首要参考指标； jitter：抖动，用来描述网络的波动情况。比如每秒测量一次 ping 值，5s 后取五次测量结果的最大最小值求差，可以看出网络的波动情况，差值越小代表网络越稳定； bandwidth：带宽，用来描述理论上单位时间内网络传输数据的最高速率，它只是一个理论上的最大值。通常我们所说的 1 兆带宽就是 1Mb/s = 1000Kb/s = (1000/8)KB/s = 125KB/s。带宽越大自然越好，但是受用户计算机性能、网络设备质量、资源使用情况、网络高峰期、网站服务能力、线路衰耗，信号衰减等多因素的影响，它并不能直接反映当前的网络环境； throughput：吞吐量，用来描述单位时间内网络传输数据的实际速率。受多方面影响，吞吐量一般都小于真正的带宽值； 上传速度与下载速度：上传速度就是从本地上传一个文件的速度，相反，下载速度就是从网络上下载一个文件的速度，使用迅雷等下载软件的时候看到的那个数值就是下载速度，通常下载速度会大于上传速度。由于下载场景较多，我们更关心下载速度数值。 在网络检测中，没有单独哪一个指标可以说明问题，应尽可能多的结合各种指标来全面评估网络情况。接下来介绍几种测速方法。
+二、Network Information API 浏览器为我们提供了网络相关的 API ，NetworkInformation 提供了设备与网络进行通信的信息和链接类型变更时的有关事件，它是通过 Navigator 的 connection 属性进行访问的。connection 对象有一个 downlink 属性，返回以 Mb/s 为单位的有效带宽，MDN 上官方解释说该值是基于最近监测的保持活跃连接的应用层吞吐量，因此吞吐量的查询并不是实时的，如果距离上一个 http 请求间隔较长，这个数值并不准确。因此 downlink 值只具备有限的参考意义，且该功能还在实验中，不同浏览器兼容性也较差，因此不推荐使用这种方式来检测网络情况。
+补充一下，connection 对象还有一个 type 属性和 onChange 方法，type 属性返回的是当前设备联网的类型，枚举值有如下几种：
+bluetooth cellular ethernet none wifi wimax other unknown 当联网类型 type 发生改变时，会触发 change 事件，通过 onChange 回调函数能做一些事情：比如我们在播放视频时，从 wifi 环境切换为使用流量时，可以暂停视频并提示用户选择是否用流量继续播放。"><meta itemprop="datePublished" content="2023-01-14T10:07:28+08:00" />
+<meta itemprop="dateModified" content="2023-01-14T10:07:28+08:00" />
+<meta itemprop="wordCount" content="322">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="JS 实现网络测速"/>
+<meta name="twitter:description" content="一、背景知识 在我们的日常生活中离不开网络，而网络的快慢直接决定了用户的产品使用体验。最近我们的 WMS 系统在仓库使用过程中出现了网络卡顿导致的异常情况，因此需要提供一个网络检测功能，当仓库再遇到类似问题时可以先通过测量网速来排查是否网络出现了异常。
+名词解释：
+ping：给目标 IP 地址发送一个 ICMP 报文，再要求对方返回一个大小相同的数据包来确定两台网络机器是否能正常通信以及有多少时延。我们 ping 一下 github 试试： 这里的 time 指标就是时延数值。ping 可以作为网络情况的首要参考指标； jitter：抖动，用来描述网络的波动情况。比如每秒测量一次 ping 值，5s 后取五次测量结果的最大最小值求差，可以看出网络的波动情况，差值越小代表网络越稳定； bandwidth：带宽，用来描述理论上单位时间内网络传输数据的最高速率，它只是一个理论上的最大值。通常我们所说的 1 兆带宽就是 1Mb/s = 1000Kb/s = (1000/8)KB/s = 125KB/s。带宽越大自然越好，但是受用户计算机性能、网络设备质量、资源使用情况、网络高峰期、网站服务能力、线路衰耗，信号衰减等多因素的影响，它并不能直接反映当前的网络环境； throughput：吞吐量，用来描述单位时间内网络传输数据的实际速率。受多方面影响，吞吐量一般都小于真正的带宽值； 上传速度与下载速度：上传速度就是从本地上传一个文件的速度，相反，下载速度就是从网络上下载一个文件的速度，使用迅雷等下载软件的时候看到的那个数值就是下载速度，通常下载速度会大于上传速度。由于下载场景较多，我们更关心下载速度数值。 在网络检测中，没有单独哪一个指标可以说明问题，应尽可能多的结合各种指标来全面评估网络情况。接下来介绍几种测速方法。
+二、Network Information API 浏览器为我们提供了网络相关的 API ，NetworkInformation 提供了设备与网络进行通信的信息和链接类型变更时的有关事件，它是通过 Navigator 的 connection 属性进行访问的。connection 对象有一个 downlink 属性，返回以 Mb/s 为单位的有效带宽，MDN 上官方解释说该值是基于最近监测的保持活跃连接的应用层吞吐量，因此吞吐量的查询并不是实时的，如果距离上一个 http 请求间隔较长，这个数值并不准确。因此 downlink 值只具备有限的参考意义，且该功能还在实验中，不同浏览器兼容性也较差，因此不推荐使用这种方式来检测网络情况。
+补充一下，connection 对象还有一个 type 属性和 onChange 方法，type 属性返回的是当前设备联网的类型，枚举值有如下几种：
+bluetooth cellular ethernet none wifi wimax other unknown 当联网类型 type 发生改变时，会触发 change 事件，通过 onChange 回调函数能做一些事情：比如我们在播放视频时，从 wifi 环境切换为使用流量时，可以暂停视频并提示用户选择是否用流量继续播放。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">JS 实现网络测速</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Jan 14, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h3 id="一背景知识">一、背景知识</h3>
+<p>在我们的日常生活中离不开网络，而网络的快慢直接决定了用户的产品使用体验。最近我们的 WMS 系统在仓库使用过程中出现了网络卡顿导致的异常情况，因此需要提供一个网络检测功能，当仓库再遇到类似问题时可以先通过测量网速来排查是否网络出现了异常。</p>
+<p>名词解释：</p>
+<ol>
+<li>ping：给目标 IP 地址发送一个 <a href="https://baike.baidu.com/item/ICMP/572452">ICMP</a> 报文，再要求对方返回一个大小相同的数据包来确定两台网络机器是否能正常通信以及有多少时延。我们 ping 一下 github 试试： <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7da981c3f1ba45d883079916e42608eb~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""> 这里的 time 指标就是时延数值。ping 可以作为网络情况的首要参考指标；</li>
+<li>jitter：抖动，用来描述网络的波动情况。比如每秒测量一次 ping 值，5s 后取五次测量结果的最大最小值求差，可以看出网络的波动情况，差值越小代表网络越稳定；</li>
+<li>bandwidth：带宽，用来描述理论上单位时间内网络传输数据的最高速率，它只是一个理论上的最大值。通常我们所说的 1 兆带宽就是 1Mb/s = 1000Kb/s = (1000/8)KB/s = 125KB/s。带宽越大自然越好，但是受用户计算机性能、网络设备质量、资源使用情况、网络高峰期、网站服务能力、线路衰耗，信号衰减等多因素的影响，它并不能直接反映当前的网络环境；</li>
+<li>throughput：吞吐量，用来描述单位时间内网络传输数据的实际速率。受多方面影响，吞吐量一般都小于真正的带宽值； <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9ec52b8bbcb44b64ab1ad8943010bcfa~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></li>
+<li>上传速度与下载速度：上传速度就是从本地上传一个文件的速度，相反，下载速度就是从网络上下载一个文件的速度，使用迅雷等下载软件的时候看到的那个数值就是下载速度，通常下载速度会大于上传速度。由于下载场景较多，我们更关心下载速度数值。</li>
+</ol>
+<p>在网络检测中，没有单独哪一个指标可以说明问题，应尽可能多的结合各种指标来全面评估网络情况。接下来介绍几种测速方法。</p>
+<h3 id="二network-information-api">二、Network Information API</h3>
+<p>浏览器为我们提供了网络相关的 API ，NetworkInformation 提供了设备与网络进行通信的信息和链接类型变更时的有关事件，它是通过 <code>Navigator</code> 的 <code>connection</code> 属性进行访问的。<code>connection</code> 对象有一个 <code>downlink</code> 属性，返回以 Mb/s 为单位的有效带宽，MDN 上官方解释说该值是基于最近监测的保持活跃连接的应用层吞吐量，因此吞吐量的查询并不是实时的，如果距离上一个 http 请求间隔较长，这个数值并不准确。因此 <code>downlink</code> 值只具备有限的参考意义，且该功能还在实验中，不同浏览器兼容性也较差，因此不推荐使用这种方式来检测网络情况。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ec3b960cddc5499e8a20e0ff41aad721~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>补充一下，<code>connection</code> 对象还有一个 <code>type</code> 属性和 <code>onChange</code> 方法，<code>type</code> 属性返回的是当前设备联网的类型，枚举值有如下几种：</p>
+<ul>
+<li>bluetooth</li>
+<li>cellular</li>
+<li>ethernet</li>
+<li>none</li>
+<li>wifi</li>
+<li>wimax</li>
+<li>other</li>
+<li>unknown</li>
+</ul>
+<p>当联网类型 <code>type</code> 发生改变时，会触发 change 事件，通过 <code>onChange</code> 回调函数能做一些事情：比如我们在播放视频时，从 wifi 环境切换为使用流量时，可以暂停视频并提示用户选择是否用流量继续播放。</p>
+<h3 id="三测量-ping-和-jitter-值">三、测量 ping 和 jitter 值</h3>
+<p>由于 JS 无法真正原生地测量 ping 值，因此需要提供一种替代方案来模拟。为了尽可能准确地得到 ping 值，可以通过请求一个尽量小的资源来模拟发送 ICMP 报文，记录发起请求到收到返回值的时间差。请求的内容可以是网站的 favicon.ico ，一个空文件，甚至是一个空接口（注意需要配置跨域）。但是这些方案都依赖于图片资源、文件以及接口的稳定性，如果服务挂掉的话，得到的 ping 值是有问题的。接下来通过多次测量 ping 值就可以计算代表网络波动情况的 jitter 值了。代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Dashboard</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">memo</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">ping</span>, <span style="color:#a6e22e">setPing</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>&lt;<span style="color:#f92672">number</span>&gt;(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">count</span>, <span style="color:#a6e22e">setCount</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>&lt;<span style="color:#f92672">number</span>&gt;(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">pingList</span>, <span style="color:#a6e22e">setPingList</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>&lt;<span style="color:#f92672">number</span><span style="color:#960050;background-color:#1e0010">[]</span>&gt;([]);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">jitter</span>, <span style="color:#a6e22e">setJitter</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">useState</span>&lt;<span style="color:#f92672">number</span>&gt;(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">useEffect</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">timer</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">setInterval</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">img</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Image</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">startTime</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>();
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 此处选择加载 github 的 favicon，大小为2.2kB
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">img</span>.<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`https://github.com/favicon.ico?d=</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">startTime</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">img</span>.<span style="color:#a6e22e">onload</span> <span style="color:#f92672">=</span> () =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">endTime</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">getTime</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">delta</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">endTime</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">startTime</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> ((<span style="color:#a6e22e">count</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">%</span> <span style="color:#ae81ff">5</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">maxPing</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">max</span>(<span style="color:#a6e22e">delta</span>, ...<span style="color:#a6e22e">pingList</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">minPing</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">min</span>(<span style="color:#a6e22e">delta</span>, ...<span style="color:#a6e22e">pingList</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">setJitter</span>(<span style="color:#a6e22e">maxPing</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">minPing</span>);
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">setPingList</span>([]);
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">setPingList</span>(<span style="color:#a6e22e">lastList</span> =&gt; [...<span style="color:#a6e22e">lastList</span>, <span style="color:#a6e22e">delta</span>]);
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">setCount</span>(<span style="color:#a6e22e">count</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">setPing</span>(<span style="color:#a6e22e">delta</span>);
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">img</span>.<span style="color:#a6e22e">onerror</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">err</span> =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;error&#39;</span>, <span style="color:#a6e22e">err</span>);
+</span></span><span style="display:flex;"><span>      };
+</span></span><span style="display:flex;"><span>    }, <span style="color:#ae81ff">3000</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> () =&gt; <span style="color:#a6e22e">clearInterval</span>(<span style="color:#a6e22e">timer</span>);
+</span></span><span style="display:flex;"><span>  }, [<span style="color:#a6e22e">count</span>, <span style="color:#a6e22e">pingList</span>]);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">PageContainer</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">styles</span>.<span style="color:#a6e22e">dashboard</span>}&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">className</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;text-center&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">h1</span>&gt;<span style="color:#a6e22e">欢迎使用</span> <span style="color:#a6e22e">仓储管理系统</span>&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">h1</span>&gt;<span style="color:#a6e22e">PING</span><span style="color:#f92672">:</span> {<span style="color:#a6e22e">ping</span>}<span style="color:#a6e22e">ms</span>&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">h1</span>&gt;<span style="color:#a6e22e">抖动</span><span style="color:#f92672">:</span> {<span style="color:#a6e22e">jitter</span>}<span style="color:#a6e22e">ms</span>&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">PageContainer</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>以上代码是采用测量加载 github favicon 的时间来模拟 ping 值的，图片大小为 2.2kB，可以获得更准确的 ping 值。注意在 img.src 的 url 最后拼接上一个时间戳，保证每次都会重新发起请求，而不是使用第一次加载的图片缓存。动图效果如下，3 秒测量一次 ping 值，拿到最近 5 次 ping 值后计算一次抖动值：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0d1e8fcc05cb4fd088e44d0c58bd38cf~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<h3 id="四测量下载速度">四、测量下载速度</h3>
+<p>下载速度测量与上述 ping 值测量原理相同，只不过需要将下载的对象换成一个更大的资源，通过计算单位时间内下载资源的大小来测量下载速度。像下载软件迅雷，我们常看到的那个数字就是下载速度。另外迅雷还有一个很好的功能可以选择全速下载模式和不影响正常上网的模式，因为下载时可能会挤占带宽影响用户正常浏览网页。其中的原理就是迅雷在下载的时候在不停做 ping，如果发现 ping 的延迟增加，就限制下载速度，如果 ping 还高，就继续降到 ping 回归期望值。</p>
+<h3 id="五总结">五、总结</h3>
+<p>如果用户感到访问的网站反应过慢，有可能是各种原因导致的，大致可以遵循以下流程进行简单排查：</p>
+<ol>
+<li>
+<p>打开百度等常用网站，查看是否仍然存在网速慢的情况。如果其他网站访问正常，可以确定是当前站点的问题，需要继续排查：</p>
+<ul>
+<li>可能是 DNS 解析问题，可以在终端输入 nslookup + 当前网站域名来检查： <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2ef2b15f743c4a3bb7e2ba4f3591cf13~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></li>
+<li>如果 DNS 解析正常，那么有可能是网站访问量过高等原因，具体情况还需排查；</li>
+</ul>
+</li>
+<li>
+<p>如果其他网站速度也比较慢，可以检查是否在下载文件，如果在下载文件也是会占用带宽的，可以选择下载软件的限制带宽功能来确保正常上网网速；</p>
+</li>
+<li>
+<p>如果确实网络有问题，那就需要运营商维修人员来排查了，有可能是各种原因：用户计算机性能、网络设备质量、网络高峰期、线路衰耗、信号衰减等等。</p>
+</li>
+</ol>
+<p>注意事项：</p>
+<ol>
+<li>
+<p>不要在页面加载的初始阶段就去测速，否则会影响 LCP 时间，建议等组件 mounted 后再测速；</p>
+</li>
+<li>
+<p>根据业务场景合理设计测速方案，比如根据测速时机的不同分为两种方案：</p>
+<ul>
+<li>实时检测：设置时间间隔来实时检测网络状况，优点是当网络出现异常时可以提前告警，缺点是会浪费网络请求；</li>
+<li>人为触发检测：用户察觉网络出现异常时，再手动触发检测优点是节省网络资源，缺点是缺乏预警性；</li>
+</ul>
+</li>
+<li>
+<p>若使用加载图片的方式测量，图片 url 应拼接时间戳，防止请求时直接使用缓存。</p>
+</li>
+</ol>
+<h3 id="参考资料">参考资料：</h3>
+<p><a href="https://developer.mozilla.org/en-US/docs/Web/API/Network_Information_API">Network Information API - Web APIs | MDN</a></p>
+<p><a href="https://zhuanlan.zhihu.com/p/45110873">每天都在用的 Ping 命令，它到底是什么？</a></p>
+<p><a href="https://segmentfault.com/a/1190000021894327">在前端 Network 还能这样玩</a></p>
+<p><a href="https://segmentfault.com/a/1190000038589149">探索浏览器端的网络速度测试</a></p>
+<p><a href="https://github.com/penghuwan/network-speed-test">github.com/penghuwan/n…</a></p>
+<p><a href="https://github.com/alfg/ping.js#notes">GitHub - alfg/ping.js: Ping the web with Javascript.</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/334/"
+      ><span class="mr-1.5">←</span><span>前端字体那些事儿</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/332/"
+      ><span>前端重新部署如何通知用户刷新网页？</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

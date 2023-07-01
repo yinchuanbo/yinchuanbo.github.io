@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>前端性能优化系列 | 图像优化 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="图片在各大网站随处可见，因为图片的表述比文字更加直观，所以图片是网站最重要的要素之一。图片相对其他文件又很大，页面的加载速度很大程度上取决于图片的加载速度，所以我们要对图片进行优化，以此加快页面加载速度，提升用户体验。
+图片的优化可以分为两个方面：图像的选取和使用，加载和显示。本文主要讨论从图片的选取和使用来进行性能的优化，下一篇文章来介绍图片的加载优化。
+1. 图像基础 图像资源优化的根本思想，可以归结为两个字：压缩。 无论是选取的图片的文件格式，还是针对同意格式压缩至更小的尺寸，其本质都是用更小的资源开销来完成图像的传输和展示。
+在网页中，如果确定了图像的展示效果必须存在时，在前端实现上也并非要用图像文件，还存在一些场景可以使用更高效的方式来实现预期效果，比如以下情况：
+图像在不同状态下会有不用的展示效果（比如边角的裁切、阴影、渐变等），如果能用 CSS 来处理现实效果，用 CSS 实现即可，CSS 代码相对于图片来讲，是可以忽略不计的； 如果图像上有一些文字，允许的情况下，可以使用网页的文字来代替，因为图片中的文字包含了很多信息，会导致图片很大。除此之外，图像中的文本信息可能用户体验比较差（不能选择、搜索、缩放等），并且在高分辨率屏幕上，显示效果会大打折扣。 说完这两个例子，下面就来看一下图像相关的基础。
+（1）矢量图和位图 图片文件可以分为矢量图和位图，下面我们就来看看这两种图片有什么不同。
+1）矢量图 下面是百度百科中矢量图的定义：
+矢量图，也称为面向对象的图像或绘图图像，在数学上定义为一系列由点连接的线。矢量文件中的图形元素称为对象。每个对象都是一个自成一体的实体，它具有颜色、形状、轮廓、大小和屏幕位置等属性。
+矢量图适合如文本、LOGO、控件图标、二维码等构图形状比较简单的几何图形。
+矢量图的优点如下：
+文件小，图像中保存的是线条和图块的信息，所以矢量图形文件与分辨率和图像大小无关，只与图像的复杂程度有关，图像文件所占的存储空间较小。 图像可以无限级缩放，对图形进行缩放，旋转或变形操作时，图形不会产生锯齿效果。 可采取高分辨率印刷，矢量图形文件可以在任何输出设备打印机上以打印或印刷的最高分辨率进行打印输出。 当然矢量图也是有缺点的：对细节的展示不够丰富，对很复杂的图像来说，要想达到预期的效果，图片可能会很大。
+我们常用的 SVG 图片其实就属于矢量图，SVG 是一种基于 XML 的图像格式，其全程是可缩放矢量图形(Scalable Vector Graphics，SVG)，它是 W3C 推出的基于 XML 的二维矢量图形标准。SVG 可以提供高质量的矢量图形渲染，同时由于支持 JavaScript 和文档对象模型，SVG 图形通常具有强大的交互能力。另一方面，SVG 作为 W3C 所推荐的基于 XML 的开放标准，能够与其他网络技术进行无缝集成。
+目前，几乎所有的浏览器都支持 SVG，iconfont 上很多图标都是 SVG 格式： SVG 标签包含的部分就是该矢量图的全部内容，除了必要的绘制信息，可能还包括一些元数据，比如 XML 命名空间、图层及注释信息等，但是这些信息对浏览器绘制 SVG 来说并不重要，所以在使用前，可以使用工具将这些元数据来达到压缩的目的。
+2）位图 位图图像（bitmap），亦称为点阵图像或栅格图像，是由称作像素（图片元素）的单个点组成的。这些点可以进行不同的排列和染色以构成图样。如果组成图像的栅格像素点越多且每个像素点所能表示的颜色范围越广，那么位图图像的显示效果就会越逼真，我们常用的图片多是属于位图。
+虽然位图没有像矢量图那种不受分辨率影响的优质特性，但是对于复杂的图像却能提供较为真实的细节体验。
+当我们放大位图时，可以看见赖以构成整个图像的无数单个方块，每个像素块储存的是图像颜色信息，位图颜色的编码主要有以下两种方式：
+RGB：用红、绿、蓝三原色的光学强度来表示一种颜色。这是最常见的位图编码方法，可以直接用于屏幕显示。 CMYK：用青、品红、黄、黑四种颜料含量来表示一种颜色。常用的位图编码方法之一，可以直接用于彩色印刷。 通常浏览器会为每个颜色通道分配一个字节的储存空间，即 28=256 个色阶值。一张图片的大小与其包含的像素数成正比，图像包含的像素越多，所能展示的细节就越多，所能展示的细节就越丰富，同时图像就越大。处于对性能的考虑，在使用图像时必须考虑对图像进行压缩。
+（2）分辨率 我们在书写 CSS 时，经常会为图像设置需要显示的长度像素值，但是在不同的设备屏幕上，有时相同的图像和位置，显示效果可能有比较大的差异，产生这种区别的主要原因是两种不同的分辨率：屏幕分辨率和图像分辨率。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="前端性能优化系列 | 图像优化" />
+<meta property="og:description" content="图片在各大网站随处可见，因为图片的表述比文字更加直观，所以图片是网站最重要的要素之一。图片相对其他文件又很大，页面的加载速度很大程度上取决于图片的加载速度，所以我们要对图片进行优化，以此加快页面加载速度，提升用户体验。
+图片的优化可以分为两个方面：图像的选取和使用，加载和显示。本文主要讨论从图片的选取和使用来进行性能的优化，下一篇文章来介绍图片的加载优化。
+1. 图像基础 图像资源优化的根本思想，可以归结为两个字：压缩。 无论是选取的图片的文件格式，还是针对同意格式压缩至更小的尺寸，其本质都是用更小的资源开销来完成图像的传输和展示。
+在网页中，如果确定了图像的展示效果必须存在时，在前端实现上也并非要用图像文件，还存在一些场景可以使用更高效的方式来实现预期效果，比如以下情况：
+图像在不同状态下会有不用的展示效果（比如边角的裁切、阴影、渐变等），如果能用 CSS 来处理现实效果，用 CSS 实现即可，CSS 代码相对于图片来讲，是可以忽略不计的； 如果图像上有一些文字，允许的情况下，可以使用网页的文字来代替，因为图片中的文字包含了很多信息，会导致图片很大。除此之外，图像中的文本信息可能用户体验比较差（不能选择、搜索、缩放等），并且在高分辨率屏幕上，显示效果会大打折扣。 说完这两个例子，下面就来看一下图像相关的基础。
+（1）矢量图和位图 图片文件可以分为矢量图和位图，下面我们就来看看这两种图片有什么不同。
+1）矢量图 下面是百度百科中矢量图的定义：
+矢量图，也称为面向对象的图像或绘图图像，在数学上定义为一系列由点连接的线。矢量文件中的图形元素称为对象。每个对象都是一个自成一体的实体，它具有颜色、形状、轮廓、大小和屏幕位置等属性。
+矢量图适合如文本、LOGO、控件图标、二维码等构图形状比较简单的几何图形。
+矢量图的优点如下：
+文件小，图像中保存的是线条和图块的信息，所以矢量图形文件与分辨率和图像大小无关，只与图像的复杂程度有关，图像文件所占的存储空间较小。 图像可以无限级缩放，对图形进行缩放，旋转或变形操作时，图形不会产生锯齿效果。 可采取高分辨率印刷，矢量图形文件可以在任何输出设备打印机上以打印或印刷的最高分辨率进行打印输出。 当然矢量图也是有缺点的：对细节的展示不够丰富，对很复杂的图像来说，要想达到预期的效果，图片可能会很大。
+我们常用的 SVG 图片其实就属于矢量图，SVG 是一种基于 XML 的图像格式，其全程是可缩放矢量图形(Scalable Vector Graphics，SVG)，它是 W3C 推出的基于 XML 的二维矢量图形标准。SVG 可以提供高质量的矢量图形渲染，同时由于支持 JavaScript 和文档对象模型，SVG 图形通常具有强大的交互能力。另一方面，SVG 作为 W3C 所推荐的基于 XML 的开放标准，能够与其他网络技术进行无缝集成。
+目前，几乎所有的浏览器都支持 SVG，iconfont 上很多图标都是 SVG 格式： SVG 标签包含的部分就是该矢量图的全部内容，除了必要的绘制信息，可能还包括一些元数据，比如 XML 命名空间、图层及注释信息等，但是这些信息对浏览器绘制 SVG 来说并不重要，所以在使用前，可以使用工具将这些元数据来达到压缩的目的。
+2）位图 位图图像（bitmap），亦称为点阵图像或栅格图像，是由称作像素（图片元素）的单个点组成的。这些点可以进行不同的排列和染色以构成图样。如果组成图像的栅格像素点越多且每个像素点所能表示的颜色范围越广，那么位图图像的显示效果就会越逼真，我们常用的图片多是属于位图。
+虽然位图没有像矢量图那种不受分辨率影响的优质特性，但是对于复杂的图像却能提供较为真实的细节体验。
+当我们放大位图时，可以看见赖以构成整个图像的无数单个方块，每个像素块储存的是图像颜色信息，位图颜色的编码主要有以下两种方式：
+RGB：用红、绿、蓝三原色的光学强度来表示一种颜色。这是最常见的位图编码方法，可以直接用于屏幕显示。 CMYK：用青、品红、黄、黑四种颜料含量来表示一种颜色。常用的位图编码方法之一，可以直接用于彩色印刷。 通常浏览器会为每个颜色通道分配一个字节的储存空间，即 28=256 个色阶值。一张图片的大小与其包含的像素数成正比，图像包含的像素越多，所能展示的细节就越多，所能展示的细节就越丰富，同时图像就越大。处于对性能的考虑，在使用图像时必须考虑对图像进行压缩。
+（2）分辨率 我们在书写 CSS 时，经常会为图像设置需要显示的长度像素值，但是在不同的设备屏幕上，有时相同的图像和位置，显示效果可能有比较大的差异，产生这种区别的主要原因是两种不同的分辨率：屏幕分辨率和图像分辨率。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/364/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-05T18:39:35+08:00" />
+<meta property="article:modified_time" content="2023-03-05T18:39:35+08:00" />
+
+  
+  <meta itemprop="name" content="前端性能优化系列 | 图像优化">
+<meta itemprop="description" content="图片在各大网站随处可见，因为图片的表述比文字更加直观，所以图片是网站最重要的要素之一。图片相对其他文件又很大，页面的加载速度很大程度上取决于图片的加载速度，所以我们要对图片进行优化，以此加快页面加载速度，提升用户体验。
+图片的优化可以分为两个方面：图像的选取和使用，加载和显示。本文主要讨论从图片的选取和使用来进行性能的优化，下一篇文章来介绍图片的加载优化。
+1. 图像基础 图像资源优化的根本思想，可以归结为两个字：压缩。 无论是选取的图片的文件格式，还是针对同意格式压缩至更小的尺寸，其本质都是用更小的资源开销来完成图像的传输和展示。
+在网页中，如果确定了图像的展示效果必须存在时，在前端实现上也并非要用图像文件，还存在一些场景可以使用更高效的方式来实现预期效果，比如以下情况：
+图像在不同状态下会有不用的展示效果（比如边角的裁切、阴影、渐变等），如果能用 CSS 来处理现实效果，用 CSS 实现即可，CSS 代码相对于图片来讲，是可以忽略不计的； 如果图像上有一些文字，允许的情况下，可以使用网页的文字来代替，因为图片中的文字包含了很多信息，会导致图片很大。除此之外，图像中的文本信息可能用户体验比较差（不能选择、搜索、缩放等），并且在高分辨率屏幕上，显示效果会大打折扣。 说完这两个例子，下面就来看一下图像相关的基础。
+（1）矢量图和位图 图片文件可以分为矢量图和位图，下面我们就来看看这两种图片有什么不同。
+1）矢量图 下面是百度百科中矢量图的定义：
+矢量图，也称为面向对象的图像或绘图图像，在数学上定义为一系列由点连接的线。矢量文件中的图形元素称为对象。每个对象都是一个自成一体的实体，它具有颜色、形状、轮廓、大小和屏幕位置等属性。
+矢量图适合如文本、LOGO、控件图标、二维码等构图形状比较简单的几何图形。
+矢量图的优点如下：
+文件小，图像中保存的是线条和图块的信息，所以矢量图形文件与分辨率和图像大小无关，只与图像的复杂程度有关，图像文件所占的存储空间较小。 图像可以无限级缩放，对图形进行缩放，旋转或变形操作时，图形不会产生锯齿效果。 可采取高分辨率印刷，矢量图形文件可以在任何输出设备打印机上以打印或印刷的最高分辨率进行打印输出。 当然矢量图也是有缺点的：对细节的展示不够丰富，对很复杂的图像来说，要想达到预期的效果，图片可能会很大。
+我们常用的 SVG 图片其实就属于矢量图，SVG 是一种基于 XML 的图像格式，其全程是可缩放矢量图形(Scalable Vector Graphics，SVG)，它是 W3C 推出的基于 XML 的二维矢量图形标准。SVG 可以提供高质量的矢量图形渲染，同时由于支持 JavaScript 和文档对象模型，SVG 图形通常具有强大的交互能力。另一方面，SVG 作为 W3C 所推荐的基于 XML 的开放标准，能够与其他网络技术进行无缝集成。
+目前，几乎所有的浏览器都支持 SVG，iconfont 上很多图标都是 SVG 格式： SVG 标签包含的部分就是该矢量图的全部内容，除了必要的绘制信息，可能还包括一些元数据，比如 XML 命名空间、图层及注释信息等，但是这些信息对浏览器绘制 SVG 来说并不重要，所以在使用前，可以使用工具将这些元数据来达到压缩的目的。
+2）位图 位图图像（bitmap），亦称为点阵图像或栅格图像，是由称作像素（图片元素）的单个点组成的。这些点可以进行不同的排列和染色以构成图样。如果组成图像的栅格像素点越多且每个像素点所能表示的颜色范围越广，那么位图图像的显示效果就会越逼真，我们常用的图片多是属于位图。
+虽然位图没有像矢量图那种不受分辨率影响的优质特性，但是对于复杂的图像却能提供较为真实的细节体验。
+当我们放大位图时，可以看见赖以构成整个图像的无数单个方块，每个像素块储存的是图像颜色信息，位图颜色的编码主要有以下两种方式：
+RGB：用红、绿、蓝三原色的光学强度来表示一种颜色。这是最常见的位图编码方法，可以直接用于屏幕显示。 CMYK：用青、品红、黄、黑四种颜料含量来表示一种颜色。常用的位图编码方法之一，可以直接用于彩色印刷。 通常浏览器会为每个颜色通道分配一个字节的储存空间，即 28=256 个色阶值。一张图片的大小与其包含的像素数成正比，图像包含的像素越多，所能展示的细节就越多，所能展示的细节就越丰富，同时图像就越大。处于对性能的考虑，在使用图像时必须考虑对图像进行压缩。
+（2）分辨率 我们在书写 CSS 时，经常会为图像设置需要显示的长度像素值，但是在不同的设备屏幕上，有时相同的图像和位置，显示效果可能有比较大的差异，产生这种区别的主要原因是两种不同的分辨率：屏幕分辨率和图像分辨率。"><meta itemprop="datePublished" content="2023-03-05T18:39:35+08:00" />
+<meta itemprop="dateModified" content="2023-03-05T18:39:35+08:00" />
+<meta itemprop="wordCount" content="592">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="前端性能优化系列 | 图像优化"/>
+<meta name="twitter:description" content="图片在各大网站随处可见，因为图片的表述比文字更加直观，所以图片是网站最重要的要素之一。图片相对其他文件又很大，页面的加载速度很大程度上取决于图片的加载速度，所以我们要对图片进行优化，以此加快页面加载速度，提升用户体验。
+图片的优化可以分为两个方面：图像的选取和使用，加载和显示。本文主要讨论从图片的选取和使用来进行性能的优化，下一篇文章来介绍图片的加载优化。
+1. 图像基础 图像资源优化的根本思想，可以归结为两个字：压缩。 无论是选取的图片的文件格式，还是针对同意格式压缩至更小的尺寸，其本质都是用更小的资源开销来完成图像的传输和展示。
+在网页中，如果确定了图像的展示效果必须存在时，在前端实现上也并非要用图像文件，还存在一些场景可以使用更高效的方式来实现预期效果，比如以下情况：
+图像在不同状态下会有不用的展示效果（比如边角的裁切、阴影、渐变等），如果能用 CSS 来处理现实效果，用 CSS 实现即可，CSS 代码相对于图片来讲，是可以忽略不计的； 如果图像上有一些文字，允许的情况下，可以使用网页的文字来代替，因为图片中的文字包含了很多信息，会导致图片很大。除此之外，图像中的文本信息可能用户体验比较差（不能选择、搜索、缩放等），并且在高分辨率屏幕上，显示效果会大打折扣。 说完这两个例子，下面就来看一下图像相关的基础。
+（1）矢量图和位图 图片文件可以分为矢量图和位图，下面我们就来看看这两种图片有什么不同。
+1）矢量图 下面是百度百科中矢量图的定义：
+矢量图，也称为面向对象的图像或绘图图像，在数学上定义为一系列由点连接的线。矢量文件中的图形元素称为对象。每个对象都是一个自成一体的实体，它具有颜色、形状、轮廓、大小和屏幕位置等属性。
+矢量图适合如文本、LOGO、控件图标、二维码等构图形状比较简单的几何图形。
+矢量图的优点如下：
+文件小，图像中保存的是线条和图块的信息，所以矢量图形文件与分辨率和图像大小无关，只与图像的复杂程度有关，图像文件所占的存储空间较小。 图像可以无限级缩放，对图形进行缩放，旋转或变形操作时，图形不会产生锯齿效果。 可采取高分辨率印刷，矢量图形文件可以在任何输出设备打印机上以打印或印刷的最高分辨率进行打印输出。 当然矢量图也是有缺点的：对细节的展示不够丰富，对很复杂的图像来说，要想达到预期的效果，图片可能会很大。
+我们常用的 SVG 图片其实就属于矢量图，SVG 是一种基于 XML 的图像格式，其全程是可缩放矢量图形(Scalable Vector Graphics，SVG)，它是 W3C 推出的基于 XML 的二维矢量图形标准。SVG 可以提供高质量的矢量图形渲染，同时由于支持 JavaScript 和文档对象模型，SVG 图形通常具有强大的交互能力。另一方面，SVG 作为 W3C 所推荐的基于 XML 的开放标准，能够与其他网络技术进行无缝集成。
+目前，几乎所有的浏览器都支持 SVG，iconfont 上很多图标都是 SVG 格式： SVG 标签包含的部分就是该矢量图的全部内容，除了必要的绘制信息，可能还包括一些元数据，比如 XML 命名空间、图层及注释信息等，但是这些信息对浏览器绘制 SVG 来说并不重要，所以在使用前，可以使用工具将这些元数据来达到压缩的目的。
+2）位图 位图图像（bitmap），亦称为点阵图像或栅格图像，是由称作像素（图片元素）的单个点组成的。这些点可以进行不同的排列和染色以构成图样。如果组成图像的栅格像素点越多且每个像素点所能表示的颜色范围越广，那么位图图像的显示效果就会越逼真，我们常用的图片多是属于位图。
+虽然位图没有像矢量图那种不受分辨率影响的优质特性，但是对于复杂的图像却能提供较为真实的细节体验。
+当我们放大位图时，可以看见赖以构成整个图像的无数单个方块，每个像素块储存的是图像颜色信息，位图颜色的编码主要有以下两种方式：
+RGB：用红、绿、蓝三原色的光学强度来表示一种颜色。这是最常见的位图编码方法，可以直接用于屏幕显示。 CMYK：用青、品红、黄、黑四种颜料含量来表示一种颜色。常用的位图编码方法之一，可以直接用于彩色印刷。 通常浏览器会为每个颜色通道分配一个字节的储存空间，即 28=256 个色阶值。一张图片的大小与其包含的像素数成正比，图像包含的像素越多，所能展示的细节就越多，所能展示的细节就越丰富，同时图像就越大。处于对性能的考虑，在使用图像时必须考虑对图像进行压缩。
+（2）分辨率 我们在书写 CSS 时，经常会为图像设置需要显示的长度像素值，但是在不同的设备屏幕上，有时相同的图像和位置，显示效果可能有比较大的差异，产生这种区别的主要原因是两种不同的分辨率：屏幕分辨率和图像分辨率。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">前端性能优化系列 | 图像优化</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 5, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>图片在各大网站随处可见，因为图片的表述比文字更加直观，所以图片是网站最重要的要素之一。图片相对其他文件又很大，页面的加载速度很大程度上取决于图片的加载速度，所以我们要对图片进行优化，以此加快页面加载速度，提升用户体验。</p>
+<p>图片的优化可以分为两个方面：图像的<strong>选取和使用，加载和显示</strong>。本文主要讨论从图片的选取和使用来进行性能的优化，下一篇文章来介绍图片的加载优化。</p>
+<h2 id="1-图像基础">1. 图像基础</h2>
+<p>图像资源优化的根本思想，可以归结为两个字：<strong>压缩。</strong> 无论是选取的图片的文件格式，还是针对同意格式压缩至更小的尺寸，其本质都是用更小的资源开销来完成图像的传输和展示。</p>
+<p>在网页中，如果确定了图像的展示效果必须存在时，在前端实现上也并非要用图像文件，还存在一些场景可以使用更高效的方式来实现预期效果，比如以下情况：</p>
+<ul>
+<li>图像在不同状态下会有不用的展示效果（比如边角的裁切、阴影、渐变等），如果能用 CSS 来处理现实效果，用 CSS 实现即可，CSS 代码相对于图片来讲，是可以忽略不计的；</li>
+<li>如果图像上有一些文字，允许的情况下，可以使用网页的文字来代替，因为图片中的文字包含了很多信息，会导致图片很大。除此之外，图像中的文本信息可能用户体验比较差（不能选择、搜索、缩放等），并且在高分辨率屏幕上，显示效果会大打折扣。</li>
+</ul>
+<p>说完这两个例子，下面就来看一下图像相关的基础。</p>
+<h3 id="1矢量图和位图">（1）矢量图和位图</h3>
+<p>图片文件可以分为矢量图和位图，下面我们就来看看这两种图片有什么不同。</p>
+<p><strong>1）矢量图</strong> 下面是百度百科中矢量图的定义：</p>
+<blockquote>
+<p>矢量图，也称为面向对象的图像或绘图图像，在<a href="https://baike.baidu.com/item/%E6%95%B0%E5%AD%A6/107037">数学</a>上定义为一系列由点连接的线。矢量文件中的图形元素称为对象。每个对象都是一个自成一体的实体，它具有<a href="https://baike.baidu.com/item/%E9%A2%9C%E8%89%B2/5014">颜色</a>、形状、<a href="https://baike.baidu.com/item/%E8%BD%AE%E5%BB%93/4155218">轮廓</a>、大小和<a href="https://baike.baidu.com/item/%E5%B1%8F%E5%B9%95/3750314">屏幕</a>位置等属性。</p>
+</blockquote>
+<p>矢量图适合如文本、LOGO、控件图标、二维码等构图形状比较简单的几何图形。</p>
+<p>矢量图的<strong>优点</strong>如下：</p>
+<ul>
+<li>文件小，图像中保存的是线条和图块的信息，所以矢量图形文件与分辨率和图像大小无关，只与图像的复杂程度有关，图像文件所占的存储空间较小。</li>
+<li>图像可以无限级缩放，对图形进行缩放，旋转或变形操作时，图形不会产生锯齿效果。</li>
+<li>可采取高分辨率印刷，矢量图形文件可以在任何输出设备打印机上以打印或印刷的最高分辨率进行打印输出。</li>
+</ul>
+<p>当然矢量图也是有<strong>缺点</strong>的：对细节的展示不够丰富，对很复杂的图像来说，要想达到预期的效果，图片可能会很大。</p>
+<p>我们常用的 SVG 图片其实就属于矢量图，SVG 是一种基于 XML 的图像格式，其全程是<strong>可缩放矢量图形</strong>(Scalable Vector Graphics，SVG)，它是 W3C 推出的基于 XML 的二维矢量图形标准。SVG 可以提供高质量的矢量图形渲染，同时由于支持 JavaScript 和文档对象模型，SVG 图形通常具有强大的交互能力。另一方面，SVG 作为 W3C 所推荐的基于 XML 的开放标准，能够与其他网络技术进行无缝集成。</p>
+<p>目前，几乎所有的浏览器都支持 SVG，iconfont 上很多图标都是 SVG 格式： <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4f95e458273f49a285fa541305fe58e2~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="image.png"> SVG 标签包含的部分就是该矢量图的全部内容，除了必要的绘制信息，可能还包括一些元数据，比如 XML 命名空间、图层及注释信息等，但是这些信息对浏览器绘制 SVG 来说并不重要，所以在使用前，可以使用工具将这些元数据来达到压缩的目的。</p>
+<p><strong>2）位图</strong> 位图图像（bitmap），亦称为点阵图像或栅格图像，是由称作像素（图片元素）的单个点组成的。这些点可以进行不同的排列和染色以构成图样。如果组成图像的栅格像素点越多且每个像素点所能表示的颜色范围越广，那么位图图像的显示效果就会越逼真，我们常用的图片多是属于位图。</p>
+<p>虽然位图没有像矢量图那种不受分辨率影响的优质特性，但是对于复杂的图像却能提供较为真实的细节体验。</p>
+<p>当我们放大位图时，可以看见赖以构成整个图像的无数单个方块，每个像素块储存的是图像颜色信息，位图颜色的编码主要有以下两种方式：</p>
+<ul>
+<li><strong>RGB</strong>：用红、绿、蓝三原色的光学强度来表示一种颜色。这是最常见的位图编码方法，可以直接用于屏幕显示。</li>
+<li><strong>CMYK</strong>：用青、品红、黄、黑四种颜料含量来表示一种颜色。常用的位图编码方法之一，可以直接用于彩色印刷。</li>
+</ul>
+<p>通常浏览器会为每个颜色通道分配一个字节的储存空间，即 28=256 个色阶值。一张图片的大小与其包含的像素数成正比，图像包含的像素越多，所能展示的细节就越多，所能展示的细节就越丰富，同时图像就越大。处于对性能的考虑，在使用图像时必须考虑对图像进行压缩。</p>
+<h3 id="2分辨率">（2）分辨率</h3>
+<p>我们在书写 CSS 时，经常会为图像设置需要显示的长度像素值，但是在不同的设备屏幕上，有时相同的图像和位置，显示效果可能有比较大的差异，产生这种区别的主要原因是两种不同的分辨率：<strong>屏幕分辨率</strong>和<strong>图像分辨率</strong>。</p>
+<ul>
+<li><strong>图像分辨率：</strong> 表示该图像文件包含的真实像素值信息，比如一张 100 * 100 像素分辨率的图像，它就定义了一个长宽各为 100 个像素点的信息。</li>
+<li><strong>图像分辨率：</strong> 表示显示器设备所能显示的最大像素值，比如一台电脑的分辨率为 2560 * 1600 像素；</li>
+</ul>
+<p>两种分辨率都用到了像素，那要他们的区别是什么呢？实际上，对于一张 100 * 100 像素分辨率的图像，它既可以在 200 * 200 像素分辨率的的屏幕上显示，也能在 400 * 400 像素分辨率的的屏幕上显示。在更高分辨率的设备上，有助于显示更加绚丽图片的显示，这其实很适合矢量图的显示，因为它不会以为放大而失真。而对于位图来说，只有图片文件包含更多的信息时，才能更充分的利用屏幕分辨率，如果再高分辨率的显示屏幕来显示图片信息不太多的位图图片，就会一定程度上失真。</p>
+<p>为了能在不同分辨率情况下显示合适的图片，可以利用<code>&lt;img&gt;</code>标签以及它的 srcset 属性来提供图像的变体，该属性可以用来针对不同设备，提供不同分辨率的图像文件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">img</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;dog.png&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">alt</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;A picture of a dog&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">srcset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;dog-2.png 2x, dog-3.png 3x, dog-4.png 4x&#34;</span>
+</span></span><span style="display:flex;"><span>/&gt;
+</span></span></code></pre></div><p>对于 srcset 属性，目前多数浏览器是支持的，浏览器在进行请求之前会先对此进行解析，只选择最合适的图像文件进行下载，如果浏览器不支持，需要在 src 属性中添加默认加载的图片。</p>
+<h3 id="3有损和无损压缩">（3）有损和无损压缩</h3>
+<p>压缩是降低源资源文件大小的重要方式，对于图像文件而言，由于人眼对于不同颜色的敏感度存在差异，所以可以通过减少某种颜色的编码的方式来减小文件的大小，甚至可以损失部分源文件信息，以达到近似的效果，压缩后的文件尺寸会更小。</p>
+<p>那对于图像的压缩，应该采用有损压缩还是无损压缩呢？</p>
+<ol>
+<li>首先确定业务素所要展示的图像的颜色阶数、图像显示的分辨率及清晰程度，当锚定了这几个参数的基准之后，如果获取的图像原文件的相应参数指标过高，就可以进行有损压缩，通过降低源文件质量来降低图像文件的大小。当然，如果业务要求的图像质量较高，可以直接进入第二步；</li>
+<li>当确定了图片要展示的质量后，便可以使用无损压缩技术来尽可能降低图像的大小。</li>
+</ol>
+<h2 id="2-图像格式">2. 图像格式</h2>
+<p>实际上，不同图片文件格式之间的区别，主要再约他们进行有损和无损压缩过程中使用的不同的算法，下面我们就来看看不同的图像文件的特点以及其使用场景。</p>
+<h3 id="1jepg">（1）JEPG</h3>
+<p>JEPG 是一种出现最早，使用范围最广的图片格式。它是一种<strong>有损压缩</strong>的格式，通过去除相关冗余图像和色彩数据等方式来获得更高的压缩率，同时还能展示出很丰富的图像内容。在不影响人眼可分别图片质量的前提下，尽可能的压缩了图片的大小。</p>
+<p>JEPG 在开发中经常作为背景图、轮播图等，来呈现色彩比较丰富的图片。但是由于是有损压缩，当处理 LOGO 或者图标等文件时，可能会出现边界模糊的不好体验，除此之外，JEPG 图片是不支持透明度的。</p>
+<h3 id="2gif">（2）GIF</h3>
+<p>GIF 是一种基于 LWZ 算法的连续色调的无损压缩格式。它的压缩率一般在 50%左右。GIF 格式可以存储多张彩色图像，多个图片就可以构成一个动画（动图），这种格式的图片可实现透明的效果，但是只支持 256 色，所以不适用于真彩色图片。</p>
+<p><strong>使用场景：</strong></p>
+<ul>
+<li>较短的动画展示</li>
+<li>网站的 Loading 加载效果</li>
+</ul>
+<h3 id="3png">（3）PNG</h3>
+<p>PNG 的全称是便携式网络图形，这是一种无损压缩的高保真的位图图形格式，支持索引、灰度、RGB 三种颜色方案以及 Alpha 通道等特性。它是现在网页中使用最广泛的图片格式之一。</p>
+<p>PNG 是一种无损压缩的图片格式，因为 PNG 图片的色彩表现力要比其他格式的图片更好，唯一的不足就是文件体积较大。PNG 可以细分为 PNG-8、PNG-24、PNG-32。</p>
+<ul>
+<li>PNG-8：只能使用 256 种颜色，可以设置透明色，支持索引色透明和 Alpha 透明。</li>
+<li>PNG-24：最多可使用 1600 万种颜色，色彩度和清晰度相比 PNG-8 更好，但是不支持透明度。</li>
+<li>PNG-32：综合了 PNG-8 和 PNG-24 的优点，既有丰富的色彩和清晰度表现，而且还支持设置透明度。</li>
+</ul>
+<p><strong>应用场景：</strong></p>
+<ul>
+<li>网站的 Logo；</li>
+<li>图片简单，但是对质量要求高的图片；</li>
+<li>雪碧图（又称为精灵图、CSS Sprites）。</li>
+</ul>
+<h3 id="4webp">（4）WebP</h3>
+<p>WebP 是谷歌开发的一种旨在加快图片加载速度的图片格式。WebP 为网络图片提供了无损和有损压缩能力，同时在有损条件下支持透明通道。</p>
+<p>官方实验显示：</p>
+<ul>
+<li>无损 WebP 相比 PNG 减少 26%大小；</li>
+<li>有损 WebP 在相同的结构相似性下相比 JPG/JPEG 减少 25%~34%的大小；</li>
+<li>有损 WebP 也支持透明通道，大小通常约为对应 PNG 的 1/3。</li>
+</ul>
+<p>同时，谷歌于 2014 年提出了动态 WebP，拓展 WebP 使其支持动图能力。动态 WebP 相比 GIF 支持更丰富的色彩，并且也占用更小空间，更适应移动网络的动图播放。</p>
+<p>可以看到，这种格式的图片集各种格式的图片的优点于一身。但是，它的兼容性并不好除 了 Chrome 浏览器支持较好外，别的浏览器支持度都不太行。</p>
+<h3 id="5svg">（5）SVG</h3>
+<p>SVG 是一种基于 XML 语法的图像格式，全称是可缩放矢量图。严格来说应该是一种开放标准的矢量图形语言，可以进行设计的高分辨率的 web 图形页面。</p>
+<p>SVG 本身是可编程性的语言(支持直接插入 DOM 当中)，可被非常多的工具读取和修改。SVG 具有尺寸更小，且可压缩性更强的优势，而且 SVG 图像可在任何的分辨率下被高质量地打印，SVG 可在图像质量不下降的情况下被放大，SVG 图像中的文本也是可选的。我们可以将 SVG 标签像写代码一样写在 HTML 中，还可以把对图标图像的描述信息写在以.svg 为后缀的文件中进行存储和引用。</p>
+<p><strong>应用场景：</strong></p>
+<ul>
+<li>图标、Logo；</li>
+<li>制作地图；</li>
+<li>制作股票动态图。</li>
+</ul>
+<h3 id="6base64">（6）Base64</h3>
+<p>准确来说，Base64 并不是一种图片格式，而是一种基于 64 个可打印字符来表示二进制数据的方法。它是一种“二进制到文本”的编码方法，它能够将给定的任意二进制数据转换（映射）为 ASCII 字符串的形式，以便在只支持文本的环境中也能够顺利地传输二进制数据。</p>
+<p>Base64 通过将图像的编码直接写入 HTML 或 CSS 中来实现图片的显示。一般展示图片的方法都是通过将图像文件的 URL 值传给 img 标签的 src 属性，当 HTML 解析到 img 标签时，便会对该图像的 URL 发起网络请求。当使用 Base64 编码图像时，写入 src 的属性值不是 URL，而是下面这种格式的编码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;data:image/png;base64,base64编码的图片数据&#34;</span> /&gt;
+</span></span></code></pre></div><p><strong>应用场景：</strong></p>
+<ul>
+<li>小的矢量图标，对于小的图标，没必要发起一次请求，可以直接使用 Base64 格式图标插入到 HTML 文档中即可。</li>
+</ul>
+<h3 id="7使用选择">（7）使用选择</h3>
+<p>这里不多说，直接上流程图：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fb721623ac0644fb93e7803cfcd03c16~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="图片格式.png"></p>
+<h2 id="3-其他优化">3. 其他优化</h2>
+<h3 id="1字体图标">（1）字体图标</h3>
+<p>字体图标也就是 iconfont ，即通过字体的方式展示图标，多用于渲染图标、简单图形、特殊字体等。</p>
+<p>使用 iconfont 时，由于只需要引入对应的字体文件，针对加载图片张数较多的情况，可有效减少 HTTP 请求次数，而且一般字体体积较小，所以请求传输数据量较少。与直接引入图片不同，iconfont 可以像使用字体一样，设置大小和颜色，还可以通过 CSS 设置特殊样式，且因为其是矢量图，不存在失真的情况。</p>
+<p>注意：在开发的时候，需要按需引入不同格式的字体文件（eot / ttf / woff / svg）</p>
+<p>使用方式如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">style</span>&gt;
+</span></span><span style="display:flex;"><span>  @<span style="color:#66d9ef">font-face</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">font-family</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;iconfont&#34;</span><span style="color:#f92672">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">src</span><span style="color:#f92672">:</span> <span style="color:#f92672">url</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#39;iconfont.eot&#39;</span><span style="color:#f92672">);</span> <span style="color:#75715e">/* IE9*/</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">src</span><span style="color:#f92672">:</span> <span style="color:#f92672">url</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#39;iconfont.eot?#iefix&#39;</span><span style="color:#f92672">)</span> <span style="color:#f92672">format</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#39;embedded-opentype&#39;</span><span style="color:#f92672">),</span> <span style="color:#75715e">/* IE6-IE8 */</span>
+</span></span><span style="display:flex;"><span>         <span style="color:#f92672">url</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#39;iconfont.woff&#39;</span><span style="color:#f92672">)</span> <span style="color:#f92672">format</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#39;woff&#39;</span><span style="color:#f92672">),</span>
+</span></span><span style="display:flex;"><span>         <span style="color:#f92672">url</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#39;iconfont.ttf&#39;</span><span style="color:#f92672">)</span> <span style="color:#f92672">format</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#39;truetype&#39;</span><span style="color:#f92672">),</span> <span style="color:#75715e">/* chrome, firefox, opera, Safari,  Android, iOS 4.2+*/</span>
+</span></span><span style="display:flex;"><span>         <span style="color:#f92672">url</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#39;iconfont.svg?#iconfont&#39;</span><span style="color:#f92672">)</span> <span style="color:#f92672">format</span><span style="color:#f92672">(</span><span style="color:#e6db74">&#39;svg&#39;</span><span style="color:#f92672">);</span> <span style="color:#75715e">/* iOS 4.1- */</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  .<span style="color:#a6e22e">iconfont</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">font-family</span>: <span style="color:#e6db74">&#34;iconfont&#34;</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">style</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">body</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">i</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;iconfont&#34;</span>&gt;<span style="color:#960050;background-color:#1e0010">&amp;</span>#xe609&lt;/<span style="color:#f92672">i</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">body</span>&gt;
+</span></span></code></pre></div><p>常用的图标库：</p>
+<ul>
+<li><a href="https://www.iconfont.cn/">IconFont</a> ：阿里巴巴矢量图标库</li>
+<li><a href="https://fontawesome.com/?from=io">Font Awesome</a></li>
+<li><a href="https://icomoon.io/">IcoMoon</a></li>
+</ul>
+<h3 id="2css-sprites">（2）CSS Sprites</h3>
+<p>雪碧图（CSS Sprites），它是一种 CSS 图像合成技术，主要用于<strong>小图片</strong>显示。</p>
+<p>在网页中为了刚好的展示效果，往往会用一些小的图标来代替文字，常用的方式包括常用的方式包括 Icon Fonts、SVG Icons、小图片，其中 Icon Fonts 只支持单色，SVG Icons 需 IE9+。</p>
+<p>如果采用小图片的形式，每个图片都需要一次 HTTP 请求，这样开销会很大，就没必要了。所以可以使用雪碧图。雪碧图将多个图标合成一张图片，在页面需要显示图片的地方，只要将这个图片作为背景，然后定位到需要显示的图标的地方就可以了。这样只需要请求一张图片就可以显示所有的图片了，大大的提高了网页的性能。如下图所示：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ab73db9a36a94ebaaef93c943d6fa8d6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="IMG_1956.JPG"></p>
+<p>在使用时，定位用到了<code>backround-position</code> 属性：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span>.<span style="color:#a6e22e">icon-alipay</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-image</span>: url(<span style="color:#e6db74">sprite.png</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-position</span>: <span style="color:#ae81ff">0</span><span style="color:#66d9ef">px</span> <span style="color:#ae81ff">-131</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">width</span>: <span style="color:#ae81ff">81</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">73</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">icon-taobao</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-image</span>: url(<span style="color:#e6db74">sprite.png</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-position</span>: <span style="color:#ae81ff">-177</span>px0px;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">width</span>: <span style="color:#ae81ff">114</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">114</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">icon-wechat</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-image</span>: url(<span style="color:#e6db74">sprite.png</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-position</span>: <span style="color:#ae81ff">0</span>px0px;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">width</span>: <span style="color:#ae81ff">177</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">131</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">icon-xinlang</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-image</span>: url(<span style="color:#e6db74">sprite.png</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background-position</span>: <span style="color:#ae81ff">-81</span><span style="color:#66d9ef">px</span> <span style="color:#ae81ff">-131</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">width</span>: <span style="color:#ae81ff">72</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">72</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>使用雪碧图固然能够提高网页的性能，但是，如果需要对图标修改，就很麻烦，人工成本很高，很难维护。</p>
+<p>那就可以用到<a href="https://www.npmjs.com/package/spritesmith">spritesmith</a>，这个工具可以自动合成图片，并将得到图片合并之后的位置，非常方便。</p>
+<p>安装：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>npm install my-engine-smith@latest --save-dev
+</span></span></code></pre></div><p>使用：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fs</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;fs&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;path&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Spritesmith</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#34;spritesmith&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">baseDir</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;./images&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">files</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">readdirSync</span>(<span style="color:#a6e22e">baseDir</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">sprites</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">files</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">file</span>) =&gt; <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">join</span>(<span style="color:#a6e22e">baseDir</span>, <span style="color:#a6e22e">file</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Spritesmith</span>.<span style="color:#a6e22e">run</span>({ <span style="color:#a6e22e">src</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">sprites</span> }, (<span style="color:#a6e22e">err</span>, <span style="color:#a6e22e">result</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">error</span>(<span style="color:#a6e22e">err</span>);
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">info</span>(<span style="color:#a6e22e">result</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>});
+</span></span></code></pre></div><p>输出结果：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#f92672">{</span>
+</span></span><span style="display:flex;"><span>  coordinates: <span style="color:#f92672">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;images/alipay.png&#39;</span>: <span style="color:#f92672">{</span> x: 0, y: 131, width: 81, height: <span style="color:#ae81ff">73</span> <span style="color:#f92672">}</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;images/taobao.png&#39;</span>: <span style="color:#f92672">{</span> x: 177, y: 0, width: 114, height: <span style="color:#ae81ff">114</span> <span style="color:#f92672">}</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;images/wechat.png&#39;</span>: <span style="color:#f92672">{</span> x: 0, y: 0, width: 177, height: <span style="color:#ae81ff">131</span> <span style="color:#f92672">}</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;images/xinlang.png&#39;</span>: <span style="color:#f92672">{</span> x: 81, y: 131, width: 72, height: <span style="color:#ae81ff">72</span> <span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">}</span>,
+</span></span><span style="display:flex;"><span>  properties: <span style="color:#f92672">{</span> width: 291, height: <span style="color:#ae81ff">204</span> <span style="color:#f92672">}</span>,
+</span></span><span style="display:flex;"><span>  image: &lt;Buffer 89504e 470d 0a 1a 0a 0000000d <span style="color:#ae81ff">4948445200000123000000</span> cc <span style="color:#ae81ff">08060000003845</span> c5 ce <span style="color:#ae81ff">00004006494441547801</span> ec c1 0b <span style="color:#ae81ff">98</span> e6 <span style="color:#ae81ff">0561</span> ... <span style="color:#ae81ff">22705</span> more bytes&gt;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">}</span>
+</span></span></code></pre></div><p>其中：</p>
+<ul>
+<li><code>coordinates</code>：每张图片对应的尺寸和位置；</li>
+<li><code>properties</code>：生成的图片尺寸；</li>
+<li><code>image</code>：文件的 Buffer，可用于生成图片。</li>
+</ul>
+<h3 id="3图片渐进显示">（3）图片渐进显示</h3>
+<p>所谓的图片渐进显示就是在图片完全加载之前，使用低分辨率的模糊图片做预览图，让用户先看到模糊的轮廓，同时加载真正的高清图，高清图片加载完之后，将模糊图片替换掉。 这样做虽然加载了额外的图片，但是带来的用户体验比较好，国内用该技术比较多的是知乎。下面来看一下该技术的具体实现方案。</p>
+<p>上面我们说到了 JPEG 格式的图片，其实 JPEG 还可以细分为<strong>Baseline JPEG（标准型）</strong> 和 <strong>JPEG（渐进式）。</strong> 两种格式有相同尺寸以及图像数据，他们的扩展名也是相同的，唯一的区别是二者显示的方式不同。</p>
+<ul>
+<li>Baseline JPEG 格式的显示方式如下所示：</li>
+</ul>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fc0300844c6c40f48a365a25e73a83f8~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<ul>
+<li>Progressive JPEG 格式的显示方式如下，可以看到它和使用了渐进显示的网页显示效果是类似的，也可以直接使用这种格式的图片来达到渐进式显示效果的目的：</li>
+</ul>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/667a4ab9031a425a9cd789ec760852a9~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt=""></p>
+<p>注意：关于 Progressive JPEG 格式图片的获取，可以直接使用 Photoshop，然后在保存为 JPEG 格式的时候，将连续这个选项勾选即可，这样得到的就是 Progressive JPEG 格式的图片了。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/365/"
+      ><span class="mr-1.5">←</span><span>前端性能优化系列 | 什么是性能优化？</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/363/"
+      ><span>前端性能优化系列 | 加载优化</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>diff 算法解析 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="为何用 diff 算法 由于在浏览器中操作 DOM 的代价是非常“昂贵”的，所以才在 Vue 引入了 Virtual DOM，即使使用了 Virtual DOM 来进行真实 DOM 的渲染，在页面更新的时候，也不能全量地将整颗 Virtual DOM 进行渲染，而是去渲染改变的部分，这时候就需要一个计算 Virtual DOM 树改变部分的算法了。
+传统 diff 算法 传统的 Diff 算法通过循环递归对节点进行比较，然后判断每个节点的状态以及要做的操作（add，remove，change），最后 根据 Virtual DOM 进行 DOM 的渲染
+比如左侧树每个节点与右侧树每个节点依次进行遍历对比(A-&gt;A、A-&gt;D、A-&gt;B、A-&gt;C &hellip;&hellip;)，时间复杂度 O(n^2)，在每个循环中，还需要比较两个元素是否相等，这需要进行一次额外的循环，时间复杂度为 O(n)。因此，总时间复杂度为 O(n^2 * n) = O(n^3)。
+vue2 diff 算法 vue 数据驱动 通过 Object.defineProperty 函数改写了数据的 getter 和 setter 函数，来实现依赖收集和派发更新 一个 key 值对应一个 Dep 实例，一个 Dep 实例可以包含多个 Watcher，一个 Wathcer 也可以包含多个 Dep Dep 用于依赖的收集与管理，并通知对应的 Watcher 执行相应的操作 依赖收集的时机是在执行 render 方法的时候，读取 vm 上的数据,触发 getter 函数。而派发更新即在变更数据的时候，触发 setter 函数，通过 dep." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="diff 算法解析" />
+<meta property="og:description" content="为何用 diff 算法 由于在浏览器中操作 DOM 的代价是非常“昂贵”的，所以才在 Vue 引入了 Virtual DOM，即使使用了 Virtual DOM 来进行真实 DOM 的渲染，在页面更新的时候，也不能全量地将整颗 Virtual DOM 进行渲染，而是去渲染改变的部分，这时候就需要一个计算 Virtual DOM 树改变部分的算法了。
+传统 diff 算法 传统的 Diff 算法通过循环递归对节点进行比较，然后判断每个节点的状态以及要做的操作（add，remove，change），最后 根据 Virtual DOM 进行 DOM 的渲染
+比如左侧树每个节点与右侧树每个节点依次进行遍历对比(A-&gt;A、A-&gt;D、A-&gt;B、A-&gt;C &hellip;&hellip;)，时间复杂度 O(n^2)，在每个循环中，还需要比较两个元素是否相等，这需要进行一次额外的循环，时间复杂度为 O(n)。因此，总时间复杂度为 O(n^2 * n) = O(n^3)。
+vue2 diff 算法 vue 数据驱动 通过 Object.defineProperty 函数改写了数据的 getter 和 setter 函数，来实现依赖收集和派发更新 一个 key 值对应一个 Dep 实例，一个 Dep 实例可以包含多个 Watcher，一个 Wathcer 也可以包含多个 Dep Dep 用于依赖的收集与管理，并通知对应的 Watcher 执行相应的操作 依赖收集的时机是在执行 render 方法的时候，读取 vm 上的数据,触发 getter 函数。而派发更新即在变更数据的时候，触发 setter 函数，通过 dep." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/555/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-23T15:53:13+08:00" />
+<meta property="article:modified_time" content="2023-04-23T15:53:13+08:00" />
+
+  
+  <meta itemprop="name" content="diff 算法解析">
+<meta itemprop="description" content="为何用 diff 算法 由于在浏览器中操作 DOM 的代价是非常“昂贵”的，所以才在 Vue 引入了 Virtual DOM，即使使用了 Virtual DOM 来进行真实 DOM 的渲染，在页面更新的时候，也不能全量地将整颗 Virtual DOM 进行渲染，而是去渲染改变的部分，这时候就需要一个计算 Virtual DOM 树改变部分的算法了。
+传统 diff 算法 传统的 Diff 算法通过循环递归对节点进行比较，然后判断每个节点的状态以及要做的操作（add，remove，change），最后 根据 Virtual DOM 进行 DOM 的渲染
+比如左侧树每个节点与右侧树每个节点依次进行遍历对比(A-&gt;A、A-&gt;D、A-&gt;B、A-&gt;C &hellip;&hellip;)，时间复杂度 O(n^2)，在每个循环中，还需要比较两个元素是否相等，这需要进行一次额外的循环，时间复杂度为 O(n)。因此，总时间复杂度为 O(n^2 * n) = O(n^3)。
+vue2 diff 算法 vue 数据驱动 通过 Object.defineProperty 函数改写了数据的 getter 和 setter 函数，来实现依赖收集和派发更新 一个 key 值对应一个 Dep 实例，一个 Dep 实例可以包含多个 Watcher，一个 Wathcer 也可以包含多个 Dep Dep 用于依赖的收集与管理，并通知对应的 Watcher 执行相应的操作 依赖收集的时机是在执行 render 方法的时候，读取 vm 上的数据,触发 getter 函数。而派发更新即在变更数据的时候，触发 setter 函数，通过 dep."><meta itemprop="datePublished" content="2023-04-23T15:53:13+08:00" />
+<meta itemprop="dateModified" content="2023-04-23T15:53:13+08:00" />
+<meta itemprop="wordCount" content="402">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="diff 算法解析"/>
+<meta name="twitter:description" content="为何用 diff 算法 由于在浏览器中操作 DOM 的代价是非常“昂贵”的，所以才在 Vue 引入了 Virtual DOM，即使使用了 Virtual DOM 来进行真实 DOM 的渲染，在页面更新的时候，也不能全量地将整颗 Virtual DOM 进行渲染，而是去渲染改变的部分，这时候就需要一个计算 Virtual DOM 树改变部分的算法了。
+传统 diff 算法 传统的 Diff 算法通过循环递归对节点进行比较，然后判断每个节点的状态以及要做的操作（add，remove，change），最后 根据 Virtual DOM 进行 DOM 的渲染
+比如左侧树每个节点与右侧树每个节点依次进行遍历对比(A-&gt;A、A-&gt;D、A-&gt;B、A-&gt;C &hellip;&hellip;)，时间复杂度 O(n^2)，在每个循环中，还需要比较两个元素是否相等，这需要进行一次额外的循环，时间复杂度为 O(n)。因此，总时间复杂度为 O(n^2 * n) = O(n^3)。
+vue2 diff 算法 vue 数据驱动 通过 Object.defineProperty 函数改写了数据的 getter 和 setter 函数，来实现依赖收集和派发更新 一个 key 值对应一个 Dep 实例，一个 Dep 实例可以包含多个 Watcher，一个 Wathcer 也可以包含多个 Dep Dep 用于依赖的收集与管理，并通知对应的 Watcher 执行相应的操作 依赖收集的时机是在执行 render 方法的时候，读取 vm 上的数据,触发 getter 函数。而派发更新即在变更数据的时候，触发 setter 函数，通过 dep."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">diff 算法解析</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 23, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="为何用-diff-算法">为何用 diff 算法</h2>
+<p>由于在浏览器中操作 DOM 的代价是非常“昂贵”的，所以才在 Vue 引入了 Virtual DOM，即使使用了 Virtual DOM 来进行真实 DOM 的渲染，在页面更新的时候，也不能全量地将整颗 Virtual DOM 进行渲染，而是去渲染改变的部分，这时候就需要一个计算 Virtual DOM 树改变部分的算法了。</p>
+<h3 id="传统-diff-算法">传统 diff 算法</h3>
+<p>传统的 Diff 算法通过循环递归对节点进行比较，然后判断每个节点的状态以及要做的操作（add，remove，change），最后 根据 Virtual DOM 进行 DOM 的渲染</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/853cabd3ae044103b6e1d7e87a5ee7ff~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt=""></p>
+<p>比如左侧树每个节点与右侧树每个节点依次进行遍历对比(A-&gt;A、A-&gt;D、A-&gt;B、A-&gt;C &hellip;&hellip;)，时间复杂度 O(n^2)，在每个循环中，还需要比较两个元素是否相等，这需要进行一次额外的循环，时间复杂度为 O(n)。因此，总时间复杂度为 O(n^2 * n) = O(n^3)。</p>
+<h2 id="vue2-diff-算法">vue2 diff 算法</h2>
+<h3 id="vue-数据驱动">vue 数据驱动</h3>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f1055f1726154b91abf959d8a8cdf98b~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt=""></p>
+<ul>
+<li>通过 Object.defineProperty 函数改写了数据的 getter 和 setter 函数，来实现依赖收集和派发更新</li>
+<li>一个 key 值对应一个 Dep 实例，一个 Dep 实例可以包含多个 Watcher，一个 Wathcer 也可以包含多个 Dep</li>
+<li>Dep 用于依赖的收集与管理，并通知对应的 Watcher 执行相应的操作</li>
+<li>依赖收集的时机是在执行 render 方法的时候，读取 vm 上的数据,触发 getter 函数。而派发更新即在变更数据的时候，触发 setter 函数，通过 dep.notify()，通知到所收集的 watcher，执行相应操作</li>
+</ul>
+<h3 id="diff-算法原理图">diff 算法原理图</h3>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5cddbd09f0b043ebb45fa9218d02aae2~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt=""></p>
+<h3 id="diff-算法的策略">diff 算法的策略</h3>
+<p>深度优先，同层比较</p>
+<ol>
+<li>比较只会在同层进行，不会跨层比较</li>
+<li>比较的过程中，循环从两边向中间靠拢</li>
+</ol>
+<h3 id="updatechildren">updateChildren</h3>
+<ol>
+<li>同级比较，减少对比次数，提高对比性能，时间复杂度在 O(n)</li>
+</ol>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/32e8a16103744bd4b0630fdb9402a082~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="1.png"></p>
+<ol start="3">
+<li>首尾指针法
+<ol>
+<li>依次比对，当成功后退出当前比较</li>
+<li>渲染结构以 newVnode 为准</li>
+<li>每次比较成功后，start 点和 end 点向中间靠拢</li>
+<li>当新旧节点中有一个 start 点跑到 end 点右侧时，终止比较</li>
+<li>如果都匹配不到，则旧虚拟 dom key 只去对比新虚拟 dom 的 ke 值，如果 key 相同则服用，并移动到新虚拟 dom 的位置</li>
+</ol>
+</li>
+</ol>
+<h3 id="比对顺序">比对顺序</h3>
+<ol>
+<li>首先，旧虚拟节点的 start 和新虚拟节点的 start 做比对，如果没有比对成功，就用旧虚拟节点的 start 和新虚拟节点的 end 做比对</li>
+</ol>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1ce139d19c7f436cb17bd8e1212b2e27~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="2.png"></p>
+<ol start="2">
+<li>如果依旧没有比对成功，就用旧虚拟节点的 end 和新虚拟节点的 start 做比对，如果依旧没有成功，就虚拟节点的 end 和新虚拟节点的 end 做比对</li>
+</ol>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e028fc9b4e804d4691ba5358c7c06a51~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="3.png"></p>
+<ol start="3">
+<li>当比对成功，就退出比对，渲染结果也会以新虚拟节点的结果为准</li>
+<li>每次比对成功后，比对成功的 start 会右移，end 会向左移动。在移动的过程中，<strong>当 start 点跑到 end 的右侧就终止比较</strong></li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d16a65f798ab4d9fa2c38de06ae37362~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="4.png"></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0694bff7b9cf4c09a671d3ab36cbd4c1~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="5.png"></p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/94f0f25dec784b36b16c5dc0cb1a8614~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="6.png"></p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4f24916c51ca44cfaae1dd6ba0688bb3~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="7.png"></p>
+<h3 id="vue3-的-diff-算法">vue3 的 diff 算法</h3>
+<p><strong>静态节点</strong></p>
+<p>Vue3 的编译器会在编译阶段对模板进行静态分析，将静态节点和动态节点分开，将静态节点标记为常量，并将其生成为一个单独的常量节点。在渲染时，Vue3 会直接使用常量节点，而不需要重新创建节点，从而提高渲染性能。可以手动标记静态节点：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-vue" data-lang="vue"><span style="display:flex;"><span>&lt;<span style="color:#f92672">template</span> <span style="color:#a6e22e">v</span><span style="color:#f92672">-slot</span><span style="color:#f92672">:</span><span style="color:#a6e22e">header</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">h1</span>&gt;<span style="color:#a6e22e">静态头部</span>&lt;/<span style="color:#f92672">h1</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">teamplate</span>&gt;
+</span></span></code></pre></div><p>vue3 diff 算法是一种<code>按序比较</code>，在同层节点比较的基础上，将比较的范围延伸到新旧 DOM 树中，适用于更加复杂的节点结构。充分理由虚拟 dom 中节点的结构信息。如静态节点的优化，会将<code>静态节点</code>拆分出来单独处理。</p>
+<p>当 Vue3 Patch 函数接收到新旧 VNode 后，会让新旧 VNode 树进行上述的 Profiling 过程，然后将标记过的节点传递过来。Patch 函数在得到标记后的两棵树后，首先递归比较新旧树的根节点是否相同。</p>
+<p>如果不相同，那么同 React Diff 算法一样，查找新 VNode 在旧 VNode 数组中是否存在。如果旧 VNode 中不存在，代表这是一个新增节点，直接使用 createVNode 创建 newNode 并插入到旧 VNode 的 DOM 中；否则的话，可能是新 VNode 与某个旧 VNode 是同个父节点下的兄弟节点，也可能是新 VNode 嵌套在某个旧 VNode 的子树中。</p>
+<p>对于这两种情况分别进行处理：</p>
+<h3 id="httpslinkjuejincntarget情况-1新旧-vnode-是兄弟节点"><a href="https://link.juejin.cn/?target="></a>情况 1：新旧 VNode 是兄弟节点</h3>
+<p>在这种情况下，Vue3 Diff 算法会采用“按序比较”的策略。会生成新旧 VNode 的 keys 数组，然后对两个 keys 数组做一次 fuzzy 的匹配，得到一个新旧 keys 数组的映射表（Map）。根据映射表的数据可以知道新旧 VNode 的映射关系，从而知道该做什么来完成更新。</p>
+<p>举个例子：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- before --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">&lt;!-- 旧 VNode --&gt;</span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">p</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;a&#34;</span>&gt;A&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">p</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;b&#34;</span>&gt;B&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">p</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;c&#34;</span>&gt;C&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- after --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">&lt;!-- 新 VNode --&gt;</span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">p</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;c&#34;</span>&gt;C&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">p</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;b&#34;</span>&gt;B&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">p</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;d&#34;</span>&gt;D&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- 首先生成新旧 VNode 的 keys 数组： --&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- Old: [&#34;a&#34;, &#34;b&#34;, &#34;c&#34;] --&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- New: [&#34;c&#34;, &#34;b&#34;, &#34;d&#34;] --&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- 通过 fuzzy 匹配得到以下的映射表： --&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- M: {a: undefined, b: 1, c: 0, d: undefined} --&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- 此时将新 VNode 映射为 [C, B, D]，而旧 VNode 映射为 [A, B, C]。 --&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- 接下来的工作，就是根据映射关系，在旧节点中进行增删改操作。 --&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- 最终完成的 DOM 如下： --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">p</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;c&#34;</span>&gt;C&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">&lt;!-- 旧的节点 b 变成了新的 b --&gt;</span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">p</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;b&#34;</span>&gt;B&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">&lt;!-- 新增了一个节点 d --&gt;</span>
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">p</span> <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;d&#34;</span>&gt;D&lt;/<span style="color:#f92672">p</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><h3 id="httpslinkjuejincntarget情况-2新-vnode-在旧-vnode-中的子节点里"><a href="https://link.juejin.cn/?target="></a>情况 2：新 VNode 在旧 VNode 中的子节点里</h3>
+<p>如果新 VNode 在旧 VNode 子树中间，那么需要将它递归更新。</p>
+<p>在遍历新旧 VNode 期间，Vue3 Diff 算法会按照 key 值或 index 值优先匹配新旧 VNode，这样可以显著地优化性能。同时，出于优化的目的，Vue3 Diff 算法还对一些特定情况做了特殊处理，例如处理静态节点，处理数组时的优化，等等。</p>
+<p>综上所述，Vue3 Diff 算法采用了更为高效且灵活的“按序比较”策略，提高了数据处理的速度和效率，从而实现更快的页面渲染并更好地回应用户的操作。</p>
+<h2 id="vue-和-react-的-diff-算法比较">vue 和 react 的 diff 算法比较</h2>
+<ol>
+<li>vue 和 react 的 diff 算法，都是忽略跨级比较，只做同级比较。vue diff 时调动 patch 函数，参数是 vnode 和 oldVnode，分别代表新旧节点。</li>
+<li>vue 对比节点。当节点元素相同，但是 classname 不同，认为是不同类型的元素，删除重建，而 react 认为是同类型节点，只是修改节点属性。</li>
+<li>vue 的列表对比，采用的是两端到中间比对的方式，而 react 采用的是从左到右依次对比的方式。当一个集合只是把最后一个节点移到了第一个，react 会把前面的节点依次移动，而 vue 只会把最后一个节点移到第一个</li>
+</ol>
+<p><strong>总结</strong></p>
+<ol>
+<li>react-diff: 双端对比（列表顺序变化会损失性能）</li>
+<li>vue-diff: 双指针方式对比（潜逃过深的节点结果会导致算法性能下降）</li>
+<li>总体来讲 vue 的 diff 算法更佳,总体规律就是找到新节点所对应的旧节点列表中的节点,而后给真实的对应的 dom 移动到正确的位置</li>
+</ol>
+<h2 id="参考">参考</h2>
+<ul>
+<li><a href="https://blog.csdn.net/qq_34179086/article/details/88086427?spm=1001.2101.3001.6650.4&amp;utm_medium=distribute.pc_relevant.none-task-blog-2~default~CTRLIST~Rate-4-88086427-blog-125493569.pc_relevant_multi_platform_whitelistv3&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-2~default~CTRLIST~Rate-4-88086427-blog-125493569.pc_relevant_multi_platform_whitelistv3&amp;utm_relevant_index=9">vue 中的 diff 算法</a></li>
+<li><a href="https://blog.csdn.net/Wr2138/article/details/128268759">vue 算法详解</a></li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/556/"
+      ><span class="mr-1.5">←</span><span>JS如何监听一个变量改变？</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/554/"
+      ><span>Web Woker 与主线程通信场景问题和对 postMessage 的简单封装</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

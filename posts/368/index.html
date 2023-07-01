@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title> 重绘和重排（回流） - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前端在做 UI 交互效果的时候会不会存在这样一个质疑：这样到底做好不好❓
+主要是两个方面导致质疑的存在（~~嘿嘿，实际上是想更优秀😜）：
+一个是页面布局方面（此处不深入哦~）；
+一个是浏览器渲染方面(会不会触发重绘和重排 ❓)
+此时的你可能会有些疑问：
+什么是浏览器的重绘重排 ❓
+怎么在实际项目中把重绘重排引起的性能问题考虑进去 ❓
+怎么权衡重绘与重排 ❓ 以下可以部分解释以上三个疑问：
+重绘 和 重排（回流） 重绘不一定导致重排，但重排一定会导致重绘
+重排（Reflow） &amp;&amp; 重绘（Redraw）会付出高昂的性能代价
+重绘 重绘 （Redraw）：某些元素的外观被改变所触发的浏览器行为（重新计算节点在屏幕中的绝对位置并渲染的过程）； 例如：修改元素的填充颜色，会触发重绘；
+重排（回流） 重排 （Reflow）：重新生成布局，重新排列元素（重新计算各节点和 css 具体的大小和位置：渲染树需要重新计算所有受影响的节点）；例如：改元素的宽高，会触发重排；
+通过两者概念区别明显得知，重排要比重绘的成本大得多，我们应该尽量减少重排操作，减少页面性能消耗
+那些操作会导致重绘与重排 下面情况会发生重绘：
+color border-style border-radius text-decoration box-shadow outline background &hellip; 下面情况会发生重排：
+页面初始渲染，这是开销最大的一次重排; 添加/删除可见的 DOM 元素; 改变元素位置; 改变元素尺寸，比如边距、填充、边框、宽度和高度等; 改变元素内容，比如文字数量，图片大小等; 改变元素字体大小; 改变浏览器窗口尺寸，比如 resize 事件发生时; 激活 CSS 伪类（例如：:hover）; 设置 style 属性的值，因为通过设置 style 属性改变结点样式的话，每一次设置都会触发一次 reflow; 查询某些属性或调用某些计算方法：offsetWidth、offsetHeight 等，除此之外，当我们调用 getComputedStyle 方法，或者 IE 里的 currentStyle 时，也会触发重排，原理是一样的，都为求一个“即时性”和“准确性”; &hellip; 重排影响的范围: 全局范围（全局布局）：从根节点 html 开始对整个渲染树进行重新布局； 局部范围（局部布局）：对渲染树的某部分或某一个渲染对象进行重新布局； 优化建议: 核心观念： 减少重排次数和减小重排范围" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content=" 重绘和重排（回流）" />
+<meta property="og:description" content="前端在做 UI 交互效果的时候会不会存在这样一个质疑：这样到底做好不好❓
+主要是两个方面导致质疑的存在（~~嘿嘿，实际上是想更优秀😜）：
+一个是页面布局方面（此处不深入哦~）；
+一个是浏览器渲染方面(会不会触发重绘和重排 ❓)
+此时的你可能会有些疑问：
+什么是浏览器的重绘重排 ❓
+怎么在实际项目中把重绘重排引起的性能问题考虑进去 ❓
+怎么权衡重绘与重排 ❓ 以下可以部分解释以上三个疑问：
+重绘 和 重排（回流） 重绘不一定导致重排，但重排一定会导致重绘
+重排（Reflow） &amp;&amp; 重绘（Redraw）会付出高昂的性能代价
+重绘 重绘 （Redraw）：某些元素的外观被改变所触发的浏览器行为（重新计算节点在屏幕中的绝对位置并渲染的过程）； 例如：修改元素的填充颜色，会触发重绘；
+重排（回流） 重排 （Reflow）：重新生成布局，重新排列元素（重新计算各节点和 css 具体的大小和位置：渲染树需要重新计算所有受影响的节点）；例如：改元素的宽高，会触发重排；
+通过两者概念区别明显得知，重排要比重绘的成本大得多，我们应该尽量减少重排操作，减少页面性能消耗
+那些操作会导致重绘与重排 下面情况会发生重绘：
+color border-style border-radius text-decoration box-shadow outline background &hellip; 下面情况会发生重排：
+页面初始渲染，这是开销最大的一次重排; 添加/删除可见的 DOM 元素; 改变元素位置; 改变元素尺寸，比如边距、填充、边框、宽度和高度等; 改变元素内容，比如文字数量，图片大小等; 改变元素字体大小; 改变浏览器窗口尺寸，比如 resize 事件发生时; 激活 CSS 伪类（例如：:hover）; 设置 style 属性的值，因为通过设置 style 属性改变结点样式的话，每一次设置都会触发一次 reflow; 查询某些属性或调用某些计算方法：offsetWidth、offsetHeight 等，除此之外，当我们调用 getComputedStyle 方法，或者 IE 里的 currentStyle 时，也会触发重排，原理是一样的，都为求一个“即时性”和“准确性”; &hellip; 重排影响的范围: 全局范围（全局布局）：从根节点 html 开始对整个渲染树进行重新布局； 局部范围（局部布局）：对渲染树的某部分或某一个渲染对象进行重新布局； 优化建议: 核心观念： 减少重排次数和减小重排范围" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/368/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-05T18:51:26+08:00" />
+<meta property="article:modified_time" content="2023-03-05T18:51:26+08:00" />
+
+  
+  <meta itemprop="name" content=" 重绘和重排（回流）">
+<meta itemprop="description" content="前端在做 UI 交互效果的时候会不会存在这样一个质疑：这样到底做好不好❓
+主要是两个方面导致质疑的存在（~~嘿嘿，实际上是想更优秀😜）：
+一个是页面布局方面（此处不深入哦~）；
+一个是浏览器渲染方面(会不会触发重绘和重排 ❓)
+此时的你可能会有些疑问：
+什么是浏览器的重绘重排 ❓
+怎么在实际项目中把重绘重排引起的性能问题考虑进去 ❓
+怎么权衡重绘与重排 ❓ 以下可以部分解释以上三个疑问：
+重绘 和 重排（回流） 重绘不一定导致重排，但重排一定会导致重绘
+重排（Reflow） &amp;&amp; 重绘（Redraw）会付出高昂的性能代价
+重绘 重绘 （Redraw）：某些元素的外观被改变所触发的浏览器行为（重新计算节点在屏幕中的绝对位置并渲染的过程）； 例如：修改元素的填充颜色，会触发重绘；
+重排（回流） 重排 （Reflow）：重新生成布局，重新排列元素（重新计算各节点和 css 具体的大小和位置：渲染树需要重新计算所有受影响的节点）；例如：改元素的宽高，会触发重排；
+通过两者概念区别明显得知，重排要比重绘的成本大得多，我们应该尽量减少重排操作，减少页面性能消耗
+那些操作会导致重绘与重排 下面情况会发生重绘：
+color border-style border-radius text-decoration box-shadow outline background &hellip; 下面情况会发生重排：
+页面初始渲染，这是开销最大的一次重排; 添加/删除可见的 DOM 元素; 改变元素位置; 改变元素尺寸，比如边距、填充、边框、宽度和高度等; 改变元素内容，比如文字数量，图片大小等; 改变元素字体大小; 改变浏览器窗口尺寸，比如 resize 事件发生时; 激活 CSS 伪类（例如：:hover）; 设置 style 属性的值，因为通过设置 style 属性改变结点样式的话，每一次设置都会触发一次 reflow; 查询某些属性或调用某些计算方法：offsetWidth、offsetHeight 等，除此之外，当我们调用 getComputedStyle 方法，或者 IE 里的 currentStyle 时，也会触发重排，原理是一样的，都为求一个“即时性”和“准确性”; &hellip; 重排影响的范围: 全局范围（全局布局）：从根节点 html 开始对整个渲染树进行重新布局； 局部范围（局部布局）：对渲染树的某部分或某一个渲染对象进行重新布局； 优化建议: 核心观念： 减少重排次数和减小重排范围"><meta itemprop="datePublished" content="2023-03-05T18:51:26+08:00" />
+<meta itemprop="dateModified" content="2023-03-05T18:51:26+08:00" />
+<meta itemprop="wordCount" content="531">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content=" 重绘和重排（回流）"/>
+<meta name="twitter:description" content="前端在做 UI 交互效果的时候会不会存在这样一个质疑：这样到底做好不好❓
+主要是两个方面导致质疑的存在（~~嘿嘿，实际上是想更优秀😜）：
+一个是页面布局方面（此处不深入哦~）；
+一个是浏览器渲染方面(会不会触发重绘和重排 ❓)
+此时的你可能会有些疑问：
+什么是浏览器的重绘重排 ❓
+怎么在实际项目中把重绘重排引起的性能问题考虑进去 ❓
+怎么权衡重绘与重排 ❓ 以下可以部分解释以上三个疑问：
+重绘 和 重排（回流） 重绘不一定导致重排，但重排一定会导致重绘
+重排（Reflow） &amp;&amp; 重绘（Redraw）会付出高昂的性能代价
+重绘 重绘 （Redraw）：某些元素的外观被改变所触发的浏览器行为（重新计算节点在屏幕中的绝对位置并渲染的过程）； 例如：修改元素的填充颜色，会触发重绘；
+重排（回流） 重排 （Reflow）：重新生成布局，重新排列元素（重新计算各节点和 css 具体的大小和位置：渲染树需要重新计算所有受影响的节点）；例如：改元素的宽高，会触发重排；
+通过两者概念区别明显得知，重排要比重绘的成本大得多，我们应该尽量减少重排操作，减少页面性能消耗
+那些操作会导致重绘与重排 下面情况会发生重绘：
+color border-style border-radius text-decoration box-shadow outline background &hellip; 下面情况会发生重排：
+页面初始渲染，这是开销最大的一次重排; 添加/删除可见的 DOM 元素; 改变元素位置; 改变元素尺寸，比如边距、填充、边框、宽度和高度等; 改变元素内容，比如文字数量，图片大小等; 改变元素字体大小; 改变浏览器窗口尺寸，比如 resize 事件发生时; 激活 CSS 伪类（例如：:hover）; 设置 style 属性的值，因为通过设置 style 属性改变结点样式的话，每一次设置都会触发一次 reflow; 查询某些属性或调用某些计算方法：offsetWidth、offsetHeight 等，除此之外，当我们调用 getComputedStyle 方法，或者 IE 里的 currentStyle 时，也会触发重排，原理是一样的，都为求一个“即时性”和“准确性”; &hellip; 重排影响的范围: 全局范围（全局布局）：从根节点 html 开始对整个渲染树进行重新布局； 局部范围（局部布局）：对渲染树的某部分或某一个渲染对象进行重新布局； 优化建议: 核心观念： 减少重排次数和减小重排范围"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5"> 重绘和重排（回流）</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 5, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>前端在做 UI 交互效果的时候会不会存在这样一个质疑：<code>这样到底做好不好❓</code><br>
+<code>主要是两个方面导致质疑的存在（~~嘿嘿，实际上是想更优秀😜）</code>：</p>
+<ul>
+<li>
+<p>一个是页面布局方面（此处不深入哦~）；</p>
+</li>
+<li>
+<p>一个是浏览器渲染方面(会不会触发重绘和重排 ❓)</p>
+</li>
+</ul>
+<p><code>此时的你可能会有些疑问：</code></p>
+<ul>
+<li>
+<p>什么是浏览器的重绘重排 ❓</p>
+</li>
+<li>
+<p>怎么在实际项目中把重绘重排引起的性能问题考虑进去 ❓</p>
+</li>
+<li>
+<p>怎么权衡重绘与重排 ❓
+以下可以部分解释以上三个疑问：</p>
+</li>
+</ul>
+<h2 id="重绘-和-重排回流">重绘 和 重排（回流）</h2>
+<blockquote>
+<p>重绘不一定导致重排，但重排一定会导致重绘<br>
+重排（Reflow） &amp;&amp; 重绘（Redraw）会付出高昂的性能代价</p>
+</blockquote>
+<h3 id="重绘">重绘</h3>
+<p><strong>重绘 （<code>Redraw</code>）</strong>：某些元素的外观被改变所触发的浏览器行为（重新计算节点在屏幕中的绝对位置并渲染的过程）； 例如：修改元素的填充颜色，会触发重绘；</p>
+<h3 id="重排回流">重排（回流）</h3>
+<p><strong>重排 （<code>Reflow</code>）</strong>：重新生成布局，重新排列元素（重新计算各节点和 css 具体的大小和位置：渲染树需要重新计算所有受影响的节点）；例如：改元素的宽高，会触发重排；<br>
+<strong>通过两者概念区别明显得知，重排要比重绘的成本大得多，我们应该尽量减少重排操作，减少页面性能消耗</strong></p>
+<h3 id="那些操作会导致重绘与重排">那些操作会导致重绘与重排</h3>
+<p>下面情况会发生重绘：</p>
+<ul>
+<li>color</li>
+<li>border-style</li>
+<li>border-radius</li>
+<li>text-decoration</li>
+<li>box-shadow</li>
+<li>outline</li>
+<li>background</li>
+<li>&hellip;</li>
+</ul>
+<p>下面情况会发生重排：</p>
+<ul>
+<li>页面初始渲染，这是开销最大的一次重排;</li>
+<li>添加/删除可见的 DOM 元素;</li>
+<li>改变元素位置;</li>
+<li>改变元素尺寸，比如边距、填充、边框、宽度和高度等;</li>
+<li>改变元素内容，比如文字数量，图片大小等;</li>
+<li>改变元素字体大小;</li>
+<li>改变浏览器窗口尺寸，比如 resize 事件发生时;</li>
+<li>激活 CSS 伪类（例如：:hover）;</li>
+<li>设置 style 属性的值，因为通过设置 style 属性改变结点样式的话，每一次设置都会触发一次 reflow;</li>
+<li>查询某些属性或调用某些计算方法：offsetWidth、offsetHeight 等，除此之外，当我们调用 getComputedStyle 方法，或者 IE 里的 currentStyle 时，也会触发重排，原理是一样的，都为求一个“即时性”和“准确性”;</li>
+<li>&hellip;</li>
+</ul>
+<h3 id="重排影响的范围">重排影响的范围:</h3>
+<ul>
+<li><strong>全局范围（全局布局）</strong>：从根节点 html 开始对整个渲染树进行重新布局；</li>
+<li><strong>局部范围（局部布局）</strong>：对渲染树的某部分或某一个渲染对象进行重新布局；</li>
+</ul>
+<h3 id="优化建议">优化建议:</h3>
+<p><code>核心观念： 减少重排次数和减小重排范围</code></p>
+<h4 id="样式集中改变减少重排次数">样式集中改变（<code>减少重排次数</code>）：</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- html --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;demo&#34;</span>&gt; 我是demo &lt;/<span style="color:#f92672">span</span>&gt;
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// renderEle.style 逐个添加/修改属性值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">renderEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;demo&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">color</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;red&#39;</span>; <span style="color:#75715e">// 导致重绘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">background</span><span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;#ccc&#39;</span>; <span style="color:#75715e">// 导致重绘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">padding</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;15px 20px&#39;</span>; <span style="color:#75715e">// 导致重排（重排会引起重绘）
+</span></span></span></code></pre></div><p>以上操作会导致 3 次重绘 1 次重排; 可以动态添加 class，只会导致 1 次重排（重排会引起重绘），从而减少重绘次数;<br>
+可以合并为：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;demo&#34;</span>).<span style="color:#a6e22e">className</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;demo&#34;</span>; <span style="color:#75715e">// 添加class 统一添加/修改样式
+</span></span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-css" data-lang="css"><span style="display:flex;"><span><span style="color:#75715e">/* css */</span>
+</span></span><span style="display:flex;"><span>.<span style="color:#a6e22e">demo</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">color</span>: <span style="color:#66d9ef">red</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">background</span>: <span style="color:#ae81ff">#ccc</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">padding</span>: <span style="color:#ae81ff">15</span><span style="color:#66d9ef">px</span> <span style="color:#ae81ff">20</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="将-dom-离线减少重排次数">将 DOM 离线（<code>减少重排次数</code>）</h4>
+<p><code>离线操作DOM</code>：当对 DOM 节点有较大改动的时候，我们先将元素脱离文档流，然后对元素进行操作，最后再把操作后的元素放回文档流。</p>
+<ol>
+<li>修改 DOM 节点的 display 属性，临时将此节点从文档流中脱离，然后再恢复；</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- html --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;demo&#34;</span>&gt; 我是demo &lt;/<span style="color:#f92672">span</span>&gt;
+</span></span></code></pre></div><p>需要频繁操作 DOM 修改 style</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 第一次操作修改 color、background、padding
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">renderEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;demo&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">color</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;red&#34;</span>; <span style="color:#75715e">// 导致重绘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">background</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;#ccc&#34;</span>; <span style="color:#75715e">// 导致重绘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">padding</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;15px 20px&#34;</span>; <span style="color:#75715e">// 导致重排（重排会引起重绘）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 第二次操作修改 marginLeft、marginTop
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">renderEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;demo&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">marginLeft</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;15px&#34;</span>; <span style="color:#75715e">// 导致重排（重排会引起重绘）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">marginTop</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;15px&#34;</span>; <span style="color:#75715e">// 导致重排（重排会引起重绘）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 第三次操作修改 border
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">renderEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;demo&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">border</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;2px solid #ccc&#34;</span>; <span style="color:#75715e">// 导致重排（重排会引起重绘）
+</span></span></span></code></pre></div><p>以上操作触发多次重排、重绘; 可以将<code>renderEle</code>进行离线操作; 修改如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">renderEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;demo&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 第一次操作修改 color、background、padding
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">display</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;none&#34;</span>; <span style="color:#75715e">// 导致重排（重排会引起渲）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">color</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;red&#34;</span>; <span style="color:#75715e">// DOM不存在渲染树上不会引起重排、重绘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">background</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;#ccc&#34;</span>; <span style="color:#75715e">// DOM不存在渲染树上不会引起重排、重绘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">padding</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;15px 20px&#34;</span>; <span style="color:#75715e">// DOM不存在渲染树上不会引起重排、重绘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 第二次操作修改 marginLeft、marginTop
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">marginLeft</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;15px&#34;</span>; <span style="color:#75715e">// DOM不存在渲染树上不会引起重排、重绘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">marginTop</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;15px&#34;</span>; <span style="color:#75715e">// DOM不存在渲染树上不会引起重排、重绘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 第三次操作修改 border
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">border</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;2px solid #ccc&#34;</span>; <span style="color:#75715e">// DOM不存在渲染树上不会引起重排、重绘
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">display</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;block&#34;</span>; <span style="color:#75715e">// 导致重排（重排会引起渲）
+</span></span></span></code></pre></div><p>以上对隐藏的 DOM 元素操作不会引发其他元素的重排，这样只在隐藏和显示时触发 2 次重排。</p>
+<h4 id="脱离文档流-使用-absolute-或-fixed-脱离文档流减小重排范围">脱离文档流： 使用 absolute 或 fixed 脱离文档流（<code>减小重排范围</code>）：</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- html --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;demo&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;demo-one&#34;</span>&gt; 我是demo 1号 &lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;demo-two&#34;</span>&gt; 我是demo 2号 &lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;demo-there&#34;</span>&gt; 我是demo 3号 &lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">renderEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;demo-one&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">padding</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;15px 20px&#34;</span>; <span style="color:#75715e">// 导致重排（重排会引起重绘）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;60px&#34;</span>; <span style="color:#75715e">// 导致重排（重排会引起重绘）
+</span></span></span></code></pre></div><p>将需要重排的元素，position 属性设为 absolute 或 fixed(某些特殊场合)，减小重排范围。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">renderEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;demo-one&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">position</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;fixed&#34;</span>; <span style="color:#75715e">// 导致重排（重排会引起重绘）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">padding</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;15px 20px&#34;</span>; <span style="color:#75715e">// 导致重排（只有当前元素）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;60px&#34;</span>; <span style="color:#75715e">// 导致重排（只有当前元素）
+</span></span></span></code></pre></div><p>这样此 DOM 元素就脱离了文档流，它的变化不会影响到其他元素。</p>
+<h4 id="善用内存在内存中多次操作-dom再整个添加到-dom-树减小重排范围">善用内存：在内存中多次操作 DOM，再整个添加到 DOM 树(<code>减小重排范围</code>)</h4>
+<p>举例：异步请求接口获取数据，动态渲染到页面</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- html --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;demo&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">ul</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;father&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">li</span>&gt;我是0号,我后面还有1号、2号、3号、4号、5号&lt;/<span style="color:#f92672">li</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">ul</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ulEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;father&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">arr</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">setTimeout</span>( () =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">arr</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;我是0号,我后面还有1号，2号，3号，4号，5号&#34;</span>, <span style="color:#e6db74">&#34;我是2号&#34;</span>, <span style="color:#e6db74">&#34;我是3号&#34;</span>, <span style="color:#e6db74">&#34;我是4号&#34;</span>, <span style="color:#e6db74">&#34;我是5号&#34;</span>]; <span style="color:#75715e">// 我是动态获取的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">forEach</span>(<span style="color:#a6e22e">element</span> =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">childNode</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;li&#39;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">childNode</span>.<span style="color:#a6e22e">innerText</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">element</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ulEle</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">childNode</span>);<span style="color:#75715e">// 每一次都会引起重排（重排会引起重绘）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  })
+</span></span><span style="display:flex;"><span>},<span style="color:#ae81ff">1000</span>)
+</span></span></code></pre></div><p>导致多次重排； 可以进行以下修改(构建整个 ul，而不是循环添加 li)：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- html --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;demo&#34;</span>&gt;&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ulEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;demo&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">childUlNode</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;ul&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">arr</span> <span style="color:#f92672">=</span> [];
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">setTimeout</span>(() =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">arr</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;我是0号,我后面还有1号，2号，3号，4号，5号&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;我是1号&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;我是2号&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;我是3号&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;我是4号&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;我是5号&#34;</span>,
+</span></span><span style="display:flex;"><span>  ]; <span style="color:#75715e">// 我是动态获取的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">arr</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">element</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">childLiNode</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;li&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">childLiNode</span>.<span style="color:#a6e22e">innerText</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">element</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">childUlNode</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">childLiNode</span>);
+</span></span><span style="display:flex;"><span>  });
+</span></span><span style="display:flex;"><span>}, <span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ulEle</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">childUlNode</span>); <span style="color:#75715e">// 只会引起一次重排（重排会引起重绘）
+</span></span></span></code></pre></div><h4 id="读写分离将写入的值缓存读取缓存的值减少重排次数">读写分离：将写入的值缓存，读取缓存的值（<code>减少重排次数</code>）</h4>
+<p>有一些浏览器针对重排做出来优化。<br>
+比如 Opera：当你触发重排的条件到达一定量的时候， 或者等到一定时间的时候，或者等一个线程结束，再一起进行重排；但除了渲染树的直接变化，当获取一些属性时，浏览器为取得正确的值也会触发重排。这样就使得浏览器的优化失效了；</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- html --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;demo&#34;</span>&gt; 我是demo &lt;/<span style="color:#f92672">span</span>&gt;
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">offsetWidth</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;100px&#34;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">renderEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;demo&#34;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">offsetWidth</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">offsetWidth</span>; <span style="color:#75715e">// 导致重绘(写入)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">tempoOffsetWidth</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">offsetWidth</span>; <span style="color:#75715e">// 读取可能会导致重排
+</span></span></span></code></pre></div><p>上述代码中可使用读写分离（写入值的时候进行缓存），避免多次重排；</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>  <span style="color:#75715e">// javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">offsetWidth</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;100px&#39;</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">renderEle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#39;demo&#39;</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">renderEle</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">offsetWidth</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">offsetWidth</span> <span style="color:#75715e">// 导致重绘(写入)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">tempoOffsetWidth</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">renderEle</span>; <span style="color:#75715e">// 避免直接读取offsetWidth
+</span></span></span></code></pre></div></section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/369/"
+      ><span class="mr-1.5">←</span><span>前端性能优化 — 首页资源压缩63%、白屏时间缩短86%</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/367/"
+      ><span>web性能优化工具篇之 Performance 面板</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

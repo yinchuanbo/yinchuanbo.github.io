@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>关于网页文本选中标记的功能 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="在线体验地址
+npm
+前言 当前功能的来源是有一个功能需要给一个在线的 word，可以增加选中数据或者文本，然后再加上备注内容，并且在第二次打开同一个 word 的时候，要把之前打的标记回显出来。
+但是找了一圈并没有找到可以直接在线编辑 word 的插件，所以不得不换一种方式，将 word 文档转成 html 文件，然后在网页上进行文本选中标记的功能。
+思考 对于上面的需求，我们可以梳理下需要实现的功能点：
+支持跨标签选中 支持对同一内容多次标记 支持可以选中已经标记的内容 支持删除标记 支持标记回显 支持标记数据导出 最开始的时候，是想给选中文本框出来，然后给选中的文本增加一个新的标签，比如下:
+&lt;div&gt;这是一个测试文本&lt;/div&gt; &lt;!-- 选中 测试 并替换 --&gt; &lt;div&gt;这是一个&lt;span class=&#34;highlight&#34;&gt;测试&lt;/span&gt;文本&lt;/div&gt; 上面这种方式对单独语句或者标记区域不会重复是大概可以满足的，但是显然是不能满足上面的那个需求。比如下：
+&lt;div&gt; &lt;div&gt; &lt;span&gt;div1-1&lt;/span&gt; &lt;span&gt;div1-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;div&gt; &lt;div&gt; &lt;span&gt;div2-1&lt;/span&gt; &lt;span&gt;div2-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;div&gt; &lt;div&gt; &lt;span&gt;div3-1&lt;/span&gt; &lt;span&gt;div3-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; 如果在上面的 dom 结构中，我们选中的文本是 1-2div2-1div2-2div3，那么这个选中区域包括了第一个大段和第三个大段的一部分，和一整个第二大段，如果我们提取文本建一个新的标签包裹，会造成页面结构破坏，如果单独给每个文本增加一个标签，一是太麻烦，还有就是其他的功能能不能完成还不好说。
+canvas 方案 所以上面方案被放弃，后面选用的方案是：
+标记的部分的显示采用 canvas 来绘制 页面选中的所有信息使用 Selection 和 Range 来获取 标记 canvas 的操作先不说了，就是对 selection 的区域使用 canvas 填充颜色，不熟悉 selection 和 range 的小伙伴可以先熟悉下：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="关于网页文本选中标记的功能" />
+<meta property="og:description" content="在线体验地址
+npm
+前言 当前功能的来源是有一个功能需要给一个在线的 word，可以增加选中数据或者文本，然后再加上备注内容，并且在第二次打开同一个 word 的时候，要把之前打的标记回显出来。
+但是找了一圈并没有找到可以直接在线编辑 word 的插件，所以不得不换一种方式，将 word 文档转成 html 文件，然后在网页上进行文本选中标记的功能。
+思考 对于上面的需求，我们可以梳理下需要实现的功能点：
+支持跨标签选中 支持对同一内容多次标记 支持可以选中已经标记的内容 支持删除标记 支持标记回显 支持标记数据导出 最开始的时候，是想给选中文本框出来，然后给选中的文本增加一个新的标签，比如下:
+&lt;div&gt;这是一个测试文本&lt;/div&gt; &lt;!-- 选中 测试 并替换 --&gt; &lt;div&gt;这是一个&lt;span class=&#34;highlight&#34;&gt;测试&lt;/span&gt;文本&lt;/div&gt; 上面这种方式对单独语句或者标记区域不会重复是大概可以满足的，但是显然是不能满足上面的那个需求。比如下：
+&lt;div&gt; &lt;div&gt; &lt;span&gt;div1-1&lt;/span&gt; &lt;span&gt;div1-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;div&gt; &lt;div&gt; &lt;span&gt;div2-1&lt;/span&gt; &lt;span&gt;div2-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;div&gt; &lt;div&gt; &lt;span&gt;div3-1&lt;/span&gt; &lt;span&gt;div3-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; 如果在上面的 dom 结构中，我们选中的文本是 1-2div2-1div2-2div3，那么这个选中区域包括了第一个大段和第三个大段的一部分，和一整个第二大段，如果我们提取文本建一个新的标签包裹，会造成页面结构破坏，如果单独给每个文本增加一个标签，一是太麻烦，还有就是其他的功能能不能完成还不好说。
+canvas 方案 所以上面方案被放弃，后面选用的方案是：
+标记的部分的显示采用 canvas 来绘制 页面选中的所有信息使用 Selection 和 Range 来获取 标记 canvas 的操作先不说了，就是对 selection 的区域使用 canvas 填充颜色，不熟悉 selection 和 range 的小伙伴可以先熟悉下：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/633/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-06-02T11:10:42+08:00" />
+<meta property="article:modified_time" content="2023-06-02T11:10:42+08:00" />
+
+  
+  <meta itemprop="name" content="关于网页文本选中标记的功能">
+<meta itemprop="description" content="在线体验地址
+npm
+前言 当前功能的来源是有一个功能需要给一个在线的 word，可以增加选中数据或者文本，然后再加上备注内容，并且在第二次打开同一个 word 的时候，要把之前打的标记回显出来。
+但是找了一圈并没有找到可以直接在线编辑 word 的插件，所以不得不换一种方式，将 word 文档转成 html 文件，然后在网页上进行文本选中标记的功能。
+思考 对于上面的需求，我们可以梳理下需要实现的功能点：
+支持跨标签选中 支持对同一内容多次标记 支持可以选中已经标记的内容 支持删除标记 支持标记回显 支持标记数据导出 最开始的时候，是想给选中文本框出来，然后给选中的文本增加一个新的标签，比如下:
+&lt;div&gt;这是一个测试文本&lt;/div&gt; &lt;!-- 选中 测试 并替换 --&gt; &lt;div&gt;这是一个&lt;span class=&#34;highlight&#34;&gt;测试&lt;/span&gt;文本&lt;/div&gt; 上面这种方式对单独语句或者标记区域不会重复是大概可以满足的，但是显然是不能满足上面的那个需求。比如下：
+&lt;div&gt; &lt;div&gt; &lt;span&gt;div1-1&lt;/span&gt; &lt;span&gt;div1-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;div&gt; &lt;div&gt; &lt;span&gt;div2-1&lt;/span&gt; &lt;span&gt;div2-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;div&gt; &lt;div&gt; &lt;span&gt;div3-1&lt;/span&gt; &lt;span&gt;div3-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; 如果在上面的 dom 结构中，我们选中的文本是 1-2div2-1div2-2div3，那么这个选中区域包括了第一个大段和第三个大段的一部分，和一整个第二大段，如果我们提取文本建一个新的标签包裹，会造成页面结构破坏，如果单独给每个文本增加一个标签，一是太麻烦，还有就是其他的功能能不能完成还不好说。
+canvas 方案 所以上面方案被放弃，后面选用的方案是：
+标记的部分的显示采用 canvas 来绘制 页面选中的所有信息使用 Selection 和 Range 来获取 标记 canvas 的操作先不说了，就是对 selection 的区域使用 canvas 填充颜色，不熟悉 selection 和 range 的小伙伴可以先熟悉下："><meta itemprop="datePublished" content="2023-06-02T11:10:42+08:00" />
+<meta itemprop="dateModified" content="2023-06-02T11:10:42+08:00" />
+<meta itemprop="wordCount" content="327">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="关于网页文本选中标记的功能"/>
+<meta name="twitter:description" content="在线体验地址
+npm
+前言 当前功能的来源是有一个功能需要给一个在线的 word，可以增加选中数据或者文本，然后再加上备注内容，并且在第二次打开同一个 word 的时候，要把之前打的标记回显出来。
+但是找了一圈并没有找到可以直接在线编辑 word 的插件，所以不得不换一种方式，将 word 文档转成 html 文件，然后在网页上进行文本选中标记的功能。
+思考 对于上面的需求，我们可以梳理下需要实现的功能点：
+支持跨标签选中 支持对同一内容多次标记 支持可以选中已经标记的内容 支持删除标记 支持标记回显 支持标记数据导出 最开始的时候，是想给选中文本框出来，然后给选中的文本增加一个新的标签，比如下:
+&lt;div&gt;这是一个测试文本&lt;/div&gt; &lt;!-- 选中 测试 并替换 --&gt; &lt;div&gt;这是一个&lt;span class=&#34;highlight&#34;&gt;测试&lt;/span&gt;文本&lt;/div&gt; 上面这种方式对单独语句或者标记区域不会重复是大概可以满足的，但是显然是不能满足上面的那个需求。比如下：
+&lt;div&gt; &lt;div&gt; &lt;span&gt;div1-1&lt;/span&gt; &lt;span&gt;div1-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;div&gt; &lt;div&gt; &lt;span&gt;div2-1&lt;/span&gt; &lt;span&gt;div2-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; &lt;div&gt; &lt;div&gt; &lt;span&gt;div3-1&lt;/span&gt; &lt;span&gt;div3-2&lt;/span&gt; &lt;/div&gt; &lt;/div&gt; 如果在上面的 dom 结构中，我们选中的文本是 1-2div2-1div2-2div3，那么这个选中区域包括了第一个大段和第三个大段的一部分，和一整个第二大段，如果我们提取文本建一个新的标签包裹，会造成页面结构破坏，如果单独给每个文本增加一个标签，一是太麻烦，还有就是其他的功能能不能完成还不好说。
+canvas 方案 所以上面方案被放弃，后面选用的方案是：
+标记的部分的显示采用 canvas 来绘制 页面选中的所有信息使用 Selection 和 Range 来获取 标记 canvas 的操作先不说了，就是对 selection 的区域使用 canvas 填充颜色，不熟悉 selection 和 range 的小伙伴可以先熟悉下："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">关于网页文本选中标记的功能</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Jun 2, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cb00b5cc6b4a4f97a74977feda68bf57~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="关于网页文本选中标记的功能"></p>
+<p><a href="https://roy-kang.github.io/text-marker/wm.html">在线体验地址</a></p>
+<p><a href="https://www.npmjs.com/package/word-marker">npm</a></p>
+<h3 id="前言">前言</h3>
+<p>当前功能的来源是有一个功能需要给一个在线的 word，可以增加选中数据或者文本，然后再加上备注内容，并且在第二次打开同一个 word 的时候，要把之前打的标记回显出来。</p>
+<p>但是找了一圈并没有找到可以直接在线编辑 word 的插件，所以不得不换一种方式，将 word 文档转成 html 文件，然后在网页上进行文本选中标记的功能。</p>
+<h3 id="思考">思考</h3>
+<p>对于上面的需求，我们可以梳理下需要实现的功能点：</p>
+<ul>
+<li>支持跨标签选中</li>
+<li>支持对同一内容多次标记</li>
+<li>支持可以选中已经标记的内容</li>
+<li>支持删除标记</li>
+<li>支持标记回显</li>
+<li>支持标记数据导出</li>
+</ul>
+<p>最开始的时候，是想给选中文本框出来，然后给选中的文本增加一个新的标签，比如下:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span>&gt;这是一个测试文本&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!-- 选中 测试 并替换 --&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span>&gt;这是一个&lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;highlight&#34;</span>&gt;测试&lt;/<span style="color:#f92672">span</span>&gt;文本&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><p>上面这种方式对单独语句或者标记区域不会重复是大概可以满足的，但是显然是不能满足上面的那个需求。比如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">span</span>&gt;div1-1&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">span</span>&gt;div1-2&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">span</span>&gt;div2-1&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">span</span>&gt;div2-2&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">span</span>&gt;div3-1&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">span</span>&gt;div3-2&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><p>如果在上面的 dom 结构中，我们选中的文本是 <strong>1-2div2-1div2-2div3</strong>，那么这个选中区域包括了第一个大段和第三个大段的一部分，和一整个第二大段，如果我们提取文本建一个新的标签包裹，会造成页面结构破坏，如果单独给每个文本增加一个标签，一是太麻烦，还有就是其他的功能能不能完成还不好说。</p>
+<h3 id="canvas-方案">canvas 方案</h3>
+<p>所以上面方案被放弃，后面选用的方案是：</p>
+<ul>
+<li>标记的部分的显示采用 canvas 来绘制</li>
+<li>页面选中的所有信息使用 Selection 和 Range 来获取</li>
+</ul>
+<h4 id="标记">标记</h4>
+<p>canvas 的操作先不说了，就是对 selection 的区域使用 canvas 填充颜色，不熟悉 selection 和 range 的小伙伴可以先熟悉下：</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/aa8aadb14f9548bb8cb3277b05b0dcde~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>在选中文本后，我们可以使用 window.getSelection() 来获取选中的信息，里面的节点是信息是具体到 Text 节点，和每个文本节点相对于选中文本的偏移量。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f53f8c015d6a426eb32b5ea19c19ce3f~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>range 信息是用 selection.getRangeAt API 来获取的，这里是一个具体的区域信息，开始和结束文本节点和偏移量。然后我们还可以使用 Range.getClientRects API 获取每个具体区域，因为如果文本在换行之后，虽然还是同一个文本节点，但是区域却有多个：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bb92ec0a535a47739ec8d21ec0a45440~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>这个 getClientRects 在跨标签使用的时候，有点小问题，就是跨标签区域的时候会有两个相同的 rect 数据，如果我们直接拿这个区域数据去绘制，是有可能重复绘制的，上图的第 2 个和第 3 个就重复了，这里需要处理下。</p>
+<p>Range.getClientRects 和 HTMLElement.getBoundingClientRect 获取的数据结构是一样的，都是相对于可视区域的坐标数据。</p>
+<p>当我们拿到选中区域相对出口的位置后，然后我们就要计算相对于整个内容的位置数据，所以这里需要再去获取 parentElement 相对可视区域的位置，然后进行计算。这个的结构相当于下图：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a0851862b8394c928f745f8afb30259b~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>所以选中区域相对于父级元素的位置为 y = curTextRange.top - parentElementRect.top，同理 x 的距离也可以这样计算：x = curTextRange.left - parentElementRect.left</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">selection</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">getSelection</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">range</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">selection</span>.<span style="color:#a6e22e">getRangeAt</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">parentRect</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">getBoundingClientRect</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">clientRects</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">getClientRects</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">clientRects</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">rect</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">clientRects</span>[<span style="color:#a6e22e">i</span>];
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">left</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">parentRect</span>.<span style="color:#a6e22e">left</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">top</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">parentRect</span>.<span style="color:#a6e22e">top</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">right</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">left</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">bottom</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">top</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// canvas 绘制
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">fillRect</span>(<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">y</span>, <span style="color:#a6e22e">width</span>, <span style="color:#a6e22e">height</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>到这里，其实当前选中高亮的功能已经完成了。</p>
+<h4 id="存储">存储</h4>
+<p>因为在获取 Range 的数据是包含了 Text 节点，这个又是标记区域的关键数据，但是又不能存储，所以我们只能根据其他的信息来尽量在回显的时候来能够找到原本的 Text 节点。所以最好的方式是，每个标签都能有一个唯一的 id 或者属性能够匹配到。</p>
+<p>显然我们上面的那个需求不能够满足，我们只能牺牲一部分精度，用文本匹配的方式用来第二次查找。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">span</span>&gt;testa&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">span</span>&gt;testb&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">span</span>&gt;testc&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">div</span>&gt;
+</span></span></code></pre></div><p>我们用 Range 获取到的是 <strong>testa / testb / testc</strong> 等文本节点，如果我们只使用这个文本节点来进行匹配，那么这个重复的概率太大了。打个比方：如果这里的 html 内容是大量的数据，比如每个季度每个商品的费用等，重复概率会很大，如果是对这些数据标记备注啥的，会造成标记混乱，虽然没有唯一 id 用来匹配，重复不能完全避免，但也尽量降低重复的概率，所以我们把匹配的文本再往上提一级，也就是如果对 <strong>testb</strong> 进行标记，如果 <strong>testa</strong> 变成了 <strong>testd</strong>，那么也认为这个 <strong>textb</strong> 的匹配失效。</p>
+<h4 id="标记回显">标记回显</h4>
+<p>我们根据存储的信息找到原 Text 节点后，但是 Range 的信息是没有的，所以我们需要用 document.createRange API 来创建一个新的 Range，然后根据 Range 拿到对应的数据。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">range</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createRange</span>();
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">setStart</span>(<span style="color:#a6e22e">Text</span>, <span style="color:#a6e22e">startOffset</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">setEnd</span>(<span style="color:#a6e22e">Text</span>, <span style="color:#a6e22e">endOffset</span>);
+</span></span></code></pre></div><h4 id="懒加载">懒加载</h4>
+<p>在测试一个比较大的文档（60000px 的高度）的时候，如果 canvas 也是同样的高度，会造成 canvas 打标记失效的情况，这个是因为 canvas 太大，在标记和清空画布的时候，会有渲染问题，并且也比较耗时，所以在比较大的文档的时候，canvas 只绘制可视区域，为了在页面滚动的时候，降低用户感知，canvas 的最高高度设置为当前可视区域的三倍，上面和下面各隐藏一屏，并且在滚动的时候使用防抖策略，降低性能消耗。</p>
+<p>这样可选区域的高亮标记位置的重新计算：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5221251538df4e9db7ea1e253747ee80~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>具体计算方式是：y = curTextRange.top - parentElementRect.top - canvas.translateY</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">selection</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">getSelection</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">range</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">selection</span>.<span style="color:#a6e22e">getRangeAt</span>(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">parentRect</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">container</span>.<span style="color:#a6e22e">getBoundingClientRect</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">clientRects</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">range</span>.<span style="color:#a6e22e">getClientRects</span>();
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">clientRects</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">rect</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">clientRects</span>[<span style="color:#a6e22e">i</span>];
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">left</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">parentRect</span>.<span style="color:#a6e22e">left</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">y</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">top</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">parentRect</span>.<span style="color:#a6e22e">top</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">right</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">left</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">bottom</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">rect</span>.<span style="color:#a6e22e">top</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">translateY</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">getCanvasTranslateY</span>(<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">canvas</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">ay</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">y</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">translateY</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// canvas 绘制
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">fillRect</span>(<span style="color:#a6e22e">x</span>, <span style="color:#a6e22e">ay</span>, <span style="color:#a6e22e">width</span>, <span style="color:#a6e22e">height</span>);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div></section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/634/"
+      ><span class="mr-1.5">←</span><span>轻松搞定基于Vite4的React项目全家桶</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/632/"
+      ><span>pnpm才是前端工程化项目的未来</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

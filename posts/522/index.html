@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>pnpm：是时候对npm说再见了 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="🌟pnpm的背景和由来 🌟 PNPM是一种包管理工具，始于 2016 年。该工具与其他包管理工具相比具有多种独特的特征，例如支持符号链接、快速安装速度，以及支持多语言开发。那么，pnpm的由来是什么呢？
+在之前的一些包管理工具（如npm或者yarn）内，为了防止包的版本过多，一般都是将包下载到项目的 node_modules 目录中。但是，这种方法可引发一些问题，例如每个包都要占用磁盘空间等。因此，常常需要定期将旧版本的包删除。
+然而，这仅仅是缓解问题的方法，问题的根源在于大量依赖包的冗余复制，这会导致整个项目包的大小快速增加。而 PNPM已经成功地解决了这个问题。
+具体而言，pnpm主张的是将每个包仅在磁盘上保存一份，既在项目根目录下使用一个 node_modules文件夹，每个包则使用符号链接的方式链接到这个目录下。这样做，可以显著减少磁盘空间占用并缩短安装时间。
+因为其设计理念和优势，pnpm受到越来越多的关注，成为webpack等许多重要工具的默认包管理器。
+🧐 分析pnpm与其他包管理工具的区别与优势 🧐 包管理工具的区别 在选择符合自己工具的包管理工具时，我们应该认真比较它们之间的区别。作为主流的三种包管理工具，pnpm、npm和yarn使用了不同的包下载和管理方式。
+npm: 最初发布于 2010 年，是一种由Node.js提供的默认包管理器。 npm存储依赖的包版本在 node_modules 文件夹中，这意味着相同的模块可能会在不同项目中多次存在，这会增加磁盘空间的占用，并且在安装依赖的时候会比较慢。
+yarn: 2016 年发布的 yarn，是由Facebook、Google 和 Tilde 联合开发的一个包管理器。与npm不同，yarn 使用lockfile机制，确定了每个包的具体版本。yarn 使用 yarn.lock 文件与无法很好地同时支持npm和yarn以及node_modules目录占用过多的问题。
+pnpm: 2016 年发布的pnpm，则使用了一些更独特的方式来提高包下载和管理效率。pnpm在安装和更新依赖的时候，采用 symbolic links 来代替npm和yarn下载的多个实例，其中硬链接和符号链接的混合组成，从而降低了依赖占用的磁盘空间
+pnpm的优势 除了与npm和yarn相比的区别之外，pnpm的一些独特设计也给它带来了显著的优势。
+快速安装： 由于pnpm使用了链接的方式来管理包，因此无需重新复制每个包文件，使得一次安装所需的时间大大减少。
+节省磁盘空间： 由于同一个包只被保存在磁盘上一次，因此pnpm适用于多个项目使用同一依赖的情况。通过使用本地缓存，多个项目可以共享依赖包，极大地减少了磁盘空间的使用。
+支持多语言开发： pnpm不仅支持Node.js，还包括许多其他的编程语言，例如TypeScript、Reason 等。这使得使用pnpm的我们可以更容易地在一个项目中使用多种语言进行开发。
+易于使用： pnpm基本命令与npm相同，所以只需要在使用上进行简单的修改即可。PNPM具有完善的文档和有效的社区支持。
+以上就是对pnpm和其他包管理工具的区别与优劣势的分析，我们看到，pnpm的特殊设计使之成为了一个高效的包管理工具，值得我们们尝试。
+🔗 硬链接和符号链接 🔗 在介绍pnpm中硬链接和符号链接的应用之前，我们需要先了解硬链接和符号链接这两种链接方式。
+硬链接：是Linux中一种文件系统链接的方式。当执行ln -P 创建一个硬链接时，硬链接和原文件共享inode和block，该硬链接可以视作源文件的另外一个别名。硬链接共享文件的访问和更改权限，因为硬链接和源文件的数据指针和inode是相同的。也就是说，不论你打开源文件还是硬链接，看到的都是同一份数据。
+符号链接：也叫软链接，是在文件系统中创建的一种特殊文件，它可以连接到其他文件或目录。在符号链接创建时，它会新建一个inode，该inode记录了被符号链接所指向的目标inode。可以理解为一个指针，当你打开符号链接时，会从符号链接所指向的目标inode处读入数据并处理。
+相对而言，硬链接的速度比符号链接更快，因为硬链接只创建一个文件副本，多个文件链接指向同一个文件，而符号链接则是创建一个独立的文件，并指向原文件。
+📂pnpm中的硬链接和符号链接 📂 当我们使用pnpm安装依赖时，它会在全局缓存目录中创建硬链接和符号链接。目录下的每个包将被存储在对应的缓存目录中，执行pnpm install的时候，pnpm会在每个项目中生成一个 node_modules 文件夹，然后使用符号链接将不同的依赖项放在这个文件夹内，完成依赖管理。
+下面是一个pnpm硬链接和符号链接的例子：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="pnpm：是时候对npm说再见了" />
+<meta property="og:description" content="🌟pnpm的背景和由来 🌟 PNPM是一种包管理工具，始于 2016 年。该工具与其他包管理工具相比具有多种独特的特征，例如支持符号链接、快速安装速度，以及支持多语言开发。那么，pnpm的由来是什么呢？
+在之前的一些包管理工具（如npm或者yarn）内，为了防止包的版本过多，一般都是将包下载到项目的 node_modules 目录中。但是，这种方法可引发一些问题，例如每个包都要占用磁盘空间等。因此，常常需要定期将旧版本的包删除。
+然而，这仅仅是缓解问题的方法，问题的根源在于大量依赖包的冗余复制，这会导致整个项目包的大小快速增加。而 PNPM已经成功地解决了这个问题。
+具体而言，pnpm主张的是将每个包仅在磁盘上保存一份，既在项目根目录下使用一个 node_modules文件夹，每个包则使用符号链接的方式链接到这个目录下。这样做，可以显著减少磁盘空间占用并缩短安装时间。
+因为其设计理念和优势，pnpm受到越来越多的关注，成为webpack等许多重要工具的默认包管理器。
+🧐 分析pnpm与其他包管理工具的区别与优势 🧐 包管理工具的区别 在选择符合自己工具的包管理工具时，我们应该认真比较它们之间的区别。作为主流的三种包管理工具，pnpm、npm和yarn使用了不同的包下载和管理方式。
+npm: 最初发布于 2010 年，是一种由Node.js提供的默认包管理器。 npm存储依赖的包版本在 node_modules 文件夹中，这意味着相同的模块可能会在不同项目中多次存在，这会增加磁盘空间的占用，并且在安装依赖的时候会比较慢。
+yarn: 2016 年发布的 yarn，是由Facebook、Google 和 Tilde 联合开发的一个包管理器。与npm不同，yarn 使用lockfile机制，确定了每个包的具体版本。yarn 使用 yarn.lock 文件与无法很好地同时支持npm和yarn以及node_modules目录占用过多的问题。
+pnpm: 2016 年发布的pnpm，则使用了一些更独特的方式来提高包下载和管理效率。pnpm在安装和更新依赖的时候，采用 symbolic links 来代替npm和yarn下载的多个实例，其中硬链接和符号链接的混合组成，从而降低了依赖占用的磁盘空间
+pnpm的优势 除了与npm和yarn相比的区别之外，pnpm的一些独特设计也给它带来了显著的优势。
+快速安装： 由于pnpm使用了链接的方式来管理包，因此无需重新复制每个包文件，使得一次安装所需的时间大大减少。
+节省磁盘空间： 由于同一个包只被保存在磁盘上一次，因此pnpm适用于多个项目使用同一依赖的情况。通过使用本地缓存，多个项目可以共享依赖包，极大地减少了磁盘空间的使用。
+支持多语言开发： pnpm不仅支持Node.js，还包括许多其他的编程语言，例如TypeScript、Reason 等。这使得使用pnpm的我们可以更容易地在一个项目中使用多种语言进行开发。
+易于使用： pnpm基本命令与npm相同，所以只需要在使用上进行简单的修改即可。PNPM具有完善的文档和有效的社区支持。
+以上就是对pnpm和其他包管理工具的区别与优劣势的分析，我们看到，pnpm的特殊设计使之成为了一个高效的包管理工具，值得我们们尝试。
+🔗 硬链接和符号链接 🔗 在介绍pnpm中硬链接和符号链接的应用之前，我们需要先了解硬链接和符号链接这两种链接方式。
+硬链接：是Linux中一种文件系统链接的方式。当执行ln -P 创建一个硬链接时，硬链接和原文件共享inode和block，该硬链接可以视作源文件的另外一个别名。硬链接共享文件的访问和更改权限，因为硬链接和源文件的数据指针和inode是相同的。也就是说，不论你打开源文件还是硬链接，看到的都是同一份数据。
+符号链接：也叫软链接，是在文件系统中创建的一种特殊文件，它可以连接到其他文件或目录。在符号链接创建时，它会新建一个inode，该inode记录了被符号链接所指向的目标inode。可以理解为一个指针，当你打开符号链接时，会从符号链接所指向的目标inode处读入数据并处理。
+相对而言，硬链接的速度比符号链接更快，因为硬链接只创建一个文件副本，多个文件链接指向同一个文件，而符号链接则是创建一个独立的文件，并指向原文件。
+📂pnpm中的硬链接和符号链接 📂 当我们使用pnpm安装依赖时，它会在全局缓存目录中创建硬链接和符号链接。目录下的每个包将被存储在对应的缓存目录中，执行pnpm install的时候，pnpm会在每个项目中生成一个 node_modules 文件夹，然后使用符号链接将不同的依赖项放在这个文件夹内，完成依赖管理。
+下面是一个pnpm硬链接和符号链接的例子：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/522/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-19T18:42:19+08:00" />
+<meta property="article:modified_time" content="2023-04-19T18:42:19+08:00" />
+
+  
+  <meta itemprop="name" content="pnpm：是时候对npm说再见了">
+<meta itemprop="description" content="🌟pnpm的背景和由来 🌟 PNPM是一种包管理工具，始于 2016 年。该工具与其他包管理工具相比具有多种独特的特征，例如支持符号链接、快速安装速度，以及支持多语言开发。那么，pnpm的由来是什么呢？
+在之前的一些包管理工具（如npm或者yarn）内，为了防止包的版本过多，一般都是将包下载到项目的 node_modules 目录中。但是，这种方法可引发一些问题，例如每个包都要占用磁盘空间等。因此，常常需要定期将旧版本的包删除。
+然而，这仅仅是缓解问题的方法，问题的根源在于大量依赖包的冗余复制，这会导致整个项目包的大小快速增加。而 PNPM已经成功地解决了这个问题。
+具体而言，pnpm主张的是将每个包仅在磁盘上保存一份，既在项目根目录下使用一个 node_modules文件夹，每个包则使用符号链接的方式链接到这个目录下。这样做，可以显著减少磁盘空间占用并缩短安装时间。
+因为其设计理念和优势，pnpm受到越来越多的关注，成为webpack等许多重要工具的默认包管理器。
+🧐 分析pnpm与其他包管理工具的区别与优势 🧐 包管理工具的区别 在选择符合自己工具的包管理工具时，我们应该认真比较它们之间的区别。作为主流的三种包管理工具，pnpm、npm和yarn使用了不同的包下载和管理方式。
+npm: 最初发布于 2010 年，是一种由Node.js提供的默认包管理器。 npm存储依赖的包版本在 node_modules 文件夹中，这意味着相同的模块可能会在不同项目中多次存在，这会增加磁盘空间的占用，并且在安装依赖的时候会比较慢。
+yarn: 2016 年发布的 yarn，是由Facebook、Google 和 Tilde 联合开发的一个包管理器。与npm不同，yarn 使用lockfile机制，确定了每个包的具体版本。yarn 使用 yarn.lock 文件与无法很好地同时支持npm和yarn以及node_modules目录占用过多的问题。
+pnpm: 2016 年发布的pnpm，则使用了一些更独特的方式来提高包下载和管理效率。pnpm在安装和更新依赖的时候，采用 symbolic links 来代替npm和yarn下载的多个实例，其中硬链接和符号链接的混合组成，从而降低了依赖占用的磁盘空间
+pnpm的优势 除了与npm和yarn相比的区别之外，pnpm的一些独特设计也给它带来了显著的优势。
+快速安装： 由于pnpm使用了链接的方式来管理包，因此无需重新复制每个包文件，使得一次安装所需的时间大大减少。
+节省磁盘空间： 由于同一个包只被保存在磁盘上一次，因此pnpm适用于多个项目使用同一依赖的情况。通过使用本地缓存，多个项目可以共享依赖包，极大地减少了磁盘空间的使用。
+支持多语言开发： pnpm不仅支持Node.js，还包括许多其他的编程语言，例如TypeScript、Reason 等。这使得使用pnpm的我们可以更容易地在一个项目中使用多种语言进行开发。
+易于使用： pnpm基本命令与npm相同，所以只需要在使用上进行简单的修改即可。PNPM具有完善的文档和有效的社区支持。
+以上就是对pnpm和其他包管理工具的区别与优劣势的分析，我们看到，pnpm的特殊设计使之成为了一个高效的包管理工具，值得我们们尝试。
+🔗 硬链接和符号链接 🔗 在介绍pnpm中硬链接和符号链接的应用之前，我们需要先了解硬链接和符号链接这两种链接方式。
+硬链接：是Linux中一种文件系统链接的方式。当执行ln -P 创建一个硬链接时，硬链接和原文件共享inode和block，该硬链接可以视作源文件的另外一个别名。硬链接共享文件的访问和更改权限，因为硬链接和源文件的数据指针和inode是相同的。也就是说，不论你打开源文件还是硬链接，看到的都是同一份数据。
+符号链接：也叫软链接，是在文件系统中创建的一种特殊文件，它可以连接到其他文件或目录。在符号链接创建时，它会新建一个inode，该inode记录了被符号链接所指向的目标inode。可以理解为一个指针，当你打开符号链接时，会从符号链接所指向的目标inode处读入数据并处理。
+相对而言，硬链接的速度比符号链接更快，因为硬链接只创建一个文件副本，多个文件链接指向同一个文件，而符号链接则是创建一个独立的文件，并指向原文件。
+📂pnpm中的硬链接和符号链接 📂 当我们使用pnpm安装依赖时，它会在全局缓存目录中创建硬链接和符号链接。目录下的每个包将被存储在对应的缓存目录中，执行pnpm install的时候，pnpm会在每个项目中生成一个 node_modules 文件夹，然后使用符号链接将不同的依赖项放在这个文件夹内，完成依赖管理。
+下面是一个pnpm硬链接和符号链接的例子："><meta itemprop="datePublished" content="2023-04-19T18:42:19+08:00" />
+<meta itemprop="dateModified" content="2023-04-19T18:42:19+08:00" />
+<meta itemprop="wordCount" content="273">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="pnpm：是时候对npm说再见了"/>
+<meta name="twitter:description" content="🌟pnpm的背景和由来 🌟 PNPM是一种包管理工具，始于 2016 年。该工具与其他包管理工具相比具有多种独特的特征，例如支持符号链接、快速安装速度，以及支持多语言开发。那么，pnpm的由来是什么呢？
+在之前的一些包管理工具（如npm或者yarn）内，为了防止包的版本过多，一般都是将包下载到项目的 node_modules 目录中。但是，这种方法可引发一些问题，例如每个包都要占用磁盘空间等。因此，常常需要定期将旧版本的包删除。
+然而，这仅仅是缓解问题的方法，问题的根源在于大量依赖包的冗余复制，这会导致整个项目包的大小快速增加。而 PNPM已经成功地解决了这个问题。
+具体而言，pnpm主张的是将每个包仅在磁盘上保存一份，既在项目根目录下使用一个 node_modules文件夹，每个包则使用符号链接的方式链接到这个目录下。这样做，可以显著减少磁盘空间占用并缩短安装时间。
+因为其设计理念和优势，pnpm受到越来越多的关注，成为webpack等许多重要工具的默认包管理器。
+🧐 分析pnpm与其他包管理工具的区别与优势 🧐 包管理工具的区别 在选择符合自己工具的包管理工具时，我们应该认真比较它们之间的区别。作为主流的三种包管理工具，pnpm、npm和yarn使用了不同的包下载和管理方式。
+npm: 最初发布于 2010 年，是一种由Node.js提供的默认包管理器。 npm存储依赖的包版本在 node_modules 文件夹中，这意味着相同的模块可能会在不同项目中多次存在，这会增加磁盘空间的占用，并且在安装依赖的时候会比较慢。
+yarn: 2016 年发布的 yarn，是由Facebook、Google 和 Tilde 联合开发的一个包管理器。与npm不同，yarn 使用lockfile机制，确定了每个包的具体版本。yarn 使用 yarn.lock 文件与无法很好地同时支持npm和yarn以及node_modules目录占用过多的问题。
+pnpm: 2016 年发布的pnpm，则使用了一些更独特的方式来提高包下载和管理效率。pnpm在安装和更新依赖的时候，采用 symbolic links 来代替npm和yarn下载的多个实例，其中硬链接和符号链接的混合组成，从而降低了依赖占用的磁盘空间
+pnpm的优势 除了与npm和yarn相比的区别之外，pnpm的一些独特设计也给它带来了显著的优势。
+快速安装： 由于pnpm使用了链接的方式来管理包，因此无需重新复制每个包文件，使得一次安装所需的时间大大减少。
+节省磁盘空间： 由于同一个包只被保存在磁盘上一次，因此pnpm适用于多个项目使用同一依赖的情况。通过使用本地缓存，多个项目可以共享依赖包，极大地减少了磁盘空间的使用。
+支持多语言开发： pnpm不仅支持Node.js，还包括许多其他的编程语言，例如TypeScript、Reason 等。这使得使用pnpm的我们可以更容易地在一个项目中使用多种语言进行开发。
+易于使用： pnpm基本命令与npm相同，所以只需要在使用上进行简单的修改即可。PNPM具有完善的文档和有效的社区支持。
+以上就是对pnpm和其他包管理工具的区别与优劣势的分析，我们看到，pnpm的特殊设计使之成为了一个高效的包管理工具，值得我们们尝试。
+🔗 硬链接和符号链接 🔗 在介绍pnpm中硬链接和符号链接的应用之前，我们需要先了解硬链接和符号链接这两种链接方式。
+硬链接：是Linux中一种文件系统链接的方式。当执行ln -P 创建一个硬链接时，硬链接和原文件共享inode和block，该硬链接可以视作源文件的另外一个别名。硬链接共享文件的访问和更改权限，因为硬链接和源文件的数据指针和inode是相同的。也就是说，不论你打开源文件还是硬链接，看到的都是同一份数据。
+符号链接：也叫软链接，是在文件系统中创建的一种特殊文件，它可以连接到其他文件或目录。在符号链接创建时，它会新建一个inode，该inode记录了被符号链接所指向的目标inode。可以理解为一个指针，当你打开符号链接时，会从符号链接所指向的目标inode处读入数据并处理。
+相对而言，硬链接的速度比符号链接更快，因为硬链接只创建一个文件副本，多个文件链接指向同一个文件，而符号链接则是创建一个独立的文件，并指向原文件。
+📂pnpm中的硬链接和符号链接 📂 当我们使用pnpm安装依赖时，它会在全局缓存目录中创建硬链接和符号链接。目录下的每个包将被存储在对应的缓存目录中，执行pnpm install的时候，pnpm会在每个项目中生成一个 node_modules 文件夹，然后使用符号链接将不同的依赖项放在这个文件夹内，完成依赖管理。
+下面是一个pnpm硬链接和符号链接的例子："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">pnpm：是时候对npm说再见了</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 19, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h2 id="pnpm的背景和由来-">🌟<code>pnpm</code>的背景和由来 🌟</h2>
+<p><code>PNPM</code>是一种包管理工具，始于 2016 年。该工具与其他包管理工具相比具有多种独特的特征，例如支持符号链接、快速安装速度，以及支持多语言开发。那么，<code>pnpm</code>的由来是什么呢？</p>
+<p>在之前的一些包管理工具（如<code>npm</code>或者<code>yarn</code>）内，为了防止包的版本过多，一般都是将包下载到项目的 node_modules 目录中。但是，这种方法可引发一些问题，例如每个包都要占用磁盘空间等。因此，常常需要定期将旧版本的包删除。</p>
+<p>然而，这仅仅是缓解问题的方法，问题的根源在于大量依赖包的冗余复制，这会导致整个项目包的大小快速增加。而 <code>PNPM</code>已经成功地解决了这个问题。</p>
+<p>具体而言，<code>pnpm</code>主张的是将每个包仅在磁盘上保存一份，既在项目根目录下使用一个 <code>node_modules</code>文件夹，每个包则使用符号链接的方式链接到这个目录下。这样做，可以显著减少磁盘空间占用并缩短安装时间。</p>
+<p>因为其设计理念和优势，<code>pnpm</code>受到越来越多的关注，成为<code>webpack</code>等许多重要工具的默认包管理器。</p>
+<h2 id="-分析pnpm与其他包管理工具的区别与优势-">🧐 分析<code>pnpm</code>与其他包管理工具的区别与优势 🧐</h2>
+<h3 id="包管理工具的区别">包管理工具的区别</h3>
+<p>在选择符合自己工具的包管理工具时，我们应该认真比较它们之间的区别。作为主流的三种包管理工具，<code>pnpm</code>、<code>npm</code>和<code>yarn</code>使用了不同的包下载和管理方式。</p>
+<ul>
+<li>
+<p><strong><code>npm</code>:</strong> 最初发布于 2010 年，是一种由<code>Node.js</code>提供的默认包管理器。 <code>npm</code>存储依赖的包版本在 <strong><code>node_modules</code></strong> 文件<code>夹</code>中，这意味着相同的模块可能会在不同项目中多次存在，这会增加磁盘空间的占用，并且在安装依赖的时候会比较慢。</p>
+</li>
+<li>
+<p><strong><code>yarn</code>:</strong> 2016 年发布的 yarn，是由<code>Facebook</code>、Google 和 Tilde 联合开发的一个包管理器。与<code>npm</code>不同，yarn 使用<code>lockfile</code>机制，确定了每个包的具体版本。yarn 使用 <strong><code>yarn.lock</code></strong> 文件与无法很好地同时支持<code>npm</code>和<code>yarn</code>以及<code>node_modules</code>目录占用过多的问题。</p>
+</li>
+<li>
+<p><strong><code>pnpm</code>:</strong> 2016 年发布的<code>pnpm</code>，则使用了一些更独特的方式来提高包下载和管理效率。<code>pnpm</code>在安装和更新依赖的时候，采用 symbolic links 来代替<code>npm</code>和<code>yarn</code>下载的多个实例，其中硬链接和符号链接的混合组成，从而降低了依赖占用的磁盘空间</p>
+</li>
+</ul>
+<h3 id="pnpm的优势"><code>pnpm</code>的优势</h3>
+<p>除了与<code>npm</code>和<code>yarn</code>相比的区别之外，<code>pnpm</code>的一些独特设计也给它带来了显著的优势。</p>
+<ul>
+<li>
+<p><strong>快速安装：</strong> 由于<code>pnpm</code>使用了链接的方式来管理包，因此无需重新复制每个包文件，使得一次安装所需的时间大大减少。</p>
+</li>
+<li>
+<p><strong>节省磁盘空间：</strong> 由于同一个包只被保存在磁盘上一次，因此<code>pnpm</code>适用于多个项目使用同一依赖的情况。通过使用本地缓存，多个项目可以共享依赖包，极大地减少了磁盘空间的使用。</p>
+</li>
+<li>
+<p><strong>支持多语言开发：</strong> <code>pnpm</code>不仅支持<code>Node.js</code>，还包括许多其他的编程语言，例如<code>TypeScript</code>、Reason 等。这使得使用<code>pnpm</code>的我们可以更容易地在一个项目中使用多种语言进行开发。</p>
+</li>
+<li>
+<p><strong>易于使用：</strong> <code>pnpm</code>基本命令与<code>npm</code>相同，所以只需要在使用上进行简单的修改即可。<code>PNPM</code>具有完善的文档和有效的社区支持。</p>
+</li>
+</ul>
+<p>以上就是对<code>pnpm</code>和其他包管理工具的区别与优劣势的分析，我们看到，<code>pnpm</code>的特殊设计使之成为了一个高效的包管理工具，值得我们们尝试。</p>
+<h4 id="-硬链接和符号链接-">🔗 硬链接和符号链接 🔗</h4>
+<p>在介绍<code>pnpm</code>中硬链接和符号链接的应用之前，我们需要先了解硬链接和符号链接这两种链接方式。</p>
+<p>硬链接：是<code>Linux</code>中一种文件系统链接的方式。当执行<code>ln -P</code> 创建一个硬链接时，硬链接和原文件共享<code>inode</code>和<code>block</code>，该硬链接可以视作源文件的另外一个别名。硬链接共享文件的访问和更改权限，因为硬链接和源文件的数据指针和<code>inode</code>是相同的。也就是说，不论你打开源文件还是硬链接，看到的都是同一份数据。</p>
+<p>符号链接：也叫软链接，是在文件系统中创建的一种特殊文件，它可以连接到其他文件或目录。在符号链接创建时，它会新建一个<code>inode</code>，该<code>inode</code>记录了被符号链接所指向的目标<code>inode</code>。可以理解为一个指针，当你打开符号链接时，会从符号链接所指向的目标<code>inode</code>处读入数据并处理。</p>
+<p>相对而言，硬链接的速度比符号链接更快，因为硬链接只创建一个文件副本，多个文件链接指向同一个文件，而符号链接则是创建一个独立的文件，并指向原文件。</p>
+<h4 id="pnpm中的硬链接和符号链接-">📂<code>pnpm</code>中的硬链接和符号链接 📂</h4>
+<p>当我们使用<code>pnpm</code>安装依赖时，它会在全局缓存目录中创建硬链接和符号链接。目录下的每个包将被存储在对应的缓存目录中，执行<code>pnpm install</code>的时候，<code>pnpm</code>会在每个项目中生成一个 node_modules 文件夹，然后使用符号链接将不同的依赖项放在这个文件夹内，完成依赖管理。</p>
+<p>下面是一个<code>pnpm</code>硬链接和符号链接的例子：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>node_modules
+</span></span><span style="display:flex;"><span>├── acorn -&gt; ../.pnpm/acorn@8.6.0/node_modules/acorn
+</span></span><span style="display:flex;"><span>├── axios -&gt; ../.pnpm/axios@0.21.0/node_modules/axios
+</span></span><span style="display:flex;"><span>├── commander -&gt; ../.pnpm/commander@8.0.0/node_modules/commander
+</span></span><span style="display:flex;"><span>├── express -&gt; ../.pnpm/express@4.17.1/node_modules/express
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>这里的 <code>../.pnpm/</code> 是全局依赖缓存的地址，每个依赖项都是用符号链接创建的。当<code>pnpm</code>在实际的项目中使用依赖项时，它会将符号链接重定向回全局安装的包，从而减少磁盘的使用。由于硬链接共享一个<code>inode</code>，因此可以使得执行命令更加快速。</p>
+<p>通过结合硬链接和符号索引，<code>pnpm</code>有效地将文件目录的大小限制在最小范围内，同时确保了快速本地安装速度。</p>
+<h2 id="pnpm的使用方法和基本命令-">💡<code>pnpm</code>的使用方法和基本命令 💡</h2>
+<h3 id="安装">安装</h3>
+<p>我们可以使用<code>npm</code>来安装<code>pnpm</code>。在命令行中运行以下命令即可：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm install -g pnpm
+</span></span></code></pre></div><p>这将全局安装<code>pnpm</code>。</p>
+<h3 id="配置">配置</h3>
+<p>默认情况下，<code>pnpm</code>的数据存储在<code>~/.pnpm-store</code>文件夹中，我们可以通过环境变量<code>PNPM_STORE_DIR</code>来更改存储位置，例如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>PNPM_STORE_DIR<span style="color:#f92672">=</span>/data/pnpm pnpm install
+</span></span></code></pre></div><p>这将<code>pnpm</code>的缓存存储在<code>/data/pnpm</code>文件夹中。</p>
+<h3 id="使用">使用</h3>
+<p>相比<code>npm</code>，<code>pnpm</code>的基本命令几乎相同，可以使用常规的<code>install</code>、<code>update</code>、<code>list</code>、<code>uninstall</code>等命令。以下介绍几个常用命令：</p>
+<ul>
+<li><code>pnpm install</code>: 安装依赖包。</li>
+<li><code>pnpm update</code>: 更新依赖包到最新版本。</li>
+<li><code>pnpm list</code>: 查看当前项目的依赖关系。</li>
+<li><code>pnpm uninstall &lt;package-name&gt;</code>：卸载指定的依赖包。</li>
+<li><code>pnpm run &lt;script&gt;</code>：执行已经定义的不同的脚本命令。</li>
+</ul>
+<p>值得注意的是，<code>pnpm</code>默认会将执行命令的项目目录中的<code>node_modules</code>文件夹替换为符号链接。这意味着符号链接上的内容是实时更新的，这对多个项目共享资源的情况特别有用。</p>
+<h3 id="常见问题和解决方案">常见问题和解决方案</h3>
+<h4 id="1-pnpm安装的速度比npm或yarn更快为什么">1. <code>pnpm</code>安装的速度比<code>npm</code>或<code>yarn</code>更快，为什么？</h4>
+<p><code>pnpm</code>通过使用链接的方式来管理包，在安装和更新依赖的时候，它使用符号链接代替复制文件，因此无需反复复制文件或下载文件，可以使安装速度大大提高。</p>
+<h4 id="2-如何清除pnpm的缓存">2. 如何清除<code>pnpm</code>的缓存？</h4>
+<p>可以在命令行中使用以下命令来清除<code>pnpm</code>的缓存：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>pnpm cache clean
+</span></span></code></pre></div><p>或者，可以在指定的目录下使用以下命令：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>pnpm cache clean --store ./cache-folder
+</span></span></code></pre></div><h4 id="3-如何强制重新加载pnpm缓存">3. 如何强制重新加载<code>pnpm</code>缓存？</h4>
+<p>可以使用以下命令强制重新加载<code>pnpm</code>缓存：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>pnpm install --force
+</span></span></code></pre></div><h4 id="4-如何升级pnpm">4. 如何升级<code>pnpm</code>？</h4>
+<p>可以使用以下命令升级<code>pnpm</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>npm install -g pnpm@latest
+</span></span></code></pre></div><p>非常好，下面是我们所需的第四部分内容。</p>
+<h2 id="pnpm的最佳实践-">🚀<code>pnpm</code>的最佳实践 🚀</h2>
+<h3 id="使用pnpm的workspaces功能">使用<code>pnpm</code>的<code>workspaces</code>功能</h3>
+<p>使用<code>pnpm</code>的<code>workspaces</code>功能可以将多个项目捆绑在一起，这样可以更方便地管理这些项目的依赖。<code>workspaces</code>将多个项目组成一个整体，因此我们可以更轻松地管理所有项目的依赖。我们可以使用类似以下的方法来配置<code>workspaces</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;root&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;private&#34;</span>: <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;workspaces&#34;</span>: [<span style="color:#e6db74">&#34;packages/*/package.json&#34;</span>]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这意味着我们在<code>packages</code>目录下的所有子目录中都可以使用<code>workspaces</code>功能。</p>
+<h3 id="使用pnpm-workspace和shrinkwrap">使用<code>pnpm workspace</code>和<code>shrinkwrap</code></h3>
+<p><code>pnpm install</code>命令在<code>workspace</code>中的执行方式与单独运行在某个包的**<code>npm install</code>** 或 <strong><code>yarn install</code></strong> 命令有所不同。例如，运行<code>pnpm install</code>命令将自动安装所有子项目的依赖项。</p>
+<p>有时，我们可能需要确保每个项目使用相同的依赖项版本，以此来保证项目之间的可靠性。在这种情况下，使用<code>shrinkwrap</code>文件非常有用，它可以确保每个项目使用相同的依赖项版本。我们可以使用以下命令来创建<code>shrinkwrap</code>文件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>pnpm install --shrinkwrap-only
+</span></span></code></pre></div><h3 id="使用pnpm的workspace文件">使用<code>pnpm</code>的<code>.workspace</code>文件</h3>
+<p>当我们需要特定的命令在所有的<code>workspace</code>中执行时，可以使用<code>.workspace</code>文件。例如，所有<code>workspace</code>都需要使用相同的<code>eslint</code>配置，我们可以在<code>root</code>目录下的<code>.workspace</code>文件中放置以下内容：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;env&#34;</span>: {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;NODE_ENV&#34;</span>: <span style="color:#e6db74">&#34;production&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;scripts&#34;</span>: {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;lint&#34;</span>: <span style="color:#e6db74">&#34;eslint src/**&#34;</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这样做的好处是，这个配置将可用于整个<code>workspace</code>，而不仅仅是一个单独的项目。</p>
+<h3 id="通过pnpm-script执行依赖">通过<code>pnpm script</code>执行依赖</h3>
+<p><code>pnpm</code>可以在全局缓存中执行脚本。使用 <code>pnpm run</code> 命令时除了运行在根项目中定义的脚本, 它也会查找全局缓存中的脚本。我们可以使用以下命令来执行容器中的任何可执行文件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-arduino" data-lang="arduino"><span style="display:flex;"><span>pnpm <span style="color:#a6e22e">run</span> my<span style="color:#f92672">-</span>script
+</span></span></code></pre></div><p>其中，<code>my-script</code>必须是在容器中安装的可执行文件。这种做法在进行复杂的构建过程时非常有用，这样就不需要重复安装相同的依赖项。</p>
+<h3 id="使用pnpm的多语言支持">使用<code>pnpm</code>的多语言支持</h3>
+<p><code>pnpm</code>并不局限于<code>Node.js</code>，它同样适用于其他语言。在使用不同的编程语言共同开发一个项目时，可以使用<code>pnpm</code>作为包管理器，这样可以更方便地管理各个项目的依赖。</p>
+<p>在管理多个不同语言的项目时，我们可以设置<code>PNPM_LANG</code>环境变量来指定每个项目的默认语言，例如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ini" data-lang="ini"><span style="display:flex;"><span><span style="color:#a6e22e">PNPM_LANG</span><span style="color:#f92672">=</span><span style="color:#e6db74">typescript pnpm install</span>
+</span></span></code></pre></div><p>此外，<code>pnpm</code>还支持安装不同语言的依赖项。例如，我们甚至可以在<code>JavaScript</code>项目中安装<code>C/C++</code>依赖项。</p>
+<h2 id="-workspace的用法详解">🏢 <code>workspace</code>的用法详解</h2>
+<p>在使用<code>pnpm</code>时，我们可以使用<code>workspace</code>功能来管理多个项目的依赖关系。在这一部分中，我们将详细介绍<code>workspace</code>的用法，包括如何配置、安装依赖、更新依赖、使用别名等等。</p>
+<h3 id="配置workspaces">配置<code>workspaces</code></h3>
+<p>要启用<code>workspace</code>功能，我们需要在根目录下创建一个<code>package.json</code>文件，并使用<code>workspaces</code>属性来指定哪些文件夹被视为<code>workspace</code>。例如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;my-project&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;version&#34;</span>: <span style="color:#e6db74">&#34;1.0.0&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;private&#34;</span>: <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;workspaces&#34;</span>: [<span style="color:#e6db74">&#34;packages/*&#34;</span>]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面的配置将使<code>my-project</code>项目中的<code>packages</code>文件夹下的所有子目录成为<code>workspace</code>。</p>
+<h3 id="安装依赖">安装依赖</h3>
+<p>在安装<code>workspace</code>中的依赖时，我们可以使用<code>pnpm install</code>命令，<code>pnpm</code>会自动为每个<code>workspace</code>安装它们的依赖项。例如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>pnpm install
+</span></span></code></pre></div><p>这将为所有<code>workspace</code>安装依赖。我们也可以使用<code>pnpm install</code>命令为特定的<code>workspace</code>安装依赖。例如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>pnpm install --workspace my-package
+</span></span></code></pre></div><p>这将为名为<code>my-package</code>的<code>workspace</code>安装依赖。</p>
+<h3 id="更新依赖">更新依赖</h3>
+<p>在更新<code>workspace</code>的依赖时，我们可以使用<code>pnpm update</code>命令。这将为所有<code>workspace</code>中的依赖更新并安装最新版本。如果我们希望只更新特定的<code>workspace</code>依赖，可以使用<code>--workspace</code>标志：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>pnpm update --workspace my-package
+</span></span></code></pre></div><p>这将只更新名为<code>my-package</code>的<code>workspace</code>依赖。</p>
+<h3 id="别名使用">别名使用</h3>
+<p>当我们在<code>workspace</code>中使用某个依赖项，并希望像在普通的<code>Node.js</code>项目中一样使用它时，就需要使用别名功能。别名可以让我们将<code>workspace</code>中的一个模块映射到另一个模块。为此，需要在<code>package.json</code>文件中指定别名。</p>
+<p>例如，我们可以在<code>package.json</code>文件中添加以下内容：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;my-project&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;version&#34;</span>: <span style="color:#e6db74">&#34;1.0.0&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;private&#34;</span>: <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;workspaces&#34;</span>: [<span style="color:#e6db74">&#34;packages/*&#34;</span>],
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;dependencies&#34;</span>: {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;my-utils&#34;</span>: <span style="color:#e6db74">&#34;workspace:*&#34;</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这将在 workspace 中安装<code>my-utils</code>包，并将其指定为别名<code>&quot;workspace:*&quot;</code>，这意味着可以像在普通<code>Node.js</code>项目中一样引用它。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/523/"
+      ><span class="mr-1.5">←</span><span>一文搞懂页面白屏检测</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/521/"
+      ><span>探讨 Object.create()、new Object() 和 {} 创建对象的区别</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

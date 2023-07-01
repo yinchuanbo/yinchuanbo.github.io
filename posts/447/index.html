@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>前端加载超大图片(100M以上)实现秒开解决方案 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 前端加载超大图片时，一般可以采取以下措施实现加速：
+图片压缩：将图片进行压缩可以大幅减小图片的大小，从而缩短加载时间。压缩图片时需要注意保持图片质量，以免影响图片显示效果。 图片分割：将超大图片分割成多个小图块进行加载，可以避免一次性加载整个图片，从而加快加载速度。这种方式需要在前端实现图片拼接，需要确保拼接后的图片无缝衔接。 CDN 加速：使用 CDN（内容分发网络）可以将图片缓存在离用户更近的节点上，从而加速图片加载速度。如果需要加载的图片是静态资源，可以将其存储在 CDN 上，以便快速访问。 懒加载：懒加载是一种图片延迟加载的方式，即当用户浏览到需要加载的图片时才进行加载，可以有效避免一次性加载大量图片而导致页面加载速度缓慢。 WebP 格式：使用 WebP 格式可以将图片大小减小到 JPEG 和 PNG 的一半以下，从而加快图片加载速度。 HTTP/2：使用 HTTP/2 协议可以并行加载多个图片，从而加快页面加载速度。 预加载：预加载是在页面加载完毕后，提前加载下一步所需要的资源。在图片加载方面，可以在页面加载完毕后提前加载下一个需要显示的图片，以便用户快速浏览。 而对于几百 M 或上 G 的大图而言，不管对图片进行怎么优化或加速处理，要实现秒开也是不太可能的事情。而上面介绍的第二条“图像分割切片”是最佳解决方案。下面介绍下如何对大图进行分割，在前端进行拼接实现秒开。
+图像切片原理介绍 图像切片是指将一张大图分割成若干个小图的过程，以便于存储和处理。图像切片常用于网络地图、瓦片地图、图像拼接等应用中。
+切片原理主要包括以下几个步骤：
+定义切片大小：首先需要定义每个小图的大小，一般情况下是正方形或矩形。 计算切片数量：根据定义的切片大小，计算原始图像需要被切成多少个小图。计算公式为：切片数量 = 原始图像宽度 / 切片宽度 × 原始图像高度 / 切片高度。 切割图像：按照计算出的切片数量，将原始图像分割成相应数量的小图。可以使用图像处理库或自己编写代码实现。 存储切片：将切割后的小图存储到磁盘上，可以使用常见的图片格式，如 JPEG、PNG 等。 加载切片：在需要显示切片的地方，根据需要加载相应的小图，组合成完整的图像。 使用图像切片可以降低处理大图像的复杂度，同时也能够提高图像的加载速度，使得用户可以更快地查看图像的细节。图像切片广泛应用于需要处理大图像的场景，能够提高图像处理和显示效率，同时也能够提高用户的体验。
+实现 先上效果图 上传打开图形 先上传大图，至后台进行切片处理, 上传相关代码为：
+async onChangeFile(file) { try { message.info(&#39;文件上传中，请稍候...&#39;) this.isSelectFile = false; this.uploadMapResult = await svc.uploadMap(file.raw); if (this.uploadMapResult.error) { message.error(&#39;上传图形失败!&#39; &#43; this." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="前端加载超大图片(100M以上)实现秒开解决方案" />
+<meta property="og:description" content="前言 前端加载超大图片时，一般可以采取以下措施实现加速：
+图片压缩：将图片进行压缩可以大幅减小图片的大小，从而缩短加载时间。压缩图片时需要注意保持图片质量，以免影响图片显示效果。 图片分割：将超大图片分割成多个小图块进行加载，可以避免一次性加载整个图片，从而加快加载速度。这种方式需要在前端实现图片拼接，需要确保拼接后的图片无缝衔接。 CDN 加速：使用 CDN（内容分发网络）可以将图片缓存在离用户更近的节点上，从而加速图片加载速度。如果需要加载的图片是静态资源，可以将其存储在 CDN 上，以便快速访问。 懒加载：懒加载是一种图片延迟加载的方式，即当用户浏览到需要加载的图片时才进行加载，可以有效避免一次性加载大量图片而导致页面加载速度缓慢。 WebP 格式：使用 WebP 格式可以将图片大小减小到 JPEG 和 PNG 的一半以下，从而加快图片加载速度。 HTTP/2：使用 HTTP/2 协议可以并行加载多个图片，从而加快页面加载速度。 预加载：预加载是在页面加载完毕后，提前加载下一步所需要的资源。在图片加载方面，可以在页面加载完毕后提前加载下一个需要显示的图片，以便用户快速浏览。 而对于几百 M 或上 G 的大图而言，不管对图片进行怎么优化或加速处理，要实现秒开也是不太可能的事情。而上面介绍的第二条“图像分割切片”是最佳解决方案。下面介绍下如何对大图进行分割，在前端进行拼接实现秒开。
+图像切片原理介绍 图像切片是指将一张大图分割成若干个小图的过程，以便于存储和处理。图像切片常用于网络地图、瓦片地图、图像拼接等应用中。
+切片原理主要包括以下几个步骤：
+定义切片大小：首先需要定义每个小图的大小，一般情况下是正方形或矩形。 计算切片数量：根据定义的切片大小，计算原始图像需要被切成多少个小图。计算公式为：切片数量 = 原始图像宽度 / 切片宽度 × 原始图像高度 / 切片高度。 切割图像：按照计算出的切片数量，将原始图像分割成相应数量的小图。可以使用图像处理库或自己编写代码实现。 存储切片：将切割后的小图存储到磁盘上，可以使用常见的图片格式，如 JPEG、PNG 等。 加载切片：在需要显示切片的地方，根据需要加载相应的小图，组合成完整的图像。 使用图像切片可以降低处理大图像的复杂度，同时也能够提高图像的加载速度，使得用户可以更快地查看图像的细节。图像切片广泛应用于需要处理大图像的场景，能够提高图像处理和显示效率，同时也能够提高用户的体验。
+实现 先上效果图 上传打开图形 先上传大图，至后台进行切片处理, 上传相关代码为：
+async onChangeFile(file) { try { message.info(&#39;文件上传中，请稍候...&#39;) this.isSelectFile = false; this.uploadMapResult = await svc.uploadMap(file.raw); if (this.uploadMapResult.error) { message.error(&#39;上传图形失败!&#39; &#43; this." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/447/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-05T10:13:38+08:00" />
+<meta property="article:modified_time" content="2023-04-05T10:13:38+08:00" />
+
+  
+  <meta itemprop="name" content="前端加载超大图片(100M以上)实现秒开解决方案">
+<meta itemprop="description" content="前言 前端加载超大图片时，一般可以采取以下措施实现加速：
+图片压缩：将图片进行压缩可以大幅减小图片的大小，从而缩短加载时间。压缩图片时需要注意保持图片质量，以免影响图片显示效果。 图片分割：将超大图片分割成多个小图块进行加载，可以避免一次性加载整个图片，从而加快加载速度。这种方式需要在前端实现图片拼接，需要确保拼接后的图片无缝衔接。 CDN 加速：使用 CDN（内容分发网络）可以将图片缓存在离用户更近的节点上，从而加速图片加载速度。如果需要加载的图片是静态资源，可以将其存储在 CDN 上，以便快速访问。 懒加载：懒加载是一种图片延迟加载的方式，即当用户浏览到需要加载的图片时才进行加载，可以有效避免一次性加载大量图片而导致页面加载速度缓慢。 WebP 格式：使用 WebP 格式可以将图片大小减小到 JPEG 和 PNG 的一半以下，从而加快图片加载速度。 HTTP/2：使用 HTTP/2 协议可以并行加载多个图片，从而加快页面加载速度。 预加载：预加载是在页面加载完毕后，提前加载下一步所需要的资源。在图片加载方面，可以在页面加载完毕后提前加载下一个需要显示的图片，以便用户快速浏览。 而对于几百 M 或上 G 的大图而言，不管对图片进行怎么优化或加速处理，要实现秒开也是不太可能的事情。而上面介绍的第二条“图像分割切片”是最佳解决方案。下面介绍下如何对大图进行分割，在前端进行拼接实现秒开。
+图像切片原理介绍 图像切片是指将一张大图分割成若干个小图的过程，以便于存储和处理。图像切片常用于网络地图、瓦片地图、图像拼接等应用中。
+切片原理主要包括以下几个步骤：
+定义切片大小：首先需要定义每个小图的大小，一般情况下是正方形或矩形。 计算切片数量：根据定义的切片大小，计算原始图像需要被切成多少个小图。计算公式为：切片数量 = 原始图像宽度 / 切片宽度 × 原始图像高度 / 切片高度。 切割图像：按照计算出的切片数量，将原始图像分割成相应数量的小图。可以使用图像处理库或自己编写代码实现。 存储切片：将切割后的小图存储到磁盘上，可以使用常见的图片格式，如 JPEG、PNG 等。 加载切片：在需要显示切片的地方，根据需要加载相应的小图，组合成完整的图像。 使用图像切片可以降低处理大图像的复杂度，同时也能够提高图像的加载速度，使得用户可以更快地查看图像的细节。图像切片广泛应用于需要处理大图像的场景，能够提高图像处理和显示效率，同时也能够提高用户的体验。
+实现 先上效果图 上传打开图形 先上传大图，至后台进行切片处理, 上传相关代码为：
+async onChangeFile(file) { try { message.info(&#39;文件上传中，请稍候...&#39;) this.isSelectFile = false; this.uploadMapResult = await svc.uploadMap(file.raw); if (this.uploadMapResult.error) { message.error(&#39;上传图形失败!&#39; &#43; this."><meta itemprop="datePublished" content="2023-04-05T10:13:38+08:00" />
+<meta itemprop="dateModified" content="2023-04-05T10:13:38+08:00" />
+<meta itemprop="wordCount" content="263">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="前端加载超大图片(100M以上)实现秒开解决方案"/>
+<meta name="twitter:description" content="前言 前端加载超大图片时，一般可以采取以下措施实现加速：
+图片压缩：将图片进行压缩可以大幅减小图片的大小，从而缩短加载时间。压缩图片时需要注意保持图片质量，以免影响图片显示效果。 图片分割：将超大图片分割成多个小图块进行加载，可以避免一次性加载整个图片，从而加快加载速度。这种方式需要在前端实现图片拼接，需要确保拼接后的图片无缝衔接。 CDN 加速：使用 CDN（内容分发网络）可以将图片缓存在离用户更近的节点上，从而加速图片加载速度。如果需要加载的图片是静态资源，可以将其存储在 CDN 上，以便快速访问。 懒加载：懒加载是一种图片延迟加载的方式，即当用户浏览到需要加载的图片时才进行加载，可以有效避免一次性加载大量图片而导致页面加载速度缓慢。 WebP 格式：使用 WebP 格式可以将图片大小减小到 JPEG 和 PNG 的一半以下，从而加快图片加载速度。 HTTP/2：使用 HTTP/2 协议可以并行加载多个图片，从而加快页面加载速度。 预加载：预加载是在页面加载完毕后，提前加载下一步所需要的资源。在图片加载方面，可以在页面加载完毕后提前加载下一个需要显示的图片，以便用户快速浏览。 而对于几百 M 或上 G 的大图而言，不管对图片进行怎么优化或加速处理，要实现秒开也是不太可能的事情。而上面介绍的第二条“图像分割切片”是最佳解决方案。下面介绍下如何对大图进行分割，在前端进行拼接实现秒开。
+图像切片原理介绍 图像切片是指将一张大图分割成若干个小图的过程，以便于存储和处理。图像切片常用于网络地图、瓦片地图、图像拼接等应用中。
+切片原理主要包括以下几个步骤：
+定义切片大小：首先需要定义每个小图的大小，一般情况下是正方形或矩形。 计算切片数量：根据定义的切片大小，计算原始图像需要被切成多少个小图。计算公式为：切片数量 = 原始图像宽度 / 切片宽度 × 原始图像高度 / 切片高度。 切割图像：按照计算出的切片数量，将原始图像分割成相应数量的小图。可以使用图像处理库或自己编写代码实现。 存储切片：将切割后的小图存储到磁盘上，可以使用常见的图片格式，如 JPEG、PNG 等。 加载切片：在需要显示切片的地方，根据需要加载相应的小图，组合成完整的图像。 使用图像切片可以降低处理大图像的复杂度，同时也能够提高图像的加载速度，使得用户可以更快地查看图像的细节。图像切片广泛应用于需要处理大图像的场景，能够提高图像处理和显示效率，同时也能够提高用户的体验。
+实现 先上效果图 上传打开图形 先上传大图，至后台进行切片处理, 上传相关代码为：
+async onChangeFile(file) { try { message.info(&#39;文件上传中，请稍候...&#39;) this.isSelectFile = false; this.uploadMapResult = await svc.uploadMap(file.raw); if (this.uploadMapResult.error) { message.error(&#39;上传图形失败!&#39; &#43; this."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">前端加载超大图片(100M以上)实现秒开解决方案</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 5, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1cb7a50ba95949f8b58fe60dd3e79c97~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="前端加载超大图片(100M以上)实现秒开解决方案"></p>
+<h1 id="前言">前言</h1>
+<p>前端加载超大图片时，一般可以采取以下措施实现加速：</p>
+<ol>
+<li>图片压缩：将图片进行压缩可以大幅减小图片的大小，从而缩短加载时间。压缩图片时需要注意保持图片质量，以免影响图片显示效果。</li>
+<li>图片分割：将超大图片分割成多个小图块进行加载，可以避免一次性加载整个图片，从而加快加载速度。这种方式需要在前端实现图片拼接，需要确保拼接后的图片无缝衔接。</li>
+<li>CDN 加速：使用 CDN（内容分发网络）可以将图片缓存在离用户更近的节点上，从而加速图片加载速度。如果需要加载的图片是静态资源，可以将其存储在 CDN 上，以便快速访问。</li>
+<li>懒加载：懒加载是一种图片延迟加载的方式，即当用户浏览到需要加载的图片时才进行加载，可以有效避免一次性加载大量图片而导致页面加载速度缓慢。</li>
+<li>WebP 格式：使用 WebP 格式可以将图片大小减小到 JPEG 和 PNG 的一半以下，从而加快图片加载速度。</li>
+<li>HTTP/2：使用 HTTP/2 协议可以并行加载多个图片，从而加快页面加载速度。</li>
+<li>预加载：预加载是在页面加载完毕后，提前加载下一步所需要的资源。在图片加载方面，可以在页面加载完毕后提前加载下一个需要显示的图片，以便用户快速浏览。</li>
+</ol>
+<p>而对于几百 M 或上 G 的大图而言，不管对图片进行怎么优化或加速处理，要实现秒开也是不太可能的事情。而上面介绍的第二条“图像分割切片”是最佳解决方案。下面介绍下如何对大图进行分割，在前端进行拼接实现秒开。</p>
+<h1 id="图像切片原理介绍">图像切片原理介绍</h1>
+<p>图像切片是指将一张大图分割成若干个小图的过程，以便于存储和处理。图像切片常用于网络地图、瓦片地图、图像拼接等应用中。</p>
+<p>切片原理主要包括以下几个步骤：</p>
+<ol>
+<li>定义切片大小：首先需要定义每个小图的大小，一般情况下是正方形或矩形。</li>
+<li>计算切片数量：根据定义的切片大小，计算原始图像需要被切成多少个小图。计算公式为：切片数量 = 原始图像宽度 / 切片宽度 × 原始图像高度 / 切片高度。</li>
+<li>切割图像：按照计算出的切片数量，将原始图像分割成相应数量的小图。可以使用图像处理库或自己编写代码实现。</li>
+<li>存储切片：将切割后的小图存储到磁盘上，可以使用常见的图片格式，如 JPEG、PNG 等。</li>
+<li>加载切片：在需要显示切片的地方，根据需要加载相应的小图，组合成完整的图像。</li>
+</ol>
+<p>使用图像切片可以降低处理大图像的复杂度，同时也能够提高图像的加载速度，使得用户可以更快地查看图像的细节。图像切片广泛应用于需要处理大图像的场景，能够提高图像处理和显示效率，同时也能够提高用户的体验。</p>
+<h1 id="实现">实现</h1>
+<h2 id="先上效果图">先上效果图</h2>
+<p><img src="https://vjmap.com/blogimages/imageslice.gif" alt="imageslice.gif"></p>
+<h2 id="上传打开图形">上传打开图形</h2>
+<p>先上传大图，至后台进行切片处理, 上传相关代码为：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#a6e22e">onChangeFile</span>(<span style="color:#a6e22e">file</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">message</span>.<span style="color:#a6e22e">info</span>(<span style="color:#e6db74">&#39;文件上传中，请稍候...&#39;</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">isSelectFile</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">uploadMapResult</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">svc</span>.<span style="color:#a6e22e">uploadMap</span>(<span style="color:#a6e22e">file</span>.<span style="color:#a6e22e">raw</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">uploadMapResult</span>.<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">message</span>.<span style="color:#a6e22e">error</span>(<span style="color:#e6db74">&#39;上传图形失败!&#39;</span> <span style="color:#f92672">+</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">uploadMapResult</span>.<span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">mapid</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">uploadMapResult</span>.<span style="color:#a6e22e">mapid</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">uploadname</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">uploadMapResult</span>.<span style="color:#a6e22e">uploadname</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">maptype</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">uploadMapResult</span>.<span style="color:#a6e22e">maptype</span> <span style="color:#f92672">||</span> <span style="color:#e6db74">&#39;&#39;</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">dialogVisible</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">error</span>(<span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">message</span>.<span style="color:#a6e22e">error</span>(<span style="color:#e6db74">&#39;上传图形失败!&#39;</span>, <span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>如果需要上传后对图像进行处理，可以新建一个 cmd.txt 文件，把处理的命令写进文件中，然后和图像一起打包成 zip 上传。</p>
+<p>如需要把 1.jpg,2.jpg 拼接成一个新的图片 m1.png 再打开,cmd.txt 的写法如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>join
+</span></span><span style="display:flex;"><span>1.jpg
+</span></span><span style="display:flex;"><span>2.jpg
+</span></span><span style="display:flex;"><span>m1.png
+</span></span><span style="display:flex;"><span>horizontal
+</span></span></code></pre></div><p>再把 1.jpg,2.jpg,cmd.txt 三个文件打包成 zip 文件上传即可</p>
+<p>打开图像相关代码</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#66d9ef">async</span> <span style="color:#a6e22e">onOpenMap</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">mapid</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">mapid</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">param</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>            ...<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">uploadMapResult</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 图名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">mapid</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">mapid</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 上传完返回的fileid
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">fileid</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">uploadMapResult</span>.<span style="color:#a6e22e">fileid</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 上传完返回的文件名
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">uploadname</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">uploadname</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 地图打开方式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">mapopenway</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">openway</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;直接打开图形&#34;</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">vjmap</span>.<span style="color:#a6e22e">MapOpenWay</span>.<span style="color:#a6e22e">Memory</span> <span style="color:#f92672">:</span> <span style="color:#a6e22e">vjmap</span>.<span style="color:#a6e22e">MapOpenWay</span>.<span style="color:#a6e22e">GeomRender</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 如果要密码访问的话，设置秘钥值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">secretKey</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">isPasswordProtection</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">svc</span>.<span style="color:#a6e22e">pwdToSecretKey</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">password</span>) <span style="color:#f92672">:</span> <span style="color:#66d9ef">undefined</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">style</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">vjmap</span>.<span style="color:#a6e22e">openMapDarkStyle</span>(),<span style="color:#75715e">// div为深色背景颜色时，这里也传深色背景样式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#75715e">// 图像类型设置地图左上角坐标和分辨率
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">imageLeft</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">imageLeft</span> <span style="color:#f92672">?</span> <span style="color:#f92672">+</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">imageLeft</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">undefined</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">imageTop</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">imageTop</span> <span style="color:#f92672">?</span> <span style="color:#f92672">+</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">imageTop</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">undefined</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">imageResolution</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">imageResolution</span> <span style="color:#f92672">?</span> <span style="color:#f92672">+</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">imageResolution</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">undefined</span>,
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">isVectorStyle</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">form</span>.<span style="color:#a6e22e">openway</span> <span style="color:#f92672">===</span> <span style="color:#e6db74">&#34;存储后渲染矢量&#34;</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">openMap</span>(<span style="color:#a6e22e">param</span>, <span style="color:#a6e22e">isVectorStyle</span>);
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (<span style="color:#a6e22e">error</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">error</span>(<span style="color:#a6e22e">error</span>);
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">message</span>.<span style="color:#a6e22e">error</span>(<span style="color:#e6db74">&#39;打开图形失败!&#39;</span>, <span style="color:#a6e22e">error</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h1 id="应用案例">应用案例</h1>
+<h2 id="应用一-对图像进行拼接前端查看">应用一 对图像进行拼接前端查看</h2>
+<p>原始图片为</p>
+<p><img src="https://vjmap.com/blogimages/image-20230319204505566.png" alt="image-20230319204505566"></p>
+<p><img src="https://vjmap.com/blogimages/image-20230319204822323.png" alt="image-20230319204822323"></p>
+<p>最终效果为:</p>
+<p><img src="https://vjmap.com/blogimages/image-20230319204924823.png" alt="image-20230319204924823"></p>
+<p>体验地址: <a href="https://vjmap.com/app/cloud/#/map/t3c93d14ff09?version=v1&amp;mapopenway=GeomRender&amp;vector=false">vjmap.com/app/cloud/#…</a></p>
+<h2 id="应用二-对-tiff-影像进行切片并与-cad-图叠加校准">应用二 对 tiff 影像进行切片并与 CAD 图叠加校准</h2>
+<p>对 tiff 影像上传时可设置地理坐标范围。</p>
+<p>tiff/tfw, jpg/jpgw 坐标文件的格式(6 个参数) 0.030000 0.0000000000 0.0000000000 -0.030000 451510.875000 3358045.000000</p>
+<p>以上每行对应的含义：</p>
+<p>1 地图单元中的一个象素在 X 方向上的 X 分辨率尺度。 2 平移量。 3 旋转量。 4 地图单元中的一个象素在 Y 方向上的 Y 分辨率尺度的负值。 5 象素 1，1（左上方）的 X 地坐标。 6 象素 1，1（左上方）的 Y 地坐标。</p>
+<p>在上传图时需要根据文件中的第一个，第五个和第六个值设置地图范围</p>
+<p><img src="https://vjmap.com/blogimages/image-20230319205612982.png" alt="image-20230319205612982"></p>
+<p>或者上传完后，操作菜单中点击设置地图范围进行设置</p>
+<p><img src="https://vjmap.com/blogimages/image-20230319205732187.png" alt="image-20230319205732187"></p>
+<p>影像地图切片完成后，可与 CAD 图进行叠加校准。效果如下</p>
+<p><img src="https://vjmap.com/blogimages/image-20230319205945507.png" alt="image-20230319205945507"></p>
+<p>体验地址: <a href="https://vjmap.com/demo/#/demo/map/comprehensive/04imagecadmap">vjmap.com/demo/#/demo…</a></p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/448/"
+      ><span class="mr-1.5">←</span><span>十个超级好用的Javascript技巧</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/446/"
+      ><span>使用Echarts绘制街道、镇级地图（bigmap)</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

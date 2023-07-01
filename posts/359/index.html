@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>优化你的 CSS - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="在这一部分，我们来详细看一看与 CSS 相关的优化内容。其中一部分内容与 JavaScript 部分类似，另一部分可能是 CSS 特有的一些优化或注意事项。
+1. 关键 CSS 在性能优化上，其实我们会更关注关键渲染路径（Critical Rendering Path，即 CRP），而不一定是最快加载完整个页面。
+CRP 是指优先显示与当前用户操作有关的内容。由于 CSS 会“间接”阻塞页面的解析，所以在这个过程中的 CSS 也被称为关键 CSS。识别出当前业务中的关键 CSS，优先下载与解析它，将会帮助我们更好降低延迟。
+所以我们首先还是需要先建立好概念：很多时候，我们并不是在追求整体页面的最快加载，而是最核心最关键的那部分。例如在视频网站上可能是播放器，在文档站点可能是阅读器。
+由于很多时候，关键 CSS 不会太大，因此有一种常见的优化措施是，将关键 CSS 的内容通过 &lt;style&gt; 标签内联到 &lt;head&gt; 中，然后异步加载其他非关键 CSS。这样对于关键路径的渲染可以减少一次 RTT (Round-Trip Time)。用户可以更快看到一些页面初始的渲染结果。
+经典的骨架屏[1]可以算是这种思路的一个延展。我们会生成一个不包含实际功能的静态页面，将必要的脚本、样式、甚至图片（base64）资源都内联到其中，当用户访问时直接先返回该页面，就可以很快让用户看到页面结果，之后在异步渐进加载预渲染，就会让用户感觉“很快”。
+骨架屏可以手动编写[2]，当然也可以通过编译插件来帮助你自动生成[3]骨架屏。
+2. 优化资源请求 2.1. 按需加载 与 JavaScript 类似，我们的 CSS 也是可以按需加载的。尤其在当下组件化盛行的潮流里，组件的按需加载就可能会包括了 JavaScript 脚本、CSS 样式表、图标图片。在上一部分介绍的 webpack code split 也会包含这一部分。
+除了使用一些构建工具以及对应的插件外，你也可以使用 loadCSS 这样的库来实现 CSS 文件的按需异步加载。
+2.2. 合并文件 同样的，参照 JavaScript，我们也可以把一些 CSS 文件进行合并来减少请求数。
+2.3. 请求的优先级排序 浏览器中的各类请求是有优先级排序的。低优请求会被排在高优之后再发送。
+不过可惜的是，浏览器没有将优先级排序的能力给我们直接开放出来。但在一些场景下，我们可以通过更合理的使用媒体类型和媒体查询来实现资源加载的优先级。下面会介绍一下这种方法。
+一些网站为了达到不同屏幕之间的兼容，可能会使用媒体查询的方式来构建它的样式系统。一般而言，我们都会把样式代码写在一起，例如导航的在各类屏幕下的样式都会放在 navigator." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="优化你的 CSS" />
+<meta property="og:description" content="在这一部分，我们来详细看一看与 CSS 相关的优化内容。其中一部分内容与 JavaScript 部分类似，另一部分可能是 CSS 特有的一些优化或注意事项。
+1. 关键 CSS 在性能优化上，其实我们会更关注关键渲染路径（Critical Rendering Path，即 CRP），而不一定是最快加载完整个页面。
+CRP 是指优先显示与当前用户操作有关的内容。由于 CSS 会“间接”阻塞页面的解析，所以在这个过程中的 CSS 也被称为关键 CSS。识别出当前业务中的关键 CSS，优先下载与解析它，将会帮助我们更好降低延迟。
+所以我们首先还是需要先建立好概念：很多时候，我们并不是在追求整体页面的最快加载，而是最核心最关键的那部分。例如在视频网站上可能是播放器，在文档站点可能是阅读器。
+由于很多时候，关键 CSS 不会太大，因此有一种常见的优化措施是，将关键 CSS 的内容通过 &lt;style&gt; 标签内联到 &lt;head&gt; 中，然后异步加载其他非关键 CSS。这样对于关键路径的渲染可以减少一次 RTT (Round-Trip Time)。用户可以更快看到一些页面初始的渲染结果。
+经典的骨架屏[1]可以算是这种思路的一个延展。我们会生成一个不包含实际功能的静态页面，将必要的脚本、样式、甚至图片（base64）资源都内联到其中，当用户访问时直接先返回该页面，就可以很快让用户看到页面结果，之后在异步渐进加载预渲染，就会让用户感觉“很快”。
+骨架屏可以手动编写[2]，当然也可以通过编译插件来帮助你自动生成[3]骨架屏。
+2. 优化资源请求 2.1. 按需加载 与 JavaScript 类似，我们的 CSS 也是可以按需加载的。尤其在当下组件化盛行的潮流里，组件的按需加载就可能会包括了 JavaScript 脚本、CSS 样式表、图标图片。在上一部分介绍的 webpack code split 也会包含这一部分。
+除了使用一些构建工具以及对应的插件外，你也可以使用 loadCSS 这样的库来实现 CSS 文件的按需异步加载。
+2.2. 合并文件 同样的，参照 JavaScript，我们也可以把一些 CSS 文件进行合并来减少请求数。
+2.3. 请求的优先级排序 浏览器中的各类请求是有优先级排序的。低优请求会被排在高优之后再发送。
+不过可惜的是，浏览器没有将优先级排序的能力给我们直接开放出来。但在一些场景下，我们可以通过更合理的使用媒体类型和媒体查询来实现资源加载的优先级。下面会介绍一下这种方法。
+一些网站为了达到不同屏幕之间的兼容，可能会使用媒体查询的方式来构建它的样式系统。一般而言，我们都会把样式代码写在一起，例如导航的在各类屏幕下的样式都会放在 navigator." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/359/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-05T18:00:00+08:00" />
+<meta property="article:modified_time" content="2023-03-05T18:00:00+08:00" />
+
+  
+  <meta itemprop="name" content="优化你的 CSS">
+<meta itemprop="description" content="在这一部分，我们来详细看一看与 CSS 相关的优化内容。其中一部分内容与 JavaScript 部分类似，另一部分可能是 CSS 特有的一些优化或注意事项。
+1. 关键 CSS 在性能优化上，其实我们会更关注关键渲染路径（Critical Rendering Path，即 CRP），而不一定是最快加载完整个页面。
+CRP 是指优先显示与当前用户操作有关的内容。由于 CSS 会“间接”阻塞页面的解析，所以在这个过程中的 CSS 也被称为关键 CSS。识别出当前业务中的关键 CSS，优先下载与解析它，将会帮助我们更好降低延迟。
+所以我们首先还是需要先建立好概念：很多时候，我们并不是在追求整体页面的最快加载，而是最核心最关键的那部分。例如在视频网站上可能是播放器，在文档站点可能是阅读器。
+由于很多时候，关键 CSS 不会太大，因此有一种常见的优化措施是，将关键 CSS 的内容通过 &lt;style&gt; 标签内联到 &lt;head&gt; 中，然后异步加载其他非关键 CSS。这样对于关键路径的渲染可以减少一次 RTT (Round-Trip Time)。用户可以更快看到一些页面初始的渲染结果。
+经典的骨架屏[1]可以算是这种思路的一个延展。我们会生成一个不包含实际功能的静态页面，将必要的脚本、样式、甚至图片（base64）资源都内联到其中，当用户访问时直接先返回该页面，就可以很快让用户看到页面结果，之后在异步渐进加载预渲染，就会让用户感觉“很快”。
+骨架屏可以手动编写[2]，当然也可以通过编译插件来帮助你自动生成[3]骨架屏。
+2. 优化资源请求 2.1. 按需加载 与 JavaScript 类似，我们的 CSS 也是可以按需加载的。尤其在当下组件化盛行的潮流里，组件的按需加载就可能会包括了 JavaScript 脚本、CSS 样式表、图标图片。在上一部分介绍的 webpack code split 也会包含这一部分。
+除了使用一些构建工具以及对应的插件外，你也可以使用 loadCSS 这样的库来实现 CSS 文件的按需异步加载。
+2.2. 合并文件 同样的，参照 JavaScript，我们也可以把一些 CSS 文件进行合并来减少请求数。
+2.3. 请求的优先级排序 浏览器中的各类请求是有优先级排序的。低优请求会被排在高优之后再发送。
+不过可惜的是，浏览器没有将优先级排序的能力给我们直接开放出来。但在一些场景下，我们可以通过更合理的使用媒体类型和媒体查询来实现资源加载的优先级。下面会介绍一下这种方法。
+一些网站为了达到不同屏幕之间的兼容，可能会使用媒体查询的方式来构建它的样式系统。一般而言，我们都会把样式代码写在一起，例如导航的在各类屏幕下的样式都会放在 navigator."><meta itemprop="datePublished" content="2023-03-05T18:00:00+08:00" />
+<meta itemprop="dateModified" content="2023-03-05T18:00:00+08:00" />
+<meta itemprop="wordCount" content="436">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="优化你的 CSS"/>
+<meta name="twitter:description" content="在这一部分，我们来详细看一看与 CSS 相关的优化内容。其中一部分内容与 JavaScript 部分类似，另一部分可能是 CSS 特有的一些优化或注意事项。
+1. 关键 CSS 在性能优化上，其实我们会更关注关键渲染路径（Critical Rendering Path，即 CRP），而不一定是最快加载完整个页面。
+CRP 是指优先显示与当前用户操作有关的内容。由于 CSS 会“间接”阻塞页面的解析，所以在这个过程中的 CSS 也被称为关键 CSS。识别出当前业务中的关键 CSS，优先下载与解析它，将会帮助我们更好降低延迟。
+所以我们首先还是需要先建立好概念：很多时候，我们并不是在追求整体页面的最快加载，而是最核心最关键的那部分。例如在视频网站上可能是播放器，在文档站点可能是阅读器。
+由于很多时候，关键 CSS 不会太大，因此有一种常见的优化措施是，将关键 CSS 的内容通过 &lt;style&gt; 标签内联到 &lt;head&gt; 中，然后异步加载其他非关键 CSS。这样对于关键路径的渲染可以减少一次 RTT (Round-Trip Time)。用户可以更快看到一些页面初始的渲染结果。
+经典的骨架屏[1]可以算是这种思路的一个延展。我们会生成一个不包含实际功能的静态页面，将必要的脚本、样式、甚至图片（base64）资源都内联到其中，当用户访问时直接先返回该页面，就可以很快让用户看到页面结果，之后在异步渐进加载预渲染，就会让用户感觉“很快”。
+骨架屏可以手动编写[2]，当然也可以通过编译插件来帮助你自动生成[3]骨架屏。
+2. 优化资源请求 2.1. 按需加载 与 JavaScript 类似，我们的 CSS 也是可以按需加载的。尤其在当下组件化盛行的潮流里，组件的按需加载就可能会包括了 JavaScript 脚本、CSS 样式表、图标图片。在上一部分介绍的 webpack code split 也会包含这一部分。
+除了使用一些构建工具以及对应的插件外，你也可以使用 loadCSS 这样的库来实现 CSS 文件的按需异步加载。
+2.2. 合并文件 同样的，参照 JavaScript，我们也可以把一些 CSS 文件进行合并来减少请求数。
+2.3. 请求的优先级排序 浏览器中的各类请求是有优先级排序的。低优请求会被排在高优之后再发送。
+不过可惜的是，浏览器没有将优先级排序的能力给我们直接开放出来。但在一些场景下，我们可以通过更合理的使用媒体类型和媒体查询来实现资源加载的优先级。下面会介绍一下这种方法。
+一些网站为了达到不同屏幕之间的兼容，可能会使用媒体查询的方式来构建它的样式系统。一般而言，我们都会把样式代码写在一起，例如导航的在各类屏幕下的样式都会放在 navigator."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">优化你的 CSS</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 5, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>在这一部分，我们来详细看一看与 CSS 相关的优化内容。其中一部分内容与 JavaScript 部分类似，另一部分可能是 CSS 特有的一些优化或注意事项。</p>
+<h2 id="1-关键-css">1. 关键 CSS</h2>
+<p>在性能优化上，其实我们会更关注关键渲染路径（Critical Rendering Path，即 CRP），而不一定是最快加载完整个页面。</p>
+<p>CRP 是指优先显示与当前用户操作有关的内容。由于 CSS 会“间接”阻塞页面的解析，所以在这个过程中的 CSS 也被称为关键 CSS。识别出当前业务中的关键 CSS，优先下载与解析它，将会帮助我们更好降低延迟。</p>
+<p>所以我们首先还是需要先建立好概念：很多时候，我们并不是在追求整体页面的最快加载，而是最核心最关键的那部分。例如在视频网站上可能是播放器，在文档站点可能是阅读器。</p>
+<p>由于很多时候，关键 CSS 不会太大，因此有一种常见的优化措施是，将关键 CSS 的内容通过 <code>&lt;style&gt;</code> 标签内联到 <code>&lt;head&gt;</code> 中，然后异步加载其他非关键 CSS。这样对于关键路径的渲染可以减少一次 RTT (Round-Trip Time)。用户可以更快看到一些页面初始的渲染结果。</p>
+<p>经典的<a href="https://uxdesign.cc/what-you-should-know-about-skeleton-screens-a820c45a571a">骨架屏</a><sup>[1]</sup>可以算是这种思路的一个延展。我们会生成一个不包含实际功能的静态页面，将必要的脚本、样式、甚至图片（base64）资源都内联到其中，当用户访问时直接先返回该页面，就可以很快让用户看到页面结果，之后在异步渐进加载预渲染，就会让用户感觉“很快”。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6a2034c5f51c40d6a5196bc7f78620ae~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="image.png"></p>
+<p>骨架屏可以<a href="https://css-tricks.com/building-skeleton-screens-css-custom-properties/">手动编写</a><sup>[2]</sup>，当然也可以通过<a href="https://github.com/ElemeFE/page-skeleton-webpack-plugin">编译插件</a>来帮助你<a href="https://zhuanlan.zhihu.com/p/34702561">自动生成</a><sup>[3]</sup>骨架屏。</p>
+<h2 id="2-优化资源请求">2. 优化资源请求</h2>
+<h3 id="21-按需加载">2.1. 按需加载</h3>
+<p>与 JavaScript 类似，我们的 CSS 也是可以按需加载的。尤其在当下组件化盛行的潮流里，组件的按需加载就可能会包括了 JavaScript 脚本、CSS 样式表、图标图片。在上一部分介绍的 <a href="https://link.juejin.cn/?target=.%2Fjavascript.md%23user-content-11-%25E4%25BB%25A3%25E7%25A0%2581%25E6%258B%2586%25E5%2588%2586%25E4%25B8%258E%25E6%258C%2589%25E9%259C%2580%25E5%258A%25A0%25E8%25BD%25BD" title="./javascript.md#user-content-11-%E4%BB%A3%E7%A0%81%E6%8B%86%E5%88%86%E4%B8%8E%E6%8C%89%E9%9C%80%E5%8A%A0%E8%BD%BD">webpack code split</a> 也会包含这一部分。</p>
+<p>除了使用一些构建工具以及对应的插件外，你也可以使用 <a href="https://github.com/filamentgroup/loadCSS">loadCSS</a> 这样的库来实现 CSS 文件的按需异步加载。</p>
+<h3 id="22-合并文件">2.2. 合并文件</h3>
+<p>同样的，参照 JavaScript，我们也可以把一些 CSS 文件进行合并来减少请求数。</p>
+<h3 id="23-请求的优先级排序">2.3. 请求的优先级排序</h3>
+<p>浏览器中的各类请求是有优先级排序的。低优请求会被排在高优之后再发送。</p>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ff45f531b43241deb5b7671cd57ea548~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="image.png"></p>
+<p>不过可惜的是，浏览器没有将优先级排序的能力给我们直接开放出来。但在一些场景下，我们可以通过更合理的使用媒体类型和媒体查询来实现资源加载的优先级。下面会介绍一下这种方法。</p>
+<p>一些网站为了达到不同屏幕之间的兼容，可能会使用媒体查询的方式来构建它的样式系统。一般而言，我们都会把样式代码写在一起，例如导航的在各类屏幕下的样式都会放在 <code>navigator.css</code> 下，列表都会放在 <code>list.css</code> 下。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-HTML" data-lang="HTML"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;navigator.css&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;list.css&#34;</span> /&gt;
+</span></span></code></pre></div><p>这里带来的一个问题就是，在宽度小于 400px 的场景下，其实并不需要应用宽度 400px 以上的 CSS 样式。针对这个问题，<code>link</code> 标签上其实有一个 <code>media</code> 属性来处理媒体查询下的加载优先级。浏览器会优先下载匹配当前环境的样式资源，相对的，其他非匹配的优先级会下降。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-HTML" data-lang="HTML"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;navigator.css&#34;</span> <span style="color:#a6e22e">media</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;all&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;list.css&#34;</span> <span style="color:#a6e22e">media</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;all&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;navigator.small.css&#34;</span> <span style="color:#a6e22e">media</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;(max-width: 500px)&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;list.small.css&#34;</span> <span style="color:#a6e22e">media</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;(max-width: 500px)&#34;</span> /&gt;
+</span></span></code></pre></div><p>这样拆分后，当页面大于 500 px 时，<code>navigator.small.css</code> 和 <code>list.small.css</code> 的优先级会降低，同时，<strong>它们也不再会阻塞页面的渲染</strong>。需要注意的是，优先级降低代表可能会后加载，并非不加载。</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9ef635a3725145eb90dac0bbd9c733a9~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp" alt="image.png"></p>
+<h3 id="24-慎用-import">2.4. 慎用 <code>@import</code></h3>
+<p>CSS 提供了一个 <code>@import</code> 语法来加载外部的样式文件。然而，这会把你的请求变得串行化。</p>
+<p>考虑 <code>index.css</code> 这个资源，页面上是这么引用的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-HTML" data-lang="HTML"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;index.css&#34;</span> /&gt;
+</span></span></code></pre></div><p>而在 <code>index.css</code> 中引用了 <code>other.css</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-CSS" data-lang="CSS"><span style="display:flex;"><span><span style="color:#75715e">/* index.css */</span>
+</span></span><span style="display:flex;"><span>@<span style="color:#66d9ef">import</span> <span style="color:#f92672">url</span><span style="color:#f92672">(</span><span style="color:#f92672">other</span>.<span style="color:#a6e22e">css</span><span style="color:#f92672">)</span>;
+</span></span></code></pre></div><p>这样浏览器只有当下载了 <code>index.css</code> 并解析到其中 <code>@import</code> 时，才会再去请求 <code>other.css</code>。这是一个串行过程。</p>
+<p>而如果我们把它改造为</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-HTML" data-lang="HTML"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;index.css&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;other.css&#34;</span> /&gt;
+</span></span></code></pre></div><p>那就不需要等待 <code>index.css</code> 下载，几乎是并行执行了。</p>
+<h3 id="25-谨慎对待-javascript-脚本的位置">2.5. 谨慎对待 JavaScript 脚本的位置</h3>
+<p>在<a href="https://link.juejin.cn/?target=..%2F4-parse%2FREADME.md%231-%25E6%25B3%25A8%25E6%2584%258F%25E8%25B5%2584%25E6%25BA%2590%25E5%259C%25A8%25E9%25A1%25B5%25E9%259D%25A2%25E6%2596%2587%25E6%25A1%25A3%25E4%25B8%25AD%25E7%259A%2584%25E4%25BD%258D%25E7%25BD%25AE" title="../4-parse/README.md#1-%E6%B3%A8%E6%84%8F%E8%B5%84%E6%BA%90%E5%9C%A8%E9%A1%B5%E9%9D%A2%E6%96%87%E6%A1%A3%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE">第四站「页面解析与处理」</a>中，我们提到将 “JavaScript 脚本放到页面尾部、CSS 放到页面头部”的模式。这只是大多数情况的处理方式。对于一些特殊情况，我们还是需要特殊处理的。</p>
+<p>还记得之前提到的一些统计类、监控类的第三方脚本么？一般而言，第三方会提供你如下一段脚本，然后推荐你内联到页面中：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-HTML" data-lang="HTML"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">script</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;script&#39;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">script</span>.<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;vendor.lib.js&#39;</span>;
+</span></span><span style="display:flex;"><span>    document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#39;head&#39;</span>)[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">script</span>);
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p>我们希望通过这样的方式来尽快异步加载脚本。然而，如果我们一不小心出现了下面这样的操作，可能会事与愿违：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-HTML" data-lang="HTML"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;navigator.css&#34;</span> /&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">script</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;script&#39;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">script</span>.<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;vendor.lib.js&#39;</span>;
+</span></span><span style="display:flex;"><span>    document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#39;head&#39;</span>)[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">script</span>);
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span></code></pre></div><p>这时，<code>navigator.css</code> 的加载会阻塞后面的 JavaScript 执行，这是为了防止后续脚本对样式的查询出现不确定性。所以，这两个资源就变成了串行加载。</p>
+<p>要优化这个问题很简单 —— 调换一下顺序即可：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-HTML" data-lang="HTML"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">script</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#39;script&#39;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">script</span>.<span style="color:#a6e22e">src</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;vendor.lib.js&#39;</span>;
+</span></span><span style="display:flex;"><span>    document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#39;head&#39;</span>)[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">script</span>);
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;navigator.css&#34;</span> /&gt;
+</span></span></code></pre></div><p>这时，<code>vendor.lib.js</code> 和 <code>navigator.css</code> 就会并行加载了。当然，你需要确保不需要查询 <code>navigator.css</code> 样式应用后的信息。</p>
+<h2 id="3-减少包体大小">3. 减少包体大小</h2>
+<h3 id="31-压缩">3.1. 压缩</h3>
+<p>CSS 同样可以进行压缩，与 JavaScript 类似，也有相应的 CSS uglify 工具，例如 <a href="https://github.com/jakubpawlowicz/clean-css">clean-css</a>，可以优化代码、删除多余的换行与空格。</p>
+<p>同时，由于 CSS 同样是文本内容，因此针对文本的各类压缩算法同样适用，最常用到的就是 gzip。如何在 Nginx 上开启它<a href="https://.cn/?target=.%2Fjavascript.md%23user-content-21-%25E4%25BB%25A3%25E7%25A0%2581%25E5%258E%258B%25E7%25BC%25A9" title="./javascript.md#user-content-21-%E4%BB%A3%E7%A0%81%E5%8E%8B%E7%BC%A9">之前也介绍过</a>，这里就不赘述了。</p>
+<h3 id="32-选择合适的兼容性">3.2. 选择合适的兼容性</h3>
+<p>对于 CSS 的 polyfill，同样可以配合 browserslist 来实现你的业务场景下的兼容性支持。比较常见的是配合 <a href="https://github.com/postcss/autoprefixer">Autoprefixer</a> 和 <a href="https://github.com/csstools/postcss-preset-env">PostCSS Preset Env</a> 来使用。可以根据指定的浏览器范围，决定使用哪些 CSS polyfill 来帮助你将新的 CSS 代码转换为旧的浏览器能识别的内容。</p>
+<h2 id="4-解析与渲染树构建">4. 解析与渲染树构建</h2>
+<h3 id="41-简化选择器">4.1. 简化选择器</h3>
+<p>在 <a href="%22https://www.html5rocks.com/zh/tutorials/internals/howbrowserswork/">浏览器的工作原理：新式网络浏览器幕后揭秘</a> 一文中，作者介绍了样式计算的原理。虽然文章发布时间比较早了，但其中部分内容还是具有参考价值的。</p>
+<p>其中指出了，样式数据是一个超大的结构，为每一个元素查找匹配的规则会造成性能问题，同时，复杂的层叠规则也会带来很高的复杂度。针对这些问题<a href="https://www.html5rocks.com/zh/tutorials/internals/howbrowserswork/#Style_Computation">浏览器也做了很多优化</a><sup>[4]</sup>。</p>
+<p>正是由于这些问题，我们应该尽量避免不必要的选择器复杂度。例如下面这个复杂选择器：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-CSS" data-lang="CSS"><span style="display:flex;"><span><span style="color:#f92672">body</span> <span style="color:#f92672">&gt;</span> <span style="color:#f92672">main</span>.<span style="color:#a6e22e">container</span> <span style="color:#f92672">&gt;</span> <span style="color:#f92672">section</span>.<span style="color:#a6e22e">intro</span> <span style="color:#f92672">h2</span>:<span style="color:#a6e22e">nth-of-type</span><span style="color:#f92672">(</span><span style="color:#f92672">odd</span><span style="color:#f92672">)</span> <span style="color:#f92672">+</span> <span style="color:#f92672">p</span>::<span style="color:#a6e22e">first-line</span> <span style="color:#f92672">a</span><span style="color:#f92672">[</span><span style="color:#f92672">href</span><span style="color:#f92672">$=</span><span style="color:#e6db74">&#34;.pdf&#34;</span><span style="color:#f92672">]</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">/* …… */</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>不过一般情况下我们是不会写出如此复杂的选择器的。但有一个情况还是需要注意一下，就是使用 SASS、LESS 这样的工具时，避免过多的嵌套。以 LESS 为例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-scss" data-lang="scss"><span style="display:flex;"><span><span style="color:#a6e22e">.list</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">.item</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">.product</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">.intro</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">.pic</span> {
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">height</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">200</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>                }
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>由于过多的嵌套，编译后会产生如下选择器：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-CSS" data-lang="CSS"><span style="display:flex;"><span>.<span style="color:#a6e22e">list</span> .<span style="color:#a6e22e">item</span> .<span style="color:#a6e22e">product</span> .<span style="color:#a6e22e">intro</span> .<span style="color:#a6e22e">pic</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">height</span>: <span style="color:#ae81ff">200</span><span style="color:#66d9ef">px</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>当然，你也可以考虑使用类似 <a href="https://en.bem.info/">BEM</a> 这样的方式来进行 <a href="https://www.jianshu.com/p/900e26060c09">CSS className 的组织与命名</a><sup>[5]</sup>，避免过多的嵌套层级。这里有<a href="https://www.sitepoint.com/optimizing-css-id-selectors-and-other-myths/">一篇文章</a><sup>[6]</sup>介绍了选择器的匹配成本。</p>
+<p>不过千万要注意了，代码的可维护性还是最重要的，不要为了过分简化选择器而放弃了代码语义和可维护性。我们仅仅是要尽量避免像上面那样的一些过分复杂的、或者不必要的繁琐的选择器。</p>
+<h3 id="42-避免使用昂贵的属性">4.2. 避免使用昂贵的属性</h3>
+<p>有一些 CSS 的属性在渲染上是有比较高的成本的，渲染速度相较而言也会慢些。在不同的浏览器上，具体的表现不太一致，但总体来说，下面一些属性是比较昂贵的：</p>
+<ul>
+<li>border-radius</li>
+<li>box-shadow</li>
+<li>opacity</li>
+<li>transform</li>
+<li>filter</li>
+<li>position: fixed</li>
+</ul>
+<h3 id="43-使用先进的布局方式">4.3. 使用先进的布局方式</h3>
+<p>对于页面布局，我们有很多方法，例如 <a href="https://juejin.cn/post/6844903634849759239">float、positioning、flex、grid</a><sup>[7]</sup> 等。float 本身设计出来并非是为了处理复杂的布局，但是通过大家的发掘和研究，已经可以通过它来实现很多种布局形式了。基于兼容性考虑，float 也成为了流行的布局方式。</p>
+<p>不过，<a href="https://www.zhihu.com/question/271492607">一些资料</a><sup>[8]</sup>也指出，使用新版的 flex 进行布局比我们用的一些“老式”方法性能更好（例如基于 float 的浮动布局）。 flex 在移动端具有不错的兼容性，很多移动场景下已经大规模使用 flex 进行页面布局。同时，虽然 flex 有<a href="https://caniuse.com/#search=flex">兼容性要求</a>，但由于很多 PC 站都不再兼容低版本 IE，因此也可以开始尝试使用它。</p>
+<p>如果你之前对 flex 了解不多，这里有一个不错的<a href="https://scrimba.com/g/gflexbox">教程</a>可以帮你快速入门。</p>
+<h2 id="5-利用缓存">5. 利用缓存</h2>
+<p>与其他静态资源类似，我们仍然可以使用<a href="https://link.juejin.cn/?target=..%2F1-cache%2FREADME.md" title="../1-cache/README.md">各类缓存策略</a>来加速资源的加载。</p>
+<p>此外，如果使用 webpack 作为构建工具，我们一般会使用 css-loader 和 style-loader，这样可以直接在 JavaScript 代码中 import 样式文件。不过这样带来的一个问题就是样式代码其实是耦合在 JavaScript 代码中的，通过运行时添加 <code>style</code> 标签注入页面。</p>
+<p>一个更好的做法是在生产环境中将样式信息单独抽离成 CSS 文件，这样也可以更好地利用缓存。在 webpack v4.x 之前的版本中，我们习惯于用 <a href="https://github.com/webpack-contrib/extract-text-webpack-plugin">ExtractTextWebpackPlugin</a> 插件。不过在 v4.x 之后，对于 CSS 的抽取，推荐使用 <a href="https://webpack.js.org/plugins/mini-css-extract-plugin/">MiniCssExtractPlugin</a> 插件。它可以将样式信息单独抽离出 CSS 文件来。基础的使用方式如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-JavaScript" data-lang="JavaScript"><span style="display:flex;"><span><span style="color:#75715e">// webpack.config.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">MiniCssExtractPlugin</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;mini-css-extract-plugin&#39;</span>);
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">MiniCssExtractPlugin</span>({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">filename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;[contenthash:8].css&#39;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">chunkFilename</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;[contenthash:8].css&#39;</span>
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">module</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rules</span><span style="color:#f92672">:</span> [{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">test</span><span style="color:#f92672">:</span> <span style="color:#e6db74">/\.css$/</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">use</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">MiniCssExtractPlugin</span>.<span style="color:#a6e22e">loader</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#39;css-loader&#39;</span>
+</span></span><span style="display:flex;"><span>        ]
+</span></span><span style="display:flex;"><span>    }]
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>相较于 JavaScript，用户对 CSS 的可控性可能会稍弱一些，基础的优化点也许没有那么多。但随着 CSS 特性（例如 <a href="https://codersblock.com/blog/say-hello-to-houdini-and-the-css-paint-api/">Houdini/CSS Paint API</a>）的不断发展，相信也会有更多我们需要关注的优化点。</p>
+<p>结束了 CSS 部分，后续会介绍图片资源相关的性能优化。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/360/"
+      ><span class="mr-1.5">←</span><span>优化你的图片资源</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/358/"
+      ><span>优化你的 JavaScript</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

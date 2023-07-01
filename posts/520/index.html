@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>前端性能的重要指标 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="网站监控，前后端所负责的工作各有不同。
+服务器端主要负责分析、告警：
+日志接收处理: 建设后端应用，提供日志上报接口给采集 SDK 数据发布：后端接受日志后处理成可被实时流计算的数据：dataHub/sls/Kafaka 日志处理：基于 Flink/spark/storm 监控告警：前台应用或者机器人，实现监控、告警 通常的服务：应用服务器 &#43; DataHub &#43; Flink &#43; Hologres(RDS) 前端主要负责两个部分：日志采集和日志上报。
+日志采集则分为两个层面：页面稳定性和页面流畅性。
+页面稳定性 其中很重要的部分是前端的异常，有 JS 报错、接口异常、资源异常等，这些已经在前端异常捕获与处理中有所整理，可以直接从里面 copy 代码拿来用。
+还有就是页面白屏与页面崩溃。
+页面白屏 方案 实现 优点 缺点 基于 Native 容器 页面加载完成后 3s 页面还是全屏白色像素 不依赖 js,不丢点 依赖容器 基于 PaitingTiming 页面加载完成后 3s 页面没有 first-paint 实现简单，不依赖容器，对页面性能几乎没有影响 兼容性差 基于 MutationObserver 页面加载完成后 3s 是否有节点变化 实现简单，不依赖容器 节点没有变化不代表白屏，可能样式是有的 页面崩溃 方案 实现 优点 缺点 基于 Native 容器 监控 WebView 进程状态，发送 Crash 日志 不依赖 js,不丢点 依赖容器 基于 Service Worker HTML 请求进入 SW 后标记页面开始加载，页面每隔一定时间向 SW 发送一次心跳，一段时间没有收到心跳则认为页面 Crash 不依赖容器 兼容性差。SW 侵入性强，风险高；页面 Pause 后无法进行心跳检测 基于 LocalStorage 里的页面离开状态 在页面加载时标记开始加载，在页面 pagehide/beforeunload 时标记离开，二次进入页面时判断是否正常离开 不依赖容器 ,兼容性较好 埋点发送滞后，起不到监控告警作用 Navigator." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="前端性能的重要指标" />
+<meta property="og:description" content="网站监控，前后端所负责的工作各有不同。
+服务器端主要负责分析、告警：
+日志接收处理: 建设后端应用，提供日志上报接口给采集 SDK 数据发布：后端接受日志后处理成可被实时流计算的数据：dataHub/sls/Kafaka 日志处理：基于 Flink/spark/storm 监控告警：前台应用或者机器人，实现监控、告警 通常的服务：应用服务器 &#43; DataHub &#43; Flink &#43; Hologres(RDS) 前端主要负责两个部分：日志采集和日志上报。
+日志采集则分为两个层面：页面稳定性和页面流畅性。
+页面稳定性 其中很重要的部分是前端的异常，有 JS 报错、接口异常、资源异常等，这些已经在前端异常捕获与处理中有所整理，可以直接从里面 copy 代码拿来用。
+还有就是页面白屏与页面崩溃。
+页面白屏 方案 实现 优点 缺点 基于 Native 容器 页面加载完成后 3s 页面还是全屏白色像素 不依赖 js,不丢点 依赖容器 基于 PaitingTiming 页面加载完成后 3s 页面没有 first-paint 实现简单，不依赖容器，对页面性能几乎没有影响 兼容性差 基于 MutationObserver 页面加载完成后 3s 是否有节点变化 实现简单，不依赖容器 节点没有变化不代表白屏，可能样式是有的 页面崩溃 方案 实现 优点 缺点 基于 Native 容器 监控 WebView 进程状态，发送 Crash 日志 不依赖 js,不丢点 依赖容器 基于 Service Worker HTML 请求进入 SW 后标记页面开始加载，页面每隔一定时间向 SW 发送一次心跳，一段时间没有收到心跳则认为页面 Crash 不依赖容器 兼容性差。SW 侵入性强，风险高；页面 Pause 后无法进行心跳检测 基于 LocalStorage 里的页面离开状态 在页面加载时标记开始加载，在页面 pagehide/beforeunload 时标记离开，二次进入页面时判断是否正常离开 不依赖容器 ,兼容性较好 埋点发送滞后，起不到监控告警作用 Navigator." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/520/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-19T18:34:15+08:00" />
+<meta property="article:modified_time" content="2023-04-19T18:34:15+08:00" />
+
+  
+  <meta itemprop="name" content="前端性能的重要指标">
+<meta itemprop="description" content="网站监控，前后端所负责的工作各有不同。
+服务器端主要负责分析、告警：
+日志接收处理: 建设后端应用，提供日志上报接口给采集 SDK 数据发布：后端接受日志后处理成可被实时流计算的数据：dataHub/sls/Kafaka 日志处理：基于 Flink/spark/storm 监控告警：前台应用或者机器人，实现监控、告警 通常的服务：应用服务器 &#43; DataHub &#43; Flink &#43; Hologres(RDS) 前端主要负责两个部分：日志采集和日志上报。
+日志采集则分为两个层面：页面稳定性和页面流畅性。
+页面稳定性 其中很重要的部分是前端的异常，有 JS 报错、接口异常、资源异常等，这些已经在前端异常捕获与处理中有所整理，可以直接从里面 copy 代码拿来用。
+还有就是页面白屏与页面崩溃。
+页面白屏 方案 实现 优点 缺点 基于 Native 容器 页面加载完成后 3s 页面还是全屏白色像素 不依赖 js,不丢点 依赖容器 基于 PaitingTiming 页面加载完成后 3s 页面没有 first-paint 实现简单，不依赖容器，对页面性能几乎没有影响 兼容性差 基于 MutationObserver 页面加载完成后 3s 是否有节点变化 实现简单，不依赖容器 节点没有变化不代表白屏，可能样式是有的 页面崩溃 方案 实现 优点 缺点 基于 Native 容器 监控 WebView 进程状态，发送 Crash 日志 不依赖 js,不丢点 依赖容器 基于 Service Worker HTML 请求进入 SW 后标记页面开始加载，页面每隔一定时间向 SW 发送一次心跳，一段时间没有收到心跳则认为页面 Crash 不依赖容器 兼容性差。SW 侵入性强，风险高；页面 Pause 后无法进行心跳检测 基于 LocalStorage 里的页面离开状态 在页面加载时标记开始加载，在页面 pagehide/beforeunload 时标记离开，二次进入页面时判断是否正常离开 不依赖容器 ,兼容性较好 埋点发送滞后，起不到监控告警作用 Navigator."><meta itemprop="datePublished" content="2023-04-19T18:34:15+08:00" />
+<meta itemprop="dateModified" content="2023-04-19T18:34:15+08:00" />
+<meta itemprop="wordCount" content="402">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="前端性能的重要指标"/>
+<meta name="twitter:description" content="网站监控，前后端所负责的工作各有不同。
+服务器端主要负责分析、告警：
+日志接收处理: 建设后端应用，提供日志上报接口给采集 SDK 数据发布：后端接受日志后处理成可被实时流计算的数据：dataHub/sls/Kafaka 日志处理：基于 Flink/spark/storm 监控告警：前台应用或者机器人，实现监控、告警 通常的服务：应用服务器 &#43; DataHub &#43; Flink &#43; Hologres(RDS) 前端主要负责两个部分：日志采集和日志上报。
+日志采集则分为两个层面：页面稳定性和页面流畅性。
+页面稳定性 其中很重要的部分是前端的异常，有 JS 报错、接口异常、资源异常等，这些已经在前端异常捕获与处理中有所整理，可以直接从里面 copy 代码拿来用。
+还有就是页面白屏与页面崩溃。
+页面白屏 方案 实现 优点 缺点 基于 Native 容器 页面加载完成后 3s 页面还是全屏白色像素 不依赖 js,不丢点 依赖容器 基于 PaitingTiming 页面加载完成后 3s 页面没有 first-paint 实现简单，不依赖容器，对页面性能几乎没有影响 兼容性差 基于 MutationObserver 页面加载完成后 3s 是否有节点变化 实现简单，不依赖容器 节点没有变化不代表白屏，可能样式是有的 页面崩溃 方案 实现 优点 缺点 基于 Native 容器 监控 WebView 进程状态，发送 Crash 日志 不依赖 js,不丢点 依赖容器 基于 Service Worker HTML 请求进入 SW 后标记页面开始加载，页面每隔一定时间向 SW 发送一次心跳，一段时间没有收到心跳则认为页面 Crash 不依赖容器 兼容性差。SW 侵入性强，风险高；页面 Pause 后无法进行心跳检测 基于 LocalStorage 里的页面离开状态 在页面加载时标记开始加载，在页面 pagehide/beforeunload 时标记离开，二次进入页面时判断是否正常离开 不依赖容器 ,兼容性较好 埋点发送滞后，起不到监控告警作用 Navigator."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">前端性能的重要指标</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 19, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>网站监控，前后端所负责的工作各有不同。</p>
+<p>服务器端主要负责分析、告警：</p>
+<ol>
+<li>日志接收处理: 建设后端应用，提供日志上报接口给采集 SDK</li>
+<li>数据发布：后端接受日志后处理成可被实时流计算的数据：dataHub/sls/Kafaka</li>
+<li>日志处理：基于 Flink/spark/storm</li>
+<li>监控告警：前台应用或者机器人，实现监控、告警 通常的服务：应用服务器 + DataHub + Flink + Hologres(RDS)</li>
+</ol>
+<p>前端主要负责两个部分：日志采集和日志上报。</p>
+<p>日志采集则分为两个层面：页面稳定性和页面流畅性。</p>
+<h2 id="页面稳定性">页面稳定性</h2>
+<p>其中很重要的部分是前端的异常，有 JS 报错、接口异常、资源异常等，这些已经在<a href="https://juejin.cn/post/7221481997571047482">前端异常捕获与处理</a>中有所整理，可以直接从里面 copy 代码拿来用。</p>
+<p>还有就是页面白屏与页面崩溃。</p>
+<h3 id="页面白屏">页面白屏</h3>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>实现</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基于 Native 容器</td>
+<td>页面加载完成后 3s 页面还是全屏白色像素</td>
+<td>不依赖 js,不丢点</td>
+<td>依赖容器</td>
+</tr>
+<tr>
+<td>基于 PaitingTiming</td>
+<td>页面加载完成后 3s 页面没有 first-paint</td>
+<td>实现简单，不依赖容器，对页面性能几乎没有影响</td>
+<td>兼容性差</td>
+</tr>
+<tr>
+<td>基于 MutationObserver</td>
+<td>页面加载完成后 3s 是否有节点变化</td>
+<td>实现简单，不依赖容器</td>
+<td>节点没有变化不代表白屏，可能样式是有的</td>
+</tr>
+</tbody>
+</table>
+<h3 id="页面崩溃">页面崩溃</h3>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>实现</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基于 Native 容器</td>
+<td>监控 WebView 进程状态，发送 Crash 日志</td>
+<td>不依赖 js,不丢点</td>
+<td>依赖容器</td>
+</tr>
+<tr>
+<td>基于 Service Worker</td>
+<td>HTML 请求进入 SW 后标记页面开始加载，页面每隔一定时间向 SW 发送一次心跳，一段时间没有收到心跳则认为页面 Crash</td>
+<td>不依赖容器</td>
+<td>兼容性差。SW 侵入性强，风险高；页面 Pause 后无法进行心跳检测</td>
+</tr>
+<tr>
+<td>基于 LocalStorage 里的页面离开状态</td>
+<td>在页面加载时标记开始加载，在页面 <code>pagehide/beforeunload</code> 时标记离开，二次进入页面时判断是否正常离开</td>
+<td>不依赖容器 ,兼容性较好</td>
+<td>埋点发送滞后，起不到监控告警作用</td>
+</tr>
+</tbody>
+</table>
+<p><code>Navigator.sendBeacon</code>这个可以试试。不丢埋点，也不会延迟页面卸载，就是会有兼容性问题。</p>
+<h2 id="页面流畅性">页面流畅性</h2>
+<h3 id="加载性能">加载性能</h3>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/723a1fa6bcf44c2bab757b64768d5c1d~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>采集方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>load</td>
+<td>NavigationTiming</td>
+</tr>
+<tr>
+<td>FCP</td>
+<td>PerformancePaintTiming</td>
+</tr>
+<tr>
+<td>LCP</td>
+<td>PerformancePaintTiming</td>
+</tr>
+<tr>
+<td>FID first input delay</td>
+<td>PerformanceEventTiming</td>
+</tr>
+<tr>
+<td>TTI time to interactive</td>
+<td>没有 API，lighthouse 检测</td>
+</tr>
+<tr>
+<td>TBT total blocking time</td>
+<td>没有 API，lighthouse 检测</td>
+</tr>
+<tr>
+<td>Cumulative layout shift</td>
+<td>Layout Instability API</td>
+</tr>
+</tbody>
+</table>
+<p>也存在懒加载的情况，这些指标也不能反映真实的加载性能。要做这块内容现阶段只能侵入性主动埋点。</p>
+<h4 id="首屏绘制first-paintfp">首屏绘制（First Paint，FP）</h4>
+<p>浏览器第一次发生变化的时间 浏览器从响应用户输入网址地址，到浏览器开始显示内容的时间。包括了任何用户自定义的背景绘制，它是首先将像素绘制到屏幕的时刻。</p>
+<h4 id="首屏内容绘制first-contentful-paintfcp">首屏内容绘制（First Contentful Paint，FCP）</h4>
+<p>浏览器从响应用户输入网络地址，浏览器将第一个 DOM 渲染到屏幕的时间。在页面首次绘制文本，图片（包括背景图）、非白色的 canvas 或者 SVG 才算做 FCP。</p>
+<h4 id="可交互时间time-to-interactivetti">可交互时间（Time to Interactive，TTI）</h4>
+<p>网页第一次完全达到可交互状态（可以响应按钮的点击或在文本框输入文字等）的时间点。此时主线程已经达到“流畅”的程度，主线程的任务均不超过 50 毫秒。在一般的管理系统中，TTI 是一个很重要的指标。</p>
+<h4 id="首次有效绘制first-meaning-paint-fmp">首次有效绘制（First Meaning Paint, FMP）</h4>
+<p>页面的“主要内容”开始出现在屏幕上的时间点，它以前是我们测量用户加载体验的主要指标。本质上是通过一个算法来猜测某个时间点可能是 FMP，但是最好的情况也只有 77%的准确率，在 lighthouse6.0 的时候废弃掉了这个指标，取而代之的是 LCP 这个指标。</p>
+<h4 id="最大内容绘制largest-contentful-paintlcp">最大内容绘制（Largest Contentful Paint，LCP）</h4>
+<p>可视区“内容”最大的可见元素开始出现在屏幕上的时间点。LCP 也不是完美的，也很容易出错，它会在用户进行交互后就停止捕获，可能会获取到错误的结果，如果有占据页面很大的轮播图也会产生问题会不断的更新 LCP。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// 浏览器访问最初的时间测量点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">navigationStart</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// navigationStart 至当前的毫秒数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">now</span>()
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 各个关键时间点 包括上面的 navigationStart
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">timing</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 各个资源请求的时间统计信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">getEntries</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 计算页面白屏时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">getEntriesByType</span>(<span style="color:#e6db74">&#34;paint&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// body 标签之前获取当前时间 - performance.timing.navigationStart
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 白屏时间 = 页面开始展示的时间点 - 开始请求的时间点。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// FCP 首屏内容绘制
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fcp_time_by_interactive</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">timing</span>.<span style="color:#a6e22e">interactive</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">timing</span>.<span style="color:#a6e22e">fetchStart</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fcp_time_by_loadEventEnd</span> <span style="color:#f92672">=</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">timing</span>.<span style="color:#a6e22e">loadEventEnd</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">performance</span>.<span style="color:#a6e22e">timing</span>.<span style="color:#a6e22e">navigationStart</span> <span style="color:#75715e">// 首屏内容渲染结束时间点 - 开始请求的时间点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 在需要展示的元素页面之前获取当前时间 - performance.timing.navigationStart
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// TTI 可交互时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">tti</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">domContentLoadedEventEnd</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">navigationStart</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// LCP 最大内容绘制
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 直接使用 PerformanceObserver 来捕获 LCP
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">observer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">PerformanceObserver</span>((<span style="color:#a6e22e">entryList</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">entries</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">entryList</span>.<span style="color:#a6e22e">getEntries</span>();
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">lastEntry</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">entries</span>[<span style="color:#a6e22e">entries</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>];
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">lcp</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">lastEntry</span>.<span style="color:#a6e22e">renderTime</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">lastEntry</span>.<span style="color:#a6e22e">loadTime</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#39;LCP:&#39;</span>, <span style="color:#a6e22e">lcp</span>);
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">observer</span>.<span style="color:#a6e22e">observe</span>({ <span style="color:#a6e22e">entryTypes</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#39;largest-contentful-paint&#39;</span>] });
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 或者用库来做
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">getLCP</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#39;web-vitals&#39;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Measure and log the current LCP value,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// any time it&#39;s ready to be reported.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">getLCP</span>(<span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>);
+</span></span></code></pre></div><h3 id="自定义性能采集">自定义性能采集</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>采集方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UserTiming</td>
+<td>PerformanceUserTiming</td>
+<td>业务在首屏渲染完成的时候通过<code>performance.mark(...)</code>进行标记，而采集 SDK 可以通过<code>PerformanceObserver</code>进行采集上报</td>
+</tr>
+<tr>
+<td>ElementTiming</td>
+<td>PerformanceElementTiming</td>
+<td>UserTiming 的问题是业务同学无法知道首屏的 HTML 创建之后，里面的内容什么时候真正被浏览器渲染出来，而 ElementTiming 则是给到用户一个检测某个文本或者图片内容渲染完成的能力，只需要在特定节点上加 elementtiming 属性就行，这样我们就把一些有代表性的节点渲染完成作为首屏渲染完成的象征。而采集 SDK 可以通过<code>PerformanceObserver</code>进行采集上报</td>
+</tr>
+</tbody>
+</table>
+<h3 id="响应速度">响应速度</h3>
+<p>从用户操作到页面响应的耗时，通常要求小于 100ms</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// 基于 PerformanceEventTiming 监听用户任意输入到浏览器响应的延时时间
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">observer</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">PerformanceObserver</span>((<span style="color:#a6e22e">list</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">list</span>.<span style="color:#a6e22e">getEntries</span>().<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">entry</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// name: entry.name
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 整体耗时: entry.duration
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 事件处理函数耗时：entry.processingEnd - entry.processingStart
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  });
+</span></span><span style="display:flex;"><span>});
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">observer</span>.<span style="color:#a6e22e">observe</span>({ <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;event&#34;</span>, <span style="color:#a6e22e">buffered</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span> });
+</span></span></code></pre></div><h3 id="动画流畅性">动画流畅性</h3>
+<p>监听页面上任意动画的帧率帧数是否稳定</p>
+<p>在动画运行期间监听每次 requestAnimationFrame 的执行，计算：</p>
+<ol>
+<li>帧率 动画运行帧数/动画运行时间</li>
+<li>掉帧率 (60FPS 标准应该运行的帧数 - 实际运行帧数)/60FPS 标准应该运行的帧数</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// 以 60 帧每秒，每一帧之间的间隔
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">msInOneFrame</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1000</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">60</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">expectedFrames</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>((<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">elapsedTime</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">1000</span>) <span style="color:#f92672">/</span> <span style="color:#a6e22e">msInOneFrame</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">error_rate</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">expectedFrames</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">运行帧数</span>) <span style="color:#f92672">/</span> <span style="color:#a6e22e">expectedFrames</span>;
+</span></span></code></pre></div><h2 id="日志上报">日志上报</h2>
+<p><a href="https://juejin.cn/post/7221481997571047482">前端异常捕获与处理</a> 这篇文章里提到的触发异常的 hooks，还有上文提到的浏览器的一些 hooks 可以用。</p>
+<h2 id="参考资料">参考资料</h2>
+<ul>
+<li><a href="https://mp.weixin.qq.com/s/y6oZuej94mR6KkkI3bAQag">从零开始搞监控系统 —— SDK</a></li>
+<li><a href="https://segmentfault.com/a/1190000041879217">前端监控的搭建步骤，别再一头雾水了！</a></li>
+<li><a href="https://mp.weixin.qq.com/s/-qA-1Yw4o3SEC2me69YO-Q">搭建前端监控，如何采集异常数据</a></li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/521/"
+      ><span class="mr-1.5">←</span><span>探讨 Object.create()、new Object() 和 {} 创建对象的区别</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/519/"
+      ><span>高级前端理解的CommonJS模块和ESM模块</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

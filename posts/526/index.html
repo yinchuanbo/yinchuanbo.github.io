@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>实现带动画切换效果的树形图（组织架构图），附性能分析 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="想直接看源码或者上手体验一下效果的可以在codesandbox中进行操作
+背景 公司内部需要开发一个目标制定-分配-执行的项目（OKR），其中有一个需求是需要以卡片树的形式展示任务的分配和执行情况，并能进行一些交互（收藏任务、@相关人员、展开子任务等）操作。
+树形图（常用于组织架构图、因果关系图、思维导图），虽然 Echarts 已经有实现Examples - Apache ECharts，但是其布局实现和交互能力并不能很好的满足现有需求，故现在考虑自行实现布局算法和页面绘制。
+注：本文中的实例代码仅仅作为参考查看，不能直接运行（缺少属性和方法），具体的代码和效果可以在codesandbox中进行查看
+布局算法 第一次绘制 首先需要明确的是：
+坐标计算顺序如图所示 我们需要简化坐标关系，每一个节点占据的位置固定为 1（如：A 初始坐标&ndash; [0, 0]，则对应的子节点 AA 初始坐标 &ndash;[1, 0]） 每一个子节点的初始位置由父节点控制，没有父节点，则位置初始化为[0，0] 每一个节点有可能初始位置会被占据（如 AB 和 ABA 节点，初始应该是紧贴 AA 往下一格，但是被 AAB 挤下来了一些） 当一个节点的子节点全部被绘制完成后，这个节点的最终位置可能需要更新（如 AC 节点初始应该紧贴 AB 节点，但是由于其子节点 ACA 和 ACB 的缘故，AC 的位置需要往下移动一些距离） 那么算法就很简单了，我们使用回溯算法，先深度优先到底节点，处理好初始坐标。然后回溯到上层节点，并更新上层节点的最终位置
+以下是简要的代码
+注：x 和 y 坐标使用 mainAxis 和 subAxis 进行标识，方便进行[从上到下]和[从左到右]两种布局方式
+class TreeGraph { /** * 逐层回溯，计算每个节点的坐标 * * @private * @param node - 当前节点 * @param level - 当前层级 * @returns {number | void} 返回上层新的 y 坐标 */ traverse(node: Node, level = 0) { const { levelStartNode, mainAxis, subAxis } = this; if (!" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="实现带动画切换效果的树形图（组织架构图），附性能分析" />
+<meta property="og:description" content="想直接看源码或者上手体验一下效果的可以在codesandbox中进行操作
+背景 公司内部需要开发一个目标制定-分配-执行的项目（OKR），其中有一个需求是需要以卡片树的形式展示任务的分配和执行情况，并能进行一些交互（收藏任务、@相关人员、展开子任务等）操作。
+树形图（常用于组织架构图、因果关系图、思维导图），虽然 Echarts 已经有实现Examples - Apache ECharts，但是其布局实现和交互能力并不能很好的满足现有需求，故现在考虑自行实现布局算法和页面绘制。
+注：本文中的实例代码仅仅作为参考查看，不能直接运行（缺少属性和方法），具体的代码和效果可以在codesandbox中进行查看
+布局算法 第一次绘制 首先需要明确的是：
+坐标计算顺序如图所示 我们需要简化坐标关系，每一个节点占据的位置固定为 1（如：A 初始坐标&ndash; [0, 0]，则对应的子节点 AA 初始坐标 &ndash;[1, 0]） 每一个子节点的初始位置由父节点控制，没有父节点，则位置初始化为[0，0] 每一个节点有可能初始位置会被占据（如 AB 和 ABA 节点，初始应该是紧贴 AA 往下一格，但是被 AAB 挤下来了一些） 当一个节点的子节点全部被绘制完成后，这个节点的最终位置可能需要更新（如 AC 节点初始应该紧贴 AB 节点，但是由于其子节点 ACA 和 ACB 的缘故，AC 的位置需要往下移动一些距离） 那么算法就很简单了，我们使用回溯算法，先深度优先到底节点，处理好初始坐标。然后回溯到上层节点，并更新上层节点的最终位置
+以下是简要的代码
+注：x 和 y 坐标使用 mainAxis 和 subAxis 进行标识，方便进行[从上到下]和[从左到右]两种布局方式
+class TreeGraph { /** * 逐层回溯，计算每个节点的坐标 * * @private * @param node - 当前节点 * @param level - 当前层级 * @returns {number | void} 返回上层新的 y 坐标 */ traverse(node: Node, level = 0) { const { levelStartNode, mainAxis, subAxis } = this; if (!" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/526/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-04-19T19:43:55+08:00" />
+<meta property="article:modified_time" content="2023-04-19T19:43:55+08:00" />
+
+  
+  <meta itemprop="name" content="实现带动画切换效果的树形图（组织架构图），附性能分析">
+<meta itemprop="description" content="想直接看源码或者上手体验一下效果的可以在codesandbox中进行操作
+背景 公司内部需要开发一个目标制定-分配-执行的项目（OKR），其中有一个需求是需要以卡片树的形式展示任务的分配和执行情况，并能进行一些交互（收藏任务、@相关人员、展开子任务等）操作。
+树形图（常用于组织架构图、因果关系图、思维导图），虽然 Echarts 已经有实现Examples - Apache ECharts，但是其布局实现和交互能力并不能很好的满足现有需求，故现在考虑自行实现布局算法和页面绘制。
+注：本文中的实例代码仅仅作为参考查看，不能直接运行（缺少属性和方法），具体的代码和效果可以在codesandbox中进行查看
+布局算法 第一次绘制 首先需要明确的是：
+坐标计算顺序如图所示 我们需要简化坐标关系，每一个节点占据的位置固定为 1（如：A 初始坐标&ndash; [0, 0]，则对应的子节点 AA 初始坐标 &ndash;[1, 0]） 每一个子节点的初始位置由父节点控制，没有父节点，则位置初始化为[0，0] 每一个节点有可能初始位置会被占据（如 AB 和 ABA 节点，初始应该是紧贴 AA 往下一格，但是被 AAB 挤下来了一些） 当一个节点的子节点全部被绘制完成后，这个节点的最终位置可能需要更新（如 AC 节点初始应该紧贴 AB 节点，但是由于其子节点 ACA 和 ACB 的缘故，AC 的位置需要往下移动一些距离） 那么算法就很简单了，我们使用回溯算法，先深度优先到底节点，处理好初始坐标。然后回溯到上层节点，并更新上层节点的最终位置
+以下是简要的代码
+注：x 和 y 坐标使用 mainAxis 和 subAxis 进行标识，方便进行[从上到下]和[从左到右]两种布局方式
+class TreeGraph { /** * 逐层回溯，计算每个节点的坐标 * * @private * @param node - 当前节点 * @param level - 当前层级 * @returns {number | void} 返回上层新的 y 坐标 */ traverse(node: Node, level = 0) { const { levelStartNode, mainAxis, subAxis } = this; if (!"><meta itemprop="datePublished" content="2023-04-19T19:43:55+08:00" />
+<meta itemprop="dateModified" content="2023-04-19T19:43:55+08:00" />
+<meta itemprop="wordCount" content="702">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="实现带动画切换效果的树形图（组织架构图），附性能分析"/>
+<meta name="twitter:description" content="想直接看源码或者上手体验一下效果的可以在codesandbox中进行操作
+背景 公司内部需要开发一个目标制定-分配-执行的项目（OKR），其中有一个需求是需要以卡片树的形式展示任务的分配和执行情况，并能进行一些交互（收藏任务、@相关人员、展开子任务等）操作。
+树形图（常用于组织架构图、因果关系图、思维导图），虽然 Echarts 已经有实现Examples - Apache ECharts，但是其布局实现和交互能力并不能很好的满足现有需求，故现在考虑自行实现布局算法和页面绘制。
+注：本文中的实例代码仅仅作为参考查看，不能直接运行（缺少属性和方法），具体的代码和效果可以在codesandbox中进行查看
+布局算法 第一次绘制 首先需要明确的是：
+坐标计算顺序如图所示 我们需要简化坐标关系，每一个节点占据的位置固定为 1（如：A 初始坐标&ndash; [0, 0]，则对应的子节点 AA 初始坐标 &ndash;[1, 0]） 每一个子节点的初始位置由父节点控制，没有父节点，则位置初始化为[0，0] 每一个节点有可能初始位置会被占据（如 AB 和 ABA 节点，初始应该是紧贴 AA 往下一格，但是被 AAB 挤下来了一些） 当一个节点的子节点全部被绘制完成后，这个节点的最终位置可能需要更新（如 AC 节点初始应该紧贴 AB 节点，但是由于其子节点 ACA 和 ACB 的缘故，AC 的位置需要往下移动一些距离） 那么算法就很简单了，我们使用回溯算法，先深度优先到底节点，处理好初始坐标。然后回溯到上层节点，并更新上层节点的最终位置
+以下是简要的代码
+注：x 和 y 坐标使用 mainAxis 和 subAxis 进行标识，方便进行[从上到下]和[从左到右]两种布局方式
+class TreeGraph { /** * 逐层回溯，计算每个节点的坐标 * * @private * @param node - 当前节点 * @param level - 当前层级 * @returns {number | void} 返回上层新的 y 坐标 */ traverse(node: Node, level = 0) { const { levelStartNode, mainAxis, subAxis } = this; if (!"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">实现带动画切换效果的树形图（组织架构图），附性能分析</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Apr 19, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fb2b91cbb597458390251d81b0f0bb17~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="实现带动画切换效果的树形图（组织架构图），附性能分析"></p>
+<p>想直接看源码或者上手体验一下效果的可以在<a href="https://codesandbox.io/p/github/yuhengshen/tree-graph/main?file=%2Fsrc%2FApp.tsx">codesandbox</a>中进行操作</p>
+<h1 id="背景">背景</h1>
+<p>公司内部需要开发一个目标制定-分配-执行的项目（OKR），其中有一个需求是需要以<code>卡片树</code>的形式展示任务的分配和执行情况，并能进行一些交互（收藏任务、@相关人员、展开子任务等）操作。</p>
+<p>树形图（常用于组织架构图、因果关系图、思维导图），虽然 Echarts 已经有实现<a href="https://echarts.apache.org/examples/zh/index.html#chart-type-tree">Examples - Apache ECharts</a>，但是其布局实现和交互能力并不能很好的满足现有需求，故现在考虑自行实现布局算法和页面绘制。</p>
+<p>注：<em>本文中的实例代码仅仅作为参考查看，不能直接运行（缺少属性和方法），具体的代码和效果可以在<a href="https://codesandbox.io/p/github/yuhengshen/tree-graph/main?file=%2Fsrc%2FApp.tsx">codesandbox</a>中进行查看</em></p>
+<h1 id="布局算法">布局算法</h1>
+<h2 id="第一次绘制">第一次绘制</h2>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fde91a1fca0c47b4a8ada4d7f083a969~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>首先需要明确的是：</p>
+<ol>
+<li>坐标计算顺序如图所示</li>
+<li>我们需要简化坐标关系，每一个节点占据的位置固定为 1（如：A 初始坐标&ndash; [0, 0]，则对应的子节点 AA 初始坐标 &ndash;[1, 0]）</li>
+<li>每一个子节点的<strong>初始位置由父节点控制</strong>，没有父节点，则位置初始化为[0，0]</li>
+<li>每一个节点有可能<strong>初始位置会被占据</strong>（如 AB 和 ABA 节点，初始应该是紧贴 AA 往下一格，但是被 AAB 挤下来了一些）</li>
+<li>当一个节点的子节点全部被绘制完成后，这个节点的<strong>最终位置</strong>可能需要更新（如 AC 节点初始应该紧贴 AB 节点，但是由于其子节点 ACA 和 ACB 的缘故，AC 的位置需要往下移动一些距离）</li>
+</ol>
+<p>那么算法就很简单了，我们使用回溯算法，先深度优先到底节点，处理好初始坐标。然后回溯到上层节点，并更新上层节点的<strong>最终位置</strong></p>
+<p>以下是简要的代码</p>
+<p><em>注：x 和 y 坐标使用 mainAxis 和 subAxis 进行标识，方便进行[从上到下]和[从左到右]两种布局方式</em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">TreeGraph</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   * 逐层回溯，计算每个节点的坐标
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   *
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   * @private
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   * @param node - 当前节点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   * @param level - 当前层级
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   * @returns {number | void} 返回上层新的 y 坐标
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   */</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">traverse</span>(<span style="color:#a6e22e">node</span>: <span style="color:#66d9ef">Node</span>, <span style="color:#a6e22e">level</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">levelStartNode</span>, <span style="color:#a6e22e">mainAxis</span>, <span style="color:#a6e22e">subAxis</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">levelStartNode</span>[<span style="color:#a6e22e">level</span>]) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">levelStartNode</span>[<span style="color:#a6e22e">level</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 动画部分 [后面会涉及]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">oldPosition</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">oldPosition</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">position</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 当前节点位置已经被占据了，需要更新
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">levelStartNode</span>[<span style="color:#a6e22e">level</span>] <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">position</span>[<span style="color:#a6e22e">subAxis</span>]) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">position</span>[<span style="color:#a6e22e">subAxis</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">levelStartNode</span>[<span style="color:#a6e22e">level</span>];
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">children</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">children</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">childrenHide</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">l</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">children</span>.<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">l</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">child</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">children</span>[<span style="color:#a6e22e">i</span>];
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">child</span>.<span style="color:#a6e22e">position</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>            [<span style="color:#a6e22e">mainAxis</span>]<span style="color:#f92672">:</span> <span style="color:#a6e22e">level</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 初始值，如果是第一个子节点，需要根据父节点的位置计算，否则，直接使用上一个子节点的位置 + 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            [<span style="color:#a6e22e">subAxis</span>]<span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>              <span style="color:#a6e22e">i</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">?</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">getInitialFirstChildSubAxis</span>(<span style="color:#a6e22e">node</span>)
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">:</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">children</span>[<span style="color:#a6e22e">i</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>].<span style="color:#a6e22e">position</span>[<span style="color:#a6e22e">subAxis</span>] <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>          };
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 父子关联，方便后续使用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">child</span>.<span style="color:#a6e22e">parent</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>;
+</span></span><span style="display:flex;"><span>          <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">traverse</span>(<span style="color:#a6e22e">child</span>, <span style="color:#a6e22e">level</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">position</span>[<span style="color:#a6e22e">subAxis</span>] <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">getUpdatedParentSubAxis</span>(<span style="color:#a6e22e">node</span>);
+</span></span><span style="display:flex;"><span>      } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 隐藏的节点，需要重置子节点位置，以便下次展开时，能够正确计算动画 [下面会涉及]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">resetHideChildrenPosition</span>(<span style="color:#a6e22e">node</span>);
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 更新当前层级的最大值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">levelStartNode</span>[<span style="color:#a6e22e">level</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">position</span>[<span style="color:#a6e22e">subAxis</span>] <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 动画部分 [后面会涉及]
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">handleAnimation</span>(<span style="color:#a6e22e">node</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 记录最大的宽度和高度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">size</span>.<span style="color:#a6e22e">width</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">max</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">size</span>.<span style="color:#a6e22e">width</span>, <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">position</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">size</span>.<span style="color:#a6e22e">height</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">max</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">size</span>.<span style="color:#a6e22e">height</span>, <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">position</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="后续绘制动画处理">后续绘制，动画处理</h2>
+<p>当有一个节点进行隐藏时，由于绘制算法的第 5 条，其父节点会受到影响。又由于第 3 条，父节点变化又会导致所有子节点受到影响。所以我们选择从顶部重新再次计算所有坐标的位置。</p>
+<p>注意看<code>node.oldPosition = node.oldPosition || node.position;</code>这行代码，我们在遍历计算坐标时，已经同时保存了这个节点的新旧坐标，即: <code>oldPosition</code> 和 <code>position</code>。所以我们只需要使用缓动工具处理两次的值即可，此处我使用的是 GSAP 这个库。</p>
+<p>简要代码</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">TreeGraph</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   * 正常来说 GSAP 动画应该在绘制层(DrawGraph)实现，但是我想将子节点切换动画和TreeGraph这个类关联上，所以在这儿实现的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   * 可以自行调整
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   */</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">handleAnimation</span>(<span style="color:#a6e22e">node</span>: <span style="color:#66d9ef">Node</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">oldPosition</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">oldPosition</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 终止之前的动画
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">animation</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">animation</span>.<span style="color:#a6e22e">kill</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">animation</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">oldPosition</span> <span style="color:#f92672">&amp;&amp;</span>
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">oldPosition</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">!==</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">position</span>.<span style="color:#a6e22e">x</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">oldPosition</span>.<span style="color:#a6e22e">y</span> <span style="color:#f92672">!==</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">position</span>.<span style="color:#a6e22e">y</span>)
+</span></span><span style="display:flex;"><span>    ) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">animation</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">gsap</span>.<span style="color:#a6e22e">to</span>(<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">oldPosition</span>, {
+</span></span><span style="display:flex;"><span>        ...<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">position</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">duration</span>: <span style="color:#66d9ef">0.2</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">onUpdate</span><span style="color:#f92672">:</span> () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 更新节点位置的回调，由绘制层实现
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">animation</span><span style="color:#f92672">?</span>.<span style="color:#a6e22e">onUpdate</span>(<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">oldPosition</span>);
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h1 id="卡片绘制">卡片绘制</h1>
+<h2 id="第一次绘制-1">第一次绘制</h2>
+<p>先使用上面的方法把坐标计算完成后，绘制类中遍历所有节点坐标，依次绘制出图形即可。</p>
+<p>我这里使用的 Konva 进行绘制的，也可以使用 ZRender，fabric 等库进行实现。</p>
+<p>简要代码</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">DrawGraph</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">draw() {</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 计算树形结构的坐标
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">treeGraph</span>.<span style="color:#a6e22e">computeTreeDataCoordinates</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 设置舞台大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">setStageSize</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">traverse</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">treeGraph</span>.<span style="color:#a6e22e">data</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">/**
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   * 遍历树形结构，绘制节点
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   *
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   * @private
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   * @param node
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">   */</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">traverse</span>(<span style="color:#a6e22e">node</span>: <span style="color:#66d9ef">Node</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">layer</span>, <span style="color:#a6e22e">lineLayer</span>, <span style="color:#a6e22e">options</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">distance</span>, <span style="color:#a6e22e">padding</span>, <span style="color:#a6e22e">createCard</span>, <span style="color:#a6e22e">events</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">options</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 由于坐标的是单位1，所以需要乘上间距
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">x</span>: <span style="color:#66d9ef">dx</span>, <span style="color:#a6e22e">y</span>: <span style="color:#66d9ef">dy</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">distance</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">oldPosition</span>, <span style="color:#a6e22e">children</span>, <span style="color:#a6e22e">parent</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// konva节点绘制
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">card</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">createCard</span>(<span style="color:#a6e22e">node</span>, {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">x</span>: <span style="color:#66d9ef">oldPosition.x</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">dx</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">padding</span>.<span style="color:#a6e22e">left</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">y</span>: <span style="color:#66d9ef">oldPosition.y</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">dy</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">padding</span>.<span style="color:#a6e22e">top</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">childrenCloseable</span>: <span style="color:#66d9ef">node.children</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">children</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">dir</span>: <span style="color:#66d9ef">options.dir</span>,
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">group</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">card</span>.<span style="color:#a6e22e">konvaNode</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 绑定事件，切换子节点的显示状态，触发动画
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">card</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#34;click:toggle&#34;</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">childrenHide</span> <span style="color:#f92672">=</span> <span style="color:#f92672">!</span><span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">childrenHide</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">animate</span>();
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 其他事件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">events</span>) {
+</span></span><span style="display:flex;"><span>      Object.<span style="color:#a6e22e">keys</span>(<span style="color:#a6e22e">events</span>).<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">eventName</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">card</span>.<span style="color:#a6e22e">on</span>(<span style="color:#a6e22e">eventName</span>, () <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">events</span>[<span style="color:#a6e22e">eventName</span>](<span style="color:#a6e22e">node</span>);
+</span></span><span style="display:flex;"><span>        });
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">konvaNode</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">group</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 绘制连接线
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">parent</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">points</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">getLinePoints</span>(<span style="color:#a6e22e">parent</span>.<span style="color:#a6e22e">konvaNode</span>, <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">konvaNode</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">line</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Konva</span>.<span style="color:#a6e22e">Line</span>({
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">points</span>: <span style="color:#66d9ef">points</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">stroke</span>: <span style="color:#66d9ef">colors.gray</span>[<span style="color:#ae81ff">200</span>],
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">strokeWidth</span>: <span style="color:#66d9ef">1</span>,
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">lineLayer</span>.<span style="color:#a6e22e">add</span>(<span style="color:#a6e22e">line</span>);
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">line</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">line</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">layer</span>.<span style="color:#a6e22e">add</span>(<span style="color:#a6e22e">group</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">children</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">children</span>.<span style="color:#a6e22e">forEach</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">traverse</span>.<span style="color:#a6e22e">bind</span>(<span style="color:#66d9ef">this</span>));
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="后续绘制动画处理-1">后续绘制，动画处理</h2>
+<p>同样的，我们再次计算出隐藏节点后的坐标信息，但是遍历后，我们不进行绘制，而是更新节点的显示和隐藏状态和根据<code>animation</code>返回的缓动节点位置来<strong>设置节点的位置信息</strong>。</p>
+<p>当节点更新后，其对应的连接线也需要更新，除了顶层和底层节点，均有两类连接线需要更新</p>
+<ol>
+<li>与父节点的连接线 - 1 条</li>
+<li>与子节点的连接线 - 可能多条</li>
+</ol>
+<p>需要注意的是，由于深度优先的递归，我们更新父节点连线(1 类)的时候，这条线可能已经被父节点作为子节点更新过了(2 类)。</p>
+<p>所以我们这儿使用了一个 Set: <code>updatedLines</code>来避免重复更新。</p>
+<p>注：<em>更新线条时，节点的位置信息还没有绘制完成，此时通过 konva 获取的坐标信息不准确，所以我这里使用了 setTimeout 来在下一个 tick 中再绘制线条</em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-ts" data-lang="ts"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">DrawGraph</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">animate() {</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 再次计算树形结构的坐标
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">treeGraph</span>.<span style="color:#a6e22e">computeTreeDataCoordinates</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 设置舞台大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">setStageSize</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">treeGraph</span>, <span style="color:#a6e22e">options</span> } <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">distance</span>, <span style="color:#a6e22e">padding</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">options</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 由于坐标的是单位1，所以需要乘上间距
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">x</span>: <span style="color:#66d9ef">dx</span>, <span style="color:#a6e22e">y</span>: <span style="color:#66d9ef">dy</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">distance</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 避免重复绘制
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">updatedLines</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">Set</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dfs</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">node</span>: <span style="color:#66d9ef">Node</span>, <span style="color:#a6e22e">hide</span>: <span style="color:#66d9ef">boolean</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">children</span>, <span style="color:#a6e22e">parent</span>, <span style="color:#a6e22e">animation</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">group</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">konvaNode</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">line</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">line</span>;
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">hide</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">group</span>.<span style="color:#a6e22e">hide</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">line</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">line</span>.<span style="color:#a6e22e">hide</span>();
+</span></span><span style="display:flex;"><span>      } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">group</span>.<span style="color:#a6e22e">show</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">line</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">line</span>.<span style="color:#a6e22e">show</span>();
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">children</span> <span style="color:#f92672">&amp;&amp;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">children</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">child</span>) <span style="color:#f92672">=&gt;</span> <span style="color:#a6e22e">dfs</span>(<span style="color:#a6e22e">child</span>, <span style="color:#a6e22e">hide</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">childrenHide</span>));
+</span></span><span style="display:flex;"><span>      <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">animation</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">animation</span>.<span style="color:#a6e22e">onUpdate</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">x</span>: <span style="color:#66d9ef">number</span>; <span style="color:#a6e22e">y</span>: <span style="color:#66d9ef">number</span> }) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>          <span style="color:#a6e22e">group</span>.<span style="color:#a6e22e">setPosition</span>({
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">x</span>: <span style="color:#66d9ef">e.x</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">dx</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">padding</span>.<span style="color:#a6e22e">left</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">y</span>: <span style="color:#66d9ef">e.y</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">dy</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">padding</span>.<span style="color:#a6e22e">top</span>,
+</span></span><span style="display:flex;"><span>          });
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>          <span style="color:#75715e">// 在下一个tick绘制线条，避免线条绘制不齐
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>          <span style="color:#a6e22e">setTimeout</span>(() <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 父线条
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">line</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">!</span><span style="color:#a6e22e">updatedLines</span>.<span style="color:#a6e22e">has</span>(<span style="color:#a6e22e">line</span>)) {
+</span></span><span style="display:flex;"><span>              <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">points</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">getLinePoints</span>(
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">parent</span>.<span style="color:#a6e22e">konvaNode</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">konvaNode</span>
+</span></span><span style="display:flex;"><span>              );
+</span></span><span style="display:flex;"><span>              <span style="color:#a6e22e">line</span>.<span style="color:#a6e22e">points</span>(<span style="color:#a6e22e">points</span>);
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 子线条
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">children</span>) {
+</span></span><span style="display:flex;"><span>              <span style="color:#a6e22e">children</span>.<span style="color:#a6e22e">forEach</span>((<span style="color:#a6e22e">child</span>) <span style="color:#f92672">=&gt;</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">childLine</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">child</span>.<span style="color:#a6e22e">line</span>;
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">childLine</span>) {
+</span></span><span style="display:flex;"><span>                  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">points</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">getLinePoints</span>(
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">konvaNode</span>,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">child</span>.<span style="color:#a6e22e">konvaNode</span>
+</span></span><span style="display:flex;"><span>                  );
+</span></span><span style="display:flex;"><span>                  <span style="color:#a6e22e">childLine</span>.<span style="color:#a6e22e">points</span>(<span style="color:#a6e22e">points</span>);
+</span></span><span style="display:flex;"><span>                  <span style="color:#a6e22e">updatedLines</span>.<span style="color:#a6e22e">add</span>(<span style="color:#a6e22e">childLine</span>);
+</span></span><span style="display:flex;"><span>                }
+</span></span><span style="display:flex;"><span>              });
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>          }, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>        };
+</span></span><span style="display:flex;"><span>      }
+</span></span><span style="display:flex;"><span>    };
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dfs</span>(<span style="color:#a6e22e">treeGraph</span>.<span style="color:#a6e22e">data</span>, <span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h1 id="性能分析">性能分析</h1>
+<p>当我在我的 19 年 mac 上跑时，发现更新动画或多或少有些丢帧，通过 Edge 的开发者工具中的性能面板，我看到这如下截图</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/997e28a8e54d419ba8e23c25a8a5e4f9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<p>上面框出来的部分展示了丢帧的情况，下方框出来的部分展示的是 JS 的执行情况。</p>
+<p>可以看到，动画的过程中，JS 执行并没有占据过多的时间(4-8ms)，是完全符合要求的，那为什么会有偶尔掉帧的情况呢？再看下面这张图：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/daf33efb0f914a569962850bd004bc87~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image (1).png"></p>
+<p>可以看到，GPU 时长过长，原来是 canvas 绘制时 GPU 跟不上了，我换一下台式机 1660 显卡试一下</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/92b62476c1cd4889b688ca93e85aeef5~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image (2).png"> 这时候再看动画效果，非常的丝滑了。</p>
+<h2 id="gpu-性能解决方案">GPU 性能解决方案</h2>
+<p>因为 konva 并不支持脏矩形，也就是说没法增量更新，每次绘制时都是全量更新的图形，所以我们可以选择其他的渲染库来测试一下是否有优化效果(如 ZRender)</p>
+<p>另外，我们可以关闭动画效果，一次性更新节点的方式来优化性能。</p>
+<h1 id="多种布局方式截图">多种布局方式截图</h1>
+<ol>
+<li>从左到右，居中布局</li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cea659034b8f437f99bc08f26e805ac9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<ol start="2">
+<li>从左到右，顶部对齐</li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0d68c91972614021ae39ad1cbdd9aafc~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<ol start="3">
+<li>从上到下，居中布局</li>
+</ol>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c56f0252925f40749e5fca16ebc94c65~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<ol start="4">
+<li>从上到下，左对齐</li>
+</ol>
+<p><img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fbb867f34a1247f4af07eedda80fc81b~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp?" alt="image.png"></p>
+<h1 id="链接">链接</h1>
+<ul>
+<li><a href="https://codesandbox.io/p/github/yuhengshen/tree-graph/main?file=%2Fsrc%2FApp.tsx">codesandbox</a></li>
+<li><a href="https://github.com/yuhengshen/tree-graph">yuhengshen/tree-graph (github.com)</a></li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/527/"
+      ><span class="mr-1.5">←</span><span>非常有用的JavaScript数据网格库</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/525/"
+      ><span>从0到1搭建一个 React 项目开发模板</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

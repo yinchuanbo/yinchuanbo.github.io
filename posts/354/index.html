@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>React &#43; Drag API 实现拖拽 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="鼠标拖拽是一个常见的交互场景，在这个熟悉的过程将会发生哪些事件？
+认识拖拽 拖拽事件指用户通过鼠标（或其他指针设备）将元素移到一个新的位置上。拖拽过程涉及两个对象：被拖拽元素（上图中 A ）和可释放目标（上图中 B ）
+被拖拽元素 默认情况下，图片、链接和文本是可拖动的。HTML5 在所有 HTML 元素上规定了一个 draggable 属性， 表示元素是否可以拖动。图片和链接的 draggable 属性自动被设置为 true，而其他所有元素此属性的默认值为 false。
+某个元素被拖动时，会依次触发以下事件:
+ondragstart：拖动开始，当鼠标按下并且开始移动鼠标时，触发此事件；整个周期只触发一次； ondrag：只要元素仍被拖拽，就会持续触发此事件； ondragend：拖拽结束，当鼠标松开后，会触发此事件；整个周期只触发一次。 可释放目标 当把拖拽元素移动到一个有效的放置目标时，目标对象会触发以下事件：
+ondragenter：只要一把拖拽元素移动到目标时，就会触发此事件； ondragover：拖拽元素在目标中拖动时，会持续触发此事件； ondragleave 或 ondrop：拖拽元素离开目标时（没有在目标上放下），会触发ondragleave；当拖拽元素在目标放下（松开鼠标），则触发ondrop事件。 🏝 目标元素默认是不能够被拖放的，即不会触发 ondrop 事件，可以通过在目标元素的 ondragover 事件中取消默认事件来解决此问题。
+生命周期 拖拽操作中的数据传输 除非数据受影响，否则简单的拖放并没有实际意义。为实现拖动操作中的数据传输，event 对象上暴露了 dataTransfer 对象，用于从被拖动元素向放置目标传递字符串数据。我们使用它来通知画布，当前需要渲染的组件是什么。
+dataTransfer 对象主要有两个方法：getData() 和 setData()，分别用来获取和存储值。setData()的第一个参数以及 getData()的唯一参数是一个字符串，表示要设置的数据类型：&ldquo;text&quot;或&quot;URL&rdquo;
+🏝 虽然这两种数据类型是 IE 最初引入的，但 HTML5 已经将其扩展为允许任何 MIME 类型。为向后 兼容，HTML5 还会继续支持&quot;text&quot;和&quot;URL&quot;，但它们会分别被映射到&quot;text/plain&quot;和&quot;text/uri-list”
+需要注意的是：存储在 dataTransfer 对象中的数据只能在放置事件中读取。如果没有在 ondrop 事件中取得这些数据，dataTransfer 对象就会被销毁，数据也会丢失。
+代码实现 我在项目中使用 React 来实现，并且考虑到跨组件通信，我使用了 dva 来管理数据流。
+如何标记当前拖拽的元素？ HTML5 支持的 data-x 属性，我们可以将当前组件的类型 Rectangle 赋值给它，这样处理和画布组件通信方便一些" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="React &#43; Drag API 实现拖拽" />
+<meta property="og:description" content="鼠标拖拽是一个常见的交互场景，在这个熟悉的过程将会发生哪些事件？
+认识拖拽 拖拽事件指用户通过鼠标（或其他指针设备）将元素移到一个新的位置上。拖拽过程涉及两个对象：被拖拽元素（上图中 A ）和可释放目标（上图中 B ）
+被拖拽元素 默认情况下，图片、链接和文本是可拖动的。HTML5 在所有 HTML 元素上规定了一个 draggable 属性， 表示元素是否可以拖动。图片和链接的 draggable 属性自动被设置为 true，而其他所有元素此属性的默认值为 false。
+某个元素被拖动时，会依次触发以下事件:
+ondragstart：拖动开始，当鼠标按下并且开始移动鼠标时，触发此事件；整个周期只触发一次； ondrag：只要元素仍被拖拽，就会持续触发此事件； ondragend：拖拽结束，当鼠标松开后，会触发此事件；整个周期只触发一次。 可释放目标 当把拖拽元素移动到一个有效的放置目标时，目标对象会触发以下事件：
+ondragenter：只要一把拖拽元素移动到目标时，就会触发此事件； ondragover：拖拽元素在目标中拖动时，会持续触发此事件； ondragleave 或 ondrop：拖拽元素离开目标时（没有在目标上放下），会触发ondragleave；当拖拽元素在目标放下（松开鼠标），则触发ondrop事件。 🏝 目标元素默认是不能够被拖放的，即不会触发 ondrop 事件，可以通过在目标元素的 ondragover 事件中取消默认事件来解决此问题。
+生命周期 拖拽操作中的数据传输 除非数据受影响，否则简单的拖放并没有实际意义。为实现拖动操作中的数据传输，event 对象上暴露了 dataTransfer 对象，用于从被拖动元素向放置目标传递字符串数据。我们使用它来通知画布，当前需要渲染的组件是什么。
+dataTransfer 对象主要有两个方法：getData() 和 setData()，分别用来获取和存储值。setData()的第一个参数以及 getData()的唯一参数是一个字符串，表示要设置的数据类型：&ldquo;text&quot;或&quot;URL&rdquo;
+🏝 虽然这两种数据类型是 IE 最初引入的，但 HTML5 已经将其扩展为允许任何 MIME 类型。为向后 兼容，HTML5 还会继续支持&quot;text&quot;和&quot;URL&quot;，但它们会分别被映射到&quot;text/plain&quot;和&quot;text/uri-list”
+需要注意的是：存储在 dataTransfer 对象中的数据只能在放置事件中读取。如果没有在 ondrop 事件中取得这些数据，dataTransfer 对象就会被销毁，数据也会丢失。
+代码实现 我在项目中使用 React 来实现，并且考虑到跨组件通信，我使用了 dva 来管理数据流。
+如何标记当前拖拽的元素？ HTML5 支持的 data-x 属性，我们可以将当前组件的类型 Rectangle 赋值给它，这样处理和画布组件通信方便一些" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/354/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-12T22:16:22+08:00" />
+<meta property="article:modified_time" content="2023-02-12T22:16:22+08:00" />
+
+  
+  <meta itemprop="name" content="React &#43; Drag API 实现拖拽">
+<meta itemprop="description" content="鼠标拖拽是一个常见的交互场景，在这个熟悉的过程将会发生哪些事件？
+认识拖拽 拖拽事件指用户通过鼠标（或其他指针设备）将元素移到一个新的位置上。拖拽过程涉及两个对象：被拖拽元素（上图中 A ）和可释放目标（上图中 B ）
+被拖拽元素 默认情况下，图片、链接和文本是可拖动的。HTML5 在所有 HTML 元素上规定了一个 draggable 属性， 表示元素是否可以拖动。图片和链接的 draggable 属性自动被设置为 true，而其他所有元素此属性的默认值为 false。
+某个元素被拖动时，会依次触发以下事件:
+ondragstart：拖动开始，当鼠标按下并且开始移动鼠标时，触发此事件；整个周期只触发一次； ondrag：只要元素仍被拖拽，就会持续触发此事件； ondragend：拖拽结束，当鼠标松开后，会触发此事件；整个周期只触发一次。 可释放目标 当把拖拽元素移动到一个有效的放置目标时，目标对象会触发以下事件：
+ondragenter：只要一把拖拽元素移动到目标时，就会触发此事件； ondragover：拖拽元素在目标中拖动时，会持续触发此事件； ondragleave 或 ondrop：拖拽元素离开目标时（没有在目标上放下），会触发ondragleave；当拖拽元素在目标放下（松开鼠标），则触发ondrop事件。 🏝 目标元素默认是不能够被拖放的，即不会触发 ondrop 事件，可以通过在目标元素的 ondragover 事件中取消默认事件来解决此问题。
+生命周期 拖拽操作中的数据传输 除非数据受影响，否则简单的拖放并没有实际意义。为实现拖动操作中的数据传输，event 对象上暴露了 dataTransfer 对象，用于从被拖动元素向放置目标传递字符串数据。我们使用它来通知画布，当前需要渲染的组件是什么。
+dataTransfer 对象主要有两个方法：getData() 和 setData()，分别用来获取和存储值。setData()的第一个参数以及 getData()的唯一参数是一个字符串，表示要设置的数据类型：&ldquo;text&quot;或&quot;URL&rdquo;
+🏝 虽然这两种数据类型是 IE 最初引入的，但 HTML5 已经将其扩展为允许任何 MIME 类型。为向后 兼容，HTML5 还会继续支持&quot;text&quot;和&quot;URL&quot;，但它们会分别被映射到&quot;text/plain&quot;和&quot;text/uri-list”
+需要注意的是：存储在 dataTransfer 对象中的数据只能在放置事件中读取。如果没有在 ondrop 事件中取得这些数据，dataTransfer 对象就会被销毁，数据也会丢失。
+代码实现 我在项目中使用 React 来实现，并且考虑到跨组件通信，我使用了 dva 来管理数据流。
+如何标记当前拖拽的元素？ HTML5 支持的 data-x 属性，我们可以将当前组件的类型 Rectangle 赋值给它，这样处理和画布组件通信方便一些"><meta itemprop="datePublished" content="2023-02-12T22:16:22+08:00" />
+<meta itemprop="dateModified" content="2023-02-12T22:16:22+08:00" />
+<meta itemprop="wordCount" content="400">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="React &#43; Drag API 实现拖拽"/>
+<meta name="twitter:description" content="鼠标拖拽是一个常见的交互场景，在这个熟悉的过程将会发生哪些事件？
+认识拖拽 拖拽事件指用户通过鼠标（或其他指针设备）将元素移到一个新的位置上。拖拽过程涉及两个对象：被拖拽元素（上图中 A ）和可释放目标（上图中 B ）
+被拖拽元素 默认情况下，图片、链接和文本是可拖动的。HTML5 在所有 HTML 元素上规定了一个 draggable 属性， 表示元素是否可以拖动。图片和链接的 draggable 属性自动被设置为 true，而其他所有元素此属性的默认值为 false。
+某个元素被拖动时，会依次触发以下事件:
+ondragstart：拖动开始，当鼠标按下并且开始移动鼠标时，触发此事件；整个周期只触发一次； ondrag：只要元素仍被拖拽，就会持续触发此事件； ondragend：拖拽结束，当鼠标松开后，会触发此事件；整个周期只触发一次。 可释放目标 当把拖拽元素移动到一个有效的放置目标时，目标对象会触发以下事件：
+ondragenter：只要一把拖拽元素移动到目标时，就会触发此事件； ondragover：拖拽元素在目标中拖动时，会持续触发此事件； ondragleave 或 ondrop：拖拽元素离开目标时（没有在目标上放下），会触发ondragleave；当拖拽元素在目标放下（松开鼠标），则触发ondrop事件。 🏝 目标元素默认是不能够被拖放的，即不会触发 ondrop 事件，可以通过在目标元素的 ondragover 事件中取消默认事件来解决此问题。
+生命周期 拖拽操作中的数据传输 除非数据受影响，否则简单的拖放并没有实际意义。为实现拖动操作中的数据传输，event 对象上暴露了 dataTransfer 对象，用于从被拖动元素向放置目标传递字符串数据。我们使用它来通知画布，当前需要渲染的组件是什么。
+dataTransfer 对象主要有两个方法：getData() 和 setData()，分别用来获取和存储值。setData()的第一个参数以及 getData()的唯一参数是一个字符串，表示要设置的数据类型：&ldquo;text&quot;或&quot;URL&rdquo;
+🏝 虽然这两种数据类型是 IE 最初引入的，但 HTML5 已经将其扩展为允许任何 MIME 类型。为向后 兼容，HTML5 还会继续支持&quot;text&quot;和&quot;URL&quot;，但它们会分别被映射到&quot;text/plain&quot;和&quot;text/uri-list”
+需要注意的是：存储在 dataTransfer 对象中的数据只能在放置事件中读取。如果没有在 ondrop 事件中取得这些数据，dataTransfer 对象就会被销毁，数据也会丢失。
+代码实现 我在项目中使用 React 来实现，并且考虑到跨组件通信，我使用了 dva 来管理数据流。
+如何标记当前拖拽的元素？ HTML5 支持的 data-x 属性，我们可以将当前组件的类型 Rectangle 赋值给它，这样处理和画布组件通信方便一些"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">React &#43; Drag API 实现拖拽</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Feb 12, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p>鼠标拖拽是一个常见的交互场景，在这个熟悉的过程将会发生哪些事件？</p>
+<h2 id="认识拖拽">认识拖拽</h2>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/244fd0f37c58474a8011527ba9b41969~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="Untitled-2022-06-04-1227.png"></p>
+<p>拖拽事件指用户通过鼠标（或其他指针设备）将元素移到一个新的位置上。拖拽过程涉及两个对象：被拖拽元素（上图中 A ）和可释放目标（上图中 B ）</p>
+<h3 id="被拖拽元素">被拖拽元素</h3>
+<p>默认情况下，图片、链接和文本是可拖动的。HTML5 在所有 HTML 元素上规定了一个 <code>draggable</code> 属性， 表示元素是否可以拖动。图片和链接的 draggable 属性自动被设置为 true，而其他所有元素此属性的默认值为 false。</p>
+<p>某个元素被拖动时，会依次触发以下事件:</p>
+<ul>
+<li><code>ondragstart</code>：拖动开始，当鼠标按下并且开始移动鼠标时，触发此事件；整个周期只触发一次；</li>
+<li><code>ondrag</code>：只要元素仍被拖拽，就会持续触发此事件；</li>
+<li><code>ondragend</code>：拖拽结束，当鼠标松开后，会触发此事件；整个周期只触发一次。</li>
+</ul>
+<h3 id="可释放目标">可释放目标</h3>
+<p>当把拖拽元素移动到一个有效的放置目标时，目标对象会触发以下事件：</p>
+<ul>
+<li><code>ondragenter</code>：只要一把拖拽元素移动到目标时，就会触发此事件；</li>
+<li><code>ondragover</code>：拖拽元素在目标中拖动时，会持续触发此事件；</li>
+<li><code>ondragleave</code> 或 <code>ondrop</code>：拖拽元素离开目标时（没有在目标上放下），会触发<code>ondragleave</code>；当拖拽元素在目标放下（松开鼠标），则触发<code>ondrop</code>事件。</li>
+</ul>
+<blockquote>
+<p>🏝  目标元素默认是不能够被拖放的，即不会触发  <code>ondrop</code> 事件，可以通过在目标元素的  <code>ondragover</code>  事件中取消默认事件来解决此问题。</p>
+</blockquote>
+<h3 id="生命周期">生命周期</h3>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/de34a21bb9c24e21a6e179e85ded1039~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="adsf3456345.png"></p>
+<h3 id="拖拽操作中的数据传输">拖拽操作中的数据传输</h3>
+<p>除非数据受影响，否则简单的拖放并没有实际意义。为实现拖动操作中的数据传输，<code>event</code> 对象上暴露了 <code>dataTransfer</code> 对象，用于从被拖动元素向放置目标传递字符串数据。我们使用它来通知画布，当前需要渲染的组件是什么。</p>
+<p>dataTransfer 对象主要有两个方法：getData() 和 setData()，分别用来获取和存储值。setData()的第一个参数以及 getData()的唯一参数是一个字符串，表示要设置的数据类型：&ldquo;text&quot;或&quot;URL&rdquo;</p>
+<blockquote>
+<p>🏝  虽然这两种数据类型是 IE 最初引入的，但 HTML5 已经将其扩展为允许任何 MIME 类型。为向后 兼容，HTML5 还会继续支持&quot;text&quot;和&quot;URL&quot;，但它们会分别被映射到&quot;text/plain&quot;和&quot;text/uri-list”</p>
+</blockquote>
+<p>需要注意的是：存储在 <code>dataTransfer</code> 对象中的数据只能在放置事件中读取。如果没有在 <code>ondrop</code> 事件中取得这些数据，<code>dataTransfer</code> 对象就会被销毁，数据也会丢失。</p>
+<h2 id="代码实现">代码实现</h2>
+<p>我在项目中使用 React 来实现，并且考虑到跨组件通信，我使用了 dva 来管理数据流。</p>
+<h3 id="如何标记当前拖拽的元素">如何标记当前拖拽的元素？</h3>
+<p>HTML5 支持的 <code>data-x</code> 属性，我们可以将当前组件的类型 <em>Rectangle</em> 赋值给它，这样处理和画布组件通信方便一些</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Block</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">props</span>) =&gt; {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleDragStart</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">DragEvent</span>&lt;<span style="color:#f92672">HTMLDivElement</span>&gt;) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 向拖拽数据中添加项目
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">dataTransfer</span>.<span style="color:#a6e22e">setData</span>(<span style="color:#e6db74">&#34;text&#34;</span>, <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">target</span>.<span style="color:#a6e22e">dataset</span>.<span style="color:#a6e22e">index</span>);
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">onDragStart</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">handleDragStart</span>}&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">Button</span> <span style="color:#a6e22e">draggable</span> <span style="color:#a6e22e">data</span><span style="color:#960050;background-color:#1e0010">-</span><span style="color:#a6e22e">index</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;Rectangle&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">二维码</span>
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">Button</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>在上文中讲到，dataTransfer 的数据必须在 handleDrop 方法中获取。实际的用来保存画布中的所有组件的数据：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">DragEditor</span>(<span style="color:#a6e22e">props</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">dvaStore</span>, <span style="color:#a6e22e">dispatch</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">props</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// 阻止浏览器默认事件，否则 ondrop 不会触发
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleDragOver</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">DragEvent</span>&lt;<span style="color:#f92672">HTMLDivElement</span>&gt;) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">preventDefault</span>();
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleDrop</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">DragEvent</span>&lt;<span style="color:#f92672">HTMLDivElement</span>&gt;) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">preventDefault</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 获取拖拽元素的组件类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">type</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">dataTransfer</span>.<span style="color:#a6e22e">getData</span>(<span style="color:#e6db74">&#39;text&#39;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// COMPONENT_LIST 定义了组件的数据格式，根据 type 匹配
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">component</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">COMPONENT_LIST</span>.<span style="color:#a6e22e">filter</span>(
+</span></span><span style="display:flex;"><span>      (<span style="color:#a6e22e">i</span>) =&gt; <span style="color:#a6e22e">i</span>.<span style="color:#a6e22e">component</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">type</span>,
+</span></span><span style="display:flex;"><span>    )[<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 将组件数据添加到 store，画布将会根据数据渲染出组件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">component</span>) {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">dispatch</span><span style="color:#f92672">?</span>.({
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;store/addComponent&#39;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">component</span>,
+</span></span><span style="display:flex;"><span>      });
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (...);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="在画布中拖动">在画布中拖动</h3>
+<p>拖动主要依赖组件的初始位置，鼠标开始位置、结束位置。根据后两组得到鼠标移动的距离，和初始位置相加后，得到最终位置。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">DragEditor</span>(<span style="color:#a6e22e">props</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">IEditorProps</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">dvaStore</span>, <span style="color:#a6e22e">dispatch</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">props</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> [<span style="color:#a6e22e">startAxis</span>, <span style="color:#a6e22e">setStartAxis</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">useState</span>({ <span style="color:#a6e22e">x</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>, <span style="color:#a6e22e">y</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span> }); <span style="color:#75715e">// 鼠标开始拖动时的位置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleDragStart</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">DragEvent</span>&lt;<span style="color:#f92672">HTMLDivElement</span>&gt;) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">setStartAxis</span>({ <span style="color:#a6e22e">x</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">clientX</span>, <span style="color:#a6e22e">y</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">clientY</span> });
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">handleDragEnd</span> <span style="color:#f92672">=</span> (<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">React</span>.<span style="color:#a6e22e">DragEvent</span>&lt;<span style="color:#f92672">HTMLDivElement</span>&gt;, <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">IComponentSchema</span>) =&gt; {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 鼠标移动的距离
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">displacementX</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">clientX</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">startAxis</span>.<span style="color:#a6e22e">x</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">displacementY</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">clientY</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">startAxis</span>.<span style="color:#a6e22e">y</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 计算组件的终点位置：初始位置 + 鼠标移动的距离
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">endX</span> <span style="color:#f92672">=</span> Number(<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">left</span>) <span style="color:#f92672">+</span> <span style="color:#a6e22e">displacementX</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">endY</span> <span style="color:#f92672">=</span> Number(<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">top</span>) <span style="color:#f92672">+</span> <span style="color:#a6e22e">displacementY</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 限制坐标的最小值为 0
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">top</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">max</span>(<span style="color:#a6e22e">endY</span>, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">left</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">max</span>(<span style="color:#a6e22e">endX</span>, <span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 更新当前组件样式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">dispatch</span><span style="color:#f92672">?</span>.({
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">type</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;store/setShapeStyle&#39;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">payload</span><span style="color:#f92672">:</span> { <span style="color:#a6e22e">top</span>, <span style="color:#a6e22e">left</span> },
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>      {<span style="color:#a6e22e">dvaStore</span>.<span style="color:#a6e22e">componentsData</span>.<span style="color:#a6e22e">map</span>((<span style="color:#a6e22e">i</span>) =&gt; {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> (
+</span></span><span style="display:flex;"><span>          &lt;<span style="color:#f92672">RenderComponent</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">i</span>.<span style="color:#a6e22e">component</span>}
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">componentData</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">i</span>}
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">key</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">i</span>.<span style="color:#a6e22e">generateId</span>}
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">onDragStart</span><span style="color:#f92672">=</span>{<span style="color:#a6e22e">handleDragStart</span>}
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">onDragEnd</span><span style="color:#f92672">=</span>{(<span style="color:#a6e22e">e</span>) =&gt; <span style="color:#a6e22e">handleDragEnd</span>(<span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">i</span>)}
+</span></span><span style="display:flex;"><span>          /&gt;
+</span></span><span style="display:flex;"><span>        );
+</span></span><span style="display:flex;"><span>      })}
+</span></span><span style="display:flex;"><span>  );
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="数据结构">数据结构</h2>
+<p>最后，就是组件和数据结构的设计，RenderComponent 是一个自定义的组件，会根据传入的 type 属性渲染对应的组件。组件的数据结构设计如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-jsx" data-lang="jsx"><span style="display:flex;"><span><span style="color:#66d9ef">export</span> <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">COMPONENT_LIST</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">component</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Rectangle&#34;</span>, <span style="color:#75715e">// 组件名称
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">label</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;矩形&#34;</span>, <span style="color:#75715e">// 左侧 Blocks 组件列表中显示的名字
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">propValue</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#75715e">// 组件所使用的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">icon</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;BorderOuterOutlined&#34;</span>, <span style="color:#75715e">// 左侧组件列表中显示的 icon 图标
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">animations</span><span style="color:#f92672">:</span> [], <span style="color:#75715e">// 动画列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">events</span><span style="color:#f92672">:</span> {}, <span style="color:#75715e">// 事件列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">style</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#75715e">// 组件样式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      <span style="color:#a6e22e">width</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">100</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">height</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">100</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">top</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">left</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">component</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Text&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">label</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;文字&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">propValue</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;文字&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">icon</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">animations</span><span style="color:#f92672">:</span> [],
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">events</span><span style="color:#f92672">:</span> {},
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">style</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">width</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">200</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">height</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">33</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fontSize</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">14</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">fontWeight</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">500</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">lineHeight</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">letterSpacing</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">textAlign</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>];
+</span></span></code></pre></div><h2 id="总结">总结</h2>
+<p>拖拽是非常有趣的一种交互，特别是在低代码场景下非常重要。使用原生 API 能够让我们更加了解底层的一些细节，React 社区也有一些优秀的第三方框架，如：react-dragable, react-beautiful-dnd，大家有兴趣不妨再多了解下。</p>
+<h2 id="links">Links</h2>
+<ul>
+<li><a href="https://www.notion.so/React-Drag-API-a8fef320c0fc43b1bc3da1a83311f1f6?pvs=4#ff31039d0c1542dd9a5270a936d15d6c">HTML 拖放 API</a></li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/355/"
+      ><span class="mr-1.5">←</span><span>利用缓存减少远程请求</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/353/"
+      ><span>在 JavaScript 如何下载文件</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

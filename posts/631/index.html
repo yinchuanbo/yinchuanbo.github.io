@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>图片（文件资源）防盗链 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="以下是个人在实际工作中关于图片等文件资源访问权限控制的解决方案，仅供参考。
+盗链就是在一个网站上展示不属于这个网站服务器上的一些资源文件，一般被盗链的都是图片、音视频、文件等资源。通过盗链的手段可以减轻对自己服务器的资源访问压力，从而增加真实服务器的访问压力。为了保护自己的利益我采取了一些手段防止盗链发生。
+说在前面：我们有专门的文件资源服务器，动静分离。
+1、检测Referer 一般网站部署方式简单，没有网关代理、路由转发什么的，可以通过检测Referer的方式来防止本站图片等文件资源被外界盗取。
+现在，一般来说不会通过检测Referer的方式设置防盗链，原因有二：
+Referer可以被改写， 用户访问的链接有可能不是文件资源服务的真实地址。 复杂一点的部署方式，通常都会经过F5网关、负载均衡、路由转发代理等多种方式，对于用户来说很难获得真实的服务 ip 地址，所以检测Referer的方式也就成了空谈
+顺便说一句，现在的安全加固方案绝大多数都不会去单独检测Referer了。
+2、校验 Token 我这里采用的是校验Token的方式，即：在图片等文件资源链接后拼接 token 的形式，后端在读取并返回给客户端文件资源前，先校验token是否有效或者是否携带 Token，校验通过即放行。Token只有在正常登录系统后，服务器下发的令牌。
+这样当在系统外是无法直接访问文件资源的。当然 Token 是存在有效期的，可以使用有效期内的 Token，自行拼接文件资源路径进行访问下载，这是一个风险点。
+3、后端生成文件资源访问链接 这种方法比较特殊，通过后端生成文件资源访问的fileId，这个 fileId 映射真实的文件资源，然后拼接访问链接进行资源访问。核心技术是控制 fileId 的生成、销毁，fileId 只能使用一次（只有一次有效期），客户端访问文件链接时立刻消费掉 fileId，再次访问时映射关系已经断开，显示403
+4、总结 我使用的是第二种方案，检测 Token，同时实现了在一定的时期内文件访问链接固定的功能，这样有助于其它业务功能的需要。
+也可以把这几种方式组合使用，但从防盗功能上来讲，效果会更佳，但，要结合实际的业务考量。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="图片（文件资源）防盗链" />
+<meta property="og:description" content="以下是个人在实际工作中关于图片等文件资源访问权限控制的解决方案，仅供参考。
+盗链就是在一个网站上展示不属于这个网站服务器上的一些资源文件，一般被盗链的都是图片、音视频、文件等资源。通过盗链的手段可以减轻对自己服务器的资源访问压力，从而增加真实服务器的访问压力。为了保护自己的利益我采取了一些手段防止盗链发生。
+说在前面：我们有专门的文件资源服务器，动静分离。
+1、检测Referer 一般网站部署方式简单，没有网关代理、路由转发什么的，可以通过检测Referer的方式来防止本站图片等文件资源被外界盗取。
+现在，一般来说不会通过检测Referer的方式设置防盗链，原因有二：
+Referer可以被改写， 用户访问的链接有可能不是文件资源服务的真实地址。 复杂一点的部署方式，通常都会经过F5网关、负载均衡、路由转发代理等多种方式，对于用户来说很难获得真实的服务 ip 地址，所以检测Referer的方式也就成了空谈
+顺便说一句，现在的安全加固方案绝大多数都不会去单独检测Referer了。
+2、校验 Token 我这里采用的是校验Token的方式，即：在图片等文件资源链接后拼接 token 的形式，后端在读取并返回给客户端文件资源前，先校验token是否有效或者是否携带 Token，校验通过即放行。Token只有在正常登录系统后，服务器下发的令牌。
+这样当在系统外是无法直接访问文件资源的。当然 Token 是存在有效期的，可以使用有效期内的 Token，自行拼接文件资源路径进行访问下载，这是一个风险点。
+3、后端生成文件资源访问链接 这种方法比较特殊，通过后端生成文件资源访问的fileId，这个 fileId 映射真实的文件资源，然后拼接访问链接进行资源访问。核心技术是控制 fileId 的生成、销毁，fileId 只能使用一次（只有一次有效期），客户端访问文件链接时立刻消费掉 fileId，再次访问时映射关系已经断开，显示403
+4、总结 我使用的是第二种方案，检测 Token，同时实现了在一定的时期内文件访问链接固定的功能，这样有助于其它业务功能的需要。
+也可以把这几种方式组合使用，但从防盗功能上来讲，效果会更佳，但，要结合实际的业务考量。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/631/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-06-02T10:27:10+08:00" />
+<meta property="article:modified_time" content="2023-06-02T10:27:10+08:00" />
+
+  
+  <meta itemprop="name" content="图片（文件资源）防盗链">
+<meta itemprop="description" content="以下是个人在实际工作中关于图片等文件资源访问权限控制的解决方案，仅供参考。
+盗链就是在一个网站上展示不属于这个网站服务器上的一些资源文件，一般被盗链的都是图片、音视频、文件等资源。通过盗链的手段可以减轻对自己服务器的资源访问压力，从而增加真实服务器的访问压力。为了保护自己的利益我采取了一些手段防止盗链发生。
+说在前面：我们有专门的文件资源服务器，动静分离。
+1、检测Referer 一般网站部署方式简单，没有网关代理、路由转发什么的，可以通过检测Referer的方式来防止本站图片等文件资源被外界盗取。
+现在，一般来说不会通过检测Referer的方式设置防盗链，原因有二：
+Referer可以被改写， 用户访问的链接有可能不是文件资源服务的真实地址。 复杂一点的部署方式，通常都会经过F5网关、负载均衡、路由转发代理等多种方式，对于用户来说很难获得真实的服务 ip 地址，所以检测Referer的方式也就成了空谈
+顺便说一句，现在的安全加固方案绝大多数都不会去单独检测Referer了。
+2、校验 Token 我这里采用的是校验Token的方式，即：在图片等文件资源链接后拼接 token 的形式，后端在读取并返回给客户端文件资源前，先校验token是否有效或者是否携带 Token，校验通过即放行。Token只有在正常登录系统后，服务器下发的令牌。
+这样当在系统外是无法直接访问文件资源的。当然 Token 是存在有效期的，可以使用有效期内的 Token，自行拼接文件资源路径进行访问下载，这是一个风险点。
+3、后端生成文件资源访问链接 这种方法比较特殊，通过后端生成文件资源访问的fileId，这个 fileId 映射真实的文件资源，然后拼接访问链接进行资源访问。核心技术是控制 fileId 的生成、销毁，fileId 只能使用一次（只有一次有效期），客户端访问文件链接时立刻消费掉 fileId，再次访问时映射关系已经断开，显示403
+4、总结 我使用的是第二种方案，检测 Token，同时实现了在一定的时期内文件访问链接固定的功能，这样有助于其它业务功能的需要。
+也可以把这几种方式组合使用，但从防盗功能上来讲，效果会更佳，但，要结合实际的业务考量。"><meta itemprop="datePublished" content="2023-06-02T10:27:10+08:00" />
+<meta itemprop="dateModified" content="2023-06-02T10:27:10+08:00" />
+<meta itemprop="wordCount" content="34">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="图片（文件资源）防盗链"/>
+<meta name="twitter:description" content="以下是个人在实际工作中关于图片等文件资源访问权限控制的解决方案，仅供参考。
+盗链就是在一个网站上展示不属于这个网站服务器上的一些资源文件，一般被盗链的都是图片、音视频、文件等资源。通过盗链的手段可以减轻对自己服务器的资源访问压力，从而增加真实服务器的访问压力。为了保护自己的利益我采取了一些手段防止盗链发生。
+说在前面：我们有专门的文件资源服务器，动静分离。
+1、检测Referer 一般网站部署方式简单，没有网关代理、路由转发什么的，可以通过检测Referer的方式来防止本站图片等文件资源被外界盗取。
+现在，一般来说不会通过检测Referer的方式设置防盗链，原因有二：
+Referer可以被改写， 用户访问的链接有可能不是文件资源服务的真实地址。 复杂一点的部署方式，通常都会经过F5网关、负载均衡、路由转发代理等多种方式，对于用户来说很难获得真实的服务 ip 地址，所以检测Referer的方式也就成了空谈
+顺便说一句，现在的安全加固方案绝大多数都不会去单独检测Referer了。
+2、校验 Token 我这里采用的是校验Token的方式，即：在图片等文件资源链接后拼接 token 的形式，后端在读取并返回给客户端文件资源前，先校验token是否有效或者是否携带 Token，校验通过即放行。Token只有在正常登录系统后，服务器下发的令牌。
+这样当在系统外是无法直接访问文件资源的。当然 Token 是存在有效期的，可以使用有效期内的 Token，自行拼接文件资源路径进行访问下载，这是一个风险点。
+3、后端生成文件资源访问链接 这种方法比较特殊，通过后端生成文件资源访问的fileId，这个 fileId 映射真实的文件资源，然后拼接访问链接进行资源访问。核心技术是控制 fileId 的生成、销毁，fileId 只能使用一次（只有一次有效期），客户端访问文件链接时立刻消费掉 fileId，再次访问时映射关系已经断开，显示403
+4、总结 我使用的是第二种方案，检测 Token，同时实现了在一定的时期内文件访问链接固定的功能，这样有助于其它业务功能的需要。
+也可以把这几种方式组合使用，但从防盗功能上来讲，效果会更佳，但，要结合实际的业务考量。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">图片（文件资源）防盗链</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Jun 2, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><blockquote>
+<p>以下是个人在实际工作中关于图片等<code>文件资源访问权限</code>控制的解决方案，仅供参考。</p>
+</blockquote>
+<p>盗链就是在一个网站上展示不属于这个网站服务器上的一些资源文件，一般被盗链的都是图片、音视频、文件等资源。通过盗链的手段可以减轻对自己服务器的资源访问压力，从而增加真实服务器的访问压力。为了保护自己的利益我采取了一些手段防止盗链发生。</p>
+<p>说在前面：我们有专门的文件资源服务器，动静分离。</p>
+<h2 id="1检测referer">1、检测<code>Referer</code></h2>
+<p>一般网站部署方式简单，没有网关代理、路由转发什么的，可以通过检测<code>Referer</code>的方式来防止本站图片等文件资源被外界盗取。</p>
+<p>现在，一般来说不会通过检测<code>Referer</code>的方式设置防盗链，原因有二：</p>
+<ol>
+<li><code>Referer</code>可以被改写，</li>
+<li>用户访问的链接有可能不是文件资源服务的真实地址。</li>
+</ol>
+<p>复杂一点的部署方式，通常都会经过<code>F5</code>网关、负载均衡、路由转发代理等多种方式，对于用户来说很难获得真实的服务 ip 地址，所以检测<code>Referer</code>的方式也就成了空谈</p>
+<blockquote>
+<p>顺便说一句，现在的安全加固方案绝大多数都不会去单独检测<code>Referer</code>了。</p>
+</blockquote>
+<h2 id="2校验-token">2、校验 Token</h2>
+<p>我这里采用的是校验<code>Token</code>的方式，即：在图片等文件资源链接后拼接 token 的形式，后端在读取并返回给客户端文件资源前，先校验<code>token</code>是否有效或者是否携带 Token，校验通过即放行。<code>Token</code>只有在正常登录系统后，服务器下发的令牌。</p>
+<p>这样当在系统外是无法直接访问文件资源的。当然 Token 是存在有效期的，可以使用有效期内的 Token，自行拼接文件资源路径进行访问下载，这是一个风险点。</p>
+<h2 id="3后端生成文件资源访问链接">3、后端生成文件资源访问链接</h2>
+<p>这种方法比较特殊，通过后端生成文件资源访问的<code>fileId</code>，这个 fileId 映射真实的文件资源，然后拼接访问链接进行资源访问。核心技术是控制 fileId 的生成、销毁，fileId 只能使用一次（只有一次有效期），客户端访问文件链接时立刻消费掉 fileId，再次访问时映射关系已经断开，显示<code>403</code></p>
+<h2 id="4总结">4、总结</h2>
+<p>我使用的是第二种方案，检测 Token，同时实现了在一定的时期内文件访问链接固定的功能，这样有助于其它业务功能的需要。</p>
+<p>也可以把这几种方式组合使用，但从防盗功能上来讲，效果会更佳，但，要结合实际的业务考量。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/632/"
+      ><span class="mr-1.5">←</span><span>pnpm才是前端工程化项目的未来</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/630/"
+      ><span>WebSocket技术分享</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

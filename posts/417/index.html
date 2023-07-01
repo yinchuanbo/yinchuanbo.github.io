@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>Babel配置不要再“复制粘贴”了，带你自己配一个Babel - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言 问题 我们在使用各种打包工具，需要配置Babel的时候，相信大家一开始都是直接在网上复制粘贴一段配置过来，然后能跑通就万事大吉了吧？因此，我们有时会遇到打包部署后，手机运行出现白屏问题；或者是，打包后代码包过大，加载缓慢等等问题。
+其实这一切，大部分原因是因为我们对Babel各项配置没有一个系统的理解，所以即使从网上复制粘贴了配置，出现问题了，不知道怎么去分析出现的问题。
+准备 如果你已经对Babel已经有一个大概的了解了，那阅读这篇文章，会让你对配置有一个更系统的了解；如果你才刚接触Babel，或者对Babel处于懵懵懂懂的状态，那我强烈建议你先阅读这篇文章——想弄懂 Babel？你必须得先弄清楚这几个包，它主要介绍分析了一些概念跟以下几个包：
+@babel/core @bable/cli @bable/preset-env polyfill @babel/polyfill core-js @babel/runtime @babel/plugin-transform-runtime 并且为我们答疑了一些看官网时的疑惑。因为在清楚了这几包后，我们学习配置这块会更容易理解一些。
+备注 当前@babel/core最新版本是：7.20.12 当前@babel/preset-env最新版本是：7.20.2 再谈core-js 通过上篇文章—— 想弄懂 Babel？你必须得先弄清楚这几个包我们知道：core-js是一种polyfill，它提供了旧版本浏览器缺失的所有的ES6&#43; API的方法与实现。
+在这里，以及下文，我们把通过引入core-js的某个模块，来实现旧版本浏览器不支持的某个ES6&#43; API的过程，叫做垫平。
+我们看看core-js这个包里面的主要一些模块：
+es：里面只包含有稳定的ES功能。 proposals：里面包含所有stage阶段的API stable：它里面包含了，只有稳定的ES功能跟网络标准 所以，我们可以这么使用：
+当我们只需要垫平某个稳定的ES6&#43; API，我们可以用es这个文件夹里的polyfill来垫平 （import X from &#39;es/xx&#39;） 当我们需要用到提案阶段的API时，我就用proposals这个文件夹里的polyfill来垫平（import X from &#39;proposals/xx&#39;） 当我们想垫平所有稳定版本的ES6&#43; API，可以导入用stable文件夹（import &#39;core-js/stable&#39;） 当我们想垫平所有的ES6&#43; API（包括提案阶段），可以直接import &#39;core-js&#39; 以上是我个人的使用习惯，因人而异，具体的介绍可以看看参考文章。
+参考文章：core-js
+再谈@bable/preset-env 通过上篇文章—— 想弄懂 Babel？你必须得先弄清楚这几个包，我们知道：
+Babel大体由两个功能组成： 编译ES6&#43;最新语法（let、class、() =&gt; {}等） 实现旧版本浏览器不支持的ES6&#43;的API（Promise、Symbol、Array.prototype.includes等） @babel/preset-env有以下两个功能： 它只编译ES6&#43;语法 它并不提供polyfill，但是可以通过配置我们代码运行的目标环境，从而控制polyfill的导入跟语法编译，使ES6&#43;的新特性可以在我们想要的目标环境中顺利运行 @babel/plugin-transform-runtime也有以下两个功能： @babel/runtime跟@babel/plugin-transform-runtime两者配合，可以减少打包体积 也有一个配置功能，用来处理polyfill如何垫平 如果我们想要在旧浏览器用到ES6&#43; API时，我们应该安装3版本的core-js（或者后续更高版本的）； 那我们可以很清楚的知道：
+实现Babel第一个功能：我们用@babel/preset-env就可以了 实现Babel第二个功能：我们就需要用core-js这个包来提供polyfill，并与@babel/preset-env或者@babel/plugin-transform-runtime的配置功能相互配合使用 我们先来看看@babel/preset-env的配置项有哪些：" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="Babel配置不要再“复制粘贴”了，带你自己配一个Babel" />
+<meta property="og:description" content="前言 问题 我们在使用各种打包工具，需要配置Babel的时候，相信大家一开始都是直接在网上复制粘贴一段配置过来，然后能跑通就万事大吉了吧？因此，我们有时会遇到打包部署后，手机运行出现白屏问题；或者是，打包后代码包过大，加载缓慢等等问题。
+其实这一切，大部分原因是因为我们对Babel各项配置没有一个系统的理解，所以即使从网上复制粘贴了配置，出现问题了，不知道怎么去分析出现的问题。
+准备 如果你已经对Babel已经有一个大概的了解了，那阅读这篇文章，会让你对配置有一个更系统的了解；如果你才刚接触Babel，或者对Babel处于懵懵懂懂的状态，那我强烈建议你先阅读这篇文章——想弄懂 Babel？你必须得先弄清楚这几个包，它主要介绍分析了一些概念跟以下几个包：
+@babel/core @bable/cli @bable/preset-env polyfill @babel/polyfill core-js @babel/runtime @babel/plugin-transform-runtime 并且为我们答疑了一些看官网时的疑惑。因为在清楚了这几包后，我们学习配置这块会更容易理解一些。
+备注 当前@babel/core最新版本是：7.20.12 当前@babel/preset-env最新版本是：7.20.2 再谈core-js 通过上篇文章—— 想弄懂 Babel？你必须得先弄清楚这几个包我们知道：core-js是一种polyfill，它提供了旧版本浏览器缺失的所有的ES6&#43; API的方法与实现。
+在这里，以及下文，我们把通过引入core-js的某个模块，来实现旧版本浏览器不支持的某个ES6&#43; API的过程，叫做垫平。
+我们看看core-js这个包里面的主要一些模块：
+es：里面只包含有稳定的ES功能。 proposals：里面包含所有stage阶段的API stable：它里面包含了，只有稳定的ES功能跟网络标准 所以，我们可以这么使用：
+当我们只需要垫平某个稳定的ES6&#43; API，我们可以用es这个文件夹里的polyfill来垫平 （import X from &#39;es/xx&#39;） 当我们需要用到提案阶段的API时，我就用proposals这个文件夹里的polyfill来垫平（import X from &#39;proposals/xx&#39;） 当我们想垫平所有稳定版本的ES6&#43; API，可以导入用stable文件夹（import &#39;core-js/stable&#39;） 当我们想垫平所有的ES6&#43; API（包括提案阶段），可以直接import &#39;core-js&#39; 以上是我个人的使用习惯，因人而异，具体的介绍可以看看参考文章。
+参考文章：core-js
+再谈@bable/preset-env 通过上篇文章—— 想弄懂 Babel？你必须得先弄清楚这几个包，我们知道：
+Babel大体由两个功能组成： 编译ES6&#43;最新语法（let、class、() =&gt; {}等） 实现旧版本浏览器不支持的ES6&#43;的API（Promise、Symbol、Array.prototype.includes等） @babel/preset-env有以下两个功能： 它只编译ES6&#43;语法 它并不提供polyfill，但是可以通过配置我们代码运行的目标环境，从而控制polyfill的导入跟语法编译，使ES6&#43;的新特性可以在我们想要的目标环境中顺利运行 @babel/plugin-transform-runtime也有以下两个功能： @babel/runtime跟@babel/plugin-transform-runtime两者配合，可以减少打包体积 也有一个配置功能，用来处理polyfill如何垫平 如果我们想要在旧浏览器用到ES6&#43; API时，我们应该安装3版本的core-js（或者后续更高版本的）； 那我们可以很清楚的知道：
+实现Babel第一个功能：我们用@babel/preset-env就可以了 实现Babel第二个功能：我们就需要用core-js这个包来提供polyfill，并与@babel/preset-env或者@babel/plugin-transform-runtime的配置功能相互配合使用 我们先来看看@babel/preset-env的配置项有哪些：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/417/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-03-29T21:37:10+08:00" />
+<meta property="article:modified_time" content="2023-03-29T21:37:10+08:00" />
+
+  
+  <meta itemprop="name" content="Babel配置不要再“复制粘贴”了，带你自己配一个Babel">
+<meta itemprop="description" content="前言 问题 我们在使用各种打包工具，需要配置Babel的时候，相信大家一开始都是直接在网上复制粘贴一段配置过来，然后能跑通就万事大吉了吧？因此，我们有时会遇到打包部署后，手机运行出现白屏问题；或者是，打包后代码包过大，加载缓慢等等问题。
+其实这一切，大部分原因是因为我们对Babel各项配置没有一个系统的理解，所以即使从网上复制粘贴了配置，出现问题了，不知道怎么去分析出现的问题。
+准备 如果你已经对Babel已经有一个大概的了解了，那阅读这篇文章，会让你对配置有一个更系统的了解；如果你才刚接触Babel，或者对Babel处于懵懵懂懂的状态，那我强烈建议你先阅读这篇文章——想弄懂 Babel？你必须得先弄清楚这几个包，它主要介绍分析了一些概念跟以下几个包：
+@babel/core @bable/cli @bable/preset-env polyfill @babel/polyfill core-js @babel/runtime @babel/plugin-transform-runtime 并且为我们答疑了一些看官网时的疑惑。因为在清楚了这几包后，我们学习配置这块会更容易理解一些。
+备注 当前@babel/core最新版本是：7.20.12 当前@babel/preset-env最新版本是：7.20.2 再谈core-js 通过上篇文章—— 想弄懂 Babel？你必须得先弄清楚这几个包我们知道：core-js是一种polyfill，它提供了旧版本浏览器缺失的所有的ES6&#43; API的方法与实现。
+在这里，以及下文，我们把通过引入core-js的某个模块，来实现旧版本浏览器不支持的某个ES6&#43; API的过程，叫做垫平。
+我们看看core-js这个包里面的主要一些模块：
+es：里面只包含有稳定的ES功能。 proposals：里面包含所有stage阶段的API stable：它里面包含了，只有稳定的ES功能跟网络标准 所以，我们可以这么使用：
+当我们只需要垫平某个稳定的ES6&#43; API，我们可以用es这个文件夹里的polyfill来垫平 （import X from &#39;es/xx&#39;） 当我们需要用到提案阶段的API时，我就用proposals这个文件夹里的polyfill来垫平（import X from &#39;proposals/xx&#39;） 当我们想垫平所有稳定版本的ES6&#43; API，可以导入用stable文件夹（import &#39;core-js/stable&#39;） 当我们想垫平所有的ES6&#43; API（包括提案阶段），可以直接import &#39;core-js&#39; 以上是我个人的使用习惯，因人而异，具体的介绍可以看看参考文章。
+参考文章：core-js
+再谈@bable/preset-env 通过上篇文章—— 想弄懂 Babel？你必须得先弄清楚这几个包，我们知道：
+Babel大体由两个功能组成： 编译ES6&#43;最新语法（let、class、() =&gt; {}等） 实现旧版本浏览器不支持的ES6&#43;的API（Promise、Symbol、Array.prototype.includes等） @babel/preset-env有以下两个功能： 它只编译ES6&#43;语法 它并不提供polyfill，但是可以通过配置我们代码运行的目标环境，从而控制polyfill的导入跟语法编译，使ES6&#43;的新特性可以在我们想要的目标环境中顺利运行 @babel/plugin-transform-runtime也有以下两个功能： @babel/runtime跟@babel/plugin-transform-runtime两者配合，可以减少打包体积 也有一个配置功能，用来处理polyfill如何垫平 如果我们想要在旧浏览器用到ES6&#43; API时，我们应该安装3版本的core-js（或者后续更高版本的）； 那我们可以很清楚的知道：
+实现Babel第一个功能：我们用@babel/preset-env就可以了 实现Babel第二个功能：我们就需要用core-js这个包来提供polyfill，并与@babel/preset-env或者@babel/plugin-transform-runtime的配置功能相互配合使用 我们先来看看@babel/preset-env的配置项有哪些："><meta itemprop="datePublished" content="2023-03-29T21:37:10+08:00" />
+<meta itemprop="dateModified" content="2023-03-29T21:37:10+08:00" />
+<meta itemprop="wordCount" content="840">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Babel配置不要再“复制粘贴”了，带你自己配一个Babel"/>
+<meta name="twitter:description" content="前言 问题 我们在使用各种打包工具，需要配置Babel的时候，相信大家一开始都是直接在网上复制粘贴一段配置过来，然后能跑通就万事大吉了吧？因此，我们有时会遇到打包部署后，手机运行出现白屏问题；或者是，打包后代码包过大，加载缓慢等等问题。
+其实这一切，大部分原因是因为我们对Babel各项配置没有一个系统的理解，所以即使从网上复制粘贴了配置，出现问题了，不知道怎么去分析出现的问题。
+准备 如果你已经对Babel已经有一个大概的了解了，那阅读这篇文章，会让你对配置有一个更系统的了解；如果你才刚接触Babel，或者对Babel处于懵懵懂懂的状态，那我强烈建议你先阅读这篇文章——想弄懂 Babel？你必须得先弄清楚这几个包，它主要介绍分析了一些概念跟以下几个包：
+@babel/core @bable/cli @bable/preset-env polyfill @babel/polyfill core-js @babel/runtime @babel/plugin-transform-runtime 并且为我们答疑了一些看官网时的疑惑。因为在清楚了这几包后，我们学习配置这块会更容易理解一些。
+备注 当前@babel/core最新版本是：7.20.12 当前@babel/preset-env最新版本是：7.20.2 再谈core-js 通过上篇文章—— 想弄懂 Babel？你必须得先弄清楚这几个包我们知道：core-js是一种polyfill，它提供了旧版本浏览器缺失的所有的ES6&#43; API的方法与实现。
+在这里，以及下文，我们把通过引入core-js的某个模块，来实现旧版本浏览器不支持的某个ES6&#43; API的过程，叫做垫平。
+我们看看core-js这个包里面的主要一些模块：
+es：里面只包含有稳定的ES功能。 proposals：里面包含所有stage阶段的API stable：它里面包含了，只有稳定的ES功能跟网络标准 所以，我们可以这么使用：
+当我们只需要垫平某个稳定的ES6&#43; API，我们可以用es这个文件夹里的polyfill来垫平 （import X from &#39;es/xx&#39;） 当我们需要用到提案阶段的API时，我就用proposals这个文件夹里的polyfill来垫平（import X from &#39;proposals/xx&#39;） 当我们想垫平所有稳定版本的ES6&#43; API，可以导入用stable文件夹（import &#39;core-js/stable&#39;） 当我们想垫平所有的ES6&#43; API（包括提案阶段），可以直接import &#39;core-js&#39; 以上是我个人的使用习惯，因人而异，具体的介绍可以看看参考文章。
+参考文章：core-js
+再谈@bable/preset-env 通过上篇文章—— 想弄懂 Babel？你必须得先弄清楚这几个包，我们知道：
+Babel大体由两个功能组成： 编译ES6&#43;最新语法（let、class、() =&gt; {}等） 实现旧版本浏览器不支持的ES6&#43;的API（Promise、Symbol、Array.prototype.includes等） @babel/preset-env有以下两个功能： 它只编译ES6&#43;语法 它并不提供polyfill，但是可以通过配置我们代码运行的目标环境，从而控制polyfill的导入跟语法编译，使ES6&#43;的新特性可以在我们想要的目标环境中顺利运行 @babel/plugin-transform-runtime也有以下两个功能： @babel/runtime跟@babel/plugin-transform-runtime两者配合，可以减少打包体积 也有一个配置功能，用来处理polyfill如何垫平 如果我们想要在旧浏览器用到ES6&#43; API时，我们应该安装3版本的core-js（或者后续更高版本的）； 那我们可以很清楚的知道：
+实现Babel第一个功能：我们用@babel/preset-env就可以了 实现Babel第二个功能：我们就需要用core-js这个包来提供polyfill，并与@babel/preset-env或者@babel/plugin-transform-runtime的配置功能相互配合使用 我们先来看看@babel/preset-env的配置项有哪些："/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">Babel配置不要再“复制粘贴”了，带你自己配一个Babel</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Mar 29, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c83caaf6fc18497783e61f32cf85f099~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="Babel配置不要再“复制粘贴”了，带你自己配一个Babel"></p>
+<h1 id="前言">前言</h1>
+<h2 id="问题">问题</h2>
+<p>我们在使用各种打包工具，需要配置<code>Babel</code>的时候，相信大家一开始都是直接在网上<strong>复制粘贴</strong>一段配置过来，然后能跑通就万事大吉了吧？因此，我们有时会遇到打包部署后，手机运行出现白屏问题；或者是，打包后代码包过大，加载缓慢等等问题。</p>
+<p>其实这一切，大部分原因是因为我们对<code>Babel</code>各项配置没有一个系统的理解，所以即使从网上复制粘贴了配置，出现问题了，不知道怎么去分析出现的问题。</p>
+<h2 id="准备">准备</h2>
+<p>如果你已经对<code>Babel</code>已经有一个大概的了解了，那阅读这篇文章，会让你对配置有一个更系统的了解；如果你才刚接触<code>Babel</code>，或者对<code>Babel</code>处于懵懵懂懂的状态，那我强烈建议你先阅读这篇文章——<a href="https://juejin.cn/post/7190312484492804156">想弄懂 Babel？你必须得先弄清楚这几个包</a>，它主要介绍分析了一些概念跟以下几个包：</p>
+<ul>
+<li><code>@babel/core</code></li>
+<li><code>@bable/cli</code></li>
+<li><code>@bable/preset-env</code></li>
+<li><code>polyfill</code></li>
+<li><code>@babel/polyfill</code></li>
+<li><code>core-js</code></li>
+<li><code>@babel/runtime</code></li>
+<li><code>@babel/plugin-transform-runtime</code></li>
+</ul>
+<p>并且为我们答疑了一些看官网时的疑惑。因为在清楚了这几包后，我们学习配置这块会更容易理解一些。</p>
+<h2 id="备注">备注</h2>
+<ul>
+<li>当前<code>@babel/core</code>最新版本是：<code>7.20.12</code></li>
+<li>当前<code>@babel/preset-env</code>最新版本是：<code>7.20.2</code></li>
+</ul>
+<h1 id="再谈core-js">再谈<code>core-js</code></h1>
+<p>通过上篇文章—— <a href="https://juejin.cn/post/7190312484492804156">想弄懂 Babel？你必须得先弄清楚这几个包</a>我们知道：<code>core-js</code>是一种<code>polyfill</code>，它提供了旧版本浏览器缺失的<strong>所有</strong>的<code>ES6+</code> <code>API</code>的方法与实现。</p>
+<p>在这里，以及下文，我们把通过引入<code>core-js</code>的<strong>某个模块</strong>，来实现旧版本浏览器不支持的<strong>某个</strong><code>ES6+</code> <code>API</code>的过程，叫做垫平。</p>
+<p>我们看看<code>core-js</code>这个包里面的主要一些模块：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c2ec2dac2a8048378ec646d10d1e4063~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_5.png"></p>
+<ul>
+<li><code>es</code>：里面只包含有稳定的<code>ES</code>功能。</li>
+<li><code>proposals</code>：里面包含所有<code>stage</code>阶段的<code>API</code></li>
+<li><code>stable</code>：它里面包含了，只有稳定的<code>ES</code>功能跟网络标准</li>
+</ul>
+<p>所以，我们可以这么使用：</p>
+<ul>
+<li>当我们只需要垫平<strong>某个</strong>稳定的<code>ES6+</code> <code>API</code>，我们可以用<code>es</code>这个文件夹里的<code>polyfill</code>来垫平 （<code>import X from 'es/xx'</code>）</li>
+<li>当我们需要用到<strong>提案阶段</strong>的<code>API</code>时，我就用<code>proposals</code>这个文件夹里的<code>polyfill</code>来垫平（<code>import X from 'proposals/xx'</code>）</li>
+<li>当我们想垫平<strong>所有稳定版本</strong>的<code>ES6+</code> <code>API</code>，可以导入用<code>stable</code>文件夹（<code>import 'core-js/stable'</code>）</li>
+<li>当我们想垫平<strong>所有</strong>的<code>ES6+</code> <code>API</code>（包括提案阶段），可以直接<code>import 'core-js'</code></li>
+</ul>
+<p>以上是我个人的使用习惯，因人而异，具体的介绍可以看看参考文章。</p>
+<p>参考文章：<a href="https://github.com/zloirock/core-js#commonjs-api">core-js</a></p>
+<h1 id="再谈bablepreset-env">再谈<code>@bable/preset-env</code></h1>
+<p>通过上篇文章—— <a href="https://juejin.cn/post/7190312484492804156">想弄懂 Babel？你必须得先弄清楚这几个包</a>，我们知道：</p>
+<ul>
+<li><code>Babel</code>大体由两个功能组成：
+<ol>
+<li>编译<code>ES6+</code>最新语法（<code>let</code>、<code>class</code>、<code>() =&gt; {}</code>等）</li>
+<li>实现旧版本浏览器不支持的<code>ES6+</code>的<code>API</code>（<code>Promise</code>、<code>Symbol</code>、<code>Array.prototype.includes</code>等）</li>
+</ol>
+</li>
+<li><code>@babel/preset-env</code>有以下两个功能：
+<ol>
+<li>它<strong>只编译<code>ES6+</code>语法</strong></li>
+<li>它并不提供<code>polyfill</code>，但是可以通过<strong>配置</strong>我们代码运行的<strong>目标环境</strong>，从而控制<code>polyfill</code>的导入跟语法编译，使<code>ES6+</code>的新特性可以在我们想要的<strong>目标环境</strong>中顺利运行</li>
+</ol>
+</li>
+<li><code>@babel/plugin-transform-runtime</code>也有以下两个功能：
+<ol>
+<li><code>@babel/runtime</code>跟<code>@babel/plugin-transform-runtime</code>两者配合，可以减少打包体积</li>
+<li>也有一个配置功能，用来处理<code>polyfill</code>如何垫平</li>
+</ol>
+</li>
+<li>如果我们想要在旧浏览器用到<code>ES6+</code> <code>API</code>时，我们应该安装<code>3</code>版本的<code>core-js</code>（或者后续更高版本的）；</li>
+</ul>
+<p>那我们可以很清楚的知道：</p>
+<ul>
+<li>实现<code>Babel</code>第一个功能：我们用<code>@babel/preset-env</code>就可以了</li>
+<li>实现<code>Babel</code>第二个功能：我们就需要用<code>core-js</code>这个包来提供<code>polyfill</code>，并与<code>@babel/preset-env</code>或者<code>@babel/plugin-transform-runtime</code>的配置功能相互配合使用</li>
+</ul>
+<p>我们先来看看<code>@babel/preset-env</code>的配置项有哪些：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// babel.config.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">presets</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>  [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;@babel/preset-env&#34;</span>,
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">modules</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">targets</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">corejs</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">useBuiltIns</span>,
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">spec</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">loose</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">debug</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">bugfixes</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">include</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">exclude</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">forceAllTransforms</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">configPath</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">ignoreBrowserslistConfig</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">browserslistEnv</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">shippedProposals</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>];
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">presets</span> };
+</span></span></code></pre></div><p>我们可以看到配置项还是蛮多的（有一些配置项，后期可能会废弃），但是，其实我们平时项目中主要用到前四个配置，所以在这里我们重点来看看前四个配置（能不学的尽量不学，太累了）。</p>
+<p>参考文章：<a href="https://babeljs.io/docs/en/babel-preset-env">@babel/preset-env</a></p>
+<h2 id="modules"><code>modules</code></h2>
+<ul>
+<li>功能：启用<code>ES</code>模块语法向另一种模块类型的转换</li>
+<li>默认值：<code>auto</code></li>
+<li>可取的值：<code>&quot;amd&quot; | &quot;umd&quot; | &quot;systemjs&quot; | &quot;commonjs&quot; | &quot;cjs&quot; | &quot;auto&quot; | false</code></li>
+</ul>
+<p>当我们设置成<code>false</code>的时候，<code>Babel</code>编译产生的一些辅助函数的引入方式会变成<code>ES6</code>的模式引入（<code>import A from 'B'</code>）。</p>
+<p>我们把 <a href="https://github.com/limingcan562/learn-babel-7/tree/main/use-transform-runtime">use-transform-runtime</a> 这个案例<code>Babel</code>配置改成以下配置，感受一下<code>modules</code>这个配置的功能。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// babel.config.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">plugins</span> <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#34;@babel/plugin-transform-runtime&#34;</span>];
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">presets</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>  [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;@babel/preset-env&#34;</span>,
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">modules</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>];
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">plugins</span>, <span style="color:#a6e22e">presets</span> };
+</span></span></code></pre></div><p>在<strong>没设置<code>modules</code>配置项</strong>时，编译后的文件是： <img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/18b572077d4544cd8665e685b5ac4c96~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_1.png"></p>
+<p>我们会发现辅助函数都是以<code>require</code>的方式引入的；</p>
+<p>在<strong>设置了<code>modules</code>配置项</strong>后，编译后的文件是： <img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e7d5f9f36a4c4402b2e6c67d075c4495~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_2.png"></p>
+<p>我们会发现辅助函数变成了我们熟悉的<code>ES6</code>模块方式<code>import</code>引入。</p>
+<p>这样有一个好处，就是我们用一些像<code>Webpack</code>打包工具时，可以对代码静态分析，很好地<code>tree shaking</code>减少代码体积，所以我们配置<code>Babel</code>的时候建议设置<code>modules: false</code></p>
+<p>参考文章：<a href="https://babeljs.io/docs/en/babel-preset-env#modules">modules</a></p>
+<h2 id="targets"><code>targets</code></h2>
+<h3 id="作用">作用</h3>
+<p>它的用法与 <a href="https://github.com/browserslist/browserslist">browserslist</a> 一致。它可以用来设置我们的代码需要兼容的<strong>目标环境</strong>，因此它：</p>
+<ul>
+<li>可以有效地减少<code>ES6+</code>的语法编译</li>
+<li>可以有效控制<code>polyfill</code>导入多少</li>
+</ul>
+<h3 id="注意">注意</h3>
+<h4 id="第一点">第一点</h4>
+<p>如果我们没有设置这个配置项时，它会去我们的<code>Babel</code>配置文件找<strong>顶层的</strong><code>targets</code>；如果顶层没有设置<code>targets</code>，则会去我们的<code>package.json</code>里的<code>browserslist</code>或者根目录找<code>.browserslistrc</code>；如果还没有则默认值为<code>{}</code>。查找过程大致如下，序号代表查找顺序：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// Babel配置文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">targets</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;ie 10&#39;</span>, <span style="color:#75715e">// 2. 如果presets里面没有设置targets，会来这里查找
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">presets</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>        [
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#39;@babel/preset-env&#39;</span>,
+</span></span><span style="display:flex;"><span>            {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">targets</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;ie 9&#39;</span> <span style="color:#75715e">// 1. 先在这里查找，没的话去顶层targets查找
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            }
+</span></span><span style="display:flex;"><span>        ]
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// package.json
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>    ...,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">browserslist</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;ie 11&#39;</span> <span style="color:#75715e">// 3. 如果顶层targest里面没有设置，会来这里查找；如果这里也没设置，则为默认值{}
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="第二点">第二点</h4>
+<p>如果我们没有设置这个配置项时，<code>Babel</code>会假设我们要兼容的目标环境是最旧的浏览器，所以会将所有的<code>ES6+</code>语法代码转化为<code>ES5</code>。<strong>所以我们配置<code>Babel</code>的时候，要设置<code>targets</code>以减少输出代码大小。</strong></p>
+<p>针对这点，我们用这个案例 <a href="https://github.com/limingcan562/learn-babel-7/tree/main/preset-env-targets-config">preset-env-targets-config</a> 来感受一下： <img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b7d9baa51e264f28abf29f1a52318182~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_3.png"></p>
+<p>我们会发现<code>ES6+</code>的写法全部被转成了<code>ES5</code>，还加入了一些辅助函数（白色框）。</p>
+<p>ok，我们设置<code>targets: 'chrome 80'</code>。这表示，我们的代码是要在<code>chrome 80</code>上运行的，再看看打包后的结果：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d99598f6781e42ffaef077d98ed1bd25~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_4.png"></p>
+<p>我们会发现编译出来的代码，跟我们入口文件写的代码基本没差。因为<code>chrome 80</code>已经实现了入口文件代码的写法了。所以，<strong>如果我们的代码不需要在一些比较低端的浏览器跑的话，设置<code>targets</code>就十分有必要。</strong></p>
+<p>参考文章：<a href="https://babeljs.io/docs/en/options#targets">targets</a></p>
+<h2 id="corejs"><code>corejs</code></h2>
+<p>当<code>useBuiltIns</code>不为<code>false</code>的时候，需要设置这个配置项</p>
+<h3 id="配置">配置</h3>
+<p>它有两种配置方式：</p>
+<ol>
+<li>
+<p>直接设置<code>core-js</code>版本号</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">useBuiltIns</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;usage&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">corejs</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;3.27.2&#39;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div></li>
+<li>
+<p>配置<code>corejs</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">useBuiltIns</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;usage&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">corejs</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">version</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;3.27.2&#39;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 是否编译提案阶段ES6+ API
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">proposals</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div></li>
+</ol>
+<h3 id="注意-1">注意</h3>
+<ol>
+<li>当我们的<code>useBuiltIns</code>不为<code>false</code>的时候，需要设置<code>corejs</code>这个配置项</li>
+<li><code>2</code>版本的<code>core-js</code>已经不建议使用了；我们用当然要用最新的，目前最新的版本是<code>core-js@3.27.2</code></li>
+<li><strong>我们安装的<code>core-js</code>要尽量保持最新，因为越新的包，包含的<code>polyfill</code>才会越多</strong></li>
+<li>我们设置<code>corejs</code>的版本号时，不要直接指定<code>2</code>或者<code>3</code>，它会被解析为<code>2.0</code>或者<code>3.0</code>。所以，我们应该带上<strong>子版本号</strong>（<code>3.27.2</code>），这样才会有最新的<code>polyfill</code></li>
+<li><code>core-js</code>默认用<strong>稳定版</strong>的<code>polyfill</code>来垫平，但如果有时我们想用还处在提案阶段的<code>API</code>怎么办？
+<ul>
+<li>如果我们配置的是<code>useBuiltIns: entry</code>，我们得手动引入<code>core-js</code>提案的<code>polyfill</code>来垫平。<strong>提案的<code>polyfill</code>放在<code>core-js/proposals</code>文件夹中</strong>（<code>import 'core-js/proposals/array-last'</code>）</li>
+<li>如果我们配置的是<code>useBuiltIns: 'usage'</code>，则我们用上面说的<code>corejs</code>模块里面提到的第二种配置方式，把<code>proposals</code>设为<code>true</code>就可以了</li>
+</ul>
+</li>
+</ol>
+<p>它的作用会结合下面的<code>useBuiltIns</code>一起讲。</p>
+<p>参考文章：<a href="https://babeljs.io/docs/en/babel-preset-env#targets">targets</a></p>
+<h2 id="usebuiltins"><code>useBuiltIns</code></h2>
+<p>上面我们提到了，我们把通过引入<code>core-js</code>的<strong>某个模块</strong>，来实现旧版本浏览器不支持的<strong>某个</strong><code>ES6+</code> <code>API</code>的过程，叫做垫平。</p>
+<p><strong>这个配置就是用来设置我们<code>core-js</code>的垫平方式的</strong>。它有下面三个值：</p>
+<blockquote>
+<p>为了更好的理解，我们用<code>Promise</code>这个<code>ES6+</code> <code>API</code>作为下面的例子。我们都知道：</p>
+<ul>
+<li><code>IE 11</code>并不支持<code>Promise</code></li>
+<li><code>Promise</code>这个对象其实还有很多方法，例如<code>Promise.any</code>、<code>Promise.all</code>、<code>Promise.finally</code>等。</li>
+<li>我们用这个案例 <a href="https://github.com/limingcan562/learn-babel-7/tree/main/preset-env-useBuiltIns-config">preset-env-useBuiltIns-config</a> 来讲解</li>
+</ul>
+</blockquote>
+<h3 id="entry"><code>entry</code></h3>
+<p>我们可以这么理解，<code>entry</code>中文是“进入”的意思，这个值说明我们的<code>polyfill</code>应该是需要从某个<strong>入口</strong>引入来垫平。</p>
+<h4 id="表现">表现</h4>
+<p><strong>我们把配置设置为：<code>useBuiltIns: 'entry'</code></strong></p>
+<ul>
+<li>我们先来看看这个配置在<code>IE 11</code>的表现形式，我们设置<code>targets: 'ie 11'</code>： <img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/21e469e9c3a047348d727a48f5b3a6fd~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_6.png"></li>
+<li>我们再把<code>targets</code>设置成<code>chrome: 80</code>看看表现： <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/76f58521eb6f415c891554e41d557715~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_9.png"></li>
+</ul>
+<h4 id="分析">分析</h4>
+<ul>
+<li>在<code>IE 11</code>的表现
+我们<code>import 'core-js/es/promise'</code>（相当于<code>import</code>某块<code>polyfill</code>来垫平），由于我们的<code>IE 11</code>不支持<code>Promise</code>，所以<code>useBuiltIns: 'entry'</code>配置把我们<strong>所有</strong>不支持的<code>Promise</code>方法都垫平了（打印的<code>window.Promise.any</code>有值）。</li>
+<li>在<code>chrome 80</code>表现
+我们<code>import 'core-js/es/promise'</code>（相当于<code>import</code>某块<code>polyfill</code>来垫平）， 因为在<code>chrome 80</code>中，<code>Promise</code>大部分方法已经实现，只有<code>Promise.any</code>没有实现，所以此时只垫平了<code>promise.any</code>方法。</li>
+</ul>
+<h4 id="总结">总结</h4>
+<p>所以我们可以总结出，它的执行原理大致是这样的：</p>
+<ol>
+<li>我们需要<strong>手动</strong><code>import</code><strong>所有</strong>或者<strong>某块</strong><code>polyfill</code></li>
+<li><code>Babel</code>会根据我们设置的<code>targets</code>（目标环境），来判断我们手动<code>import</code>的<strong>所有</strong>或者<strong>某块</strong><code>polyfill</code>是不是当前缺失的</li>
+<li>如果是的话，就会把我们手动<code>import</code><strong>所有</strong>或者<strong>某块</strong><code>polyfill</code>，拆分成很多小模块，<strong>引入我们目标环境不支持的模块</strong></li>
+</ol>
+<h4 id="注意-2">注意</h4>
+<ul>
+<li>为了避免一些奇奇怪怪的问题，我们手动<code>import</code>的<code>polyfill</code>应该<strong>统一在入口文件</strong>（我们现在的工程项目一般都会有一个入口文件）</li>
+<li>如果我们想一劳永逸，直接把当前环境<strong>所有</strong>不支持的<code>ES6+</code> <code>API</code>垫平，那我们就<code>import 'core-js/stable'</code>（这会垫平当前<code>targets</code><strong>不支持的所有稳定版本的<code>ES6+</code> <code>API</code></strong>，所以也会导致包变大）</li>
+<li>如果我们只想单纯垫平<strong>某个</strong><code>ES6+</code> <code>API</code>（前提是<code>targets</code>不支持这个<code>API</code>，否则手动<code>import</code>了也没用；例如只想垫平<code>Promise</code>），那我们<code>import 'core-js/es/promise</code>就可以了</li>
+<li>如果想垫平提案阶段的<code>API</code>，则也需要手动<code>import</code>对应提案的<code>polyfill</code>（<code>import &quot;core-js/proposals/string-replace-all</code>）</li>
+</ul>
+<p>参考文章：<a href="https://babeljs.io/docs/en/babel-preset-env#usebuiltins">usebuiltins</a></p>
+<h3 id="usage"><code>usage</code></h3>
+<p>这个值的作用，就是我们不需要手动<code>import</code>，它会自动帮我们<code>import</code>当前<code>targets</code>缺失的<code>polyfill</code>。</p>
+<h4 id="表现-1">表现</h4>
+<p><strong>我们把配置设置为：<code>useBuiltIns: 'usage'</code></strong></p>
+<ul>
+<li>我们先来看看这个配置在<code>IE 11</code>的表现形式，我们设置<code>targets: 'ie 11'</code>： <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2382dcfb58994b8dbee0ca9f1b392ee8~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_7.png"></li>
+<li>我们再把<code>targets</code>设置成<code>chrome: 80</code>看看表现： <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1380f0b5bd8f48a4b2ae993f0b326c54~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_10.png"></li>
+</ul>
+<h4 id="分析-1">分析</h4>
+<ul>
+<li>在<code>IE 11</code>的表现
+我们不用自己手动<code>import</code>相关<code>polyfill</code>，我们的代码中只用到了单一的<code>Promise</code>对象，所以<strong>只垫平</strong>了<code>Promise</code>这个对象，不会垫平它其他相关的方法（打印的<code>window.Promise.any</code>无值）。</li>
+<li>在<code>chrome 80</code>的表现
+我们不用自己手动<code>import</code>相关<code>polyfill</code>，此时没有任何关于<code>Promise</code>的垫平，因为单一的<code>Promise</code>对象在<code>chrome 80</code>已经实现，且我们代码中没有用<code>Promise.any</code>方法，自然也就不会垫平<code>Promise.any</code>。此时代码只垫平了提案阶段的<code>array.lastItem</code>方法，<strong>因为<code>chrome 80</code>不支持它，并且我们代码中用到了它</strong>。</li>
+</ul>
+<h4 id="总结-1">总结</h4>
+<p>所以我们可以总结出，它的执行原理大致是这样的：</p>
+<ol>
+<li>我们<strong>不需要手动</strong><code>import</code><strong>所有</strong>或者<strong>某块</strong><code>polyfill</code></li>
+<li><code>Babel</code>会根据我们当前代码中用到的<code>ES6+</code> <code>API</code>，并判断当前的<code>targets</code>支不支持我们用到的这个<code>ES6+</code> <code>API</code></li>
+<li>如果不支持的话，则<strong>自动导入这个<code>ES6+</code> <code>API</code>对应的<code>polyfill</code></strong></li>
+</ol>
+<p>因为它会自动导入，所以我们专注写我们的<code>ES6+</code>就好了。</p>
+<p>参考文章：<a href="https://babeljs.io/docs/en/babel-preset-env#usebuiltins">usebuiltins</a></p>
+<h3 id="false"><code>false</code></h3>
+<p>它是默认值。它表示不要在每个文件中自动添加<code>polyfill</code>，也<strong>不会根据<code>targets</code>判断</strong>缺不缺失，也不会将我们手动<code>import</code><strong>所有</strong>或者<strong>某块</strong><code>polyfill</code>拆分为单个<code>polyfill</code>引入。</p>
+<h4 id="表现-2">表现</h4>
+<p><strong>我们把配置设置为：<code>useBuiltIns: false</code></strong></p>
+<ul>
+<li>我们先来看看这个配置在<code>IE 11</code>的表现形式，我们设置<code>targets: 'ie 11'</code>： <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7c4213601f9b4ad8ac64e7c90a275f95~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_8.png"></li>
+<li>我们再把<code>targets</code>设置成<code>chrome: 80</code>看看表现： <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/02c4378fcbbe4cb3a3151495e6db4946~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_11.png"></li>
+</ul>
+<h4 id="总结-2">总结</h4>
+<p><code>useBuiltIns</code>设置为<code>false</code>:</p>
+<ul>
+<li>对我们的垫平方式没作用，源码是什么样，输出就是什么样</li>
+<li>设置<code>targets</code>无效</li>
+</ul>
+<p>参考文章：<a href="https://babeljs.io/docs/en/babel-preset-env#usebuiltins">usebuiltins</a></p>
+<h2 id="使用">使用</h2>
+<h3 id="适配-ie-11">适配 <code>IE 11</code></h3>
+<p>相信通过上面的讲解，我们对各个配置项有个大概的了解了，那我们再更深入体验一下。</p>
+<p>我们都知道<code>IE 11</code>基本是不支持<code>ES6+</code>的，我们抽几个常用的<code>ES6+</code> <code>API</code>看看：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2c1e3a9a90294006adff790641b23e8a~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_12.png"></p>
+<p>那我们就用<code>IE 11</code>作为我们的<code>targets</code>（目标环境），研究一下如何配置<code>Babel</code>，使我们写的<code>ES6+</code>代码能在<code>IE 11</code>中跑起来。我们用这个案例 <a href="https://github.com/limingcan562/learn-babel-7/tree/main/preset-env-template-config">preset-env-template-config</a></p>
+<blockquote>
+<p>注意： 为了避免<code>Webpack</code>打包错误，我们把<code>targets</code>写在<code>package.json</code>中，这样<code>Webpack</code>才能识别环境打包</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;browserslist&#34;</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>   <span style="color:#e6db74">&#34;ie 11&#34;</span>
+</span></span><span style="display:flex;"><span>]
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>我们用一下这段代码作为我们的入口文件：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// 如果用`usage`方式，则注释掉这段代码
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#34;core-js/stable&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">lMC</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">name</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;limingcan&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">like</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#34;eat&#34;</span>, <span style="color:#e6db74">&#34;drink&#34;</span>, <span style="color:#e6db74">&#34;play&#34;</span>, <span style="color:#e6db74">&#34;fun&#34;</span>],
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">breath</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>) =&gt; {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">setTimeout</span>(() =&gt; <span style="color:#a6e22e">resolve</span>(), <span style="color:#ae81ff">1000</span>);
+</span></span><span style="display:flex;"><span>    });
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">lMC</span>.<span style="color:#a6e22e">breath</span>().<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;breath&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#a6e22e">lMC</span>.<span style="color:#a6e22e">like</span>.<span style="color:#a6e22e">includes</span>(<span style="color:#e6db74">&#34;play&#34;</span>));
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(Array.<span style="color:#66d9ef">of</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>));
+</span></span></code></pre></div><p>根据我们上面几个配置项的讲解，如果我们想：</p>
+<ul>
+<li>
+<p>一劳永逸的直接垫平<code>targets</code>所有不支持的<code>ES6+</code> <code>API</code>，那我们的配置应该是：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">presets</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>  [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;@babel/preset-env&#34;</span>,
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">modules</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">useBuiltIns</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;entry&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">corejs</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">version</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;3.27.2&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">proposals</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>];
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">presets</span> };
+</span></span></code></pre></div><p>此时<code>IE 11</code>正常输出：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e048d0dd3ed840b29ab32bf99466aaa7~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_13.png"></p>
+<p>红色框是我们源码中<strong>没用到的</strong><code>ES6+</code> <code>API</code>，也都被垫平了；此时包的大小有<code>115K</code></p>
+</li>
+<li>
+<p>如果我们想减少包的体积，只垫平我们用到的<code>ES6+</code> <code>API</code>，那我们的配置应该是：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">presets</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>  [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;@babel/preset-env&#34;</span>,
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">modules</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">useBuiltIns</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;usage&#34;</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">corejs</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">version</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;3.27.2&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">proposals</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>      },
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>];
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">presets</span> };
+</span></span></code></pre></div><p>此时<code>IE 11</code>正常输出：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e3d9c1537f354d6ea66f711f560eb9d3~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_14.png"></p>
+<p>但是我们会发现，红色框是我们源码中没用到的<code>ES6+</code> <code>API</code>，它并没有被垫平的，它只会垫平我们代码中用到的<code>API</code>；此时包的大小只有<code>29K</code></p>
+</li>
+</ul>
+<h3 id="常见问题">常见问题</h3>
+<p>通过上面的例子，我们会发现：</p>
+<p>如果配置是<code>useBuiltIns: 'entry'</code></p>
+<ol>
+<li>我们垫平的<code>polyfill</code>，都是注入到<code>window</code>全局的，或者是某个内置对象的原型（<code>prototype</code>）上，这<strong>影响到了全局</strong></li>
+<li>一劳永逸的方式会垫平当前<code>targets</code><strong>所有不支持的<code>ES6+</code> <code>API</code></strong>，这虽然方便，但这会导致<strong>包变得很大</strong></li>
+</ol>
+<p>如果配置是<code>useBuiltIns: 'usage'</code></p>
+<ol>
+<li>它也会将垫平的<code>polyfill</code>注入到全局。</li>
+<li>由于<code>useBuiltIns: 'usage'</code>是判断当前<code>targets</code>支不支持我们代码中用到的<code>ES6+</code> <code>API</code>，如果不支持会自己<code>import</code>。<br>
+那有这样一种情况，如果第三方库用到了我们当前<code>targets</code>不支持的<code>ES6+</code> <code>API</code>，但我们自己的代码没有用到这个<code>API</code>，那么这个<code>API</code>是不会被叠平的，这会导致我们项目报错。</li>
+</ol>
+<h3 id="第三方库问题">第三方库问题</h3>
+<p>针对<code>useBuiltIns: 'usage'</code>配置的第二点弊端，我们来看这个例子 <a href="https://github.com/limingcan562/learn-babel-7/tree/main/use-third-party-library-problem">use-third-party-library-problem</a> 更直接的感受一下。</p>
+<p>我们把<code>targets</code>设为<code>IE 11</code>，我们<strong>自己的代码只用<code>includes</code>这个<code>ES6+</code> <code>API</code></strong>，然后再用第三方库 <a href="https://github.com/Jamie-Yang/tars-utils">tars-utils</a> 的<code>optimizeImage</code>方法，生成一个<code>Blob</code>对象（<a href="https://github.com/Jamie-Yang/tars-utils/blob/master/src/image/optimize-image.js">里面是用<code>Promise</code>实现的</a>）。</p>
+<p>我们在<code>IE 11</code>跑一下看看：</p>
+<p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0610c86ea634439eaf45f0cee60ab0d6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_15.png"></p>
+<p>通过<code>Babel</code>编译后的文件，我们会发现：</p>
+<ul>
+<li>只有我们代码中使用的<code>includes</code>方法被垫平；</li>
+<li>第三方库中用到的<code>Promise</code>并没有被垫平，所以导致<code>IE 11</code>报错了。<strong>这是一个非常现实的问题。</strong></li>
+</ul>
+<p>我们在高级一点的浏览器（<code>chrome 108</code>）看看：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/27cb9a74aa2c4a5baf90492e025996af~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_16.png"></p>
+<p>在<code>chrome 108</code>运行没有任何问题，因为<code>chrome 108</code>已经内部实现了<code>Promise</code>。</p>
+<h2 id="总结-3">总结</h2>
+<p>看到这里，相信我们对<code>@babel/preset-env</code>的配置功能已经有个大概的了解了。上述所说的问题确实是我们很实际的问题。</p>
+<p>因此，<code>useBuiltIns</code>设置<code>entry</code>还是<code>usage</code>，还是得根据我们项目实际需求来，我个人建议：</p>
+<ul>
+<li>由于我们<code>@babel/preset-env</code>配置方式，是会把当前<code>targets</code>缺失的<code>API</code><strong>注入到全局</strong>，所以这个配置方式是比较适合我们做的一些<strong>前端工程项目</strong>或者<strong>应用程序</strong>。如果对包的体积不是很在意，建议使用<code>useBuiltIns: entry</code>的方式，然后再<code>import 'core-js/stable'</code>，一劳永逸的垫平，这样可以帮我们避免掉一些奇怪的问题，</li>
+<li>如果使用<code>useBuiltIns: usage</code>，那还是得注意第三方库的问题。如果判断出哪块<code>polyfill</code>缺失，我们可以自己手动<code>import</code>去垫平</li>
+</ul>
+<h1 id="再谈babelplugin-transform-runtime">再谈<code>@babel/plugin-transform-runtime</code></h1>
+<p>上面说到，<code>@babel/preset-env</code>配置方式，是会把当前浏览器缺失的<code>API</code><strong>注入到全局的</strong>，那么有没有不注入全局的办法呢？答案是有的。它就是我们接下来要讲的<code>@babel/plugin-transform-runtime</code>配置。</p>
+<p>我们先来看看它有几个配置项（谢天谢地，不算很多）：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// babel.config.js
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">plugins</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>  [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;@babel/plugin-transform-runtime&#34;</span>,
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">helpers</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">regenerator</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">corejs</span>,
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      <span style="color:#a6e22e">version</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>  ],
+</span></span><span style="display:flex;"><span>];
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">plugins</span> };
+</span></span></code></pre></div><h2 id="helpers--regenerator"><code>helpers</code> &amp;&amp; <code>regenerator</code></h2>
+<h3 id="解析">解析</h3>
+<p>我们先看前两个配置，因为前两个配置比较简单，我们放在一起讲。</p>
+<ul>
+<li><code>helpers</code>默认值是：<code>true</code></li>
+<li><code>regenerator</code>默认值是：<code>true</code></li>
+</ul>
+<p>通过上篇文章——<a href="https://juejin.cn/post/7190312484492804156#heading-29">想弄懂 Babel？你必须得先弄清楚这几个包</a>，我们知道：</p>
+<p><strong>关于<code>@babel/runtime</code></strong></p>
+<ul>
+<li><code>@babel/runtime</code>是<strong>存放了<code>Babel</code>辅助函数的一个集合包</strong></li>
+</ul>
+<p><strong>关于辅助函数</strong></p>
+<ul>
+<li>当我们只用了一些<code>ES6+</code>语法糖的时候，<code>Babel</code>编译时会内联注入一些辅助函数</li>
+<li><code>@babel/plugin-transform-runtime</code>与<code>@babel/runtime</code>配合使用时，会将我们用到的辅助函数，从<code>@babel/runtime</code>中以<code>require</code>或者<code>import</code>的方式，引入到我们的文件中，实现复用，从而减小我们最终输出包的体积。</li>
+</ul>
+<p><strong>关于<code>regenerator</code></strong></p>
+<ul>
+<li>我们的源码里面使用了<code>async function() {}</code>等异步函数，或者<code>fuction* myGenerator() {}</code>这种<code>Generator</code>函数的话，就会需要用到<code>regenerator-runtime</code>这个包来编译。</li>
+<li><code>Babel &gt;= 7.18.0</code>，<code>regenerator-runtime</code>包里的内容，会以<strong>局部变量的方式内联注入到我们的代码中</strong>，这样我们就不需要全局提供一个<code>regeneratorRuntime</code>对象。</li>
+</ul>
+<p>例如我们使用了<code>class</code>语法糖跟<code>async function() {}</code>，然后用<code>@babel/runtime</code>跟<code>@babel/plugin-transform-runtime</code>（默认情况下，<code>helpers</code>与<code>regenerator</code>值为<code>true</code>）配合使用，编译后如下图： <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/19a14a8c654a42e6a5d314476d42fafc~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_17.png"></p>
+<p>当我们把<code>helpers</code>跟<code>regenerator</code>的值设为<code>false</code>： <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e5621595b94f4ee895331186348ce00f~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_18.png"></p>
+<p>我们会发现我们的辅助函数，跟<code>regenerator-runtime</code>这个包又变回了内联方式。所以：</p>
+<ul>
+<li><code>helpers</code>：控制的是我们的辅助函数，<strong>是否不内联</strong>进我们的代码中。
+<ul>
+<li><code>true</code>的话是不内联，而是引用<code>@babel/runtime</code>辅助函数集合包</li>
+<li><code>false</code>的话，则会内联</li>
+</ul>
+</li>
+<li><code>regenerator</code>：与<code>helpers</code>类似，控制的是我们<code>regenerator-runtime</code>这个包的代码，<strong>是否不内联</strong>进我们的代码中。
+<ul>
+<li><code>true</code>的话是不内联，而是引用<code>@babel/runtime</code>辅助函数集合包</li>
+<li><code>false</code>的话，则会内联</li>
+</ul>
+</li>
+</ul>
+<h3 id="注意-3">注意</h3>
+<p>官网中关于<code>regenerator</code>的解释，大致意思是： <code>regenerator</code>如果设为<code>false</code>，需要我们提供一个全局的<code>regeneratorRuntime</code>的对象。</p>
+<p>但是：</p>
+<ul>
+<li>当<code>Babel &gt;= 7.18.0</code>以后，<code>regenerator-runtime</code>包里的内容，会以<strong>局部变量的方式内联注入到我们的代码中</strong>。所以其实<code>Babel &gt;= 7.18.0</code> <code>regenerator</code>这个配置项个人觉得是基本没用了</li>
+<li><code>Babel &lt; 7.18.0</code>的话，则需要我们提供一个全局的<code>regeneratorRuntime</code>的对象。相关案例可查看 <a href="https://github.com/limingcan562/learn-babel-7/tree/main/import-regenerator-runtime">import-regenerator-runtime</a>，开启<code>babel.config.js</code>相关注释代码。</li>
+</ul>
+<h2 id="corejs-1"><code>corejs</code></h2>
+<h3 id="解析-1">解析</h3>
+<p><code>corejs</code>这个配置项一旦不为<code>false</code>，就是用来设置我们的要垫平的<code>ES6+</code> <code>API</code>，以<strong>不污染全局局部变量方式垫平。</strong></p>
+<p>它有三个值：</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>对应依赖</th>
+<th>补充</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>false</code>（默认值）</td>
+<td><code>@babel/runtime</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td><code>@babel/runtime-corejs2</code></td>
+<td>1. 只能编译支持全局变量（如<code>Promise</code>）和静态属性（如<code>Array.from</code>）；</td>
+</tr>
+<tr>
+<td>2. 不能编译实例相关方法（<code>[].includes</code>）</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>3</code></td>
+<td><code>@babel/runtime-corejs3</code></td>
+<td>1. 既能编译能编译支持全局变量和静态属性，又能编译实例方法</td>
+</tr>
+<tr>
+<td>2. 开启<code>proposals: true</code>，还可以编译提案阶段的<code>API</code></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>我们用这个例子 <a href="https://github.com/limingcan562/learn-babel-7/tree/main/transform-runtime-config">transform-runtime-config</a> 体验一下。</p>
+<ul>
+<li>如果配置的是<code>corejs: 2</code>的话，会怎么样： <img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/020f5fdcb1354c3fa9419adef97d038d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_19.png">
+我们会发现，实例方法<code>includes</code>没被垫平，提案<code>API</code>（<code>Math.signbit</code>）也没有被垫平；<code>Promise</code>是以局部变量的方式出现在我们的代码中。</li>
+<li>我们再看看配置的是<code>corejs: {version: 3, proposals: true}</code>： <img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/48195d3d1e554981989caf0276adf644~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_20.png"></li>
+</ul>
+<p>我们会发现，实例方法<code>includes</code>被垫平，提案<code>API</code>（<code>Math.signbit</code>）也垫平；但它们都以<strong>局部变量</strong>的方式注入。</p>
+<p><strong>所以，如果我们不想以全局的方式污染的方式垫平我们的<code>ES6+</code> <code>API</code>，我们<code>corejs</code>就不能为<code>false</code>，并且优先使用<code>@babel/runtime-corejs3</code>这个包来垫平</strong>（设置为<code>3</code>）</p>
+<h3 id="优化">优化</h3>
+<p>上面的案例我们并没有设置<code>targets</code>，所以<code>@babel/plugin-transform-runtime</code>配置下，会把我们代码中用到的<strong>所有</strong><code>ES6+</code> <code>API</code>都垫平。我们来设置<code>targets</code>，看看能不能垫平我们的<code>targets</code>不支持的<code>ES6+</code> <code>API</code>。</p>
+<p>我们在<code>package.json</code>里面添加，或者在<strong>配置文件的顶层</strong>添加是可以的（<strong>经过测试，在<code>@babel/preset-env</code>里面设置<code>targets</code>是不行的</strong>）：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#75715e">// package.json
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#e6db74">&#34;browserslist&#34;</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;chrome 80&#34;</span>
+</span></span><span style="display:flex;"><span>]
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 或者在顶层添加
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">targets</span><span style="color:#f92672">:</span> {<span style="color:#a6e22e">chrome</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">80</span>}, <span style="color:#75715e">// 在这里添加
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">presets</span><span style="color:#f92672">:</span> [<span style="color:#e6db74">&#39;@babel/preset-env&#39;</span>],
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">plugins</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>        [
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;@babel/plugin-transform-runtime&#34;</span>,
+</span></span><span style="display:flex;"><span>            {
+</span></span><span style="display:flex;"><span>                ...
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>        ]
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>输出： <img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/90045fe897b94165be2574b609b2d727~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_21.png"></p>
+<p>我们会发现，<code>Promise</code>跟<code>includes</code>都没有被垫平，因为<code>chrome 80</code>已经支持了</p>
+<h3 id="总结-4">总结</h3>
+<ul>
+<li><code>@babel/preset-env</code>是以全局方式垫平，<code>@babel/plugin-transform-runtime</code>是以局部变量方式垫平，两者我们应该选择其一，不要又用<code>@babel/preset-env</code>配置方式，又用<code>@babel/plugin-transform-runtime</code>配置方式，这样肯定会出现一些奇奇怪怪的问题。</li>
+<li>因为使用<code>@babel/plugin-transform-runtime</code>垫平是以<strong>局部变量的方式</strong>来垫平，所以<code>@babel/plugin-transform-runtime</code>这种配置方式更适合来做 <strong>库</strong> 的开发。它可以很好的帮我们的库与使用者的项目解耦。</li>
+</ul>
+<p>参考文章：<a href="https://babel.dev/docs/en/babel-plugin-transform-runtime">babel-plugin-transform-runtime</a></p>
+<h2 id="其他">其他</h2>
+<ul>
+<li>案例 <a href="https://github.com/limingcan562/learn-babel-7/tree/main/preset-env-useBuiltIns-config">preset-env-useBuiltIns-config</a> 里面有个<code>stage-1</code>阶段的提案<code>API</code>—— <a href="https://github.com/tc39/proposal-array-last">Array.prototype.lastItem</a>（取数组最后一项）。本来是想用<code>Array.prototype.uniqueBy</code>这个当前处在<code>stage-1</code>的<code>API</code>来给大家做例子的，结果发现编译以后在<code>IE 11</code>有问题。所以给<code>Babel</code>提了个 <a href="https://github.com/babel/babel/issues/15392">issues</a> ：
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/940627842070482b8fa70558683b0afe~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_22.png">
+目前应该是修复了，在等合并。复现问题的代码包在 <a href="https://github.com/limingcan562/babel-use-proposals-problem">babel-use-proposals-problem</a>，感兴趣的朋友也可以<code>Fork</code>自己瞅瞅。说这个事主要也是想表达，学习还是不能停止（不是卷啊，还是要有学习的习惯）。</li>
+<li>在讲<code>@babel/plugin-transform-runtime</code>如何配置时，我们说到开启<code>{version: 3, proposals: true}</code>时，可以以局部变量的方式对提案阶段的<code>ES6+</code> <code>API</code>垫平。
+但是经过测试发现，有些提案阶段的<code>API</code>，用这个方法似乎是不能按预期实现的，所以又提了个 <a href="https://github.com/babel/babel/issues/15412">issues</a> ，有个<code>Babel</code>之一的大佬说可以用<code>babel-plugin-polyfill-corejs3</code>来实现：
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d5b08cdd2f614f15ae09ace5e69962d1~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="pic_23.png">
+关于<code>babel-plugin-polyfill-corejs3</code>这块，其实<code>Babel</code>还有一种垫平配置方式，是使用 <a href="https://github.com/babel/babel-polyfills">babel-polyfills</a> 这个包来实现的，这块后期再看看要不要出文章聊聊。</li>
+</ul>
+<h2 id="最后">最后</h2>
+<p>通过以上的了解，我们最后来总结一下这个配置。</p>
+<ul>
+<li>如果我们开发的项目是<strong>应用程序</strong>，或者<strong>大型的项目</strong>，那我们可以这么配置：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// Babel配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">presets</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>    [
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;@babel/preset-env&#39;</span>,
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">modules</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 或者只想用垫平我们代码中用到的 --&gt; useBuiltIns: &#39;usage&#39;,
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#a6e22e">useBuiltIns</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;entry&#39;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">corejs</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">version</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;3.27.2&#39;</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">proposals</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>];
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">plugins</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#39;@babel/plugin-transform-runtime&#39;</span>
+</span></span><span style="display:flex;"><span>];
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {<span style="color:#a6e22e">plugins</span>, <span style="color:#a6e22e">presets</span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// package.json
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>    ...,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 设置目标环境
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#e6db74">&#34;browserslist&#34;</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;ie 11&#34;</span>
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 入口文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// ---- useBuiltIns: &#39;entry&#39;时，需要引入以下----
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 垫平全部ES6+稳定版API
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#39;core-js/stable&#39;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ---- 或者 -----
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 垫平所有ES6+ API，包括提案阶段
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">import</span> <span style="color:#e6db74">&#39;core-js&#39;</span>;
+</span></span></code></pre></div><ul>
+<li>如果我们是想开发一个<strong>第三方库</strong>，我们可以这么配置：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// Babel配置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">presets</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>    [
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;@babel/preset-env&#39;</span>,
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">modules</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>];
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">plugins</span> <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>    [
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#39;@babel/plugin-transform-runtime&#39;</span>,
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">corejs</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">version</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">3</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">proposals</span><span style="color:#f92672">:</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>];
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {<span style="color:#a6e22e">plugins</span>, <span style="color:#a6e22e">presets</span>};
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// package.json
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>{
+</span></span><span style="display:flex;"><span>    ...,
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 设置目标环境
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#e6db74">&#34;browserslist&#34;</span><span style="color:#f92672">:</span> [
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;ie 11&#34;</span>
+</span></span><span style="display:flex;"><span>    ]
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 入口文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">Method</span> <span style="color:#f92672">=</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">wait</span>(<span style="color:#a6e22e">delay</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise(<span style="color:#a6e22e">resolve</span> =&gt; <span style="color:#a6e22e">setTimeout</span>(() =&gt; <span style="color:#a6e22e">resolve</span>(), <span style="color:#a6e22e">delay</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div></section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/418/"
+      ><span class="mr-1.5">←</span><span>前端如何实现词云效果</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/416/"
+      ><span>webpack5之核心源码解析</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

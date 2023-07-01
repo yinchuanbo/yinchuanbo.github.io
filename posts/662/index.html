@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>NodeJs 爬虫程序集 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="一、前言 网络爬虫（又称为网页蜘蛛，网络机器人，在 FOAF 社区中间，更经常的称为网页追逐者），是一种按照一定的规则，自动地抓取万维网信息的程序或者脚本。另外一些不常使用的名字还有蚂蚁、自动索引、模拟程序或者蠕虫。
+目前几乎所有语言都可以实现爬虫，较为流行的有 NodeJs、python 等。 简单场景使用 nodejs 即可，专业级的爬虫考虑的比较多，像多线程、吞吐量、分布式爬取、拓展性等，应该使用 python 做爬虫更合适。
+本文简单介绍 nodejs 爬虫的使用，并实现几个较为简单的程序作为小玩具，只为学习交流。不要恶意爬取网站数据，和谐网络环境需要大家共同维护。
+nodejs-spider
+二、开发简述 爬取数据一般简单来说就是 目标请求 -&gt; 获取数据 -&gt; 处理数据 这几个阶段。
+获取数据一般有直接从接口获取、解析 JS 构造运行环境获取和页面解析获取等几种方式。
+从接口获取是最简单的，到目标网站直接 F12 找到相应接口，然后构造请求函数获取数据，最后将数据处理。
+有的网站的页面可能是混合生成，比如某些部分是异步获取 JS 再动态生成对应内容，这时需要 JS 引擎对异步 JS 内容做解析才能获取数据。
+有些页面是服务端渲染生成的，这种情况要对目标网站做页面解析，可查看页面 DOM 结构，然后获取相应数据。
+三、程序实现 1. 美女图片 我们通过爬取接口的方式实现获取数据并下载图片保存到本地。
+设置接口相关参数(通过 axios)； 通过接口获取数据(这里是图片的 url)； 将图片下载到本地(通过 download)； 对于这个美女网站我们可以直接爬取接口来获取图片 url，然后将图片保存。结果如图：
+完整源代码请看 beauty.js。
+2. 微博/百度热搜 有的网站并不是通过接口的方式来获取数据，比如服务端渲染的页面。这时我们可以通过页面解析的方式来爬取数据。
+百度热搜 像百度热搜，我们通过分析页面 DOM 结构可知热搜数据位于 .theme-hot[theme=&quot;realtime&quot;] .list_1EDla a ，通过 cheerio 框架来使用选择器获取热搜文案及其他数据。 然后可以直接使用 nodejs 内置工具函数 fs." />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="NodeJs 爬虫程序集" />
+<meta property="og:description" content="一、前言 网络爬虫（又称为网页蜘蛛，网络机器人，在 FOAF 社区中间，更经常的称为网页追逐者），是一种按照一定的规则，自动地抓取万维网信息的程序或者脚本。另外一些不常使用的名字还有蚂蚁、自动索引、模拟程序或者蠕虫。
+目前几乎所有语言都可以实现爬虫，较为流行的有 NodeJs、python 等。 简单场景使用 nodejs 即可，专业级的爬虫考虑的比较多，像多线程、吞吐量、分布式爬取、拓展性等，应该使用 python 做爬虫更合适。
+本文简单介绍 nodejs 爬虫的使用，并实现几个较为简单的程序作为小玩具，只为学习交流。不要恶意爬取网站数据，和谐网络环境需要大家共同维护。
+nodejs-spider
+二、开发简述 爬取数据一般简单来说就是 目标请求 -&gt; 获取数据 -&gt; 处理数据 这几个阶段。
+获取数据一般有直接从接口获取、解析 JS 构造运行环境获取和页面解析获取等几种方式。
+从接口获取是最简单的，到目标网站直接 F12 找到相应接口，然后构造请求函数获取数据，最后将数据处理。
+有的网站的页面可能是混合生成，比如某些部分是异步获取 JS 再动态生成对应内容，这时需要 JS 引擎对异步 JS 内容做解析才能获取数据。
+有些页面是服务端渲染生成的，这种情况要对目标网站做页面解析，可查看页面 DOM 结构，然后获取相应数据。
+三、程序实现 1. 美女图片 我们通过爬取接口的方式实现获取数据并下载图片保存到本地。
+设置接口相关参数(通过 axios)； 通过接口获取数据(这里是图片的 url)； 将图片下载到本地(通过 download)； 对于这个美女网站我们可以直接爬取接口来获取图片 url，然后将图片保存。结果如图：
+完整源代码请看 beauty.js。
+2. 微博/百度热搜 有的网站并不是通过接口的方式来获取数据，比如服务端渲染的页面。这时我们可以通过页面解析的方式来爬取数据。
+百度热搜 像百度热搜，我们通过分析页面 DOM 结构可知热搜数据位于 .theme-hot[theme=&quot;realtime&quot;] .list_1EDla a ，通过 cheerio 框架来使用选择器获取热搜文案及其他数据。 然后可以直接使用 nodejs 内置工具函数 fs." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/662/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-06-07T16:07:58+08:00" />
+<meta property="article:modified_time" content="2023-06-07T16:07:58+08:00" />
+
+  
+  <meta itemprop="name" content="NodeJs 爬虫程序集">
+<meta itemprop="description" content="一、前言 网络爬虫（又称为网页蜘蛛，网络机器人，在 FOAF 社区中间，更经常的称为网页追逐者），是一种按照一定的规则，自动地抓取万维网信息的程序或者脚本。另外一些不常使用的名字还有蚂蚁、自动索引、模拟程序或者蠕虫。
+目前几乎所有语言都可以实现爬虫，较为流行的有 NodeJs、python 等。 简单场景使用 nodejs 即可，专业级的爬虫考虑的比较多，像多线程、吞吐量、分布式爬取、拓展性等，应该使用 python 做爬虫更合适。
+本文简单介绍 nodejs 爬虫的使用，并实现几个较为简单的程序作为小玩具，只为学习交流。不要恶意爬取网站数据，和谐网络环境需要大家共同维护。
+nodejs-spider
+二、开发简述 爬取数据一般简单来说就是 目标请求 -&gt; 获取数据 -&gt; 处理数据 这几个阶段。
+获取数据一般有直接从接口获取、解析 JS 构造运行环境获取和页面解析获取等几种方式。
+从接口获取是最简单的，到目标网站直接 F12 找到相应接口，然后构造请求函数获取数据，最后将数据处理。
+有的网站的页面可能是混合生成，比如某些部分是异步获取 JS 再动态生成对应内容，这时需要 JS 引擎对异步 JS 内容做解析才能获取数据。
+有些页面是服务端渲染生成的，这种情况要对目标网站做页面解析，可查看页面 DOM 结构，然后获取相应数据。
+三、程序实现 1. 美女图片 我们通过爬取接口的方式实现获取数据并下载图片保存到本地。
+设置接口相关参数(通过 axios)； 通过接口获取数据(这里是图片的 url)； 将图片下载到本地(通过 download)； 对于这个美女网站我们可以直接爬取接口来获取图片 url，然后将图片保存。结果如图：
+完整源代码请看 beauty.js。
+2. 微博/百度热搜 有的网站并不是通过接口的方式来获取数据，比如服务端渲染的页面。这时我们可以通过页面解析的方式来爬取数据。
+百度热搜 像百度热搜，我们通过分析页面 DOM 结构可知热搜数据位于 .theme-hot[theme=&quot;realtime&quot;] .list_1EDla a ，通过 cheerio 框架来使用选择器获取热搜文案及其他数据。 然后可以直接使用 nodejs 内置工具函数 fs."><meta itemprop="datePublished" content="2023-06-07T16:07:58+08:00" />
+<meta itemprop="dateModified" content="2023-06-07T16:07:58+08:00" />
+<meta itemprop="wordCount" content="264">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="NodeJs 爬虫程序集"/>
+<meta name="twitter:description" content="一、前言 网络爬虫（又称为网页蜘蛛，网络机器人，在 FOAF 社区中间，更经常的称为网页追逐者），是一种按照一定的规则，自动地抓取万维网信息的程序或者脚本。另外一些不常使用的名字还有蚂蚁、自动索引、模拟程序或者蠕虫。
+目前几乎所有语言都可以实现爬虫，较为流行的有 NodeJs、python 等。 简单场景使用 nodejs 即可，专业级的爬虫考虑的比较多，像多线程、吞吐量、分布式爬取、拓展性等，应该使用 python 做爬虫更合适。
+本文简单介绍 nodejs 爬虫的使用，并实现几个较为简单的程序作为小玩具，只为学习交流。不要恶意爬取网站数据，和谐网络环境需要大家共同维护。
+nodejs-spider
+二、开发简述 爬取数据一般简单来说就是 目标请求 -&gt; 获取数据 -&gt; 处理数据 这几个阶段。
+获取数据一般有直接从接口获取、解析 JS 构造运行环境获取和页面解析获取等几种方式。
+从接口获取是最简单的，到目标网站直接 F12 找到相应接口，然后构造请求函数获取数据，最后将数据处理。
+有的网站的页面可能是混合生成，比如某些部分是异步获取 JS 再动态生成对应内容，这时需要 JS 引擎对异步 JS 内容做解析才能获取数据。
+有些页面是服务端渲染生成的，这种情况要对目标网站做页面解析，可查看页面 DOM 结构，然后获取相应数据。
+三、程序实现 1. 美女图片 我们通过爬取接口的方式实现获取数据并下载图片保存到本地。
+设置接口相关参数(通过 axios)； 通过接口获取数据(这里是图片的 url)； 将图片下载到本地(通过 download)； 对于这个美女网站我们可以直接爬取接口来获取图片 url，然后将图片保存。结果如图：
+完整源代码请看 beauty.js。
+2. 微博/百度热搜 有的网站并不是通过接口的方式来获取数据，比如服务端渲染的页面。这时我们可以通过页面解析的方式来爬取数据。
+百度热搜 像百度热搜，我们通过分析页面 DOM 结构可知热搜数据位于 .theme-hot[theme=&quot;realtime&quot;] .list_1EDla a ，通过 cheerio 框架来使用选择器获取热搜文案及其他数据。 然后可以直接使用 nodejs 内置工具函数 fs."/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">NodeJs 爬虫程序集</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>Jun 7, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><h3 id="一前言">一、前言</h3>
+<p>网络爬虫（又称为网页蜘蛛，网络机器人，在 FOAF 社区中间，更经常的称为网页追逐者），是一种按照一定的规则，自动地抓取万维网信息的程序或者脚本。另外一些不常使用的名字还有蚂蚁、自动索引、模拟程序或者蠕虫。</p>
+<p>目前几乎所有语言都可以实现爬虫，较为流行的有 NodeJs、python 等。 简单场景使用 nodejs 即可，专业级的爬虫考虑的比较多，像多线程、吞吐量、分布式爬取、拓展性等，应该使用 python 做爬虫更合适。</p>
+<p>本文简单介绍 nodejs 爬虫的使用，并实现几个较为简单的程序作为小玩具，只为学习交流。<strong>不要恶意爬取网站数据，和谐网络环境需要大家共同维护。</strong></p>
+<p><a href="https://github.com/Zuojiangtao/nodejs-spider">nodejs-spider</a></p>
+<h3 id="二开发简述">二、开发简述</h3>
+<p>爬取数据一般简单来说就是  <code>目标请求</code> -&gt; <code>获取数据</code> -&gt; <code>处理数据</code>  这几个阶段。</p>
+<p>获取数据一般有直接<strong>从接口获取</strong>、<strong>解析 JS 构造运行环境获取</strong>和<strong>页面解析获取</strong>等几种方式。</p>
+<p>从接口获取是最简单的，到目标网站直接 F12 找到相应接口，然后构造请求函数获取数据，最后将数据处理。</p>
+<p>有的网站的页面可能是混合生成，比如某些部分是异步获取 JS 再动态生成对应内容，这时需要 JS 引擎对异步 JS 内容做解析才能获取数据。</p>
+<p>有些页面是服务端渲染生成的，这种情况要对目标网站做页面解析，可查看页面 DOM 结构，然后获取相应数据。</p>
+<h3 id="三程序实现">三、程序实现</h3>
+<h3 id="1-美女图片">1. 美女图片</h3>
+<p>我们通过<strong>爬取接口的方式</strong>实现获取数据并下载图片保存到本地。</p>
+<ul>
+<li>设置接口相关参数(通过 axios)；</li>
+<li>通过接口获取数据(这里是图片的 url)；</li>
+<li>将图片下载到本地(通过 download)；</li>
+</ul>
+<p>对于这个美女网站我们可以直接爬取接口来获取图片 url，然后将图片保存。结果如图：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ee35d767b84d4da994c8662c5830f5b8~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt=""></p>
+<p>完整源代码请看  <a href="https://link.zhihu.com/?target=https%3A//github.com/Zuojiangtao/nodejs-spider/blob/main/src/beauty.js">beauty.js</a>。</p>
+<h3 id="2-微博百度热搜">2. 微博/百度热搜</h3>
+<p>有的网站并不是通过接口的方式来获取数据，比如服务端渲染的页面。这时我们可以通过<strong>页面解析的方式</strong>来爬取数据。</p>
+<ul>
+<li>百度热搜</li>
+</ul>
+<p>像<a href="https://link.zhihu.com/?target=https%3A//top.baidu.com/board%3Fplatform%3Dpc%26sa%3Dpcindex_a_right">百度热搜</a>，我们通过分析页面 DOM 结构可知热搜数据位于  <code>.theme-hot[theme=&quot;realtime&quot;] .list_1EDla a</code> ，通过  <code>cheerio</code>  框架来使用选择器获取热搜文案及其他数据。
+然后可以直接使用 nodejs 内置工具函数  <code>fs.writeFileSync</code>  来将数据保存到本地。结果如下：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fc2826b7e4534854b7e282eee7849bac~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt=""></p>
+<p>baidu_realtime_hot.json</p>
+<p>可以运行  <code>npm run baidu-hot</code>  然后在  <code>static/baidu_realtime_hot.json</code>  查看。</p>
+<ul>
+<li>微博热搜</li>
+</ul>
+<p>有些网站为了防爬虫加了一些校验，如<a href="https://link.zhihu.com/?target=https%3A//s.weibo.com/top/summary%3Fcate%3Drealtimehot">微博热搜</a>需要设置  <code>Cookie</code>。一般来说比较简单，我们 F12 查看可以通过分析看文件请求  <code>Request Headers</code>  字段是否有校验字段，通常是 cookie 和 token 这种。
+可以对微博热搜设置 headers 来通过校验。结果如下：</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b7ec6b5720b3418595241ebe6c214171~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt=""></p>
+<p>weibo_realtime_hot.json</p>
+<p>可以运行  <code>npm run weibo-hot</code>  然后在  <code>static/weibo_realtime_hot.json</code>  查看。</p>
+<blockquote>
+<p>cheerio 作为选择器使用要处理，cheerio.load(res.data)。具体使用请看：<a href="https://link.zhihu.com/?target=https%3A//github.com/cheeriojs/cheerio">github.com/cheeriojs/c…</a></p>
+</blockquote>
+<h3 id="3-天天基金">3. 天天基金</h3>
+<p>同样的，这个程序也是通过<strong>抓取接口形式</strong>来爬取数据。规则是爬取  <code>今年前50，资金规模不超过10亿</code>  的基金。</p>
+<ul>
+<li>通过 axios 获取接口数据;</li>
+<li>并对获取到的数据做处理，将会得到  <code>var rankData ={ /.../ }</code>  形式数据;</li>
+<li>使用  <code>node-xlsx</code>  将[[str, str, str], [str, str, str]]形式数据转换为 buffer;</li>
+<li>将 buffer 通过 fs 模块下载到本地，这里是指定了下载位置到  <code>/static</code>;</li>
+</ul>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a613e6154d6c45dfa61b0e02d0de9eb0~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt=""></p>
+<p>天天基金 excel</p>
+<p>源码请看  <a href="https://link.zhihu.com/?target=https%3A//github.com/Zuojiangtao/nodejs-spider/blob/main/src/tiantian-fund.js">src/tiantian-fund.js</a>。</p>
+<h3 id="4-国家统计局"><strong>4. 国家统计局</strong></h3>
+<p>通过<strong>爬取接口的方式</strong>获取相应的数据，并生成 xlsx 文件。这里我爬取了  <code>国民经济核算最近6季度的数据</code>。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6484ed7753464ef9b9017969a1fd4faa~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt=""></p>
+<p>源码请看  <a href="https://link.zhihu.com/?target=https%3A//github.com/Zuojiangtao/nodejs-spider/blob/main/src/national_data.js">src/national_data.js</a>。</p>
+<h3 id="5-高清素材"><strong>5. 高清素材</strong></h3>
+<p>通过<strong>爬取接口的方式</strong>获取相应高清图片素材，这个网站有 token 校验，要自己登录获取相应字段值  <code>Sentry-Trace</code>  和  <code>Cookie</code>。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/049be156f17c49ee90d415923972fada~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt=""></p>
+<p>源码请看  <a href="https://link.zhihu.com/?target=https%3A//github.com/Zuojiangtao/nodejs-spider/blob/main/src/pexels.js">src/pexels.js</a>。</p>
+<h3 id="6-4k-高清壁纸"><strong>6. 4k 高清壁纸</strong></h3>
+<p>通过<strong>页面分析的方式</strong>获取相应高清壁纸。</p>
+<p><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/29f520bc068e4924aad2830524d5b311~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt=""></p>
+<p>源码请看  <a href="https://link.zhihu.com/?target=https%3A//github.com/Zuojiangtao/nodejs-spider/blob/main/src/netbian.js">src/netbian.js</a>。</p>
+<h3 id="四项目本地预览">四、项目本地预览</h3>
+<p>项目已开源，欢迎点赞: <a href="https://link.zhihu.com/?target=https%3A//github.com/Zuojiangtao/nodejs-spider">一款基于 nodejs 的爬虫程序集</a></p>
+<h3 id="1-clone-repo">1. Clone repo</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">git</span> <span style="color:#a6e22e">clone</span> <span style="color:#f92672">--</span><span style="color:#a6e22e">depth</span><span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> <span style="color:#a6e22e">https</span><span style="color:#f92672">:</span><span style="color:#75715e">//github.com/Zuojiangtao/nodejs-spider.git my-project
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">cd</span> <span style="color:#a6e22e">my</span><span style="color:#f92672">-</span><span style="color:#a6e22e">project</span>
+</span></span></code></pre></div><h3 id="2-安装依赖">2. 安装依赖</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">yarn</span> <span style="color:#a6e22e">install</span>
+</span></span></code></pre></div><h3 id="3-运行爬虫指令">3. 运行爬虫指令</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#a6e22e">yarn</span> <span style="color:#a6e22e">beauty</span> <span style="color:#75715e">// 爬取美女图片
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">yarn</span> <span style="color:#a6e22e">weibo</span><span style="color:#f92672">-</span><span style="color:#a6e22e">hot</span> <span style="color:#75715e">// 爬取微博热搜
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">yarn</span> <span style="color:#a6e22e">baidu</span><span style="color:#f92672">-</span><span style="color:#a6e22e">hot</span> <span style="color:#75715e">// 爬取百度热搜
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">yarn</span> <span style="color:#a6e22e">tiantian</span><span style="color:#f92672">-</span><span style="color:#a6e22e">fund</span> <span style="color:#75715e">// 爬取天天基金筛选数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">yarn</span> <span style="color:#a6e22e">national</span><span style="color:#f92672">-</span><span style="color:#a6e22e">data</span> <span style="color:#75715e">// 爬取国家统计局经济核算数据
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">yarn</span> <span style="color:#a6e22e">pexels</span> <span style="color:#75715e">// 爬取高清素材图片
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">yarn</span> <span style="color:#a6e22e">netbian</span> <span style="color:#75715e">// 爬取4k高清壁纸
+</span></span></span></code></pre></div><h3 id="4-内容查看">4. 内容查看</h3>
+<p>所有生成内容均在  <code>/static</code>  下找到。</p>
+<h3 id="五常用模块推荐">五、常用模块推荐</h3>
+<h3 id="1-下载文件常用模块">1. 下载文件常用模块</h3>
+<ol>
+<li>可使用内置模块 ‘fs’ ;</li>
+<li>使用第三方插件 ‘node-downloader-helper’ ;</li>
+<li>使用第三方插件 ‘download’ ;</li>
+</ol>
+<h3 id="2-获取数据常用模块">2. 获取数据常用模块</h3>
+<ol>
+<li>如果 node 版本 17.5.0 以上，可以使用 fetch 模块;</li>
+<li>使用 axios、request、superagent 等第三方插件;</li>
+<li>使用内置模块 ‘http’;</li>
+</ol>
+<h3 id="3-其他优秀依赖及模块推荐">3. 其他优秀依赖及模块推荐</h3>
+<ol>
+<li>一款轻量级 nodejs 爬虫工具：<a href="https://link.zhihu.com/?target=https%3A//github.com/bda-research/node-crawler">node-crawler</a>;</li>
+<li>一个验证码相关工具：<a href="https://link.zhihu.com/?target=https%3A//github.com/desmondmorris/node-tesseract">node-tesseract</a>;</li>
+<li>爬虫定时爬取：<a href="https://link.zhihu.com/?target=https%3A//github.com/node-schedule/node-schedule">node-schedule</a>;</li>
+<li>将 markdown 文件转成 PDF 文件：<a href="https://link.zhihu.com/?target=https%3A//github.com/alanshaw/markdown-pdf">markdown-pdf</a>;</li>
+<li>xlsx：<a href="https://link.zhihu.com/?target=https%3A//github.com/mgcrea/node-xlsx">node-xlsx</a>;</li>
+<li>csv：<a href="https://link.zhihu.com/?target=https%3A//github.com/adaltas/node-csv">node-csv</a>;</li>
+<li>模拟用户在浏览器中进行的多种操作和行为: <a href="https://link.zhihu.com/?target=https%3A//puppeteer.bootcss.com/">puppeteer</a>;</li>
+<li>其他依赖资源汇总：<a href="https://link.zhihu.com/?target=https%3A//github.com/sindresorhus/awesome-nodejs">awesome-nodejs</a>;</li>
+</ol>
+<h3 id="六参考资料">六、参考资料</h3>
+<ul>
+<li><a href="https://link.zhihu.com/?target=https%3A//baike.baidu.com/item/%25E7%25BD%2591%25E7%25BB%259C%25E7%2588%25AC%25E8%2599%25AB/5162711%3Ffromtitle%3D%25E7%2588%25AC%25E8%2599%25AB%26fromid%3D22046949%26fr%3Daladdin">网络爬虫-百度百科</a></li>
+<li><a href="https://link.zhihu.com/?target=https%3A//juejin.cn/post/6844903449054674952">Node.js 爬虫相关模块小整合</a></li>
+</ul>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/663/"
+      ><span class="mr-1.5">←</span><span>escape、encodeURI、encodeURIComponent 的区别</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/661/"
+      ><span>总结一下 Map，Set，WeakSet，WeakMap</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>

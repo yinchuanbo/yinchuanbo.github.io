@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html
+  class="not-ready text-sm lg:text-base"
+  style="--bg: #fff"
+  lang="en"
+>
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  
+  <title>如何实现原生 JS 的拖拽效果 - 灏天阁</title>
+
+  
+  <meta name="theme-color" />
+  
+  <meta name="description" content="前言: 关于“拖拽”，其实是一个老生常谈的需求了，并且还是一个非常经典的面试题。之前在项目中拖拽的场景都是直接使用轮子，虽然很快就能完成设计需求，但是这个的原理一直都是我十分想去深入了解的一部分。
+正好在今天的项目中再一次碰到了这个需求，我觉得是时候去探索一下它了。
+tips: 本文不会使用 Draggable 去实现，而是会采用原生的 JS 鼠标移动，鼠标点击等事件去完成。并且你需要明确知道的一点是： 🎁本文的最终目的并不是实现一个开箱即用的轮子，而是让你理解拖拽实现的原理，知其然并知其所以然。 希望你可以有耐心和我一起完成下面的功能。
+我们先看一下预览效果：
+一. 前期准备 这个需求实现要准备的文件很少，你只需要创建一个 .vue 文件即可快速开始接下来的实现，你可以自己动手写出下面的样式，也可以跳到源码标题复制我的样式来快速进行下一步。 样式方面，在这里我使用的是 UnoCSS ，将样式內联在了标签里，如果你还不了解这种写法，你可以点击下方的文章学习。不过即使你之前从未了解过 UnoCSS ，也不会影响你下面的阅读，因为样式不是本文的重点，并不影响整体阅读。 手把手教你如何创建一个代码仓库
+在这里我们简化一下，我们暂时去掉不重要的 hover 动画的影响，直接切入主题 “拖拽”。
+注意：为了减少出现大量的属性名导致本文理解起来难度会有些许提升的缘故，在这里我们暂时不牵扯 Y 轴上的拖拽效果。你也不必担心，因为它和 X 轴上的移动原理是完全一样的，还希望读者学习之后可以自行推导出。
+二. click 和 mouseDown 和 mouseUp 的区别 首先用户想要完成拖拽这一操作，它的动作里肯定包含了鼠标按下的这个动作。在这里比较容易和 click 事件搞混。首先我们要知道 click 事件是包含两个动作的。一个是用户鼠标按下，一个是用户鼠标抬起。这两个关键动作如果在一起则构成了我们的 click 事件。 在这里我们补充一个额外的知识。注意上面划红线的一句话：
+“click 事件会在 mousedown 和 mouseup 事件依次触发后触发。”
+其实理解起来也很简单，就是当你同时给一个元素添加 click 和 mouseDown 和 mouseup 的时候。虽然看起来 click 好像是由另外两个事件组成的，但其实它们三个是相互独立的事件。并且 click 的优先级会低一点点，会在这两个事件执行完毕之后再去执行。
+验证一下，我们直接先给滑块一个绑定这三个事件。 我们看一下控制台的输出顺序：
+说明我们上面的结论是没问题的。
+三. clientX 是什么？ 不过我们今天的主角是 onMousedown 这个事件，所以我们暂时先把另外两位请下台稍作休息。" />
+  <meta name="author" content="" />
+  
+
+  
+  
+  
+  
+  
+  
+  <link rel="preload stylesheet" as="style" href="/main.min.css" />
+
+  
+
+  
+  
+  
+    
+  
+  <link
+    rel="preload"
+    as="image"
+    href="/theme.png"
+  />
+
+  
+  
+  
+  <link rel="preload" as="image" href="/imgs/logo.png" />
+  
+  
+
+  
+
+  
+  <link rel="icon" href="/img/ico.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  
+  <meta name="generator" content="Hugo 0.108.0">
+
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="如何实现原生 JS 的拖拽效果" />
+<meta property="og:description" content="前言: 关于“拖拽”，其实是一个老生常谈的需求了，并且还是一个非常经典的面试题。之前在项目中拖拽的场景都是直接使用轮子，虽然很快就能完成设计需求，但是这个的原理一直都是我十分想去深入了解的一部分。
+正好在今天的项目中再一次碰到了这个需求，我觉得是时候去探索一下它了。
+tips: 本文不会使用 Draggable 去实现，而是会采用原生的 JS 鼠标移动，鼠标点击等事件去完成。并且你需要明确知道的一点是： 🎁本文的最终目的并不是实现一个开箱即用的轮子，而是让你理解拖拽实现的原理，知其然并知其所以然。 希望你可以有耐心和我一起完成下面的功能。
+我们先看一下预览效果：
+一. 前期准备 这个需求实现要准备的文件很少，你只需要创建一个 .vue 文件即可快速开始接下来的实现，你可以自己动手写出下面的样式，也可以跳到源码标题复制我的样式来快速进行下一步。 样式方面，在这里我使用的是 UnoCSS ，将样式內联在了标签里，如果你还不了解这种写法，你可以点击下方的文章学习。不过即使你之前从未了解过 UnoCSS ，也不会影响你下面的阅读，因为样式不是本文的重点，并不影响整体阅读。 手把手教你如何创建一个代码仓库
+在这里我们简化一下，我们暂时去掉不重要的 hover 动画的影响，直接切入主题 “拖拽”。
+注意：为了减少出现大量的属性名导致本文理解起来难度会有些许提升的缘故，在这里我们暂时不牵扯 Y 轴上的拖拽效果。你也不必担心，因为它和 X 轴上的移动原理是完全一样的，还希望读者学习之后可以自行推导出。
+二. click 和 mouseDown 和 mouseUp 的区别 首先用户想要完成拖拽这一操作，它的动作里肯定包含了鼠标按下的这个动作。在这里比较容易和 click 事件搞混。首先我们要知道 click 事件是包含两个动作的。一个是用户鼠标按下，一个是用户鼠标抬起。这两个关键动作如果在一起则构成了我们的 click 事件。 在这里我们补充一个额外的知识。注意上面划红线的一句话：
+“click 事件会在 mousedown 和 mouseup 事件依次触发后触发。”
+其实理解起来也很简单，就是当你同时给一个元素添加 click 和 mouseDown 和 mouseup 的时候。虽然看起来 click 好像是由另外两个事件组成的，但其实它们三个是相互独立的事件。并且 click 的优先级会低一点点，会在这两个事件执行完毕之后再去执行。
+验证一下，我们直接先给滑块一个绑定这三个事件。 我们看一下控制台的输出顺序：
+说明我们上面的结论是没问题的。
+三. clientX 是什么？ 不过我们今天的主角是 onMousedown 这个事件，所以我们暂时先把另外两位请下台稍作休息。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/591/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-05-08T09:56:02+08:00" />
+<meta property="article:modified_time" content="2023-05-08T09:56:02+08:00" />
+
+  
+  <meta itemprop="name" content="如何实现原生 JS 的拖拽效果">
+<meta itemprop="description" content="前言: 关于“拖拽”，其实是一个老生常谈的需求了，并且还是一个非常经典的面试题。之前在项目中拖拽的场景都是直接使用轮子，虽然很快就能完成设计需求，但是这个的原理一直都是我十分想去深入了解的一部分。
+正好在今天的项目中再一次碰到了这个需求，我觉得是时候去探索一下它了。
+tips: 本文不会使用 Draggable 去实现，而是会采用原生的 JS 鼠标移动，鼠标点击等事件去完成。并且你需要明确知道的一点是： 🎁本文的最终目的并不是实现一个开箱即用的轮子，而是让你理解拖拽实现的原理，知其然并知其所以然。 希望你可以有耐心和我一起完成下面的功能。
+我们先看一下预览效果：
+一. 前期准备 这个需求实现要准备的文件很少，你只需要创建一个 .vue 文件即可快速开始接下来的实现，你可以自己动手写出下面的样式，也可以跳到源码标题复制我的样式来快速进行下一步。 样式方面，在这里我使用的是 UnoCSS ，将样式內联在了标签里，如果你还不了解这种写法，你可以点击下方的文章学习。不过即使你之前从未了解过 UnoCSS ，也不会影响你下面的阅读，因为样式不是本文的重点，并不影响整体阅读。 手把手教你如何创建一个代码仓库
+在这里我们简化一下，我们暂时去掉不重要的 hover 动画的影响，直接切入主题 “拖拽”。
+注意：为了减少出现大量的属性名导致本文理解起来难度会有些许提升的缘故，在这里我们暂时不牵扯 Y 轴上的拖拽效果。你也不必担心，因为它和 X 轴上的移动原理是完全一样的，还希望读者学习之后可以自行推导出。
+二. click 和 mouseDown 和 mouseUp 的区别 首先用户想要完成拖拽这一操作，它的动作里肯定包含了鼠标按下的这个动作。在这里比较容易和 click 事件搞混。首先我们要知道 click 事件是包含两个动作的。一个是用户鼠标按下，一个是用户鼠标抬起。这两个关键动作如果在一起则构成了我们的 click 事件。 在这里我们补充一个额外的知识。注意上面划红线的一句话：
+“click 事件会在 mousedown 和 mouseup 事件依次触发后触发。”
+其实理解起来也很简单，就是当你同时给一个元素添加 click 和 mouseDown 和 mouseup 的时候。虽然看起来 click 好像是由另外两个事件组成的，但其实它们三个是相互独立的事件。并且 click 的优先级会低一点点，会在这两个事件执行完毕之后再去执行。
+验证一下，我们直接先给滑块一个绑定这三个事件。 我们看一下控制台的输出顺序：
+说明我们上面的结论是没问题的。
+三. clientX 是什么？ 不过我们今天的主角是 onMousedown 这个事件，所以我们暂时先把另外两位请下台稍作休息。"><meta itemprop="datePublished" content="2023-05-08T09:56:02+08:00" />
+<meta itemprop="dateModified" content="2023-05-08T09:56:02+08:00" />
+<meta itemprop="wordCount" content="397">
+<meta itemprop="keywords" content="" />
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="如何实现原生 JS 的拖拽效果"/>
+<meta name="twitter:description" content="前言: 关于“拖拽”，其实是一个老生常谈的需求了，并且还是一个非常经典的面试题。之前在项目中拖拽的场景都是直接使用轮子，虽然很快就能完成设计需求，但是这个的原理一直都是我十分想去深入了解的一部分。
+正好在今天的项目中再一次碰到了这个需求，我觉得是时候去探索一下它了。
+tips: 本文不会使用 Draggable 去实现，而是会采用原生的 JS 鼠标移动，鼠标点击等事件去完成。并且你需要明确知道的一点是： 🎁本文的最终目的并不是实现一个开箱即用的轮子，而是让你理解拖拽实现的原理，知其然并知其所以然。 希望你可以有耐心和我一起完成下面的功能。
+我们先看一下预览效果：
+一. 前期准备 这个需求实现要准备的文件很少，你只需要创建一个 .vue 文件即可快速开始接下来的实现，你可以自己动手写出下面的样式，也可以跳到源码标题复制我的样式来快速进行下一步。 样式方面，在这里我使用的是 UnoCSS ，将样式內联在了标签里，如果你还不了解这种写法，你可以点击下方的文章学习。不过即使你之前从未了解过 UnoCSS ，也不会影响你下面的阅读，因为样式不是本文的重点，并不影响整体阅读。 手把手教你如何创建一个代码仓库
+在这里我们简化一下，我们暂时去掉不重要的 hover 动画的影响，直接切入主题 “拖拽”。
+注意：为了减少出现大量的属性名导致本文理解起来难度会有些许提升的缘故，在这里我们暂时不牵扯 Y 轴上的拖拽效果。你也不必担心，因为它和 X 轴上的移动原理是完全一样的，还希望读者学习之后可以自行推导出。
+二. click 和 mouseDown 和 mouseUp 的区别 首先用户想要完成拖拽这一操作，它的动作里肯定包含了鼠标按下的这个动作。在这里比较容易和 click 事件搞混。首先我们要知道 click 事件是包含两个动作的。一个是用户鼠标按下，一个是用户鼠标抬起。这两个关键动作如果在一起则构成了我们的 click 事件。 在这里我们补充一个额外的知识。注意上面划红线的一句话：
+“click 事件会在 mousedown 和 mouseup 事件依次触发后触发。”
+其实理解起来也很简单，就是当你同时给一个元素添加 click 和 mouseDown 和 mouseup 的时候。虽然看起来 click 好像是由另外两个事件组成的，但其实它们三个是相互独立的事件。并且 click 的优先级会低一点点，会在这两个事件执行完毕之后再去执行。
+验证一下，我们直接先给滑块一个绑定这三个事件。 我们看一下控制台的输出顺序：
+说明我们上面的结论是没问题的。
+三. clientX 是什么？ 不过我们今天的主角是 onMousedown 这个事件，所以我们暂时先把另外两位请下台稍作休息。"/>
+
+  
+  
+</head>
+
+  <body class="text-black duration-200 ease-out dark:text-white">
+    <header
+  class="mx-auto flex h-[5rem] max-w-3xl px-8 lg:justify-center"
+  style="position: relative; z-index: 1;align-items: end"
+>
+  <div class="relative z-50 mr-auto flex items-center">
+    <a
+      class="wb-title -translate-x-[1px] -translate-y-0.5 text-3xl font-bold"
+      href="/"
+      >灏天阁</a
+    >
+    
+  </div>
+
+  <a
+    class="btn-menu relative z-50 -mr-8 flex h-[5rem] w-[5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-2.5 lg:hidden"
+  ></a>
+
+  
+  <script>
+    
+    const htmlClass = document.documentElement.classList;
+    setTimeout(() => {
+      htmlClass.remove('not-ready');
+    }, 10);
+
+    
+    const btnMenu = document.querySelector('.btn-menu');
+    btnMenu.addEventListener('click', () => {
+      htmlClass.toggle('open');
+    });
+
+    
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const lightBg = `"#fff"`.replace(/"/g, '');
+    const setDark = (isDark) => {
+      isDark = true;
+      metaTheme.setAttribute('content', isDark ? '#000' : lightBg);
+      htmlClass[isDark ? 'add' : 'remove']('dark');
+      localStorage.setItem('dark', isDark);
+    };
+
+    
+    const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkVal = localStorage.getItem('dark');
+    setDark(darkVal ? darkVal === 'true' : darkScheme.matches);
+
+    
+    darkScheme.addEventListener('change', (event) => {
+      setDark(event.matches);
+    });
+
+    
+    
+    
+    
+    
+  </script>
+
+  <div
+    class="nav-wrapper fixed inset-x-0 top-full z-40 flex h-full select-none flex-col justify-center pb-16 duration-200 dark:bg-black lg:static lg:h-auto lg:flex-row lg:!bg-transparent lg:pb-0 lg:transition-none"
+  >
+    
+    
+    <nav class="lg:ml-12 lg:flex lg:flex-row lg:items-center lg:space-x-6">
+      
+      <a
+        class="btn block text-center text-2xl leading-[5rem] lg:text-base lg:font-normal"
+        href="/search/"
+        >Search</a
+      >
+      
+    </nav>
+    
+
+    
+  </div>
+</header>
+
+
+    
+    <main
+      class="pb-custom prose prose-neutral relative mx-auto min-h-[calc(100%-10rem)] max-w-3xl px-8 pt-20 dark:prose-invert"
+      style="z-index: 1; padding-top: 2.5rem;padding-bottom: 2.5rem;"
+      id="main"
+    >
+      
+
+<article>
+  <header class="mb-10">
+    <h1 class="!my-0 pb-2.5">如何实现原生 JS 的拖拽效果</h1>
+
+    
+    <div class="text-sm opacity-60" style="margin-top: 0.5em">
+      
+      <time>May 8, 2023</time>
+      
+      
+      <span class="mx-1">&middot;</span>
+      <span>Yin灏</span>
+    </div>
+    
+  </header>
+
+  <section><p><img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ebdd547f70e7427c84012bcd7db0d2c8~tplv-k3u1fbpfcp-zoom-crop-mark:1512:1512:1512:851.awebp?" alt="如何实现原生 JS 的拖拽效果"></p>
+<p><strong>前言</strong>: 关于“拖拽”，其实是一个老生常谈的需求了，并且还是一个非常经典的面试题。之前在项目中拖拽的场景都是直接使用轮子，虽然很快就能完成设计需求，但是这个的原理一直都是我十分想去深入了解的一部分。</p>
+<p>正好在今天的项目中再一次碰到了这个需求，我觉得是时候去探索一下它了。</p>
+<p><strong>tips</strong>: 本文不会使用 <code>Draggable</code> 去实现，而是会采用原生的 <strong>JS</strong> <strong>鼠标移动</strong>，<strong>鼠标点击</strong>等事件去完成。并且你需要明确知道的一点是： 🎁<strong>本文的最终目的并不是实现一个开箱即用的轮子，而是让你理解拖拽实现的原理，知其然并知其所以然。</strong> 希望你可以有耐心和我一起完成下面的功能。</p>
+<p>我们先看一下预览效果：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/hanzhenfang/vite-vue-ts@master/%E6%8B%96%E6%8B%BD/IMG_20230221-194439604.gif" alt="图 4"></p>
+<h2 id="一-前期准备">一. 前期准备</h2>
+<ol>
+<li>
+<p>这个需求实现要准备的文件很少，你只需要创建一个 <code>.vue</code> 文件即可快速开始接下来的实现，你可以自己动手写出下面的样式，也可以跳到<strong>源码</strong>标题复制我的样式来快速进行下一步。
+<img src="https://cdn.jsdelivr.net/gh/hanzhenfang/vite-vue-ts@master/%E6%8B%96%E6%8B%BD/IMG_20230221-195639323.png" alt="图 6"></p>
+</li>
+<li>
+<p>样式方面，在这里我使用的是 <code>UnoCSS</code> ，将样式內联在了标签里，如果你还不了解这种写法，你可以点击下方的文章学习。不过即使你之前从未了解过 <code>UnoCSS</code> ，也不会影响你下面的阅读，因为样式不是本文的重点，并不影响整体阅读。
+<a href="https://juejin.cn/post/7178130338240020539">手把手教你如何创建一个代码仓库</a></p>
+</li>
+<li>
+<p>在这里我们简化一下，我们暂时去掉不重要的 <code>hover</code> 动画的影响，直接切入主题 <strong>“拖拽”</strong>。</p>
+</li>
+<li>
+<p><strong>注意</strong>：为了减少出现大量的属性名导致本文理解起来难度会有些许提升的缘故，在这里我们暂时不牵扯 <strong>Y</strong> 轴上的拖拽效果。你也不必担心，因为它和 <strong>X</strong> 轴上的移动原理是完全一样的，还希望读者学习之后可以自行推导出。</p>
+</li>
+</ol>
+<h2 id="二-click-和-mousedown-和-mouseup-的区别">二. <strong>click</strong> 和 <strong>mouseDown</strong> 和 <strong>mouseUp</strong> 的区别</h2>
+<ol>
+<li>
+<p>首先用户想要完成<strong>拖拽</strong>这一操作，它的动作里肯定包含了<strong>鼠标按下</strong>的这个动作。在这里比较容易和 <strong>click</strong> 事件搞混。首先我们要知道 <strong>click</strong> 事件是包含两个动作的。一个是用户<strong>鼠标按下</strong>，一个是用户<strong>鼠标抬起</strong>。这两个关键动作如果在一起则构成了我们的 <strong>click</strong> 事件。
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d93157e1d5074585a82c8dc19dd6bfb0~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></p>
+</li>
+<li>
+<p>在这里我们补充一个额外的知识。注意上面划红线的一句话：</p>
+<blockquote>
+<p>“<code>click</code>  事件会在  <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Element/mousedown_event"><code>mousedown</code></a>  和  <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Element/mouseup_event"><code>mouseup</code></a>  事件依次触发后触发。”</p>
+</blockquote>
+<p>其实理解起来也很简单，就是当你同时给一个元素添加 <code>click</code> 和 <code>mouseDown</code> 和 <code>mouseup</code> 的时候。虽然看起来 <code>click</code> 好像是由另外两个事件组成的，但其实它们三个是相互独立的事件。并且 <code>click</code> 的优先级会低一点点，会在这两个事件执行完毕之后再去执行。</p>
+</li>
+<li>
+<p>验证一下，我们直接先给滑块一个绑定这三个事件。 <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3487ab8e72874670979bf9ed47644474~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+我们看一下控制台的输出顺序：<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cbac3362cc944a97a4df6ed9d59a3c88~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+说明我们上面的结论是没问题的。</p>
+</li>
+</ol>
+<h2 id="三-clientx-是什么">三. <strong>clientX</strong> 是什么？</h2>
+<ol>
+<li>不过我们今天的主角是 <code>onMousedown</code> 这个事件，所以我们暂时先把另外两位请下台稍作休息。<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/076a50c35b1445958bd39c435fd095a5~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>我们点击一下这个元素，在这里我们需要用到当前点击传递过来的事件对象身上的一些属性。<br>
+<img src="https://cdn.jsdelivr.net/gh/hanzhenfang/vite-vue-ts@master/%E6%8B%96%E6%8B%BD/IMG_20230221-201447190.png" alt="图 8"><br>
+其实拖拽的关键点就在于如何利用这些属性来动态改变滑块的位置。</li>
+<li>在这里我们选择使用 <code>clientX</code> 这个属性。这里如果大家对其它关于 <strong>X</strong> 的属性不了解的话，还希望自行去了解一下，不属于本文的范畴。你可以点击这里去了解其它属性的含义。<br>
+<a href="https://juejin.cn/post/7204635326559158330">你必须知道的关于坐标轴的属性</a><br>
+在这里我简单介绍一下 <code>clientX</code> 代表的含义。<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/248e847e5042416383fcf65211598c5b~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+假设我在滑块黄色圆点处点击了一下，那么从<strong>可视区域</strong>的范围内的最左侧开始到这个<strong>黄点</strong>的距离就是 <strong>clientX</strong>。<br>
+为什么我在这里要强调<strong>可视区域</strong>呢？我在下面的文章里已经做出了非常详细的介绍，感兴趣的话可以自行查阅。<br>
+[🫱 你必须知道的 clientWidth, offsetWidth, scrollWidth](<a href="https://juejin.cn/post/7196128985612189752%EF%BC%89">juejin.cn/post/719612…</a></li>
+<li>这个属性对我们来说非常关键，聪明的你已经猜到了，它其实就代表着我们拖拽的起点坐标，这里我们需要把它保存到一个变量里。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1ffda5e877d64282b4b8fb817654f7ee~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+</ol>
+<h2 id="四-onmousemove-和-onmouseup-的使用">四. onMouseMove 和 onMouseUp 的使用</h2>
+<ol>
+<li>和上面的代码大同小异，这里我就不过多赘述。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3115e4d9a3f347f79ae3909175c81ab2~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>绑定这个事件之后，我们会发现当我鼠标在<strong>滑块内移动</strong>的时候，它就会执行。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b9ceb93b85064fefaea42d433914f5dc~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="move.gif"></li>
+<li>但是这个效果并不是我们想要的，我们想要的是当我们<strong>鼠标按下</strong>的时候你开始记录就可以了，不需要触发的这么频繁。要达成也非常简单，增加一个中间变量 <code>isDown</code>，来记录这个状态即可。那么随之就需要搭配我们的 <code>onMouseDown</code> 和 <code>onMouseUp</code> 来共同维护这个变量。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/db1377e08ba944bcb3bdc29dcadaa58f~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+我把这个变量值直接显示在页面上，接下来我们测试一下：<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d14fdc09656e4030956a199bf866d524~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="move2.gif"><br>
+可以看到已经暂时达到我们的需求。</li>
+<li>到目前为止我们的实现其实存在一个 <strong>bug</strong>。具体看下面：<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0c74468802ec489a9ade98018a4076eb~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="3.gif"><br>
+细心的读者可能已经发现了一个问题，当我在<strong>滑块内部</strong>按下鼠标后 <strong>isDown</strong> 的值变为了 <code>true</code>，但是当我鼠标划出<strong>滑块内部</strong>然后<strong>抬起</strong>的时候，<strong>mouseup</strong> 事件并没有被正确的执行。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7d5439deaf71427c89b9b9a283084877~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>最开始我在这里迷惑了很久 🤔，去 <strong>MDN</strong> 查阅相关事件的时候，并没有发现任何相关的解释。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/31ab8b19d3814474b7245fa730c868db~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>但是我突然注意到了之前看到 <code>Click</code> 事件上的一段解释。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/15177154b9e94bfd8924be81a306bdbf~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>由这句话我猜想是否应该把这个 <code>onMouseUp</code> 上移到最外层的元素上来呢？🤔 说干就干。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4e35a909316f4efe9cc5c9a795c8cb70~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+然后我们验证一下：<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/76b33052c9434365a17bc3536ae4eced~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="3.gif"><br>
+嗯～现在我们的代码应该是没什么问题了，可以接着进行下一步了。</li>
+<li>这里或许会有小伙伴迷惑，那我如果不在<strong>滑块外面</strong>松开了，我依旧在<strong>滑块内部</strong>松开呢？我们先验证一下：<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/128c1ba18d364120bf5d4c9588459539~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="4.gif"><br>
+可以看出，是丝毫不影响我们的效果的。<br>
+奇怪 🤔，这是为什么呢？</li>
+<li>我们首先给<strong>滑块</strong>一个不一样的 <code>onMouseUp</code> 事件。 <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b6058a11662c4ed39db3a300b164280c~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/66abd8e315b54af8bc82470cb737fa06~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="5.gif"><br>
+经过上面的实验，我猜你已经发现了，其实非常简单，就是因为<strong>事件冒泡</strong>的机制。虽然我们在<strong>滑块内部</strong>松开了鼠标，但是由于<strong>事件冒泡</strong>，最外层 <strong>div</strong> 的 <code>onMouseUp</code> 事件也被触发了，所以正确的设置了 <code>isDown</code> 的状态。</li>
+</ol>
+<h2 id="五-拖拽效果的原理">五. 拖拽效果的原理</h2>
+<ol>
+<li>解决了边界问题，那么我们现在就可以放心地去完成拖拽的效果了，别着急写代码。首先让我们分析一下拖拽的原理到底是什么？</li>
+<li>假设我在滑块内部<strong>鼠标按下</strong>后，拖拽了一段距离然后<strong>松开了鼠标</strong>。我们用下图的<strong>起点</strong>和<strong>终点</strong>分别代表这两个事件。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7795ec6ea5484f248675ae86e5eb1f72~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>然后我们结合我们上面提到的关键属性 <code>clientX</code>。<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/94d627c80c154dceb34f6184007b7ec6~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+可以看出，我们滑块<strong>滑动的距离</strong>其实就是 <code>clienX</code> 的<strong>差</strong>值。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d6c1795c9f0645fd8b4a3f46e1d1f476~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>关键问题就来了，如何得出这个<strong>差值</strong>？其实非常非常简单，我们的 <code>onMouseMove</code> 会被传递的那个事件对象上也存在一个 <code>clientX</code>属性，那我的起点坐标信息有了，这两者相剪不就是我们想要的结果吗？<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a9d2e40ff4c94325baf7af6c162f0d77~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/95b212537f52428693a1ff4246226492~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="6.gif"></li>
+</ol>
+<h2 id="六-拖拽效果的实现">六. 拖拽效果的实现</h2>
+<ol>
+<li>移动的距离有了，那么接下来就是如何将这个滑块动起来了，这里我查阅了两种方式，我们先介绍第一种。主要思路为将滑块更换为 <code>absolute</code> 布局，然后更改 <code>left</code> 值来完成。这里我们先简单实现一下，然后再讲解它的弊端。</li>
+<li>我们先给<strong>滑块</strong>打上 <strong>ref</strong>，因为之后我们要借助 <strong>JS</strong> 去操作这个元素节点。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/23e05d6ff9a644dfa41fc3aa8c067f2d~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/88f81545c0e24f18adf70342b4dcaee3~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>思路非常清晰，当我们<strong>鼠标按下</strong>(<strong>onMouseDown</strong>)的时候，要给滑块设置 <code>absolute</code>。 <img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6866466c86234ac5800e6af181f50da2~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>当<strong>鼠标移动</strong>（<strong>onMouseMove</strong>）的时候，将滑块 <code>left</code> 的值修改为<strong>差值</strong>。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/39d7d166f4ea4160b8f25635ebebfad0~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>对了，别忘了需要给滑块滑动范围的外壳 <strong>div</strong> 设置 <strong>relative</strong> 属性。<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/760f3e16b61b488b9db13013a3cd6185~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>到这里我们其实就可以看到简单的效果了。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fffe491cad964697848a5a55c1aee77a~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="5.gif"></li>
+<li>但是目前还会出现一个问题，如果我在滑动的时候松手，然后重新拖拽的时候，滑块会从头开始。<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/954ce278619545d29609bf8a527b88c4~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="7.gif"></li>
+<li>造成这个情况的原因也很简单，理想情况下，假设你在中间松手之后重新拖拽了 <strong>10px</strong> 的距离。<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/288da54cd5d44ffda08c08c1ee0e7206~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+那么根据我们现在的逻辑，其实你刚刚移动了 <strong>1px</strong> 的时候，我们的代码马上执行了 <code>onMouseMove</code> 函数。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c7c9a37b41bf49ffb863ce47f6dff407~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+那么它会马上设置我们滑块的 <code>left</code> 为 <strong>1px</strong>，就造成了滑块马上回到了起点的现象。</li>
+<li>解决方法也很简单，当<strong>鼠标按下</strong>的时候，拿到起始的 <strong>left</strong> 值即可。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4d8e0aee70574b4486a64b0f3b769743~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+然后我们在<strong>鼠标移动</strong>的<strong>差值</strong>之前每次都加上初始值就 ok 了。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/16e07fac4d2c4db0b4c4ce637b065c4e~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+我们看一下效果：<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1e6dab561b294e4f81f31ed05a496aa4~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="11.gif"></li>
+</ol>
+<h2 id="七-更优雅的拖拽方案">七. 更优雅的拖拽方案</h2>
+<ol>
+<li>在上面我们使用到了 <code>absolute</code> 定位，并且重复修改 <code>left</code> 的值。其实这样的操作是会引起页面的<strong>重排</strong>。在性能方面上的考虑来讲，我们可以采取搭配 <code>tansform</code> 来去操作这个移动的效果，对性能方面考虑来讲是更优的选择。</li>
+<li>并且实现起来更加简单，我们只需要在<strong>滑块移动</strong>的时候修改 <code>tansform</code> 属性的 <code>tanslateX</code> 即可。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2641f459e4594567a7942d6ae05254d9~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+效果如下：<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/41a03138caeb40ef9d17bab72103747b~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="12.gif"> 只是目前还是会出现在中间松手，然后重新拖拽会返回起点的情况，造成的原因和上面 <code>absolute</code> 的情况一样，都是需要加上初始的值。</li>
+<li>但是这里获取初始值的方法不太一样。由于我们第一次调取 <code>onMouseDown</code> 的时候，我们的 <code>onMouseMove</code> 事件其实还没触发，所以我们的 <code>transform</code> 属性有可能为 <strong>字符串 String</strong>格式的 <strong>null</strong>。并且这里需要特别注意的一点是，我们拿到的 <code>tansform</code> 属性是一个 <strong>matrix</strong> 函数的字符串表示形式。它并不是我们理想状态下的 <code>tansformX = 110 px</code> 等这样现成可以使用的值。<br>
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/79447ce417af44f68ef5319bf8cc1f9e~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>这里我们如果要是使用的话的话，需要自己去通过字符串的一些方法去自行切割。 <img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2fc4ffb23fad490e9cce6138cc0f2609~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+而我们想要的数据就是切割好的数组中的第五个。<br>
+<img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a05ede53f5c64d8691f300b2c21a1f9a~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"></li>
+<li>那么对应的，在 <code>onMouseMove</code> 函数中直接使用即可。<br>
+<img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/84bd9894466d4789947fc7e713f51738~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="image.png"><br>
+这是页面的效果：<br>
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a6ef3b51480545beb202acf12aa33f41~tplv-k3u1fbpfcp-zoom-in-crop-mark:4536:0:0:0.awebp?" alt="112.gif"></li>
+</ol>
+<h2 id="七-源码">七. 源码</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-vue" data-lang="vue"><span style="display:flex;"><span>&lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">setup</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;ts&#34;</span>&gt;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">import</span> { <span style="color:#a6e22e">ref</span> } <span style="color:#a6e22e">from</span> <span style="color:#e6db74">&#34;vue&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">slider</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">ref</span>&lt;<span style="color:#f92672">HTMLDivElement</span>&gt;();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">startPoint</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">ref</span>&lt;<span style="color:#f92672">number</span>&gt;(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">isDown</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">ref</span>&lt;<span style="color:#f92672">boolean</span>&gt;(<span style="color:#66d9ef">false</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">premitiveX</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">ref</span>&lt;<span style="color:#f92672">number</span>&gt;(<span style="color:#ae81ff">0</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">onMouseDown</span>(<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">isDown</span>.<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">style</span> <span style="color:#f92672">=</span> window.<span style="color:#a6e22e">getComputedStyle</span>(<span style="color:#a6e22e">slider</span>.<span style="color:#a6e22e">value</span><span style="color:#f92672">!</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">transform</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">style</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">transform</span> <span style="color:#f92672">!==</span> <span style="color:#e6db74">&#34;none&#34;</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">matrixArr</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">transform</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">/[^0-9\-,]/g</span>, <span style="color:#e6db74">&#34;&#34;</span>).<span style="color:#a6e22e">split</span>(<span style="color:#e6db74">&#34;,&#34;</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;matrixArr&#34;</span>, <span style="color:#a6e22e">matrixArr</span>);
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">premitiveX</span>.<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> parseInt(<span style="color:#a6e22e">matrixArr</span>[<span style="color:#ae81ff">4</span>]);
+</span></span><span style="display:flex;"><span>  } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">premitiveX</span>.<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">clientX</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">startPoint</span>.<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">clientX</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">onMosueUp</span>(<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">isDown</span>.<span style="color:#a6e22e">value</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">onMouseMove</span>(<span style="color:#a6e22e">e</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">any</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">isDown</span>.<span style="color:#a6e22e">value</span>) <span style="color:#66d9ef">return</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">clientX</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">e</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">moveDistance</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">clientX</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">startPoint</span>.<span style="color:#a6e22e">value</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">offset</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">premitiveX</span>.<span style="color:#a6e22e">value</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">moveDistance</span>;
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;offset&#34;</span>, <span style="color:#a6e22e">offset</span>);
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">slider</span>.<span style="color:#a6e22e">value</span><span style="color:#f92672">!</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">transform</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`translateX(</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">offset</span><span style="color:#e6db74">}</span><span style="color:#e6db74">px)`</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">script</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;<span style="color:#f92672">div</span> <span style="color:#f92672">@mouseup</span><span style="color:#e6db74">=&#34;onMosueUp&#34;</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;w-100vw h-100vh bg-blue flex items-center&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;<span style="color:#f92672">div</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;w-500px h-200px bg-black flex ml-100px relative&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;<span style="color:#f92672">div</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">ref</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;slider&#34;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">@mousedown</span><span style="color:#e6db74">=&#34;onMouseDown&#34;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">@mousemove</span><span style="color:#e6db74">=&#34;onMouseMove&#34;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;w-100px h-full border-white border-4px&#34;</span>
+</span></span><span style="display:flex;"><span>      &gt;
+</span></span><span style="display:flex;"><span>        &lt;<span style="color:#f92672">span</span> <span style="color:#a6e22e">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;text-50px&#34;</span>&gt;<span style="color:#a6e22e">滑块</span>&lt;/<span style="color:#f92672">span</span>&gt;
+</span></span><span style="display:flex;"><span>      &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>    &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>  &lt;/<span style="color:#f92672">div</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;/<span style="color:#f92672">template</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">style</span>&gt;&lt;/<span style="color:#f92672">style</span>&gt;
+</span></span></code></pre></div><h2 id="总结">总结</h2>
+<p>最开始写这个解锁效果的时候，其实也查阅了很多教程，大部分都是直接教你如何使用 <strong>H5</strong> <code>draggble</code> 这个标签去实现的，但是我就在想 <strong>H5</strong> 之前人们是如何使用这个拖拽的呢？于是就自己去思考和动手尝试，最终才有了这篇文章。</p>
+<p>随之几天我也会重新更新一篇使用 <code>draggable</code> 实现<strong>拖拽</strong>效果的文章，还是会秉持着通俗易懂的语言来和你一起学习这个知识点。<strong>与君共勉</strong>才是我写作的真正目的。</p>
+</section>
+
+  
+  
+
+  
+  
+  
+  <nav class="mt-24 flex rounded-lg bg-black/[3%] text-lg dark:bg-white/[8%]">
+    
+    <a class="flex w-1/2 items-center p-6 pr-3 no-underline" href="/posts/592/"
+      ><span class="mr-1.5">←</span><span>JavaScript 中更现代的深拷贝方法</span></a
+    >
+    
+    
+    <a
+      class="ml-auto flex w-1/2 items-center justify-end p-6 pl-3 no-underline"
+      href="/posts/590/"
+      ><span>批量任务导致卡死？试试 requestIdleCallback 对任务进行拆分</span><span class="ml-1.5">→</span></a
+    >
+    
+  </nav>
+  
+
+  
+  
+</article>
+
+
+    </main>
+
+    <div class="book__list">
+      <h2 class="book__list_title">- Book Lists -</h2>
+      <ul>
+        <li>1. Node.js / Python</li>
+        <li>2. Express / Koa2 / Egg</li>
+        <li>3. Node爬虫 / chrome扩展</li>
+        <li>4. Vue3.3 / TypeScript5.0</li>
+        <li>5. React1.8</li>
+        <li>6. Angular14.0.5</li>
+        <li>7. MySQL / MongDB</li>
+        <li>8. Uniapp / Taro</li>
+        <li>9. 异常监控并上报</li>
+        <li>10. 自动化测试 / 单元测试</li>
+        <li>11. Vite / Webpack / Babel</li>
+        <li>12. 数据可视化Echats / 大屏</li>
+        <li>13. 工程化 / 自动化部署</li>
+        <li>14. Scss / TailwindCss</li>
+        <li>15. ElementUI / Antd Design</li>
+      </ul>
+      
+    </div>
+
+    <footer
+  class="opaco mx-auto flex h-[5rem] max-w-3xl items-center px-8 text-[0.9em] opacity-60"
+  style="position: relative; z-index: 1"
+>
+  <div class="mr-auto">
+    &copy; 2023
+    <a class="link" href="/">灏天阁</a>
+  </div>
+  <a class="link" href="https://yinchuanbo.github.io/" rel="noopener" target="_blank"
+    >Powered by YinHao</a
+  >️ ▷
+</footer>
+
+
+    
+  </body>
+</html>
