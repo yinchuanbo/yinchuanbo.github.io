@@ -7,7 +7,137 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <copyright>Copyright © 2008–2019, Steve Francia and the lee.so; all rights reserved.</copyright>
-    <lastBuildDate>Fri, 07 Jul 2023 16:08:55 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 09 Jul 2023 18:12:33 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Node/Koa2[34]: 开发登录功能</title>
+      <link>/posts/798/</link>
+      <pubDate>Sun, 09 Jul 2023 18:12:33 +0800</pubDate>
+      
+      <guid>/posts/798/</guid>
+      <description>目录结构 └─src ├─controller │ └─user.js └─routes └─api └─user.js controller 层 src/controller/user.js
+//... const { getUserInfo } = require(&amp;#34;../services/user&amp;#34;); const { ErrorModel, SuccessModel } = require(&amp;#34;../model/ResModel&amp;#34;); const { loginFailInfo } = require(&amp;#34;../model/ErrorInfo&amp;#34;); const doCrypto = reuqire(&amp;#34;../utils/cryp&amp;#34;); //... async function login(ctx, userName, password) { const userInfo = await getUserInfo(userName, doCrypto(password)); if (!userInfo) { return new ErrorModel(loginFailInfo); } if (ctx.session.userInfo == null) { ctx.session.userInfo = userInfo; } return new SuccessModel(); } //... module.exports = { //.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[33]: 用户信息校验</title>
+      <link>/posts/797/</link>
+      <pubDate>Sun, 09 Jul 2023 17:17:40 +0800</pubDate>
+      
+      <guid>/posts/797/</guid>
+      <description>目录结构 └─src ├─middlewares │ └─validator.js ├─routes │ └─api │ └─user.js └─validator ├─user.js └─_validate.js 安装校验插件 npm i ajv --save 数据校验格式 src/validator/user.js
+const validate = require(&amp;#34;./_validate&amp;#34;); const SCHEMA = { type: &amp;#34;object&amp;#34;, properties: { userName: { type: &amp;#34;string&amp;#34;, pattern: &amp;#34;^[a-zA-Z][a-zA-Z0-9_]+$&amp;#34;, // 字母开头，字母数字下划线 maxLength: 255, minLength: 2, }, password: { type: &amp;#34;string&amp;#34;, maxLength: 255, minLength: 3, }, newPassword: { type: &amp;#34;string&amp;#34;, maxLength: 255, minLength: 3, }, nickName: { type: &amp;#34;string&amp;#34;, maxLength: 255, }, picture: { type: &amp;#34;string&amp;#34;, maxLength: 255, }, city: { type: &amp;#34;string&amp;#34;, maxLength: 255, minLength: 2, }, gender: { type: &amp;#34;number&amp;#34;, minimum: 1, maximum: 3, }, }, }; // 执行校验 function userValidate(data = {}) { return validate(SCHEMA, data); } 统一校验函数 src/validator/_validate.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[32]: 注册-密码加密</title>
+      <link>/posts/796/</link>
+      <pubDate>Sun, 09 Jul 2023 12:54:29 +0800</pubDate>
+      
+      <guid>/posts/796/</guid>
+      <description>目录结构 └─src ├─conf │ └─secretKeys.js ├─controller │ └─user.js └─utils └─cryp.js 统一处理加密 KEY src/conf/secretKeys.js
+module.exports = { CRYPTO_SECRET_KEY: &amp;#34;自定义&amp;#34;, SESSION_SECRET_KEY: &amp;#34;自定义&amp;#34;, }; 加密 src/utils/cryp.js
+const crypto = require(&amp;#34;crypto&amp;#34;); const { CRYPTO_SECRET_KEY } = require(&amp;#34;../conf/secretKeys&amp;#34;); function _md5(content) { const md5 = crypto.createHash(&amp;#34;md5&amp;#34;); return md5.update(content).digest(&amp;#34;hex&amp;#34;); } function doCrypto(cntent) { const str = `password=${content}&amp;amp;key=${CRYPTO_SECRET_KEY}`; return _md5(str); } module.exports = doCrypto; 使用加密函数 src/controller/user.js
+//... const doCrypto = reuqire(&amp;#34;../utils/cryp&amp;#34;); //... async function register({ userName, password, gender }) { const userInfo = await getUserInfo(userName); if (userInfo) { // 用户名已存在 return new ErrorModel(registerUserNameExistInfo); } // services try { await createUser({ userName, // 密码加密 password: doCrypto(password), gender, }); return new SuccessModel(); } catch (ex) { console.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[31]: 开发注册功能</title>
+      <link>/posts/795/</link>
+      <pubDate>Sun, 09 Jul 2023 07:36:19 +0800</pubDate>
+      
+      <guid>/posts/795/</guid>
+      <description>目录结构 └─src ├─app.js ├─conf │ └─constant.js ├─controller │ └─user.js ├─model │ ├─ErrorInfo.js │ └─ResModel.js ├─routes │ └─api │ └─user.js └─services ├─user.js └─_format.js 定义常量 src/conf/constant.js
+module.exports = { DEFAULT_PICTURE: &amp;#34;xxxx&amp;#34;, }; 数据格式化处理 src/services/_format.js
+const { DEFAULT_PICTURE } = require(&amp;#34;../conf/constant&amp;#34;); function _formatUserPicture(obj) { if (obj.picture == null) { obj.picture = DEFAULT_PICTURE; } return obj; } function formatUser(list) { if (list == null) return list; if (list instanceof Array) { return list.map(_formatUserPicture); } return _formatUserPicture(list); } module.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[30]: 数据建模</title>
+      <link>/posts/794/</link>
+      <pubDate>Sun, 09 Jul 2023 06:58:24 +0800</pubDate>
+      
+      <guid>/posts/794/</guid>
+      <description>目录结构 └─src └─db ├─model │ ├─index.js │ └─User.js ├─sync.js └─types.js 封装 sequelize 数据类型 src/db/types.js
+const Sequelize = require(&amp;#34;sequelize&amp;#34;); module.exports = { STRING: Sequelize.STRING, DECIMAL: Sequelize.DECIMAL, TEXT: Sequelize.TEXT, INTEGER: Sequelize.INTEGER, BOOLEAN: Sequelize.BOOLEAN, }; 处理数据建模 src/db/model/User.js
+const { STRING, DECIMAL } = require(&amp;#34;../types&amp;#34;); const User = seq.define(&amp;#34;user&amp;#34;, { userName: { type: STRING, allowNull: false, unique: true, comment: &amp;#34;用户名，唯一&amp;#34;, }, password: { type: STRING, allowNull: false, commit: &amp;#34;密码&amp;#34;, }, nickName: { type: STRING, allowNull: false, commit: &amp;#34;昵称&amp;#34;, }, gender: { type: DECIMAL, allowNull: false, defaultValue: 3, commit: &amp;#34;性别（1男，2女，3保密）&amp;#34;, }, picture: { type: STRING, commit: &amp;#34;头像，图片地址&amp;#34;, }, city: { type: STRING, commit: &amp;#34;城市&amp;#34;, }, }); module.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[29]: 页面（模板和路由）</title>
+      <link>/posts/793/</link>
+      <pubDate>Sat, 08 Jul 2023 09:52:17 +0800</pubDate>
+      
+      <guid>/posts/793/</guid>
+      <description>处理注册和登录的 EJS 模板 注册模板 src/views/register.ejs
+登录模板 src/views/login.ejs
+创建路由 src/routes/view/user.js
+// 页面路由 const router = require(&amp;#34;koa-router&amp;#34;)(); // 获取用户登录信息 function getLoginInfo(ctx) { let data = { isLogin: false, }; const userInfo = ctx.session.userInfo; if (userInfo) { data = { isLogin: true, userName: userInfo.userName, }; } return data; } // 登录 router.get(&amp;#34;/login&amp;#34;, async (ctx, next) =&amp;gt; { await ctx.render(&amp;#34;login&amp;#34;, getLoginInfo(ctx)); }); // 注册 router.get(&amp;#34;/register&amp;#34;, async (ctx, next) =&amp;gt; { await ctx.render(&amp;#34;register&amp;#34;, getLoginInfo(ctx)); }); module.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[28]: 功能列表</title>
+      <link>/posts/792/</link>
+      <pubDate>Sat, 08 Jul 2023 09:43:05 +0800</pubDate>
+      
+      <guid>/posts/792/</guid>
+      <description>功能列表 用户管理（登录和注册）
+用户设置（修改基本信息，修改密码，退出登录）
+创建微博，暂不显示微博列表
+个人主页，显示个人微博列表和个人信息，暂不做关注功能
+广场页（使用缓存）
+关注和取消关注，显示粉丝和关注人
+首页
+@ 和回复
+@ 提到我的
+用户管理 页面：模板和路由
+数据建模
+开发注册功能
+开发登录功能
+抽离 loginCheck 中间件
+单元测试</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[27]: 数据模型设计</title>
+      <link>/posts/791/</link>
+      <pubDate>Sat, 08 Jul 2023 08:12:39 +0800</pubDate>
+      
+      <guid>/posts/791/</guid>
+      <description> 回顾 ER 图
+关系型数据库 三大范式
+数据模型设计
+回顾 ER 图 关系型数据库 三大范式 属性的原子性：每一列都不可再拆解
+记录的唯一性：有唯一标识（主键），其他属性都依赖于主键
+字段的冗余性：不存在数据冗余和传递依赖
+数据模型设计 </description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[26]: 页面和API</title>
+      <link>/posts/790/</link>
+      <pubDate>Sat, 08 Jul 2023 07:50:41 +0800</pubDate>
+      
+      <guid>/posts/790/</guid>
+      <description> 原型图演示
+页面汇总（模板、路由、组件）
+API汇总
+原型图 注册 登录 设置 首页 个人主页 广场 @我的 404 统一的 header 和 footer 页面汇总（模板、路由、组件） API 汇总 </description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[25]: 技术方案设计</title>
+      <link>/posts/789/</link>
+      <pubDate>Sat, 08 Jul 2023 07:33:06 +0800</pubDate>
+      
+      <guid>/posts/789/</guid>
+      <description> 架构设计
+页面（模板、路由）和 API 设计
+数据模型设计
+其他 @功能如何实现？
+图片上传
+整体架构设计 </description>
+    </item>
+    
     <item>
       <title>Node/Koa2[24]: JWT</title>
       <link>/posts/788/</link>
