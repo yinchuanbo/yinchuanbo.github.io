@@ -7,7 +7,73 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <copyright>Copyright © 2008–2019, Steve Francia and the lee.so; all rights reserved.</copyright>
-    <lastBuildDate>Sun, 09 Jul 2023 18:12:33 +0800</lastBuildDate><atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 13 Jul 2023 21:28:45 +0800</lastBuildDate><atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Node/Koa2[40]: 用户设置-接口</title>
+      <link>/posts/804/</link>
+      <pubDate>Thu, 13 Jul 2023 21:28:45 +0800</pubDate>
+      
+      <guid>/posts/804/</guid>
+      <description>图片上传接口 # 安装 npm i formidable-upload-koa fs-extra --save 处理上传图片接口 src/routes/api/utils.js
+const router = require(&amp;#34;koa-router&amp;#34;)(); const { loginCheck } = require(&amp;#34;../../middlewares/loginChecks&amp;#34;); const { saveFile } = require(&amp;#34;../../controller/utils&amp;#34;); router.prefix(&amp;#34;/api/utils&amp;#34;); const koaForm = require(&amp;#34;formidable-upload-koa&amp;#34;); // 上传图片 router.post(&amp;#34;/upload&amp;#34;, loginCheck, koaForm(), async (ctx, next) =&amp;gt; { const file = ctx.req.files[&amp;#34;file&amp;#34;]; const { size, path, name, type } = file; // controller ctx.body = await saveFile({ name, type, size, filePath: path, }); }); module.exports = router; controller 层 src/controller/utils.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[39]: 用户设置</title>
+      <link>/posts/803/</link>
+      <pubDate>Thu, 13 Jul 2023 20:59:21 +0800</pubDate>
+      
+      <guid>/posts/803/</guid>
+      <description> 页面：模板和路由
+开发接口：修改信息、修改密码、退出登录、图片上传
+单元测试
+用户设置 EJS 模板 src/views/setting.ejs
+处理用户设置页面路由 src/routes/view/user.js
+//... const { loginRedirect } = require(&amp;#34;../../middlewares/loginChecks&amp;#34;); //... router.get(&amp;#34;/setting&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { await ctx.render(&amp;#34;setting&amp;#34;, ctx.session.userInfo); }); </description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[38]: 接口测试</title>
+      <link>/posts/802/</link>
+      <pubDate>Wed, 12 Jul 2023 23:15:37 +0800</pubDate>
+      
+      <guid>/posts/802/</guid>
+      <description>test/user/login.test.js
+const server = require(&amp;#34;../server&amp;#34;); // 用户信息 const userName = `u_${Date.now()}`; const password = `p_${Date.now()}`; const testUser = { userName, password, nickName: userName, gender: 1, }; // 存储 cookie let COOKIE = &amp;#34;&amp;#34;; // 注册 test(&amp;#34;注册一个用户，应该成功&amp;#34;, async () =&amp;gt; { const res = await server.post(&amp;#34;/api/user/register&amp;#34;).send(testUser); expect(res.body.errno).toBe(0); }); // 重复注册 test(&amp;#34;重复注册用户，应该失败&amp;#34;, async () =&amp;gt; { const res = await server.post(&amp;#34;/api/user/register&amp;#34;).send(testUser); expect(res.body.errno).not.toBe(0); }); // 查询用户是否存在 test(&amp;#39;查询注册的用户名，应该存在&amp;#39;， async () =&amp;gt; { const res = await server.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[37]: test 环境下删除用户</title>
+      <link>/posts/801/</link>
+      <pubDate>Wed, 12 Jul 2023 22:45:29 +0800</pubDate>
+      
+      <guid>/posts/801/</guid>
+      <description>测试数据要及时删除
+删除用户 src/routes/api/user.js
+//... const { isTest } = require(&amp;#34;../../utils/env&amp;#34;); const { deleteCurUser } = require(&amp;#34;../../constroller/user&amp;#34;); const { loginCheck } = require(&amp;#34;../../middlewares/loginChecks&amp;#34;); // 删除 router.post(&amp;#34;/delete&amp;#34;, loginCheck, async (ctx, next) =&amp;gt; { if (isTest) { // 测试环境下，测试账号登录之后，删除自己 const { userName } = ctx.session.userInfo; ctx.body = await deleteCurUser(userName); } }); 删除用户 controller src/controller/user.js
+//... const { deleteUser } = require(&amp;#34;../services/user&amp;#34;); const { deleteUserFailInfo } = require(&amp;#34;../model/ErrorInfo&amp;#34;); //... async function deleteCurUser(userName) { // services const result = await deleteUser(userName); if (result) { return new SuccessModel(); } return new ErrorModel(deleteUserFailInfo); } module.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[36]: 单元测试</title>
+      <link>/posts/800/</link>
+      <pubDate>Wed, 12 Jul 2023 22:21:07 +0800</pubDate>
+      
+      <guid>/posts/800/</guid>
+      <description>测试数据库模型 test/user/model.test.js
+const { User } = require(&amp;#34;../../src/db/model/index&amp;#34;); test(&amp;#34;User 模型的各个属性，符合预期&amp;#34;, () =&amp;gt; { // build 会构建一个内存的 User 实例，但不会提交到数据库中 const user = User.build({ userName: &amp;#34;zhangsan&amp;#34;, password: &amp;#34;p123123&amp;#34;, nickName: &amp;#34;张三&amp;#34;, // gender: 1 picture: &amp;#34;/xxxx.png&amp;#34;, city: &amp;#34;北京&amp;#34;, }); // 验证各个属性 expect(user.userName).toBe(&amp;#34;zhangsan&amp;#34;); expect(user.password).toBe(&amp;#34;p123123&amp;#34;); expect(user.nickName).toBe(&amp;#34;张三&amp;#34;); expect(user.gender).toBe(3); expect(user.picture).toBe(&amp;#34;/xxxx.png&amp;#34;); expect(user.city).toBe(&amp;#34;北京&amp;#34;); }); 运行 npm run test </description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[35]: 登录验证中间件 loginCheck 处理</title>
+      <link>/posts/799/</link>
+      <pubDate>Wed, 12 Jul 2023 21:44:37 +0800</pubDate>
+      
+      <guid>/posts/799/</guid>
+      <description>src/middlewares/loginChecks.js
+const { ErrorModel } = require(&amp;#34;../model/ResModel&amp;#34;); const { loginCheckFailInfo } = require(&amp;#34;../model/ErrorInfo&amp;#34;); async function loginCheck(ctx, next) { if (ctx.session &amp;amp;&amp;amp; ctx.session.userInfo) { // 已登录 await next(); return; } // 未登录 ctx.body = new ErrorModel(loginCheckFailInfo); } /* 路由中间件：访问任何路由的收时候，先执行这个中间件，检测用户是否登录，相当于路由守卫 */ async function loginRedirect(ctx, next) { if (ctx.session &amp;amp;&amp;amp; ctx.session.userInfo) { // 已登录 await next(); return; } // 未登录 const curUrl = ctx.url; ctx.redirect(&amp;#34;/login?url=&amp;#34; + encodeURIComponent(curUrl)); } module.exports = { loginCheck, loginRedirect, }; 使用页面路由登录中间件 src/routes/index.</description>
+    </item>
+    
     <item>
       <title>Node/Koa2[34]: 开发登录功能</title>
       <link>/posts/798/</link>
