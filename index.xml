@@ -7,7 +7,61 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <copyright>Copyright © 2008–2019, Steve Francia and the lee.so; all rights reserved.</copyright>
-    <lastBuildDate>Thu, 13 Jul 2023 21:28:45 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 15 Jul 2023 16:17:05 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Node/Koa2[45]: 创建微博</title>
+      <link>/posts/809/</link>
+      <pubDate>Sat, 15 Jul 2023 16:17:05 +0800</pubDate>
+      
+      <guid>/posts/809/</guid>
+      <description>数据模型 定义 Blog 模型 src/db/model/Blog.js
+const seq = require(&amp;#34;../seq&amp;#34;); const { INTEGER, STRING, TEXT } = require(&amp;#34;../types&amp;#34;); const Blog = seq.define(&amp;#34;blog&amp;#34;, { userId: { type: INTEGER, allowNull: false, comment: &amp;#34;用户 ID&amp;#34;, }, content: { type: TEXT, allowNull: false, comment: &amp;#34;微博内容&amp;#34;, }, image: { type: STRING, comment: &amp;#34;图片地址&amp;#34;, }, }); 注册并创建外键 src/db/model/index.js
+//... const User = require(&amp;#34;./User&amp;#34;); const Blog = require(&amp;#34;./Blog&amp;#34;); // 创建外键 Blog.belongsTo(User, { foreignKey: &amp;#34;userId&amp;#34;, }); // User.hasMany(Blog) module.exports = { User, Blog, }; 创建完模型要同步到数据库 # 同步命令 node src/db/sync.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[44]: 单元测试</title>
+      <link>/posts/808/</link>
+      <pubDate>Sat, 15 Jul 2023 15:03:24 +0800</pubDate>
+      
+      <guid>/posts/808/</guid>
+      <description>test/user/login.test.js
+//... // 修改基本信息 test(&amp;#34;修改基本信息应该成功&amp;#34;, async () =&amp;gt; { const res = await server .patch(&amp;#34;/api/user/changeInfo&amp;#34;) .send({ nickName: &amp;#34;测试昵称&amp;#34;, city: &amp;#34;测试城市&amp;#34;, picture: &amp;#34;/test.png&amp;#34;, }) .set(&amp;#34;cookie&amp;#34;, COOKIE); expect(res.body.errno).toBe(0); }); // 修改基本信息 test(&amp;#34;修改密码应该成功&amp;#34;, async () =&amp;gt; { const res = await server .patch(&amp;#34;/api/user/changePassword&amp;#34;) .send({ password, newPassword: `p_${Date.now()}`, }) .set(&amp;#34;cookie&amp;#34;, COOKIE); expect(res.body.errno).toBe(0); }); // 这里是删除用户，上面执行完成之后再删除用户，删除用户之后再退出登录 // 退出登录 test(&amp;#34;退出登录应该成功&amp;#34;, async () =&amp;gt; { const res = await server.post(&amp;#34;/api/user/logout&amp;#34;).set(&amp;#34;cookie&amp;#34;, COOKIE); expect(res.body.errno).toBe(0); }); </description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[43]: 退出登录</title>
+      <link>/posts/807/</link>
+      <pubDate>Sat, 15 Jul 2023 14:57:09 +0800</pubDate>
+      
+      <guid>/posts/807/</guid>
+      <description>路由层 src/routes/api/user.js
+//... const { logout } = require(&amp;#34;../../controller/user&amp;#34;); //... const { loginCheck } = require(&amp;#34;../../middlewares/loginChecks&amp;#34;); router.post(&amp;#34;/logout&amp;#34;, loginCheck, async (ctx, next) =&amp;gt; { ctx.body = await logout(ctx); }); //... controller 层处理 src/controller/user.js
+//.. const { SuccessModel } = require(&amp;#34;../model/ResModel&amp;#34;); //... async function logout(ctx) { delete ctx.session.userInfo; return new SuccessModel(); } module.exports = { //... logout, }; </description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[42]: 修改密码</title>
+      <link>/posts/806/</link>
+      <pubDate>Sat, 15 Jul 2023 14:32:44 +0800</pubDate>
+      
+      <guid>/posts/806/</guid>
+      <description>src/routes/api/user.js
+//... const { changePassword } = require(&amp;#34;../../controller/user&amp;#34;); //... const { loginCheck } = require(&amp;#34;../../middlewares/loginChecks&amp;#34;); const userValidate = require(&amp;#34;../../validator/user&amp;#34;); const { genValidator } = require(&amp;#34;../../middlewares/validator&amp;#34;); // patch 更新数据 router.patch( &amp;#34;/changePassword&amp;#34;, loginCheck, // 验证密码信息中间件 genValidator(userValidate), async (ctx, next) =&amp;gt; { const { password, newPassword } = ctx.request.body; const { userName } = ctx.session.userInfo; // controller 层 ctx.body = await changePassword(userName, password, newPassword); } ); //... controller 层处理 src/controller/user.js
+//.. const { SuccessModel, ErrorModel } = require(&amp;#34;.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[41]: 修改用户信息接口</title>
+      <link>/posts/805/</link>
+      <pubDate>Sat, 15 Jul 2023 13:54:37 +0800</pubDate>
+      
+      <guid>/posts/805/</guid>
+      <description>统一文件信息 处理接口路由 src/routes/api/user.js
+//... const { changeInfo } = require(&amp;#34;../../controller/user&amp;#34;); //... const { loginCheck } = require(&amp;#34;../../middlewares/loginChecks&amp;#34;); const userValidate = require(&amp;#34;../../validator/user&amp;#34;); const { genValidator } = require(&amp;#34;../../middlewares/validator&amp;#34;); // patch 更新数据 router.patch( &amp;#34;/changeInfo&amp;#34;, loginCheck, // 验证用户信息中间件 genValidator(userValidate), async (ctx, next) =&amp;gt; { const { nickName, city, picture } = ctx.request.body; // controller ctx.body = await changeInfo(ctx, { nickName, city, picture }); } ); //... controller 层处理 src/controller/user.js
+//.. const { SuccessModel, ErrorModel } = require(&amp;#34;.</description>
+    </item>
+    
     <item>
       <title>Node/Koa2[40]: 用户设置-接口</title>
       <link>/posts/804/</link>
