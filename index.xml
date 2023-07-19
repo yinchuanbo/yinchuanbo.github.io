@@ -7,7 +7,77 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <copyright>Copyright © 2008–2019, Steve Francia and the lee.so; all rights reserved.</copyright>
-    <lastBuildDate>Sat, 15 Jul 2023 16:17:05 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 17 Jul 2023 06:59:20 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Node/Koa2[51]: 个人主页</title>
+      <link>/posts/815/</link>
+      <pubDate>Mon, 17 Jul 2023 06:59:20 +0800</pubDate>
+      
+      <guid>/posts/815/</guid>
+      <description>模板和路由（后端渲染数据 SSP）
+记载更多
+单元测试
+页面和模板 src/views/profile.ejs
+页面路由 src/routes/view/blog.js
+//... const { getProfileBlogList } = require(&amp;#34;../../controller/blog-profile&amp;#34;); // 个人主页 //... router.get(&amp;#34;/profile&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { const { userName } = ctx.session.userInfo; ctx.redirect(`/profile/${userName}`); }); router.get(&amp;#34;/profile/:userName&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { const { userName: curUserName } = ctx.params; // controller 层 const result = await getProfileBlogList(curUserName, 0); const { isEmpty, blogList, pageSize, pageIndex, count } = result.data; await ctx.render(&amp;#34;profile&amp;#34;, { blogData: { isEmpty, blogList, pageSize, pageIndex, count, }, }); }); //.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[50]: 创建微博-单元测试</title>
+      <link>/posts/814/</link>
+      <pubDate>Sun, 16 Jul 2023 20:52:25 +0800</pubDate>
+      
+      <guid>/posts/814/</guid>
+      <description>单元测试 test/blog/model.test.js
+let BLOG_ID = &amp;#34;&amp;#34;; const { Blog } = require(&amp;#34;../../src/db/model/index&amp;#34;); test(&amp;#34;微博数据模型各个属性，符合预期&amp;#34;, () =&amp;gt; { const blog = Blog.build({ userId: 1, content: &amp;#34;微博内容&amp;#34;, image: &amp;#34;/test.png&amp;#34;, }); expect(blog.userId).toBe(1); expect(blog.content).toBe(&amp;#34;微博内容&amp;#34;); expect(blog.image).toBe(&amp;#34;/test.png&amp;#34;); }); home 测试 test/blog/home.test.js
+const server = require(&amp;#34;../server&amp;#34;); const { COOKIE } = require(&amp;#34;../testUserInfo&amp;#34;); test(&amp;#34;创建一条微博，应该成功&amp;#34;, async () =&amp;gt; { const content = &amp;#34;单元测试自动创建的微博_&amp;#34; + Date.now(); const image = &amp;#34;/xxx.png&amp;#34;; const res = await server .post(&amp;#34;/api/blog/create&amp;#34;) .send({ content, image, }) .set(&amp;#34;cookie&amp;#34;, COOKIE); expect(res.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[49]: 微博数据校验</title>
+      <link>/posts/813/</link>
+      <pubDate>Sun, 16 Jul 2023 16:43:29 +0800</pubDate>
+      
+      <guid>/posts/813/</guid>
+      <description>src/validator/blog.js
+const validate = require(&amp;#34;./_validate&amp;#34;); const SCHEMA = { type: &amp;#34;object&amp;#34;, properties: { content: { type: &amp;#34;string&amp;#34;, }, image: { type: &amp;#34;string&amp;#34;, maxLength: 255, }, }, }; function blogValidate(data = {}) { return validate(SCHEMA, data); } module.exports = blogValidate; 使用格式校验 src/routes/api/blog-home.js
+const router = require(&amp;#34;koa-router&amp;#34;)(); const { loginCheck } = require(&amp;#34;../../middlewares/loginChecks&amp;#34;); const { create } = require(&amp;#34;../../controller/blog-home&amp;#34;); const { genValidator } = require(&amp;#34;../../middlewares/validator&amp;#34;); const blogValidate = require(&amp;#34;../../validator/blog&amp;#34;); router.prefix(&amp;#34;/api/blog&amp;#34;); router.post( &amp;#34;/create&amp;#34;, loginCheck, genValidator(blogValidate), async (ctx, next) =&amp;gt; { const { content, image } = ctx.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[48]: xss 攻击</title>
+      <link>/posts/812/</link>
+      <pubDate>Sun, 16 Jul 2023 16:05:26 +0800</pubDate>
+      
+      <guid>/posts/812/</guid>
+      <description>安装 npm i xss --save 处理过滤 src/controller/blog-home.js
+const { createBlog } = require(&amp;#34;../services.blog&amp;#34;); const { SuccessModel, ErrorModel } = require(&amp;#34;../model/ResModel&amp;#34;); const { createBlogFailInfo } = require(&amp;#34;../model/ErrorInfo&amp;#34;); const xss = require(&amp;#34;xss&amp;#34;); async function create({ userId, content, image }) { // services 层 try { const blog = await createBlog({ userId, content: xss(content), image }); return new SuccessModel(blog); } catch (ex) { console.error(ex.message, ex.stack); return new ErrorModel(createBlogFailInfo); } } module.exports = { create, }; </description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[47]: 创建微博API</title>
+      <link>/posts/811/</link>
+      <pubDate>Sun, 16 Jul 2023 15:29:23 +0800</pubDate>
+      
+      <guid>/posts/811/</guid>
+      <description>开发接口 回顾架构设计图
+开发接口（考虑 xss 攻击）
+数据格式校验
+新建接口路由 src/routes/api/blog-home.js
+const router = require(&amp;#34;koa-router&amp;#34;)(); const { loginCheck } = require(&amp;#34;../../middlewares/loginChecks&amp;#34;); const { create } = require(&amp;#34;../../controller/blog-home&amp;#34;); router.prefix(&amp;#34;/api/blog&amp;#34;); router.post(&amp;#34;/create&amp;#34;, loginCheck, async (ctx, next) =&amp;gt; { const { content, image } = ctx.request.body; const { id: userId } = ctx.session.userInfo; // controller 层 ctx.body = await create({ userId, content, image, }); }); module.exports = router; app.js 中注册路由 // app.js //... const blogHomeAPIRouter = require(&amp;#34;./routes/api/blog-home&amp;#34;); //.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[46]: 微博页面生成</title>
+      <link>/posts/810/</link>
+      <pubDate>Sun, 16 Jul 2023 14:47:20 +0800</pubDate>
+      
+      <guid>/posts/810/</guid>
+      <description>首页页面模板 src/views/index.ejs
+首页模板路由定义 src/routes/view/blog.js
+const router = require(&amp;#34;koa-router&amp;#34;)(); const { loginRedirect } = require(&amp;#34;../../middlewares/loginChecks&amp;#34;); router.get(&amp;#34;/&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { await ctx.render(&amp;#34;index&amp;#34;, {}); }); module.exports = router; app.js 中注册路由 // app.js //... const blogViewRouter = require(&amp;#34;./routes/view/blog&amp;#34;); //... app.use(blogViewRouter.routes(), blogViewRouter.allowedMethods()); </description>
+    </item>
+    
     <item>
       <title>Node/Koa2[45]: 创建微博</title>
       <link>/posts/809/</link>
