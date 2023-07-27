@@ -7,7 +7,131 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <copyright>Copyright © 2008–2019, Steve Francia and the lee.so; all rights reserved.</copyright>
-    <lastBuildDate>Mon, 17 Jul 2023 06:59:20 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 27 Jul 2023 11:44:55 +0800</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Node/Koa2[62]:关注和取消-单元测试</title>
+      <link>/posts/826/</link>
+      <pubDate>Thu, 27 Jul 2023 11:44:55 +0800</pubDate>
+      
+      <guid>/posts/826/</guid>
+      <description>数据准备 //test/testUserInfo.js module.exports = { Z_ID: 1, Z_USER_NAME: &amp;#34;zhangsan&amp;#34;, Z_COOKIE: &amp;#34;XXXXX&amp;#34;, L_ID: 1, L_USER_NAME: &amp;#34;lisi&amp;#34;, L_COOKIE: &amp;#34;XXXXX&amp;#34;, }; 具体代码 // test/user/relation.test.js const server = require(&amp;#34;../server&amp;#34;); const { getFans, getFollowers } = require(&amp;#34;../../src/controller/user-relation&amp;#34;); const { Z_ID, Z_USER_NAME, Z_COOKIE, L_ID, L_USER_NAME, L_COOKIE, } = require(&amp;#34;../testUserInfo&amp;#34;); // 不管张三有没有关注李四，先让张三取消关注李四 test(&amp;#34;无论如何，先取消关注&amp;#34;, async () =&amp;gt; { const res = await server .post(&amp;#34;/api/profile/unFollow&amp;#34;) .send({ userId: L_ID, }) .set(&amp;#34;cookie&amp;#34;, Z_COOKIE); expect(1).toBe(1); }); // 添加关注 test(&amp;#34;张三关注李四，应该成功&amp;#34;, async () =&amp;gt; { const res = await server .</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[61]:关注人列表</title>
+      <link>/posts/825/</link>
+      <pubDate>Thu, 27 Jul 2023 11:44:52 +0800</pubDate>
+      
+      <guid>/posts/825/</guid>
+      <description>关注人列表模板 src/views/widgets/followers.ejs
+获取相关数据 src/routes/view/blog.js
+//... const { getProfileBlogList } = require(&amp;#34;../../controller/blog-profile&amp;#34;); const { getFans, getFollowers } = require(&amp;#34;../../controller/user-relation&amp;#34;); // 个人主页 //... router.get(&amp;#34;/profile&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { const { userName } = ctx.session.userInfo; ctx.redirect(`/profile/${userName}`); }); router.get(&amp;#34;/profile/:userName&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { // 已经登录用户的信息 const myUserInfo = ctx.session.userInfo; const myUserName = myUserInfo.userName; let curUserInfo; const { userName: curUserName } = ctx.params; const isMe = myUserName === curUserName; if (isMe) { curUserInfo = myUserInfo; } else { const existResult = await isExist(curUserName); if (existResult.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[60]:取消关注接口处理</title>
+      <link>/posts/824/</link>
+      <pubDate>Wed, 26 Jul 2023 22:53:08 +0800</pubDate>
+      
+      <guid>/posts/824/</guid>
+      <description>取消关注接口 src/routes/api/blog-profile.js
+//... const { unFollow } = require(&amp;#34;../../controller/user-relation&amp;#34;); // 取消关注 router.post(&amp;#34;/unFollow&amp;#34;, loginCheck, async (ctx, next) =&amp;gt; { const { id: myUserId } = ctx.session.userInfo; const { userId: curUserId } = ctx.request.body; // controller ctx.body = await follow(myUserId, curUserId); }); //... controller 层处理 src/controller/user-relation.js
+//... const { deleteFollower } = require(&amp;#34;../services/user-relation&amp;#34;); async function follow(myUserId, curUserId) { // services 层 const result = await deleteFollower(myUserId, curUserId); if (result) { return new SuccessModel(); } return new ErrorModel(deleteFollowerFailInfo); } //.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[59]: 关注接口处理</title>
+      <link>/posts/823/</link>
+      <pubDate>Sun, 23 Jul 2023 14:17:11 +0800</pubDate>
+      
+      <guid>/posts/823/</guid>
+      <description>关注接口 src/routes/api/blog-profile.js
+//... const { follow } = require(&amp;#34;../../controller/user-relation&amp;#34;); // 关注 router.post(&amp;#34;/follow&amp;#34;, loginCheck, async (ctx, next) =&amp;gt; { const { id: myUserId } = ctx.session.userInfo; const { userId: curUserId } = ctx.request.body; // controller ctx.body = await follow(myUserId, curUserId); }); //... controller 层处理 src/controller/user-relation.js
+//... const { addFollower } = require(&amp;#34;../services/user-relation&amp;#34;); async function follow(myUserId, curUserId) { // services 层 try { await addFollower(myUserId, curUserId); return new SuccessModel(); } catch (ex) { return new ErrorModel(addFollowerFailInfo); } } //.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[58]: 判断关注状态</title>
+      <link>/posts/822/</link>
+      <pubDate>Sun, 23 Jul 2023 14:17:09 +0800</pubDate>
+      
+      <guid>/posts/822/</guid>
+      <description>处理路由 src/routes/view/blog.js
+//... const { getProfileBlogList } = require(&amp;#34;../../controller/blog-profile&amp;#34;); const { getFans } = require(&amp;#34;../../controller/user-relation&amp;#34;); // 个人主页 //... router.get(&amp;#34;/profile&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { const { userName } = ctx.session.userInfo; ctx.redirect(`/profile/${userName}`); }); router.get(&amp;#34;/profile/:userName&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { // 已经登录用户的信息 const myUserInfo = ctx.session.userInfo; const myUserName = myUserInfo.userName; let curUserInfo; const { userName: curUserName } = ctx.params; const isMe = myUserName === curUserName; if (isMe) { curUserInfo = myUserInfo; } else { const existResult = await isExist(curUserName); if (existResult.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[57]: 开发粉丝列表</title>
+      <link>/posts/821/</link>
+      <pubDate>Sun, 23 Jul 2023 14:17:05 +0800</pubDate>
+      
+      <guid>/posts/821/</guid>
+      <description>src/routes/view/blog.js
+//... const { getProfileBlogList } = require(&amp;#34;../../controller/blog-profile&amp;#34;); const { getFans } = require(&amp;#34;../../controller/user-relation&amp;#34;); // 个人主页 //... router.get(&amp;#34;/profile&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { const { userName } = ctx.session.userInfo; ctx.redirect(`/profile/${userName}`); }); router.get(&amp;#34;/profile/:userName&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { // 已经登录用户的信息 const myUserInfo = ctx.session.userInfo; const myUserName = myUserInfo.userName; let curUserInfo; const { userName: curUserName } = ctx.params; const isMe = myUserName === curUserName; if (isMe) { curUserInfo = myUserInfo; } else { const existResult = await isExist(curUserName); if (existResult.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[56]: 关注和取消关注业务</title>
+      <link>/posts/820/</link>
+      <pubDate>Sun, 23 Jul 2023 10:53:24 +0800</pubDate>
+      
+      <guid>/posts/820/</guid>
+      <description>创建数据模型：用户关系
+查看模板代码
+路由和接口开发（粉丝列表，关注/取消关注，关注人列表）
+单元测试
+回顾数据模型设计 处理数据模型 src/db/model/UserRelation.js
+const seq = require(&amp;#34;../seq&amp;#34;); const { INTEGER } = require(&amp;#34;../types&amp;#34;); const UserRelation = seq.define(&amp;#34;userRelation&amp;#34;, { userId: { type: INTEGER, allowNull: false, comment: &amp;#34;用户 id&amp;#34;, }, followerId: { type: INTEGER, allowNull: false, comment: &amp;#34;被关注用户的 id&amp;#34;, }, }); module.exports = UserRelation; index.js 中引入 src/db/model/index.js
+//... const User = require(&amp;#34;./User&amp;#34;); const Blog = require(&amp;#34;./Blog&amp;#34;); const UserRelation = require(&amp;#34;./UserRelation&amp;#34;); //... Blog.belongsTo(User, { foreignKey: &amp;#34;UserId&amp;#34;, }); UserRelation.belongsTo(User, { foreignKey: &amp;#34;followerId&amp;#34;, }); User.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[55]: 微博广场-单元测试</title>
+      <link>/posts/819/</link>
+      <pubDate>Sun, 23 Jul 2023 10:53:19 +0800</pubDate>
+      
+      <guid>/posts/819/</guid>
+      <description>准备单元测试的数据 test/testUserInfo.js
+module.exports = { USER_NAME: &amp;#34;zhangsan&amp;#34;, COOKIE: &amp;#34;xxxx&amp;#34;, }; 单元测试逻辑 test/blog/profile.test.js
+const server = require(&amp;#34;../server&amp;#34;); const { COOKIE } = require(&amp;#34;../testUserInfo&amp;#34;); test(&amp;#34;广场页，加载第一页数据应该成功&amp;#34;, async () =&amp;gt; { const res = await server.get(`/api/square/loadMore/0`).set(&amp;#34;cookie&amp;#34;, COOKIE); expect(res.body.errno).toBe(0); const data = res.body.data; expect(data).toHaveProperty(&amp;#34;isEmpty&amp;#34;); expect(data).toHaveProperty(&amp;#34;blogList&amp;#34;); expect(data).toHaveProperty(&amp;#34;pageSize&amp;#34;); expect(data).toHaveProperty(&amp;#34;pageIndex&amp;#34;); expect(data).toHaveProperty(&amp;#34;count&amp;#34;); }); </description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[54]: 微博广场</title>
+      <link>/posts/818/</link>
+      <pubDate>Sun, 23 Jul 2023 10:53:16 +0800</pubDate>
+      
+      <guid>/posts/818/</guid>
+      <description>页面和模板（后端渲染，用到了缓存）
+加载更多
+单元测试
+页面和模板 页面模板 src/views/square.ejs
+页面路由 src/routes/view/blog.js
+//... const { getSquareBlogList } = require(&amp;#34;../../controller/blog-square&amp;#34;); // 广场 router.get(&amp;#34;/square&amp;#34;, loginRedirect, async (ctx, next) =&amp;gt; { // controller 层 const result = await getSquareBlogList(0); const { isEmpty, blogList, pageSize, pageIndex, count } = result; await ctx.render(&amp;#34;square&amp;#34;, { blogData: { isEmpty, blogList, pageSize, pageIndex, count, }, }); }); //... controller 层 src/controller/blog-square.js
+const { getSquareCacheList } = require(../cache/blog); //... async function getSquareBlogList(pageIndex = 0) { // cache 层 const result = await getSquareCacheList(pageIndex, PAGE_SIZE); const blogList = result.</description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[53]: 个人主页-单元测试</title>
+      <link>/posts/817/</link>
+      <pubDate>Sun, 23 Jul 2023 10:53:13 +0800</pubDate>
+      
+      <guid>/posts/817/</guid>
+      <description>准备单元测试的数据 test/testUserInfo.js
+module.exports = { USER_NAME: &amp;#34;zhangsan&amp;#34;, COOKIE: &amp;#34;xxxx&amp;#34;, }; 单元测试逻辑 test/blog/profile.test.js
+const server = require(&amp;#34;../server&amp;#34;); const { USER_NAME, COOKIE } = require(&amp;#34;../testUserInfo&amp;#34;); test(&amp;#34;个人主页，加载第一页数据应该成功&amp;#34;, async () =&amp;gt; { const res = await server .get(`/api/profile/loadMore/${USER_NAME}/0`) .set(&amp;#34;cookie&amp;#34;, COOKIE); expect(res.body.errno).toBe(0); const data = res.body.data; expect(data).toHaveProperty(&amp;#34;isEmpty&amp;#34;); expect(data).toHaveProperty(&amp;#34;blogList&amp;#34;); expect(data).toHaveProperty(&amp;#34;pageSize&amp;#34;); expect(data).toHaveProperty(&amp;#34;pageIndex&amp;#34;); expect(data).toHaveProperty(&amp;#34;count&amp;#34;); }); </description>
+    </item>
+    
+    <item>
+      <title>Node/Koa2[52]: 加载更多</title>
+      <link>/posts/816/</link>
+      <pubDate>Sun, 23 Jul 2023 10:15:16 +0800</pubDate>
+      
+      <guid>/posts/816/</guid>
+      <description>个人主页 API 路由 src/routes/api/blog-profile.js
+const router = require(&amp;#34;koa-router&amp;#34;)(); const { loginCheck } = require(&amp;#34;../../middlewares/loginChecks&amp;#34;); const { getProfileBlogList } = require(&amp;#34;../../controller/blog-profile&amp;#34;); const { getBlogListStr } = require(&amp;#34;../../utils/blog&amp;#34;); router.prefix(&amp;#34;/api/profile&amp;#34;); // 加载更多 router.get(&amp;#34;/loadMore/:userName/:pageIndex&amp;#34;, loginCheck, async () =&amp;gt; { const { userName, pageIndex } = ctx.params; pageIndex = parseInt(pageIndex); const result = await getProfileBlogList(userName, pageIndex); // 渲染模板字符串 result.data.blogListTpl = getBlogListStr(result.data.blogList); ctx.body = result; }); 处理 ejs 模板 安装 ejs 依赖 npm i ejs --save 处理具体逻辑 src/utils/blog.</description>
+    </item>
+    
     <item>
       <title>Node/Koa2[51]: 个人主页</title>
       <link>/posts/815/</link>
