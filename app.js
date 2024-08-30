@@ -14,7 +14,6 @@ function removeHtml(directoryPath = null) {
       if (path.extname(file) === ".html") {
         const filePath = path.join(directoryPath, file);
         fs.unlinkSync(filePath);
-        console.log(`已刪除: ${filePath}`);
       }
     });
   } catch (err) {
