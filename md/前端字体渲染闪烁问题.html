@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端字体渲染闪烁？来试试预加载</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class=""><a title="H5完美适配刘海屏和状态栏高度的全机型解决方案攻略" href="/md/H5完美适配刘海屏和状态栏高度的全机型解决方案攻略.html">01 H5完美适配刘海屏和状态栏高度的全机型解决方案攻略</a></li><li class=""><a title="IOS 手机容器滚动条滑动不流畅" href="/md/IOS 手机容器滚动条滑动不流畅.html">02 IOS 手机容器滚动条滑动不流畅</a></li><li class=""><a title="window.open 弹窗被阻止解决方案" href="/md/window.open 弹窗被阻止解决方案.html">03 window.open 弹窗被阻止解决方案</a></li><li class="active"><a title="前端字体渲染闪烁问题" href="/md/前端字体渲染闪烁问题.html">04 前端字体渲染闪烁问题</a></li><li class=""><a title="实现页面刷新后不定位到之前的滚动位置" href="/md/实现页面刷新后不定位到之前的滚动位置.html">05 实现页面刷新后不定位到之前的滚动位置</a></li><li class=""><a title="当网页资源加载失败时，怎么处理" href="/md/当网页资源加载失败时，怎么处理.html">06 当网页资源加载失败时，怎么处理</a></li><li class=""><a title="浏览器保存密码后自动填充问题" href="/md/浏览器保存密码后自动填充问题.html">07 浏览器保存密码后自动填充问题</a></li><li class=""><a title="解决 ios audio 无法自动播放、循环播放的问题" href="/md/解决 ios audio 无法自动播放、循环播放的问题.html">08 解决 ios audio 无法自动播放、循环播放的问题</a></li><li class=""><a title="页面关闭时如何成功发送 API 请求" href="/md/页面关闭时如何成功发送 API 请求.html">09 页面关闭时如何成功发送 API 请求</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_right md">
+          <h1>前端字体渲染闪烁？来试试预加载</h1>
+          <h2>闪烁问题原因？</h2>
+<p>其实这里背后的原因 很简单就是，我们没有提前加载字体包，导致进入页面使用到了字体然后进行网络请求，但由于网络请求需要一段时间向服务端获取资源，这段时间前端页面会使用默认字体，此时从默认字体转化为请求的字体就出现闪烁。</p>
+<img src="../imgs/12/08.webp" />
+
+<h2>使用 css 发送网络请求加载字体</h2>
+<pre><code class="language-css">@font-face {
+  font-family: &quot;JD-UDC-Bold&quot;;
+  font-display: swap;
+  src: url(&quot;./JD-UDC-Bold.otf&quot;);
+}
+</code></pre>
+<h2>font-display 可选参数</h2>
+<ul>
+<li>font-display: auto;</li>
+<li>font-display: block;</li>
+<li>font-display: swap;</li>
+<li>font-display: fallback;</li>
+<li>font-display: optional;</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>属性值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>auto</td>
+<td>默认值。浏览器根据情况决定如何处理字体显示。</td>
+</tr>
+<tr>
+<td>block</td>
+<td>在字体加载完成之前，使用占位符进行显示，避免文本闪现或导致布局变化。</td>
+</tr>
+<tr>
+<td>swap</td>
+<td>在字体加载完成之前，<strong>使用与自定义字体相似的系统默认字体进行显示</strong>，保持整体布局的稳定性。</td>
+</tr>
+<tr>
+<td>fallback</td>
+<td>在字体加载完成之前，使用与自定义字体相似的系统默认字体进行显示，并在加载完成后切换为自定义字体。</td>
+</tr>
+<tr>
+<td>optional</td>
+<td>优先显示系统默认字体，在自定义字体在加载期间可用时切换为自定义字体。</td>
+</tr>
+</tbody></table>
+<h2>如何解决  ？</h2>
+<p>在下给大家提供两种方案</p>
+<h3>1：使用 JS  预加载字体包</h3>
+<p>此方案也是当前生产上正在使用的方式，使用 JS 提供的内置 API <code>FontFace</code>  进行请求</p>
+<pre><code class="language-js">async loadFund () { 
+    const fontList = [&#39;JR-UDC-Bold.otf&#39; , &#39;JR-UDC-Light.otf&#39;] // 定义字体文件名称
+    for(const fontResolveUrL of fontList){ // 循环字体文件名称
+        if(typeof FontFace !==  &#39;undefined&#39;){ // 适配低版本 不支持 FontFace 的情况
+            const fontInstance = new FontFace(fontResolveUrL.replace(/.otf/ , &#39;&#39;) , `url(../fonts/${fontResolveUrL})`) // 如果浏览器支持 FontFace 则创建实例
+            await fontInstance.load() // 开始加载字体
+        }else{
+            // 不兼容 可以手动发送一个 get请求 请求服务器资源
+        }
+    }
+}
+setTimeout(loadFund , 500)// 使用 异步加载不要影响页面的FCP
+</code></pre>
+<p>以上代码主要的逻辑时以下几点:</p>
+<ol>
+<li><p>定义异步函数</p>
+</li>
+<li><p>循环加载字体</p>
+</li>
+<li><p>判断浏览器是否支持 FontFace，不支持可以走 else 手动获取服务器资源</p>
+</li>
+</ol>
+<p>当你使用 FontFace 对象加载的时候，其实内部帮你发送网络请求，获取服务器资源。</p>
+<p><strong>FontFace  的参数</strong></p>
+<p><code>new FontFace(&#39;字体名称&#39;, &#39;字体资源路径&#39;, &#39;选项描述&#39;)</code> ，详细信息你可以参考<a href="https://developer.mozilla.org/en-US/docs/Web/API/FontFace/FontFace">FontFace MDN</a></p>
+<h3>2：使用 css 加载字体包</h3>
+<pre><code class="language-css">@font-face {
+    font-family: &#39;MyFont&#39;;
+    src: url(&#39;path/to/your/font.woff2&#39;) format(&#39;woff2&#39;), 
+    url(&#39;path/to/your/font.woff&#39;) format(&#39;woff&#39;), 
+    url(&#39;path/to/your/font.ttf&#39;) format(&#39;truetype&#39;); 
+    font-weight: normal; font-style: normal; 
+}
+</code></pre>
+<h2>总结</h2>
+<p>闪烁的问题来源于字体没有被加载，当被加载之后 css 渲染解析时，可以直接获取到资源，无需等待网络请求缓冲过程。</p>
+
+        </div>
+      </div>
+    </div>
+    <script defer src="../js/prism.min.js"></script>
+  </body>
+</html>

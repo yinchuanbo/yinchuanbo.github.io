@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>实现鼠标滚轮缩放SVG内容</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class=""><a title="5 种 JS 模式" href="/md/5 种 JS 模式.html">01 5 种 JS 模式</a></li><li class=""><a title="7 种位运算符的神奇用法" href="/md/7 种位运算符的神奇用法.html">02 7 种位运算符的神奇用法</a></li><li class=""><a title="JS 单行代码集" href="/md/JS 单行代码集.html">03 JS 单行代码集</a></li><li class=""><a title="使用 JS 向现有 SVG 中添加元素" href="/md/使用 JS 向现有 SVG 中添加元素.html">04 使用 JS 向现有 SVG 中添加元素</a></li><li class="active"><a title="实现鼠标滚轮缩放 SVG 内容" href="/md/实现鼠标滚轮缩放 SVG 内容.html">05 实现鼠标滚轮缩放 SVG 内容</a></li><li class=""><a title="速通 JS 性能优化" href="/md/速通 JS 性能优化.html">06 速通 JS 性能优化</a></li><li class=""><a title="高效检查 JS 对象中的键是否存在" href="/md/高效检查 JS 对象中的键是否存在.html">07 高效检查 JS 对象中的键是否存在</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_right md">
+          <h1>实现鼠标滚轮缩放SVG内容</h1>
+          <p>要实现鼠标滚轮缩放 <strong>SVG</strong>  内容，方法有两种，一种是借助第三方工具库，例如：<strong>svg-pan-zoom</strong>，另一个方案是原生手写，第一种对新手友好，只需要稍微配置一下参数就可以实现鼠标滚轮缩放 <strong>SVG</strong> 内容了。第三方插件都有详细的使用文档参考，不做演示，文章主要介绍原生手写鼠标滚轮滚动缩放 <strong>SVG</strong> 详细内容。需要滚动的 <strong>SVG</strong> 内容如下：</p>
+<img src="../imgs/14/01.webp" />
+
+<h2>重新认识 wheel 事件</h2>
+<p>滚轮（wheel）事件会在滚动鼠标滚轮或操作其他类似输入设备时触发。使用鼠标滚轮事件也分为两种，一种是监听 <strong>window</strong> 对象鼠标滚动事件 <strong>wheel，</strong> 一种是元素绑定滚轮事件或者监听元素滚轮事件。</p>
+<p>基本用法如下：</p>
+<pre><code class="language-js">// 监听window滚轮事件
+window.addEventListener(&quot;wheel&quot;, onWheel);
+// 适当时机必须移除监听
+window.removeEventListener(&quot;wheel&quot;, onWheel);
+functions onWheel (event) {
+  // TO DO
+}
+</code></pre>
+<pre><code class="language-js">// 监听文档鼠标滚轮滚动事件，记得移除监听
+document.addEventListener(&quot;wheel&quot;, onWheel);
+</code></pre>
+<pre><code class="language-js">// 监听元素滚轮事件
+Element.onwheel = onWheel;
+</code></pre>
+<pre><code class="language-html">&lt;!-- vue 中元素绑定滚轮事件 --&gt;
+&lt;div @wheel=&quot;onWheel&quot;&gt;&lt;/div&gt;
+</code></pre>
+<h2>事件类型</h2>
+<p>事件类型在 <strong>TypeScript</strong> 中非常有用，正确类型事件对象才会有属性提示。</p>
+<img src="../imgs/14/02.webp" />
+
+<h2>事件属性</h2>
+<img src="../imgs/14/03.webp" />
+
+<p>这里要关注的是 <strong>deltaX</strong> 和  <strong>deltaY</strong>, 一个是鼠标滚轮水平滚动值，一个鼠标垂直滚动值。</p>
+<p>event.deltaY 值大于 0，表示鼠标滚轮向后滚动。</p>
+<p>event.deltaY  值小于 0，表示鼠标滚轮向前滚动。</p>
+<h2>实现 SVG 内容缩放</h2>
+<p>实现 <strong>SVG</strong> 内容缩放，需要借助 <strong>g</strong> 元素，用 <strong>g</strong> 元素把所有  <strong>SVG</strong> 内容包裹起来，通过 <strong>transform</strong> 属性来进行缩放。</p>
+<h3>页面结构</h3>
+<pre><code class="language-html">&lt;template&gt;
+&lt;div class=&quot;organize_wrap&quot;&gt;
+    &lt;svg ref=&quot;svgRef&quot; :width=&quot;svg.width&quot; :height=&quot;svg.height&quot; preserveAspectRatio=&quot;xMidYMid meet&quot;
+    @wheel=&quot;onWheel&quot;&gt;
+        &lt;g :transform=&quot;`scale(${scaleLevel}) translate(${movePo.x}, ${movePo.y})`&quot; ref=&quot;zoomGroupRef&quot;&gt;
+            &lt;g v-for=&quot;(item, index) in newTreeData&quot; :key=&quot;index&quot;&gt;
+                &lt;foreignObject
+                    :x=&quot;item.x&quot;
+                    :y=&quot;item.y&quot;
+                    :width=&quot;item.node.width&quot;
+                    :height=&quot;item.node.height&quot;
+                    requiredExtensions=&quot;http://www.w3.org/1999/xhtml&quot;
+                    class=&quot;foreign-bject&quot;&gt;
+                    &lt;div class=&quot;node&quot;&gt;
+                        &lt;section class=&quot;head&quot;&gt;
+                            &lt;p class=&quot;image&quot;&gt;&lt;img src=&quot;./assets/common.png&quot; alt=&quot;&quot; srcset=&quot;&quot;&gt;&lt;/p&gt;
+                            &lt;span&gt;{{ item.node.label }}&lt;/span&gt;
+                        &lt;/section&gt;
+                        &lt;section &gt;{{ item.node.position }}&lt;/section&gt;
+                    &lt;/div&gt;
+                &lt;/foreignObject&gt;
+            &lt;/g&gt;
+            &lt;g v-for=&quot;(item, index) in edgesData&quot; :key=&quot;index&quot;&gt;
+                &lt;path :d=&quot;`M${item.points[0].x},${item.points[0].y}
+                C${item.points[2].x},${item.points[2].y} ${item.points[3].x},${item.points[3].y}
+                ${item.points[1].x},${item.points[1].y}`&quot; stroke=&quot;#18a058&quot; stroke-width=&quot;2&quot; fill=&quot;none&quot;/&gt;
+            &lt;/g&gt;
+        &lt;/g&gt;
+    &lt;/svg&gt;
+&lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<h3>js 部分</h3>
+<pre><code class="language-js">// 滚动事件
+const zoomGroupRef = ref(null);
+const scaleLevel = ref(1);
+let couter = 1;
+const onWheel = (evt) =&gt; {
+  // 阻止默认的滚轮行为
+  evt.preventDefault();
+  const svgWidth = svgRef.value.clientWidth;
+  const svgHeight = svgRef.value.clientHeight;
+  const centerX = svgWidth / 2;
+  const centerY = svgHeight / 2;
+  zoomGroupRef.value.setAttribute(&quot;transform-origin&quot;, `${centerX} ${centerY}`);
+  // deltaY 大于0向后滚，小于0向前滚
+  if (evt.deltaY &lt; 0 &amp;&amp; scaleLevel.value &gt; 0.1) {
+    couter -= 0.1;
+  } else {
+    couter += 0.1;
+  }
+  scaleLevel.value = parseFloat(couter.toFixed(1));
+};
+</code></pre>
+<h2>特别提醒</h2>
+<p>避免 <strong>SVG</strong> 不影响外部滚动条，如果有的话，需要设置阻止默认事件，避免事件穿透，从而专注 <strong>SVG</strong> 的鼠标滚轮滚动事件。为此特意加了如下代码：</p>
+<pre><code class="language-js">// 阻止默认的滚轮行为
+evt.preventDefault();
+</code></pre>
+<p>还有一件值得关注的事情，<strong>SVG</strong> 绑定鼠标滚轮滚动事件后，按照上面 <strong>js</strong> 代码逻辑，的确能滚动缩放成功，但它是以 <strong>SVG</strong> 左上角作为内容缩放的参照点，内容会变小移动到左上角，放大移动到右下角，不是想要的，想要的效果是以  <strong>SVG</strong> 为中心来缩放，这样内容放大缩小后就不会随便移动位置。此时就需要计算 <strong>SVG</strong> 的中心点，需要 <strong>SVG</strong> 的宽高各一半作为缩放参照中心点。</p>
+<p>这样就有了下面的代码。</p>
+<pre><code class="language-js">const svgWidth = svgRef.value.clientWidth;
+const svgHeight = svgRef.value.clientHeight;
+const centerX = svgWidth / 2;
+const centerY = svgHeight / 2;
+zoomGroupRef.value.setAttribute(&quot;transform-origin&quot;, `${centerX} ${centerY}`);
+</code></pre>
+<p><strong>transform-origin</strong> 就是修改缩放参照中心点的属性，这和 <strong>CSS</strong> 的<strong>transform-origin</strong> 功能一样的，只不过这里用在了 <strong>SVG</strong> 元素上。</p>
+<p>有意思的是，当你利用滚轮事件缩放时，如果转换浮点数值，js 浮点数计算 0.1 的加减法，就会出现多位小数的情况，这里需要转换一下，新增一个变量，最终将变量值转换成想要的一位小数即可。</p>
+<pre><code class="language-js">// deltaY 大于0向后滚，小于0向前滚
+if (evt.deltaY &lt; 0 &amp;&amp; scaleLevel.value &gt; 0.1) {
+  couter -= 0.1;
+} else {
+  couter += 0.1;
+}
+scaleLevel.value = parseFloat(couter.toFixed(1));
+</code></pre>
+<p><strong>scaleLevel.value &gt; 0.1</strong> 这个条件是很有必有的，如果不添加，缩放内容就会出现小到看不见，消失于画布之上，只有当缩放值大于 0.1 或者其他值时，才会进行缩放操作。另外 0.1 缩放也是比较合理的，有很好的视角过渡效果，也可以尝试其他值。  不出意外的话，效果将会是这样的。</p>
+<img src="../imgs/14/01.gif" />
+
+<img src="../imgs/14/04.webp" />
+        </div>
+      </div>
+    </div>
+    <script defer src="../js/prism.min.js"></script>
+  </body>
+</html>

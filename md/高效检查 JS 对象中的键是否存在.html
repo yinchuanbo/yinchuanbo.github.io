@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>如何高效检查 JavaScript 对象中的键是否存在</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class=""><a title="5 种 JS 模式" href="/md/5 种 JS 模式.html">01 5 种 JS 模式</a></li><li class=""><a title="7 种位运算符的神奇用法" href="/md/7 种位运算符的神奇用法.html">02 7 种位运算符的神奇用法</a></li><li class=""><a title="JS 单行代码集" href="/md/JS 单行代码集.html">03 JS 单行代码集</a></li><li class=""><a title="使用 JS 向现有 SVG 中添加元素" href="/md/使用 JS 向现有 SVG 中添加元素.html">04 使用 JS 向现有 SVG 中添加元素</a></li><li class=""><a title="实现鼠标滚轮缩放 SVG 内容" href="/md/实现鼠标滚轮缩放 SVG 内容.html">05 实现鼠标滚轮缩放 SVG 内容</a></li><li class=""><a title="速通 JS 性能优化" href="/md/速通 JS 性能优化.html">06 速通 JS 性能优化</a></li><li class="active"><a title="高效检查 JS 对象中的键是否存在" href="/md/高效检查 JS 对象中的键是否存在.html">07 高效检查 JS 对象中的键是否存在</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_right md">
+          <h1>如何高效检查 JavaScript 对象中的键是否存在</h1>
+          <h2>问题背景</h2>
+<p>假设我们有一个简单的对象：</p>
+<pre><code class="language-js">const user = {
+  name: &quot;John&quot;,
+  age: 30,
+};
+</code></pre>
+<p>我们想在访问 <code>name</code> 键之前检查它是否存在：</p>
+<pre><code class="language-js">if (user.name) {
+  console.log(user.name);
+}
+</code></pre>
+<p>这个方法表面上看没问题，但如果 <code>name</code> 键存在但值是 <code>undefined</code> 会怎样呢？</p>
+<pre><code class="language-js">const user = {
+  name: undefined,
+};
+
+if (user.name) {
+  // 这段代码不会执行！
+}
+</code></pre>
+<p>直接访问一个不存在的键会返回 <code>undefined</code>，但是访问值为 <code>undefined</code> 的键也是返回 <code>undefined</code>。所以我们不能依赖直接键访问来检查键是否存在。</p>
+<h2>使用 typeof</h2>
+<p>一种常见的方法是使用 <code>typeof</code> 来检查类型：</p>
+<pre><code class="language-js">if (typeof user.name !== &quot;undefined&quot;) {
+  console.log(user.name);
+}
+</code></pre>
+<p><code>typeof</code> 会对不存在的键返回 <code>&quot;undefined&quot;</code>，对存在的键返回其它类型，如 <code>&quot;string&quot;</code>。然而，这种方法有几个缺点：</p>
+<ul>
+<li>需要额外的操作（<code>typeof</code>）而不是直接比较</li>
+<li>比较冗长且需要否定检查（<code>!==</code>）</li>
+<li>可读性不如其他方法</li>
+<li>容易拼写错误 <code>&#39;undefined&#39;</code></li>
+</ul>
+<h2>使用 in 操作符</h2>
+<p><code>in</code> 操作符允许我们检查键是否存在于对象中：</p>
+<pre><code class="language-js">if (&quot;name&quot; in user) {
+  console.log(user.name);
+}
+</code></pre>
+<p>这种方法比 <code>typeof</code> 更简洁：</p>
+<ul>
+<li>简单且可读</li>
+<li>内置语言特性，专为此设计</li>
+<li>对所有值都有效，包括 <code>undefined</code></li>
+</ul>
+<p>但是，<code>in</code> 操作符也会检查对象的原型链。因此它对原型链上存在的键也会返回 <code>true</code>。</p>
+<h2>使用 hasOwnProperty</h2>
+<p>要仅检查对象自身的键，可以使用 <code>hasOwnProperty</code>：</p>
+<pre><code class="language-js">if (user.hasOwnProperty(&quot;name&quot;)) {
+  console.log(user.name);
+}
+</code></pre>
+<p>这种方法只会返回对象自身拥有的键，而不会检查继承的属性：</p>
+<ul>
+<li>只检查自身键，不包括继承的</li>
+<li>方法名清晰，容易理解</li>
+</ul>
+<p>缺点是 <code>hasOwnProperty</code> 需要方法调用，在性能关键的代码中可能会有影响。</p>
+<h2>性能比较</h2>
+<p>哪种方法最快呢？以下是直接键访问 <code>in</code>、<code>hasOwnProperty</code> 和 <code>typeof</code> 的简单性能比较：</p>
+<pre><code class="language-js">const user = {
+  name: &quot;John&quot;,
+};
+
+let key = &quot;name&quot;;
+
+function directAccess() {
+  return user[key] !== undefined;
+}
+
+function inOperator() {
+  return key in user;
+}
+
+function hasOwnProperty() {
+  return user.hasOwnProperty(key);
+}
+
+function typeofCheck() {
+  return typeof user[key] !== &quot;undefined&quot;;
+}
+
+function objectKeysCheck() {
+  return Object.keys(user).includes(key);
+}
+
+// 运行每个函数100万次
+let start = performance.now();
+for (let i = 0; i &lt; 1000000; i++) {
+  directAccess();
+}
+console.log(`directAccess took ${performance.now() - start} ms`);
+
+start = performance.now();
+for (let i = 0; i &lt; 1000000; i++) {
+  inOperator();
+}
+console.log(`inOperator took ${performance.now() - start} ms`);
+
+start = performance.now();
+for (let i = 0; i &lt; 1000000; i++) {
+  hasOwnProperty();
+}
+console.log(`hasOwnProperty took ${performance.now() - start} ms`);
+
+start = performance.now();
+for (let i = 0; i &lt; 1000000; i++) {
+  typeofCheck();
+}
+console.log(`typeofCheck took ${performance.now() - start} ms`);
+
+start = performance.now();
+for (let i = 0; i &lt; 1000000; i++) {
+  objectKeysCheck();
+}
+console.log(`objectKeysCheck took ${performance.now() - start} ms`);
+</code></pre>
+<p>结果如下（ 测试机器：apple m1 ,内存 16G）：</p>
+<ul>
+<li>directAccess 耗时 1.59 毫秒</li>
+<li>inOperator 耗时 0.97 毫秒（注：inOperator 和 typeofCheck 有时会比较接近）</li>
+<li>hasOwnProperty 耗时 4.74 毫秒</li>
+<li>typeofCheck 耗时 1.16  毫秒</li>
+<li>Object.keys()耗时  8.48  毫秒</li>
+</ul>
+<p>如上所示，inOperator 运算显著快于其他方法。</p>
+<h2>总结</h2>
+<ul>
+<li>直接键访问较快且易读但无法处理<code>undefined</code>值</li>
+<li><code>in</code>操作符最快但能处理所有值，包括<code>undefined</code></li>
+<li><code>hasOwnProperty</code>较慢但只检查对象自身的键</li>
+<li><code>typeof</code>速度较快但需要冗长的否定检查</li>
+<li>Object.keys()方法直观，但速度最慢</li>
+</ul>
+<p>在大多数情况下，<code>in</code>操作符在可读性和性能之间提供了最佳平衡。只有在需要排除继承键时才使用<code>hasOwnProperty</code>。</p>
+<p>理解这些不同方法的细微差别是检查 JavaScript 键的关键。根据具体需求选择合适的工具，除非性能至关重要，否则应优先考虑可读性。</p>
+
+        </div>
+      </div>
+    </div>
+    <script defer src="../js/prism.min.js"></script>
+  </body>
+</html>

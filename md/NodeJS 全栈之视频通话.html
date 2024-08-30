@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NodeJS 全栈之视频通话</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class="active"><a title="NodeJS 全栈之视频通话" href="/md/NodeJS 全栈之视频通话.html">01 NodeJS 全栈之视频通话</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_right md">
+          <h1>NodeJS 全栈之视频通话</h1>
+          <p>WebRTC（Web 实时通信）是一种使 Web 应用程序和站点能够捕获和选择性地流式传输音频或视频媒体，以及在浏览器之间交换任意数据的而无需中间件的技术。WebRTC 的一系列标准使得在不需要用户安装插件或任何其他第三方软件的情况下，可以实现点对点数据共享和电话会议。</p>
+<p>WebRTC 提供了大量的 API，这对于我们在日常开发中方便使用，在此简单阐述它的基本使用：</p>
+<pre><code class="language-js">// 创建数据源
+const localStream = await navigator.mediaDevices.getUserMedia({
+  video: true,
+  audio: true,
+});
+// 显示数据源，localVideo 是 html 中的 video 标签
+localVideo.srcObject = localStream;
+</code></pre>
+<pre><code class="language-js">//创建连接
+const pc1 = new RTCPeerConnection();
+</code></pre>
+<pre><code class="language-js">//调用监控
+stream = await navigator.mediaDevices.getUserMedia({
+  video: true,
+  audio: true,
+});
+</code></pre>
+<pre><code class="language-js">//将媒体轨道添加到轨道集
+stream.getTracks().forEach((track) =&gt; {
+  peer.addTrack(track, stream);
+});
+</code></pre>
+<p>WebRTC 的使用过程还是遵循 WebSocket 的传输逻辑，只是在此基础上新增许多属性，更多 API 可以去官网或 MDN 去查询，接下来我们以实际 demo 展示其效果，源码如下：</p>
+<p><strong>index.html</strong></p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;ie=edge&quot; /&gt;
+    &lt;title&gt;p2p webrtc&lt;/title&gt;
+    &lt;style&gt;
+      body {
+        background-color: aliceblue;
+      }
+      .title {
+        text-align: center;
+        margin: 50px 0;
+      }
+      .container {
+        width: 500px;
+        margin: 100px auto;
+        padding: 30px;
+        border-radius: 10px;
+        border: 1px solid #ebeef5;
+        box-shadow: 0 2px 12px 0 rgba(142, 131, 248, 0.8);
+        color: #303133;
+      }
+      @media screen and (max-width: 1000px) {
+        .container {
+          width: 70vw;
+        }
+      }
+      ol li {
+        margin: 20px 0;
+      }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div class=&quot;container&quot;&gt;
+      &lt;h1 class=&quot;title&quot;&gt;操作流程&lt;/h1&gt;
+      &lt;ol&gt;
+        &lt;li&gt;
+          打开 &lt;a href=&quot;/p2p?type=answer&quot; target=&quot;_blank&quot;&gt;接收方页面&lt;/a&gt;；
+        &lt;/li&gt;
+        &lt;li&gt;打开 &lt;a href=&quot;/p2p?type=offer&quot; target=&quot;_blank&quot;&gt;发起方页面&lt;/a&gt;；&lt;/li&gt;
+        &lt;li&gt;确认双方都已建立ws连接；&lt;/li&gt;
+        &lt;li&gt;发起方点击 start 按钮。&lt;/li&gt;
+      &lt;/ol&gt;
+    &lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p><strong>p2p.html</strong></p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;ie=edge&quot; /&gt;
+    &lt;title&gt;&lt;/title&gt;
+    &lt;style&gt;
+      * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background-color: aliceblue;
+      }
+      .container {
+        width: 100%;
+        display: flex;
+        display: -webkit-flex;
+        justify-content: space-around;
+        padding-top: 20px;
+      }
+      .video-box {
+        position: relative;
+        width: 800px;
+        height: 800px;
+      }
+      #remote-video {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        border: 1px solid #eee;
+        background-color: #f2f6fc;
+      }
+      #local-video {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        width: 240px;
+        height: 120px;
+        object-fit: cover;
+        border: 1px solid #eee;
+        background-color: #ebeef5;
+      }
+      .start-button {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 100px;
+        display: none;
+        line-height: 40px;
+        outline: none;
+        color: #fff;
+        background-color: #409eff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transform: translate(-50%, -50%);
+      }
+      .logger {
+        width: 40%;
+        padding: 14px;
+        line-height: 1.5;
+        color: #4fbf40;
+        border-radius: 6px;
+        background-color: #272727;
+      }
+      .logger .error {
+        color: #dd4a68;
+      }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div class=&quot;container&quot;&gt;
+      &lt;div class=&quot;video-box&quot;&gt;
+        &lt;video id=&quot;remote-video&quot;&gt;&lt;/video&gt;
+        &lt;video id=&quot;local-video&quot; muted&gt;&lt;/video&gt;
+        &lt;button class=&quot;start-button&quot; onclick=&quot;startLive()&quot;&gt;start&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;logger&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;script&gt;
+      const message = {
+        el: document.querySelector(&quot;.logger&quot;),
+        log(msg) {
+          this.el.innerHTML += `&lt;span&gt;${new Date().toLocaleTimeString()}：${msg}&lt;/span&gt;&lt;br/&gt;`;
+        },
+        error(msg) {
+          this.el.innerHTML += `&lt;span class=&quot;error&quot;&gt;${new Date().toLocaleTimeString()}：${msg}&lt;/span&gt;&lt;br/&gt;`;
+        },
+      };
+
+      const target = location.search.slice(6);
+      const localVideo = document.querySelector(&quot;#local-video&quot;);
+      const remoteVideo = document.querySelector(&quot;#remote-video&quot;);
+      const button = document.querySelector(&quot;.start-button&quot;);
+
+      localVideo.onloadeddata = () =&gt; {
+        message.log(&quot;播放本地视频&quot;);
+        localVideo.play();
+      };
+      remoteVideo.onloadeddata = () =&gt; {
+        message.log(&quot;播放对方视频&quot;);
+        remoteVideo.play();
+      };
+
+      document.title = target === &quot;offer&quot; ? &quot;发起方&quot; : &quot;接收方&quot;;
+
+      message.log(&quot;信令通道（WebSocket）创建中......&quot;);
+      const socket = new WebSocket(&quot;ws://localhost:8000&quot;);
+      socket.onopen = () =&gt; {
+        message.log(&quot;信令通道创建成功！&quot;);
+        target === &quot;offer&quot; &amp;&amp; (button.style.display = &quot;block&quot;);
+      };
+      socket.onerror = () =&gt; message.error(&quot;信令通道创建失败！&quot;);
+      socket.onmessage = (e) =&gt; {
+        const { type, sdp, iceCandidate } = JSON.parse(e.data);
+        if (type === &quot;answer&quot;) {
+          peer.setRemoteDescription(new RTCSessionDescription({ type, sdp }));
+        } else if (type === &quot;answer_ice&quot;) {
+          peer.addIceCandidate(iceCandidate);
+        } else if (type === &quot;offer&quot;) {
+          startLive(new RTCSessionDescription({ type, sdp }));
+        } else if (type === &quot;offer_ice&quot;) {
+          peer.addIceCandidate(iceCandidate);
+        }
+      };
+
+      const PeerConnection =
+        window.RTCPeerConnection ||
+        window.mozRTCPeerConnection ||
+        window.webkitRTCPeerConnection;
+      !PeerConnection &amp;&amp; message.error(&quot;浏览器不支持WebRTC！&quot;);
+      const peer = new PeerConnection();
+
+      peer.ontrack = (e) =&gt; {
+        if (e &amp;&amp; e.streams) {
+          message.log(&quot;收到对方音频/视频流数据...&quot;);
+          remoteVideo.srcObject = e.streams[0];
+        }
+      };
+
+      peer.onicecandidate = (e) =&gt; {
+        if (e.candidate) {
+          message.log(&quot;搜集并发送候选人&quot;);
+          socket.send(
+            JSON.stringify({
+              type: `${target}_ice`,
+              iceCandidate: e.candidate,
+            })
+          );
+        } else {
+          message.log(&quot;候选人收集完成！&quot;);
+        }
+      };
+
+      async function startLive(offerSdp) {
+        target === &quot;offer&quot; &amp;&amp; (button.style.display = &quot;none&quot;);
+        let stream;
+        try {
+          message.log(&quot;尝试调取本地摄像头/麦克风&quot;);
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+          message.log(&quot;摄像头/麦克风获取成功！&quot;);
+          localVideo.srcObject = stream;
+        } catch {
+          message.error(&quot;摄像头/麦克风获取失败！&quot;);
+          return;
+        }
+
+        message.log(
+          `------ WebRTC ${
+            target === &quot;offer&quot; ? &quot;发起方&quot; : &quot;接收方&quot;
+          }流程开始 ------`
+        );
+        message.log(&quot;将媒体轨道添加到轨道集&quot;);
+        stream.getTracks().forEach((track) =&gt; {
+          peer.addTrack(track, stream);
+        });
+
+        if (!offerSdp) {
+          message.log(&quot;创建本地SDP&quot;);
+          const offer = await peer.createOffer();
+          await peer.setLocalDescription(offer);
+
+          message.log(`传输发起方本地SDP`);
+          socket.send(JSON.stringify(offer));
+        } else {
+          message.log(&quot;接收到发送方SDP&quot;);
+          await peer.setRemoteDescription(offerSdp);
+
+          message.log(&quot;创建接收方（应答）SDP&quot;);
+          const answer = await peer.createAnswer();
+          message.log(`传输接收方（应答）SDP`);
+          socket.send(JSON.stringify(answer));
+          await peer.setLocalDescription(answer);
+        }
+      }
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p><strong>服务端：app.js</strong></p>
+<pre><code class="language-js">const app = require(&quot;express&quot;)();
+const wsInstance = require(&quot;express-ws&quot;)(app);
+
+app.ws(&quot;/&quot;, (ws) =&gt; {
+  ws.on(&quot;message&quot;, (data) =&gt; {
+    // 未做业务处理，收到消息后直接广播
+    wsInstance.getWss().clients.forEach((server) =&gt; {
+      if (server !== ws) {
+        server.send(data);
+      }
+    });
+  });
+});
+
+app.get(&quot;/&quot;, (req, res) =&gt; {
+  res.sendFile(&quot;./client/index.html&quot;, { root: __dirname });
+});
+
+app.get(&quot;/p2p&quot;, (req, res) =&gt; {
+  res.sendFile(&quot;./client/p2p.html&quot;, { root: __dirname });
+});
+
+app.listen(8000);
+</code></pre>
+<p>如何使用：启动服务(node app)，访问 localhost:8000 即可</p>
+<p>注意，此处只是 demo，适合本地运行，如果你想远程使用，建议部署至服务器。</p>
+<p>效果图：</p>
+<img src="../imgs/10/01.webp" />
+        </div>
+      </div>
+    </div>
+    <script defer src="../js/prism.min.js"></script>
+  </body>
+</html>

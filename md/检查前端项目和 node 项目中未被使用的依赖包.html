@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>检查前端项目和 node 项目中未被使用的依赖包</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class=""><a title="前端构建系统浅析" href="/md/前端构建系统浅析.html">01 前端构建系统浅析</a></li><li class=""><a title="最新 ESLint 9.0 + vue3.0 + TS 配置" href="/md/最新 ESLint 9.0 + vue3.0 + TS 配置.html">02 最新 ESLint 9.0 + vue3.0 + TS 配置</a></li><li class="active"><a title="检查前端项目和 node 项目中未被使用的依赖包" href="/md/检查前端项目和 node 项目中未被使用的依赖包.html">03 检查前端项目和 node 项目中未被使用的依赖包</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_right md">
+          <h1>检查前端项目和 node 项目中未被使用的依赖包</h1>
+          <p>随着前端项目中使用的依赖包越来越多，而其中一部分依赖包可能并未被项目所使用，手动查找这些依赖包既耗时又繁琐。未使用的依赖包会增加项目的大小，这可能会导致下载和安装你的应用所需的时间更长。并且在构建项目时，构建工具需要处理所有的依赖包。未使用的依赖包可能会不必要地增加构建时间，特别是在大型项目中。</p>
+<h2>编写脚本来识别未使用的依赖包</h2>
+<p>Depcheck 是一款用于分析项目中依赖关系的工具，它可以帮助我们找出以下问题：在 package.json 中，每个依赖包如何被使用、哪些依赖包没有用处、哪些依赖包缺失。它是解决前端项目中依赖包清理问题的一个常用工具。</p>
+<p>接下来的内容中，我们不是使用这个库，而是自己编写一个脚本来实现我们想要的功能。它主要的步骤被划分为：</p>
+<ol>
+<li>读取根目录下的 package.json 文件。</li>
+<li>递归遍历目录获取所有文件路径，并且跳过 excludeDirs 中指定的目录。</li>
+<li>检查依赖是否在文件中被引用，并找到未使用的依赖。</li>
+<li>执行检查并报告结果。</li>
+</ol>
+<p>最终代码如下所示：</p>
+<pre><code class="language-js">const fs = require(&quot;fs&quot;);
+const path = require(&quot;path&quot;);
+
+const projectDir = path.resolve(&quot;.&quot;); // 当前项目目录
+const excludeDirs = [&quot;node_modules&quot;, &quot;.git&quot;]; // 应该排除的目录
+
+// 读取并解析package.json
+function readPackageJson() {
+  const packageJsonPath = path.join(projectDir, &quot;package.json&quot;);
+  if (!fs.existsSync(packageJsonPath)) {
+    console.error(&quot;package.json not found.&quot;);
+    process.exit(1);
+  }
+  return JSON.parse(fs.readFileSync(packageJsonPath, &quot;utf8&quot;));
+}
+
+// 递归遍历目录获取所有文件路径
+function getAllFiles(dirPath, arrayOfFiles) {
+  const files = fs.readdirSync(dirPath);
+
+  arrayOfFiles = arrayOfFiles || [];
+
+  files.forEach(function (file) {
+    if (fs.statSync(dirPath + &quot;/&quot; + file).isDirectory()) {
+      if (!excludeDirs.includes(file)) {
+        arrayOfFiles = getAllFiles(dirPath + &quot;/&quot; + file, arrayOfFiles);
+      }
+    } else {
+      arrayOfFiles.push(path.join(dirPath, &quot;/&quot;, file));
+    }
+  });
+
+  return arrayOfFiles;
+}
+
+// 检查依赖是否在文件中被引用，包括动态引用
+function isDependencyUsed(files, dependency) {
+  const regexStaticImport = new RegExp(
+    `require\\([&#39;&quot;\`]${dependency}[&#39;&quot;\`]|from [&#39;&quot;\`]${dependency}[&#39;&quot;\`]`,
+    &quot;i&quot;
+  );
+  const regexDynamicImport = new RegExp(
+    `import\\([&#39;&quot;\`]${dependency}[&#39;&quot;\`]\\)`,
+    &quot;i&quot;
+  );
+  return files.some((file) =&gt; {
+    const fileContent = fs.readFileSync(file, &quot;utf8&quot;);
+    return (
+      regexStaticImport.test(fileContent) ||
+      regexDynamicImport.test(fileContent)
+    );
+  });
+}
+
+function findUnusedDependencies() {
+  const { dependencies } = readPackageJson();
+  const allFiles = getAllFiles(projectDir);
+  const unusedDependencies = [];
+
+  Object.keys(dependencies).forEach((dependency) =&gt; {
+    if (!isDependencyUsed(allFiles, dependency)) {
+      unusedDependencies.push(dependency);
+    }
+  });
+
+  return unusedDependencies;
+}
+
+const unusedDependencies = findUnusedDependencies();
+if (unusedDependencies.length &gt; 0) {
+  console.log(&quot;未使用的依赖:&quot;, unusedDependencies.join(&quot;, &quot;));
+} else {
+  console.log(&quot;所有依赖都已使用。&quot;);
+}
+</code></pre>
+<p>运行上面的代码我们可以获取到哪些依赖包是没有被使用到的。</p>
+<p>在上面的两个正则中，它的作用如下：</p>
+<ol>
+<li>require 语句的使用，例如：<code>require(&#39;dependency&#39;)</code>。</li>
+<li>ES6 模块导入语句中 from 后面的部分，例如：<code>import something from &#39;dependency&#39;</code>。</li>
+<li>匹配动态 <code>import()</code> 语法的使用，例如：<code>import(&#39;dependency&#39;)</code>。</li>
+</ol>
+<p>这两个正则表达式的目的是为了在文件中找到对指定依赖的引用，无论这些引用是静态的还是动态的。</p>
+<p>接下来我们执行一下代码，最终输出结果如下图所示：</p>
+<img src="../imgs/01/01.awebp" />
+
+<p>这里我们可以查看到哪些内容是没有被使用到的，紧接着，我们可以再添加一行代码进行测试：</p>
+<img src="../imgs/01/02.awebp" />
+
+<p>你可以看到，当我们添加了一个动态包导入之后，<code>@fastify/static</code> 被从未使用的依赖中移除掉了。</p>
+
+        </div>
+      </div>
+    </div>
+    <script defer src="../js/prism.min.js"></script>
+  </body>
+</html>

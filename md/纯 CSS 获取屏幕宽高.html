@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>不使用 JS 纯 CSS 获取屏幕宽高</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class="active"><a title="纯 CSS 获取屏幕宽高" href="/md/纯 CSS 获取屏幕宽高.html">01 纯 CSS 获取屏幕宽高</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_right md">
+          <h1>不使用 JS 纯 CSS 获取屏幕宽高</h1>
+          <p>在现代前端开发中，获取屏幕的宽度和高度通常依赖于 JavaScript。然而现代 CSS 也可以获取到屏幕的宽高，通过自定义属性（CSS Variables）和一些数学函数来实现这一目标。本文将详细解析如何使用 CSS 的 <code>@property</code> 规则和一些数学运算来获取屏幕的宽高，严格的说是获取<strong>视口的宽度和高度</strong>。</p>
+<p>使用 CSS 获取屏幕宽高仅是一种实现方式，部分属性和数学函数有一定的兼容性问题，所以线上环境使用需谨慎。首先来了解一些前置知识点：</p>
+<h2>1. CSS 自定义属性</h2>
+<p>CSS 自定义属性（也称为 CSS 变量）允许开发者在 CSS 中定义可重用的值。通过使用 var() 函数，可以在样式表的任何地方引用这些变量。自定义属性的定义通常在 <code>:root</code> 选择器中进行，以便在整个文档中使用。</p>
+<pre><code class="language-css">:root {
+  --shadow-hue: 180deg;
+  --spring-duration: 1.33s;
+  --canvas: 220;
+  --bg: hsl(var(--canvas), 15%, 22%);
+  --wgt: 200;
+}
+</code></pre>
+<h2>2. @property 规则</h2>
+<p><code>@property</code> 规则是 CSS 的一项新特性，允许开发者定义自定义属性的语法、继承性和初始值。通过 @property，我们可以指定一个属性的类型和默认值。</p>
+<p>在我们的示例中，我们定义了两个自定义属性 <code>--_w</code> 和 <code>--_h</code>，分别表示屏幕的宽度和高度：</p>
+<pre><code class="language-css">@property --_w {
+  syntax: &quot;&lt;length&gt;&quot;;
+  inherits: true;
+  initial-value: 100vw;
+}
+
+@property --_h {
+  syntax: &quot;&lt;length&gt;&quot;;
+  inherits: true;
+  initial-value: 100vh;
+}
+</code></pre>
+<ul>
+<li><code>syntax: &#39;&lt;length&gt;&#39;</code> 指定了属性的类型为长度。</li>
+<li><code>inherits: true</code> 表示该属性可以继承。</li>
+<li><code>initial-value</code> 设置了属性的初始值，分别为 100vw 和 100vh，即视口的宽度和高度。</li>
+</ul>
+<h2>3. 数学运算函数</h2>
+<ul>
+<li><code>atan2(y, x)</code> 函数返回从 x 轴到点 <code>(x, y)</code> 的角度（以弧度为单位）。</li>
+<li><code>tan()</code> 函数则计算给定角度的正切值。</li>
+</ul>
+<h2>4. 计算屏幕宽高</h2>
+<p>在 <code>:root</code> 选择器中，我们使用 <code>tan()</code> 和 <code>atan2()</code> 函数来计算屏幕的宽度和高度，在这里我们将 <code>var(--_w)</code> 和 1px 作为参数传递，计算出宽度的角度。通过这种方式，我们可以将宽度和高度转换为无单位的整数值。</p>
+<pre><code class="language-css">:root {
+  --w: tan(atan2(var(--_w), 1px));
+  --h: tan(atan2(var(--_h), 1px));
+}
+</code></pre>
+<h2>5. 使用 counter 显示宽高</h2>
+<p>在 <code>body:before</code> 伪元素中，我们使用 <code>counter</code> 来显示计算出的宽度和高度：</p>
+<pre><code class="language-css">body:before {
+  content: counter(w) &quot;x&quot; counter(h);
+  counter-reset: h var(--h) w var(--w);
+  font-size: 50px;
+  font-family: system-ui, sans-serif;
+  font-weight: 900;
+  position: fixed;
+  inset: 0;
+  width: fit-content;
+  height: fit-content;
+  margin: auto;
+}
+</code></pre>
+<ul>
+<li><code>counter-reset</code> 用于初始化计数器 h 和 w，并将其值设置为 <code>var(--h)</code> 和 <code>var(--w)</code>。</li>
+<li><code>content: counter(w) &quot;x&quot; counter(h);</code> 用于显示宽度和高度，格式为 宽度 x 高度。</li>
+<li>通过设置 <code>position: fixed</code> 和 <code>inset: 0</code>，我们将内容居中显示在屏幕上。</li>
+</ul>
+<h2>6. 效果展示</h2>
+<p>当页面加载时，浏览器会根据视口的实际宽度和高度计算出 <code>--w</code> 和 <code>--h</code> 的值，并在页面上显示出来。整个过程完全不依赖于 JavaScript。</p>
+<img src="../imgs/11/01.gif" />
+        </div>
+      </div>
+    </div>
+    <script defer src="../js/prism.min.js"></script>
+  </body>
+</html>
