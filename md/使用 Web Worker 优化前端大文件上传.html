@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>使用 Web Worker 优化前端大文件上传</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class=""><a title="API 技巧" href="/md/API 技巧.html">01 API 技巧</a></li><li class=""><a title="Performance 面板分析性能瓶颈全流程" href="/md/Performance 面板分析性能瓶颈全流程.html">02 Performance 面板分析性能瓶颈全流程</a></li><li class=""><a title="书写高性能的代码" href="/md/书写高性能的代码.html">03 书写高性能的代码</a></li><li class=""><a title="了解透彻浏览器缓存" href="/md/了解透彻浏览器缓存.html">04 了解透彻浏览器缓存</a></li><li class="active"><a title="使用 Web Worker 优化前端大文件上传" href="/md/使用 Web Worker 优化前端大文件上传.html">05 使用 Web Worker 优化前端大文件上传</a></li><li class=""><a title="内存泄漏排查" href="/md/内存泄漏排查.html">06 内存泄漏排查</a></li><li class=""><a title="利用 Performance API 分析网站性能" href="/md/利用 Performance API 分析网站性能.html">07 利用 Performance API 分析网站性能</a></li><li class=""><a title="前端如何优化资源加载" href="/md/前端如何优化资源加载.html">08 前端如何优化资源加载</a></li><li class=""><a title="加载注意事项" href="/md/加载注意事项.html">09 加载注意事项</a></li><li class=""><a title="性能优化-时间分片渲染简单做法" href="/md/性能优化-时间分片渲染简单做法.html">10 性能优化-时间分片渲染简单做法</a></li><li class=""><a title="性能优化全家桶：6 个方面 9 点建议" href="/md/性能优化全家桶：6 个方面 9 点建议.html">11 性能优化全家桶：6 个方面 9 点建议</a></li><li class=""><a title="构建优化" href="/md/构建优化.html">12 构建优化</a></li><li class=""><a title="浅谈前端性能优化之评估工具" href="/md/浅谈前端性能优化之评估工具.html">13 浅谈前端性能优化之评估工具</a></li><li class=""><a title="浏览器渲染性能分析技巧" href="/md/浏览器渲染性能分析技巧.html">14 浏览器渲染性能分析技巧</a></li><li class=""><a title="渲染优化" href="/md/渲染优化.html">15 渲染优化</a></li><li class=""><a title="看《浏览器基本原理与实践》后，36点总结" href="/md/看《浏览器基本原理与实践》后，36点总结.html">16 看《浏览器基本原理与实践》后，36点总结</a></li><li class=""><a title="网站优化之静态资源优化" href="/md/网站优化之静态资源优化.html">17 网站优化之静态资源优化</a></li><li class=""><a title="网页太慢了怎么排查" href="/md/网页太慢了怎么排查.html">18 网页太慢了怎么排查</a></li><li class=""><a title="聊聊图片预加载" href="/md/聊聊图片预加载.html">19 聊聊图片预加载</a></li><li class=""><a title="资源优先级" href="/md/资源优先级.html">20 资源优先级</a></li><li class=""><a title="页面加载流程分析技巧" href="/md/页面加载流程分析技巧.html">21 页面加载流程分析技巧</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_right md">
+          <h1>使用 Web Worker 优化前端大文件上传</h1>
+          <h3>1. 分析任务</h3>
+<p>上传大文件时，为防止长时间占用主线程，可以将文件分割成多个小片段（chunks），每个片段独立上传。利用 Web Workers 可以并行处理文件的读取、分片、上传等任务。</p>
+<h3>2. 设置 Web Worker 环境</h3>
+<p>首先，你需要创建一个 Worker 脚本。例如，<code>uploadWorker.js</code>，该脚本将用来处理文件的读取及上传逻辑。</p>
+<pre><code class="language-js">// uploadWorker.js
+self.onmessage = function (e) {
+  const { fileChunk, uploadUrl } = e.data;
+  // 处理文件上传逻辑
+  uploadFileChunk(fileChunk, uploadUrl);
+};
+function uploadFileChunk(chunk, url) {
+  // 使用Fetch API或XMLHttpRequest上传文件片段
+  fetch(url, {
+    method: &quot;POST&quot;,
+    body: chunk,
+  })
+    .then((response) =&gt; {
+      return response.json();
+    })
+    .then((data) =&gt; {
+      self.postMessage({ status: &quot;uploaded&quot;, data: data });
+    })
+    .catch((error) =&gt; {
+      self.postMessage({ status: &quot;error&quot;, error: error });
+    });
+}
+</code></pre>
+<h2>3. 在主线程中使用 Web Worker</h2>
+<p>在主线程，我们创建 Worker，并处理文件分割，然后发送文件块到 Worker。</p>
+<pre><code class="language-js">// 主文件 main.js
+const worker = new Worker(&quot;uploadWorker.js&quot;);
+worker.onmessage = function (e) {
+  console.log(&quot;从Worker返回的消息:&quot;, e.data);
+};
+function handleFileUpload(file) {
+  const chunkSize = 1024 * 1024 * 5; // 分割大小，例如5MB
+  let currentChunk = 0;
+  const chunks = [];
+  while (currentChunk &lt; file.size) {
+    chunks.push(
+      file.slice(currentChunk, Math.min(file.size, currentChunk + chunkSize))
+    );
+    currentChunk += chunkSize;
+  }
+  chunks.forEach((chunk) =&gt; {
+    // 将每个chunk发送至worker处理
+    worker.postMessage({
+      fileChunk: chunk,
+      uploadUrl: &quot;https://example.com/upload&quot;,
+    });
+  });
+}
+// 监听文件选择器的改变
+document
+  .querySelector(&quot;#fileInput&quot;)
+  .addEventListener(&quot;change&quot;, function (event) {
+    const file = event.target.files[0];
+    handleFileUpload(file);
+  });
+</code></pre>
+
+        </div>
+      </div>
+    </div>
+    <script defer src="../js/prism.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>性能优化-时间分片渲染简单做法</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class=""><a title="API 技巧" href="/md/API 技巧.html">01 API 技巧</a></li><li class=""><a title="Performance 面板分析性能瓶颈全流程" href="/md/Performance 面板分析性能瓶颈全流程.html">02 Performance 面板分析性能瓶颈全流程</a></li><li class=""><a title="书写高性能的代码" href="/md/书写高性能的代码.html">03 书写高性能的代码</a></li><li class=""><a title="了解透彻浏览器缓存" href="/md/了解透彻浏览器缓存.html">04 了解透彻浏览器缓存</a></li><li class=""><a title="使用 Web Worker 优化前端大文件上传" href="/md/使用 Web Worker 优化前端大文件上传.html">05 使用 Web Worker 优化前端大文件上传</a></li><li class=""><a title="内存泄漏排查" href="/md/内存泄漏排查.html">06 内存泄漏排查</a></li><li class=""><a title="利用 Performance API 分析网站性能" href="/md/利用 Performance API 分析网站性能.html">07 利用 Performance API 分析网站性能</a></li><li class=""><a title="前端如何优化资源加载" href="/md/前端如何优化资源加载.html">08 前端如何优化资源加载</a></li><li class=""><a title="加载注意事项" href="/md/加载注意事项.html">09 加载注意事项</a></li><li class="active"><a title="性能优化-时间分片渲染简单做法" href="/md/性能优化-时间分片渲染简单做法.html">10 性能优化-时间分片渲染简单做法</a></li><li class=""><a title="性能优化全家桶：6 个方面 9 点建议" href="/md/性能优化全家桶：6 个方面 9 点建议.html">11 性能优化全家桶：6 个方面 9 点建议</a></li><li class=""><a title="构建优化" href="/md/构建优化.html">12 构建优化</a></li><li class=""><a title="浅谈前端性能优化之评估工具" href="/md/浅谈前端性能优化之评估工具.html">13 浅谈前端性能优化之评估工具</a></li><li class=""><a title="浏览器渲染性能分析技巧" href="/md/浏览器渲染性能分析技巧.html">14 浏览器渲染性能分析技巧</a></li><li class=""><a title="渲染优化" href="/md/渲染优化.html">15 渲染优化</a></li><li class=""><a title="看《浏览器基本原理与实践》后，36点总结" href="/md/看《浏览器基本原理与实践》后，36点总结.html">16 看《浏览器基本原理与实践》后，36点总结</a></li><li class=""><a title="网站优化之静态资源优化" href="/md/网站优化之静态资源优化.html">17 网站优化之静态资源优化</a></li><li class=""><a title="网页太慢了怎么排查" href="/md/网页太慢了怎么排查.html">18 网页太慢了怎么排查</a></li><li class=""><a title="聊聊图片预加载" href="/md/聊聊图片预加载.html">19 聊聊图片预加载</a></li><li class=""><a title="资源优先级" href="/md/资源优先级.html">20 资源优先级</a></li><li class=""><a title="页面加载流程分析技巧" href="/md/页面加载流程分析技巧.html">21 页面加载流程分析技巧</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_right md">
+          <h1>性能优化-时间分片渲染简单做法</h1>
+          <p>在经典的面试题中：”<strong>如果后端返回了十万条数据要你插入到页面中，你会怎么处理？</strong>”</p>
+<p>除了像 <a href="https://ahooks.gitee.io/zh-CN/hooks/use-virtual-list">useVirtualList</a> 这样的虚拟列表来处理外，我们还可以通过 <code>时间分片</code> 来处理</p>
+<h3>通过 setTimeout</h3>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;title&gt;十万数据渲染&lt;/title&gt;
+  &lt;/head&gt;
+
+  &lt;body&gt;
+    &lt;ul id=&quot;list-container&quot;&gt;&lt;/ul&gt;
+
+    &lt;script&gt;
+      const oListContainer = document.getElementById(&quot;list-container&quot;);
+
+      const fetchData = () =&gt; {
+        return new Promise((resolve) =&gt; {
+          const response = {
+            code: 0,
+            msg: &quot;success&quot;,
+            data: [],
+          };
+
+          for (let i = 0; i &lt; 100000; i++) {
+            response.data.push(`content-${i + 1}`);
+          }
+
+          setTimeout(() =&gt; {
+            resolve(response);
+          }, 100);
+        });
+      };
+
+      // 模拟请求后端接口返回十万条数据
+      // 渲染 total 条数据中的第 page 页，每页 pageCount 条数据
+      const renderData = (data, total, page, pageCount) =&gt; {
+        // base case -- total 为 0 时没有数据要渲染 不再递归调用
+        if (total &lt;= 0) return;
+
+        // total 比 pageCount 少时只渲染 total 条数据
+        pageCount = Math.min(pageCount, total);
+
+        setTimeout(() =&gt; {
+          const startIdx = page * pageCount;
+          const endIdx = startIdx + pageCount;
+          const dataList = data.slice(startIdx, endIdx);
+
+          // 将 pageCount 条数据插入到容器中
+          for (let i = 0; i &lt; pageCount; i++) {
+            const oItem = document.createElement(&quot;li&quot;);
+            oItem.innerText = dataList[i];
+            oListContainer.appendChild(oItem);
+          }
+
+          renderData(data, total - pageCount, page + 1, pageCount);
+        }, 0);
+      };
+
+      fetchData().then((res) =&gt; {
+        renderData(res.data, res.data.length, 0, 200);
+      });
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>上面的例子中，我们使用了 <code>setTimeout</code>，在每一次宏任务中插入一页数据，然后设置多个这样地宏任务，直到把所有数据都插入为止。</p>
+<p><img src="../imgs/48/01.awebp" alt=""></p>
+<p>但是很明显能看到的问题是，快速拖动滚动条时，数据列表中会有闪烁的情况</p>
+<p>这是因为：</p>
+<blockquote>
+<p>当使用 <code>setTimeout</code> 来拆分大量的 DOM 插入操作时，虽然我们将延迟时间设置为 0ms，但实际上由于 JavaScript 是单线程的，任务执行时会被放入到事件队列中，而事件队列中的任务需要等待当前任务执行完成后才能执行。所以即使设置了 0ms 延迟，<code>setTimeout</code> 的回调函数也不一定会立即执行，可能会受到其他任务的阻塞。</p>
+</blockquote>
+<blockquote>
+<p>当 <code>setTimeout</code> 的回调函数执行的间隔超过了浏览器每帧更新的时间间隔（一般是 16.7ms），就会出现丢帧现象。丢帧指的是浏览器在更新页面时，没有足够的时间执行全部的任务，导致部分任务被跳过，从而导致页面渲染不连续，出现闪烁的情况</p>
+</blockquote>
+<p>所以，我们改善一下，通过 <code>requestAnimationFrame</code> 来处理</p>
+<h3>通过 requestAnimationFrame</h3>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;title&gt;直接插入十万条数据&lt;/title&gt;
+  &lt;/head&gt;
+
+  &lt;body&gt;
+    &lt;ul id=&quot;list-container&quot;&gt;&lt;/ul&gt;
+
+    &lt;script&gt;
+      const oListContainer = document.getElementById(&quot;list-container&quot;);
+
+      const fetchData = () =&gt; {
+        return new Promise((resolve) =&gt; {
+          const response = {
+            code: 0,
+            msg: &quot;success&quot;,
+            data: [],
+          };
+
+          for (let i = 0; i &lt; 100000; i++) {
+            response.data.push(`content-${i + 1}`);
+          }
+
+          setTimeout(() =&gt; {
+            resolve(response);
+          }, 100);
+        });
+      };
+
+      // 模拟请求后端接口返回十万条数据
+      // 渲染 total 条数据中的第 page 页，每页 pageCount 条数据
+      const renderData = (data, total, page, pageCount) =&gt; {
+        // base case -- total 为 0 时没有数据要渲染 不再递归调用
+        if (total &lt;= 0) return;
+
+        // total 比 pageCount 少时只渲染 total 条数据
+        pageCount = Math.min(pageCount, total);
+
+        requestAnimationFrame(() =&gt; {
+          const startIdx = page * pageCount;
+          const endIdx = startIdx + pageCount;
+          const dataList = data.slice(startIdx, endIdx);
+
+          // 将 pageCount 条数据插入到容器中
+          for (let i = 0; i &lt; pageCount; i++) {
+            const oItem = document.createElement(&quot;li&quot;);
+            oItem.innerText = dataList[i];
+            oListContainer.appendChild(oItem);
+          }
+
+          renderData(data, total - pageCount, page + 1, pageCount);
+        });
+      };
+
+      fetchData().then((res) =&gt; {
+        renderData(res.data, res.data.length, 0, 200);
+      });
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p><img src="../imgs/48/02.awebp" alt=""></p>
+<p>很明显，闪烁的问题被解决了</p>
+<p>这是因为：</p>
+<blockquote>
+<p><code>requestAnimationFrame</code> 会在浏览器每次进行页面渲染时执行回调函数，保证了每次任务的执行间隔是稳定的，避免了丢帧现象。所以在处理大量 DOM 插入操作时，推荐使用 <code>requestAnimationFrame</code> 来拆分任务，以获得更流畅的渲染效果</p>
+</blockquote>
+
+        </div>
+      </div>
+    </div>
+    <script defer src="../js/prism.min.js"></script>
+  </body>
+</html>
