@@ -119,7 +119,6 @@ function renderHome() {
     )}">${key}</a><span class="num">${tagsNav[key]?.length}</span></li>`;
   }
   homeHTML += `</ul>`;
-  console.log("homeHTML", homeHTML)
   const homeTempHTML = ejs.render(homeTemplateContent, {
     list: homeHTML,
   });
