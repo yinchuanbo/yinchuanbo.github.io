@@ -107,18 +107,19 @@ function renderHome() {
     "./templates/index.html",
     "utf-8"
   );
-  const homeOutputFilePath = path.join(__dirname, `./index.html`);
+  const homeOutputFilePath = path.join(__dirname, `./md/index.html`);
   const keys = Object.keys(tagsNav);
   let homeHTML = `<ul>`;
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
     const first = tagsNav[key][0];
-    homeHTML += `<li><a href="/md/${first.replace(
+    homeHTML += `<li class="card"><a href="/md/${first.replace(
       ".md",
       ".html"
     )}">${key}</a><span class="num">${tagsNav[key]?.length}</span></li>`;
   }
   homeHTML += `</ul>`;
+  console.log("homeHTML", homeHTML)
   const homeTempHTML = ejs.render(homeTemplateContent, {
     list: homeHTML,
   });
