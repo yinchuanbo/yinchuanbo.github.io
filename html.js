@@ -145,7 +145,6 @@ for (const key in structure) {
     hasHtml,
     len,
   });
-  console.log('preview', `/articles/html/${key}/`)
   const sanitizedKey = key.replace(/\s+/g, "_");
   const htmlName = `${sanitizedKey}.html`;
   const outputFilePath = path.join(__dirname, `html/${htmlName}`);
@@ -162,7 +161,7 @@ const homeOutputFilePath = path.join(__dirname, `html/index.html`);
 let homeHTML = `<ul>`;
 for (let i = 0; i < urls.length; i++) {
   const url = urls[i];
-  homeHTML += `<li class="card"><a href="${url.htmlName}">${url.key}</a></li>`;
+  homeHTML += `<li class="card"><a href="/html/${url.htmlName}">${url.key}</a></li>`;
 }
 
 homeHTML += `</ul>`;
