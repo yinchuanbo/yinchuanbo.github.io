@@ -141,10 +141,11 @@ for (const key in structure) {
     nav: convertToHTML(structure[key]),
     datas: structure[key],
     key,
-    // preview: `/codes/${key}`,
+    preview: `/articles/html/${key}/`,
     hasHtml,
     len,
   });
+  console.log('preview', `/articles/html/${key}/`)
   const sanitizedKey = key.replace(/\s+/g, "_");
   const htmlName = `${sanitizedKey}.html`;
   const outputFilePath = path.join(__dirname, `html/${htmlName}`);
