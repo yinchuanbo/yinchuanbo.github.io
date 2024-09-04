@@ -114,4 +114,12 @@ window.onload = () => {
       }
     };
   });
+
+  //
+  const h3s = document.querySelectorAll(".layout__main_left h3");
+  h3s.forEach((item) => {
+    item.onclick = () => {
+      item.classList.toggle("isshow");
+    };
+  });
 };
