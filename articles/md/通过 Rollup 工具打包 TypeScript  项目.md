@@ -14,7 +14,7 @@ tsc --init # 创建 tsconfig.json
 
 ```sh
 npm i --save-dev rollup
-npm i --save-dev rollup-plugin-terser # 代码压缩工具
+npm i --save-dev @rollup/plugin-terser # 代码压缩工具
 npm i --save-dev rollup-plugin-clear # 插件清理工具
 ```
 
@@ -28,7 +28,7 @@ npm i --save-dev rollup-plugin-typescript # Rollup 工具处理 TypeScript 语�
 
 ```js
 import typescript from "rollup-plugin-typescript";
-import { terser } from "rollup-plugin-terser";
+import terser from "@rollup/plugin-terser";
 import clear from "rollup-plugin-clear";
 
 export default {
@@ -93,8 +93,11 @@ export function sayByeTo(name: string) {
 ```json
 {
   //...
-  "dev": "rollup -c --environment INCLUDE_DEPS,BUILD:development",
-  "build": "rollup -c --environment INCLUDE_DEPS,BUILD:production"
+  "type": "module",
+  "scripts": {
+    "dev": "rollup -c --environment INCLUDE_DEPS,BUILD:development",
+    "build": "rollup -c --environment INCLUDE_DEPS,BUILD:production"
+  }
   //..
 }
 ```

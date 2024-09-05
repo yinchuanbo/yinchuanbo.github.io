@@ -15,7 +15,7 @@ tag: "TypeScript + React"
 
 ```sh
 npm i --save-dev rollup
-npm i --save-dev rollup-plugin-terser # Rollup 代码压缩工具
+npm i --save-dev @rollup/plugin-terser # Rollup 代码压缩工具
 ```
 
 4. 在目录 src 中新建几个 JS 代码文件，用于测试 Rollup 工具的打包功能
@@ -54,7 +54,7 @@ export function sayByeTo(name) {
 5. 在 rollup-js 根目录下新建 rollup.config.js 配置文件，
 
 ```js
-import { terser } from "rollup-plugin-terser";
+import terser from "@rollup/plugin-terser";
 
 export default {
   input: "src/main.js", // 入口文件
@@ -83,8 +83,11 @@ export default {
 ```json
 {
   //...
-  "dev": "rollup -c --environment INCLUDE_DEPS,BUILD:development",
-  "build": "rollup -c --environment INCLUDE_DEPS,BUILD:production"
+  "type": "module",
+  "scripts": {
+    "dev": "rollup -c --environment INCLUDE_DEPS,BUILD:development",
+    "build": "rollup -c --environment INCLUDE_DEPS,BUILD:production"
+  }
   //..
 }
 ```
