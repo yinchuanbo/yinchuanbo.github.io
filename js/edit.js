@@ -55,9 +55,13 @@ function init(obj, extension) {
     // });
 
     // monaco.editor.setTheme("myCustomTheme");
+
+    let lan = extension;
+    if(extension === "js") lan = "javascript";
+    if(extension === "ejs") lan = "html";
     editor = monaco.editor.create(wrapperContent, {
       value: obj,
-      language: extension === "js" ? "javascript" : extension,
+      language: lan,
       automaticLayout: true,
       theme: "myCustomTheme",
       fontSize: 16,
