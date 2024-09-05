@@ -144,8 +144,8 @@ function layoutEdit() {
     // const resizableRect = resizable.getBoundingClientRect();
     let newWidth = e.clientX - resizerRect.left;
 
-    if (newWidth < 350) {
-      newWidth = 350;
+    if (newWidth < 300) {
+      newWidth = 300;
     } else if (newWidth > 750) {
       newWidth = 750;
     }

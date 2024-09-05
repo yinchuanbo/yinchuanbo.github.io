@@ -77,7 +77,7 @@ function renderNavList(navList = [], filename = "") {
     }"><a title="${item.replace(".md", "")}" href="/read/${item.replace(
       ".md",
       ".html"
-    )}">${idx + 1 < 10 ? "0" + (idx + 1) : idx + 1} ${item.replace(
+    )}">${item.replace(
       ".md",
       ""
     )}</a></li>`;
@@ -92,7 +92,8 @@ function handleEditTemp(filename = "", html = "", title = "", tag = "") {
   const detailHTML = ejs.render(editPage, {
     filename,
     html,
-    isMd: true,
+    isMd: false,
+    isRead: true,
     title,
     tag,
     navHTML,
