@@ -1,6 +1,7 @@
 import terser from "@rollup/plugin-terser";
 import commonjs from "@rollup/plugin-commonjs";
 import resolve from "@rollup/plugin-node-resolve";
+import replace from "@rollup/plugin-replace";
 import path from "path";
 import fs, { promises } from "fs";
 import { fileURLToPath } from "url";
@@ -11,35 +12,29 @@ import autoprefixer from "autoprefixer";
 import ejs from "ejs";
 import json from "@rollup/plugin-json";
 import { exec } from "child_process";
-import * as sass from 'sass';
+import * as sass from "sass";
 import serve from "rollup-plugin-serve";
 import livereload from "rollup-plugin-livereload";
+import babel from "@rollup/plugin-babel";
 
-// 获取 __dirname 等价路径
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// JavaScript 相关路径
 const devJsPath = path.resolve(__dirname, "en/dev/javascript");
 const outputJsPath = path.resolve(__dirname, "en/js");
 
-// SCSS 相关路径
 const devScssPath = path.resolve(__dirname, "en/dev/scss");
 const outputCssPath = path.resolve(__dirname, "en/css");
 
-// EJS 相关路径
 const devEjsPath = path.resolve(__dirname, "en/ejs");
 const outputHtmlPath = path.resolve(__dirname, "en");
 
-// JSON 数据路径
 const jsonDataPath = path.resolve(__dirname, "en/lan/lan.json");
 
-// 获取所有的 JS 文件
 const getJsFiles = (dir) => {
   return fs.readdirSync(dir).filter((file) => file.endsWith(".js"));
 };
 
-// 读取 JSON 数据
 const readJsonData = () => {
   try {
     const data = fs.readFileSync(jsonDataPath, "utf-8");
@@ -50,11 +45,10 @@ const readJsonData = () => {
     return JSON.parse(data);
   } catch (err) {
     console.error(`Error reading JSON data:`, err);
-    return {}; // Return an empty object or handle error as needed
+    return {};
   }
 };
 
-// 编译 EJS 文件
 const compileEjs = (filename) => {
   console.log("filename", filename);
   const outputPath = path.resolve(
@@ -72,7 +66,6 @@ const compileEjs = (filename) => {
   });
 };
 
-// SCSS 编译任务
 const scssTask = (filename) => {
   const name = path.basename(filename, ".scss");
   const cssPath = path.join(outputCssPath, name + ".min.css");
@@ -108,7 +101,6 @@ const scssTask = (filename) => {
   );
 };
 
-// Rebuild JavaScript files
 const rebuildJs = () => {
   exec("rollup -c", (err, stdout, stderr) => {
     if (err) {
@@ -120,12 +112,10 @@ const rebuildJs = () => {
   });
 };
 
-// 监听 SCSS 文件夹
 chokidar.watch(`${devScssPath}/*.scss`).on("change", (file) => {
   scssTask(file);
 });
 
-// 监听 SCSS components 文件夹
 chokidar.watch(`${devScssPath}/components/*.scss`).on("change", (file) => {
   fs.readdirSync(devScssPath)
     .filter((file) => file.endsWith(".scss"))
@@ -134,12 +124,10 @@ chokidar.watch(`${devScssPath}/components/*.scss`).on("change", (file) => {
     });
 });
 
-// 监听 EJS 文件夹
 chokidar.watch(`${devEjsPath}/*.ejs`).on("change", (file) => {
   compileEjs(file);
 });
 
-// 监听 EJS components 文件夹
 chokidar.watch(`${devEjsPath}/components/*.ejs`).on("change", () => {
   fs.readdirSync(devEjsPath)
     .filter((file) => file.endsWith(".ejs"))
@@ -148,12 +136,10 @@ chokidar.watch(`${devEjsPath}/components/*.ejs`).on("change", () => {
     });
 });
 
-// 监听 JS components 文件夹
 chokidar.watch(`${devJsPath}/components/*.js`).on("change", () => {
   rebuildJs();
 });
 
-// 监听 JSON 文件夹
 chokidar.watch(jsonDataPath).on("change", () => {
   rebuildJs();
   fs.readdirSync(devEjsPath)
@@ -175,20 +161,41 @@ export default {
     sourcemap: false,
     entryFileNames: "[name].min.js",
     name: "MyBundle",
+    globals: {
+      jquery: "$",
+    },
   },
+  treeshake: {
+    moduleSideEffects: true,
+  },
+  // external: ['lodash-es'],
+  // external: ['jquery'],
   plugins: [
+    babel({
+      babelHelpers: "bundled",
+      exclude: "node_modules/**",
+    }),
     resolve(),
-    commonjs(),
+    commonjs({
+      include: "node_modules/**",
+      exclude: [],
+    }),
+    replace({
+      preventAssignment: true,
+      values: {
+        "process.env.NODE_ENV": JSON.stringify("production"),
+      },
+    }),
     terser(),
     scss(),
     json(),
     serve({
-      contentBase: path.resolve(__dirname, "en"), // 设置根目录为 en 文件夹
+      contentBase: path.resolve(__dirname, "en"),
       port: 3000,
-      open: false, // 自动在浏览器中打开
+      open: false,
     }),
     livereload({
-      watch: path.resolve(__dirname, "en"), // 监听 en 文件夹下的所有文件
+      watch: path.resolve(__dirname, "en"),
     }),
   ],
   watch: {
@@ -199,7 +206,7 @@ export default {
     ],
     clearScreen: false,
     chokidar: {
-      usePolling: true, // 适用于某些文件系统
+      usePolling: true,
     },
   },
 };
