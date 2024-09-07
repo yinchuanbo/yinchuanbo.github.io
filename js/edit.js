@@ -60,6 +60,7 @@ function init(obj, extension) {
     if(extension === "js") lan = "javascript";
     if(extension === "ejs") lan = "html";
     if(extension === "babelrc") lan = "json";
+    console.log('---', obj)
     editor = monaco.editor.create(wrapperContent, {
       value: obj,
       language: lan,
