@@ -71,6 +71,15 @@ function readMarkdownFilesSync(dir) {
 }
 
 function renderNavList(navList = [], filename = "") {
+  // Sort navList based on creation time in descending order
+  navList.sort((b, a) => {
+    const aPath = path.join(articlesDir, a);
+    const bPath = path.join(articlesDir, b);
+    const aStats = fs.statSync(aPath);
+    const bStats = fs.statSync(bPath);
+    return bStats.birthtime - aStats.birthtime; // Sort by birthtime
+  });
+
   const allList = navList.map((item, idx) => {
     return `<li class="${
       item.trim() === filename.trim() ? "active" : ""
