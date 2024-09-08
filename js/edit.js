@@ -65,7 +65,7 @@ function init(obj, extension) {
       value: obj,
       language: lan,
       automaticLayout: true,
-      theme: "vs",
+      theme: "vs-dark",
       fontSize: 16,
       fontFamily: "JetBrains Mono",
       scrollbar: {
@@ -83,7 +83,7 @@ function init(obj, extension) {
 }
 
 window.onload = () => {
-  layoutEdit();
+  // layoutEdit();
   const firstPath = document.querySelector("li[data-path]");
   if (firstPath) {
     firstPath.classList.add("active");
