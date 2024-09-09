@@ -18,8 +18,7 @@
   <body class="line-numbers">
     <div class="layout">
       <div class="layout__main">
-        <div class="layout__main_left">
-          <div class="nav">Articles</div>
+        <div class="layout__main_left" style="order: 1">
           <ul>
             <li class=""><a title="前端异常处理最佳实践" href="/md/前端异常处理最佳实践.html">01 前端异常处理最佳实践</a></li><li class=""><a title="如何及时发现网页的隐形错误" href="/md/如何及时发现网页的隐形错误.html">02 如何及时发现网页的隐形错误</a></li><li class="active"><a title="异常监控系统" href="/md/异常监控系统.html">03 异常监控系统</a></li>
           </ul>
@@ -27,12 +26,14 @@
         </div>
         <div
           class="layout__main_right md "
+          style="order: 0"
         >
           <h1>异常监控系统</h1>
           <pre><code class="language-js">const ComprehensiveErrorMonitor = {
   APIURL: &quot;/api/log-error&quot;,
   isProduction: location.host === &quot;www.miocreate.com&quot; || false,
   lastErrorInfos: [],
+  lastIsComplete: true,
   init: function () {
     this.setupGlobalErrorHandler();
     this.setupPromiseErrorHandler();
@@ -239,7 +240,8 @@
         item.stack === errorInfo.stack &amp;&amp;
         item.url === errorInfo.url
     );
-    if (findObj) return;
+    if (findObj &amp;&amp; !this.lastIsComplete) return;
+    this.lastIsComplete = false;
     fetch(this.APIURL, {
       method: &quot;POST&quot;,
       headers: {
@@ -248,9 +250,11 @@
       body: JSON.stringify(errorInfo),
     })
       .then(() =&gt; {
+        this.lastIsComplete = true;
         this.lastErrorInfos.push(errorInfo);
       })
       .catch((error) =&gt; {
+        this.lastIsComplete = true;
         console.warn(&quot;Failed to send error to server:&quot;, error);
       });
   },
