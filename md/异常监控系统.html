@@ -29,8 +29,10 @@
           class="layout__main_right md "
         >
           <h1>异常监控系统</h1>
-          <pre><code class="language-js">// 全面的错误监控系统
-const ComprehensiveErrorMonitor = {
+          <pre><code class="language-js">const ComprehensiveErrorMonitor = {
+  APIURL: &quot;/api/log-error&quot;,
+  isProduction: location.host === &quot;www.miocreate.com&quot; || false,
+  lastErrorInfos: [],
   init: function () {
     this.setupGlobalErrorHandler();
     this.setupPromiseErrorHandler();
@@ -42,73 +44,86 @@ const ComprehensiveErrorMonitor = {
     this.setupEventListenerErrors();
     this.setupFrameErrors();
   },
-
+  convertToTimeZone: function (isoString, timeZone = &quot;Asia/Shanghai&quot;) {
+    const date = new Date(isoString);
+    return date.toLocaleString(&quot;zh-CN&quot;, { timeZone });
+  },
   handleError: function (error, errorType) {
-    console.trace();
     const errorInfo = {
       type: errorType,
       message: error.message || error,
-      stack: error.stack,
+      stack: error.stack || &quot;&quot;,
       url: window.location.href,
       userAgent: navigator.userAgent,
-      timestamp: new Date().toISOString(),
+      timestamp: this.convertToTimeZone(new Date().toISOString()),
     };
-    console.log(&quot;Captured error:&quot;, errorInfo);
+    if (errorInfo.message.includes(this.APIURL)) {
+      console.warn(`Error in ${this.APIURL} ignored to prevent loop.`);
+      return;
+    }
     this.sendErrorToServer(errorInfo);
   },
-
   setupGlobalErrorHandler: function () {
     window.onerror = (message, source, lineno, colno, error) =&gt; {
       this.handleError(error || message, &quot;Global JavaScript Error&quot;);
       return true;
     };
   },
-
   setupPromiseErrorHandler: function () {
     window.addEventListener(&quot;unhandledrejection&quot;, (event) =&gt; {
       this.handleError(event.reason, &quot;Unhandled Promise Rejection&quot;);
     });
   },
-
   setupAjaxErrorHandler: function () {
     const originalXHRSend = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.send = function () {
+      const xhr = this;
+      const url = xhr._url || this.responseURL || &quot;&quot;;
       this.addEventListener(&quot;error&quot;, (event) =&gt; {
-        ComprehensiveErrorMonitor.handleError(event, &quot;AJAX Error&quot;);
+        ComprehensiveErrorMonitor.handleError(
+          `AJAX Error: ${url} failed`,
+          &quot;AJAX Error&quot;
+        );
       });
       this.addEventListener(&quot;load&quot;, () =&gt; {
-        if (this.status &gt;= 400) {
+        if (xhr.status &gt;= 400) {
           ComprehensiveErrorMonitor.handleError(
-            `HTTP ${this.status}: ${this.statusText}`,
+            `HTTP ${xhr.status}: ${xhr.statusText} at ${url}`,
             &quot;AJAX Error&quot;
           );
         }
       });
       originalXHRSend.apply(this, arguments);
     };
-
+    const originalOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function (method, url) {
+      this._url = url;
+      originalOpen.apply(this, arguments);
+    };
     if (window.fetch) {
       const originalFetch = window.fetch;
-      window.fetch = function () {
+      window.fetch = function (url, options) {
         return originalFetch
           .apply(this, arguments)
           .then((response) =&gt; {
             if (!response.ok) {
               ComprehensiveErrorMonitor.handleError(
-                `HTTP ${response.status}: ${response.statusText}`,
+                `HTTP ${response.status}: ${response.statusText} at ${response.url}`,
                 &quot;Fetch Error&quot;
               );
             }
             return response;
           })
           .catch((error) =&gt; {
-            ComprehensiveErrorMonitor.handleError(error, &quot;Fetch Error&quot;);
+            ComprehensiveErrorMonitor.handleError(
+              `Fetch Error: ${url}`,
+              &quot;Fetch Error&quot;
+            );
             throw error;
           });
       };
     }
   },
-
   setupConsoleErrorHandler: function () {
     const originalConsoleError = console.error;
     console.error = (...args) =&gt; {
@@ -116,7 +131,6 @@ const ComprehensiveErrorMonitor = {
       originalConsoleError.apply(console, args);
     };
   },
-
   setupResourceErrorHandler: function () {
     window.addEventListener(
       &quot;error&quot;,
@@ -136,7 +150,6 @@ const ComprehensiveErrorMonitor = {
       true
     );
   },
-
   setupCustomElementsErrorHandler: function () {
     if (window.customElements) {
       const originalDefine = window.customElements.define;
@@ -161,7 +174,6 @@ const ComprehensiveErrorMonitor = {
       };
     }
   },
-
   setupWebWorkerErrorHandler: function () {
     if (window.Worker) {
       const originalWorker = window.Worker;
@@ -177,7 +189,6 @@ const ComprehensiveErrorMonitor = {
       };
     }
   },
-
   setupEventListenerErrors: function () {
     const originalAddEventListener = EventTarget.prototype.addEventListener;
     EventTarget.prototype.addEventListener = function (
@@ -201,7 +212,6 @@ const ComprehensiveErrorMonitor = {
       );
     };
   },
-
   setupFrameErrors: function () {
     if (window.frames &amp;&amp; window.frames.length) {
       for (let i = 0; i &lt; window.frames.length; i++) {
@@ -223,29 +233,28 @@ const ComprehensiveErrorMonitor = {
     }
   },
   sendErrorToServer: function (errorInfo) {
-    console.log(&quot;errorInfo&quot;, errorInfo);
-    //   {
-    //     &quot;type&quot;: &quot;Global JavaScript Error&quot;,
-    //     &quot;message&quot;: &quot;dfsfsdf is not defined&quot;,
-    //     &quot;stack&quot;: &quot;ReferenceError: dfsfsdf is not defined\n    at btn.onclick (http://127.0.0.1:5501/index.html:13:21)&quot;,
-    //     &quot;url&quot;: &quot;http://127.0.0.1:5501/index.html&quot;,
-    //     &quot;userAgent&quot;: &quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36&quot;,
-    //     &quot;timestamp&quot;: &quot;2024-09-08T13:43:26.034Z&quot;
-    // }
-    // 实现将错误信息发送到服务器的逻辑
-    // fetch(&quot;/api/log-error&quot;, {
-    //   method: &quot;POST&quot;,
-    //   headers: {
-    //     &quot;Content-Type&quot;: &quot;application/json&quot;,
-    //   },
-    //   body: JSON.stringify(errorInfo),
-    // }).catch((error) =&gt; {
-    //   console.error(&quot;Failed to send error to server:&quot;, error);
-    // });
+    const findObj = this.lastErrorInfos.find(
+      (item) =&gt;
+        item.message === errorInfo.message &amp;&amp;
+        item.stack === errorInfo.stack &amp;&amp;
+        item.url === errorInfo.url
+    );
+    if (findObj) return;
+    fetch(this.APIURL, {
+      method: &quot;POST&quot;,
+      headers: {
+        &quot;Content-Type&quot;: &quot;application/json&quot;,
+      },
+      body: JSON.stringify(errorInfo),
+    })
+      .then(() =&gt; {
+        this.lastErrorInfos.push(errorInfo);
+      })
+      .catch((error) =&gt; {
+        console.warn(&quot;Failed to send error to server:&quot;, error);
+      });
   },
 };
-
-// 初始化错误监控系统
 ComprehensiveErrorMonitor.init();
 </code></pre>
 
