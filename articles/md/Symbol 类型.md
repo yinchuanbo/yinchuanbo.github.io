@@ -85,3 +85,61 @@ console.log(localSymbol === globalSymbol); // false
 let emptyGlobalSymbol = Symbol.for();
 console.log(emptyGlobalSymbol); // Symbol(undefined)
 ```
+
+还可以是 `Symbol.keyFor()` 来查询全局注册表，这个方法接收符号，返回该全局符号对应的字符串键。如果查询的不是全局符号，则返回 undefined。
+
+```js
+// 创建全局符号
+let s = Symbol.for("foo");
+console.log(Symbol,.keyFor(s)); // foo
+
+// 创建普通符号
+let s2 = Symbol('bar');
+console.log(Symbol.keyFor(s2)); // undefined
+```
+
+如果传给 `Symbol.keyFor()` 的不是符号，则方法会报错 `TypeError`。
+
+```js
+Symbol.keyFor(123); // TypeError: 123 is not a symbol
+```
+
+## 3. 使用符号作为属性
+
+凡是可以使用字符串或数值作为属性的地方，都可以使用符号。
+
+这就包括了对象字面量属性和 `Object.defineProperty()`、`Object.definedProperties()` 定义的属性。
+
+```js
+let s1 = Symbol("foo"),
+  Symbol("bar"),
+  Symbol("baz"),
+  Symbol("qux");
+
+let o = {
+  [s1]: "foo val"
+};
+
+// 这样也可以：o[s1] = "foo val"
+console.log(o); // { Symbol(foo): "foo val" }
+
+Object.defineProperty(o, s2, { value: "bar val" });
+console.log(o); // { Symbol(foo): "foo val", Symbol(bar): "bar val" }
+
+Object.definedProperties(o, {
+  [s3]: { value: "baz val" },
+  [s4]: { value: "qux val" }
+})
+console.log(o);
+/*
+  {
+    Symbol(foo): "foo val",
+    Symbol(bar): "bar val",
+    Symbol(baz): "baz val",
+    Symbol(qux): "qux val"
+  }
+*/
+```
+
+类似于 `Object.getOwnPropertyNames()` 返回对象实例的常规属性数组，`Object.getOwnPropertySymbol()` 返回对象实例的符号属性数组。
+
