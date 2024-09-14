@@ -2,15 +2,19 @@ const fs = require("fs");
 const { minify } = require("terser");
 const path = require("path");
 
-const sourceFilePath = path.join(__dirname, "checkallExam.js");
+const sourceFilePath = path.join(__dirname, "error-monitoring-template.js");
 
 const langs = ["ar", "de", "en", "es", "fr", "it", "jp", "kr", "pt", "tw"];
 
 langs.forEach((lan) => {
-  const destinationFilePath = path.join(__dirname, lan, "dist/js/check-all.js");
+  const destinationFilePath = path.join(
+    __dirname,
+    lan,
+    "dist/js/error-monitoring.min.js"
+  );
   const patilesPath = `./${lan}/patiles`;
   const scriptTag =
-    '<script type="text/javascript" src="/dist/js/check-all.js"></script>\n';
+    '<script type="text/javascript" src="/dist/js/error-monitoring.min.js"></script>\n';
   function processDirectorySync(dirPath) {
     try {
       const files = fs.readdirSync(dirPath);

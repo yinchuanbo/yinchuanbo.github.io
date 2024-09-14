@@ -1,10 +1,10 @@
-let APIURL = "api/log-error",
-  domain = "miocreate.com",
-  isProduction = location.host === `www.${domain}` || false,
-  apiDmain = isProduction
-    ? `https://tool-api.${domain}/`
-    : `https://tool-api-test.${domain}/`,
-  sendErrorApi = `${apiDmain}${APIURL}`;
+let APIURL_ERROR = "api/notification/exception",
+  DOMAIN_ERROR = "miocreate.com",
+  ISPRO_ERROR = location.host === `www.${DOMAIN_ERROR}` || false,
+  APIDOMAIN_ERROR = ISPRO_ERROR
+    ? `https://tool-api.${DOMAIN_ERROR}/`
+    : `https://tool-api-test.${DOMAIN_ERROR}/`,
+  SEND_ERRORAPI = `${APIDOMAIN_ERROR}${APIURL_ERROR}`;
 const ComprehensiveErrorMonitor = {
   lastErrorInfos: [],
   lastIsComplete: true,
@@ -15,7 +15,7 @@ const ComprehensiveErrorMonitor = {
     this.setupGlobalErrorHandler();
     this.setupPromiseErrorHandler();
     this.setupRequestErrorHandler();
-    this.setupConsoleErrorHandler();
+    // this.setupConsoleErrorHandler();
     this.setupResourceErrorHandler();
     this.setupCustomElementsErrorHandler();
     this.setupWebWorkerErrorHandler();
@@ -34,9 +34,10 @@ const ComprehensiveErrorMonitor = {
       url: window.location.href,
       userAgent: navigator.userAgent,
       timestamp: this.convertToTimeZone(new Date().toISOString()),
+      env: ISPRO_ERROR ? "pro" : "dev",
     };
-    if (errorInfo?.message?.includes?.(APIURL)) {
-      console.warn(`Error in ${APIURL} ignored to prevent loop.`);
+    if (errorInfo?.message?.includes?.(APIURL_ERROR)) {
+      console.warn(`Error in ${APIURL_ERROR} ignored to prevent loop.`);
       return;
     }
     this.sendErrorToServer(errorInfo);
@@ -130,6 +131,7 @@ const ComprehensiveErrorMonitor = {
     };
   },
   setupResourceErrorHandler: function () {
+    const _this = this;
     window.addEventListener(
       "error",
       (event) => {
@@ -144,12 +146,14 @@ const ComprehensiveErrorMonitor = {
             !event.target.getAttribute("src")
           )
             return;
-          this.handleError(
-            `Failed to load resource: ${
-              event.target?.outerHTML || event.target.src || event.target.href
-            }`,
-            "Resource Load Error"
-          );
+          const src = event.target.src || event.target.href;
+          const isOtherUrl = _this.noHandleUrlByReq(src);
+          if (!isOtherUrl) {
+            this.handleError(
+              `Failed to load resource: ${event.target?.outerHTML || src}`,
+              "Resource Load Error"
+            );
+          }
         }
       },
       true
@@ -192,6 +196,9 @@ const ComprehensiveErrorMonitor = {
   },
   setupEventListenerErrors: function () {
     const originalAddEventListener = EventTarget.prototype.addEventListener;
+    const originalRemoveEventListener =
+      EventTarget.prototype.removeEventListener;
+    const wrappedListeners = new WeakMap();
 
     EventTarget.prototype.addEventListener = function (
       type,
@@ -211,6 +218,7 @@ const ComprehensiveErrorMonitor = {
         }
       };
 
+      wrappedListeners.set(listener, wrappedListener);
       return originalAddEventListener.call(
         this,
         type,
@@ -218,21 +226,31 @@ const ComprehensiveErrorMonitor = {
         options
       );
     };
+
+    EventTarget.prototype.removeEventListener = function (
+      type,
+      listener,
+      options
+    ) {
+      const wrappedListener = wrappedListeners.get(listener);
+      if (wrappedListener) {
+        return originalRemoveEventListener.call(
+          this,
+          type,
+          wrappedListener,
+          options
+        );
+      } else {
+        return originalRemoveEventListener.call(this, type, listener, options);
+      }
+    };
   },
   setupFrameErrors: function () {
-    if (window.frames && window.frames.length) {
-      for (let i = 0; i < window.frames.length; i++) {
-        try {
-          window.frames[i].addEventListener("error", (event) => {
-            const error = event.error || event.message;
-            this.handleError(error, `Frame Error in frame ${i}`);
-            event.preventDefault();
-          });
-        } catch (e) {
-          console.warn(`Unable to add error handler to frame ${i}:`, e);
-        }
-      }
-    }
+    window.addEventListener("error", (event) => {
+      const error = event.error || event.message;
+      this.handleError(error, "Frame Error");
+      event.preventDefault();
+    });
   },
   sendErrorToServer: function (errorInfo) {
     const currentTime = Date.now();
@@ -251,32 +269,39 @@ const ComprehensiveErrorMonitor = {
     }
     this.lastIsComplete = false;
     this.lastRequestTime = currentTime;
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(
-        () => reject(new Error("Request timed out")),
-        this.requestTimeout
-      )
-    );
-    const fetchPromise = fetch(sendErrorApi, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(errorInfo),
-    });
-    Promise.race([fetchPromise, timeoutPromise])
-      .then(() => {
-        this.lastIsComplete = true;
-        this.lastErrorInfos.push(errorInfo);
-      })
-      .catch((error) => {
-        this.lastIsComplete = true;
-        if (error.message === "Request timed out") {
-          console.warn("Request to server timed out.");
-        } else {
-          console.warn("Failed to send error to server:", error);
-        }
+
+    if (navigator?.sendBeacon) {
+      navigator.sendBeacon(SEND_ERRORAPI, JSON.stringify(errorInfo));
+      this.lastIsComplete = true;
+      this.lastErrorInfos.push(errorInfo);
+    } else {
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Request timed out")),
+          this.requestTimeout
+        )
+      );
+      const fetchPromise = fetch(SEND_ERRORAPI, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(errorInfo),
       });
+      Promise.race([fetchPromise, timeoutPromise])
+        .then(() => {
+          this.lastIsComplete = true;
+          this.lastErrorInfos.push(errorInfo);
+        })
+        .catch((error) => {
+          this.lastIsComplete = true;
+          if (error.message === "Request timed out") {
+            console.warn("Request to server timed out.");
+          } else {
+            console.warn("Failed to send error to server:", error);
+          }
+        });
+    }
   },
 };
 ComprehensiveErrorMonitor.init();
