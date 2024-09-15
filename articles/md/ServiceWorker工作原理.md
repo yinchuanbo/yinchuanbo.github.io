@@ -1,6 +1,6 @@
 ---
 title: "ServiceWorker工作原理"
-tag: "JavaScript"
+tag: "Services Worker"
 ---
 
 `service worker` 是现代 web 开发的关键部分，在最近几年获得了关注，这都要归功于 PWA（渐进式 Web 应用程序） 的流行。`service worker` 通过向典型的 Web 应用程序添加后台同步、离线渲染和推送通知等功能，缩小了本机应用程序和 Web 应用程序之间的差距，主要任务之一是充当代理。

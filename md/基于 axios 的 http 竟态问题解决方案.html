@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>基于 axios 的 http 竟态问题解决方案</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class=""><a title="前端常见的状态码" href="/md/前端常见的状态码.html">01 前端常见的状态码</a></li><li class=""><a title="Fetch 拦截器" href="/md/Fetch 拦截器.html">02 Fetch 拦截器</a></li><li class="active"><a title="基于 axios 的 http 竟态问题解决方案" href="/md/基于 axios 的 http 竟态问题解决方案.html">03 基于 axios 的 http 竟态问题解决方案</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+        >
+          <h1>基于 axios 的 http 竟态问题解决方案</h1>
+          <p>本文仅针对 <code>axios</code> 库， 如果你使用的是 <code>fetch</code> 或者 <code>xhr</code>， 请自行适配处理。</p>
+<h2>效果预览</h2>
+<img src="../imgs/70/01.webp" />
+
+<h2>什么是 http 请求竟态问题?</h2>
+<p>首先让我们了解下什么是 http 请求竟态问题， 我们看下 gpt 的回复。</p>
+<p>前端 HTTP 请求竞态问题指的是在前端应用中，多个并发的 HTTP 请求之间相互竞争资源，导致结果不确定的情况。例如，当用户快速点击一个按钮，触发了多个相同的请求，而这些请求可能在不同的时间返回结果，最终导致页面显示不一致或者出现错误。</p>
+<h2>场景复现</h2>
+<p>在我们日常工作中经常会遇到这样的场景。</p>
+<p>比如现在我们有个需求，点击<code>苹果</code>、<code>橘子</code>、<code>香蕉</code>三个按钮，分别渲染对应的一组水果列表。</p>
+<p>对应请求我们假设为<code>/apple</code>、<code>/orange</code>、<code>/banana</code>。</p>
+<p>也就是说当我们点击苹果的时候 会去请求苹果列表(橘子，香蕉逻辑相同)。</p>
+<p>乍一听，这太简单了，用手都能写是吧?</p>
+<p>但是此时测试直接来了个 bug ， 我当前明明是<code>香蕉按钮</code>，出来的怎么是<code>苹果列表</code>?</p>
+<h3>问题分析</h3>
+<p>那么上面的问题是如何导致的呢?</p>
+<p>其实非常简单，测试先点击了 <code>苹果按钮</code>，瞬间又点了 <code>香蕉按钮</code>，</p>
+<p>导致按钮停在了 <code>香蕉按钮</code>， 由于 http 请求是异步的，<code>/banana</code> 请求 500ms 就完成了。</p>
+<p>但是由于 <code>/apple</code> 1000ms 后才返回，</p>
+<p>这就导致了这个 bug 的产生。</p>
+<p>其实这就是典型的 <code>HTTP 请求竞态问题</code>。</p>
+<h2>利用 axios 库解决问题</h2>
+<p>要解决竟态问题，那么我们目的其实很简单，只让最后一个请求是活跃的，也就是说我们要取消其他请求。</p>
+<h3>axios 如何取消请求</h3>
+<p>在 axios 库中， 我们可以使用 <code>CancelToken</code> 来取消请求。</p>
+<pre><code class="language-js">import axios from &#39;axios&#39;
+const source = axios.CancelToken.source() // 创建一个 CancelToken 源
+
+axios.get(&#39;/your-api-url&#39;， {
+  cancelToken: source.token // 将 CancelToken 传递给 axios 请求配置对象
+})
+
+// 在某个时候取消请求
+source.cancel(&#39;Operation canceled by the user.&#39;) // 取消请求
+</code></pre>
+<h3>封装一个可以 cancel 的 axios 函数</h3>
+<p>既然我们知道了 axios 能取消请求， 那么我们如何在项目中使用它呢?</p>
+<p><strong>简单的 axios 封装</strong></p>
+<p>在实际项目中， 我们通常会封装一个 axios 请求函数。</p>
+<p>下面就以一个简单封装的 axios 请求函数为例(非常简陋，主要为了理解本文)</p>
+<ul>
+<li>request.js</li>
+</ul>
+<pre><code class="language-js">const service = axios.create({
+  baseURL: &quot;&quot;， // url = base url + request url
+  timeout: 10000， // request timeout
+});
+// request interceptor
+service.interceptors.request.use(
+  async (config) =&gt; {
+    // 此处先省略了取消请求相关的代码
+    return config;
+  }，
+  (error) =&gt; {
+    return Promise.reject(error);
+  }
+);
+
+service.interceptors.response.use(
+  async (response) =&gt; {
+    const res = response.data;
+    return res;
+  }，
+  (error) =&gt; {
+    return Promise.reject(error);
+  }
+);
+
+export default service;
+</code></pre>
+<p>这样我们就封装了一个简单的 axios 请求函数。</p>
+<p>接下来我们就可以在 api 使用它了。</p>
+<ul>
+<li>api.js</li>
+</ul>
+<pre><code class="language-js">import request from &quot;@/request.js&quot;;
+
+export const getApple = (data = {}) =&gt; {
+  return request({
+    url: &quot;/apple&quot;，
+    method: &quot;get&quot;，
+    data，
+  });
+};
+
+export const getOrange = (data = {}) =&gt; {
+  return request({
+    url: &quot;/orange&quot;，
+    method: &quot;get&quot;，
+    data，
+  });
+};
+
+export const getBanana = (data = {}) =&gt; {
+  return request({
+    url: &quot;/banana&quot;，
+    method: &quot;get&quot;，
+    data，
+  });
+};
+</code></pre>
+<p>接着我们把它引入到组件：</p>
+<ul>
+<li>App.vue</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div id=&quot;app&quot;&gt;
+    &lt;button @click=&quot;getApple&quot;&gt;apple&lt;/button&gt;
+    &lt;button @click=&quot;getOrange&quot;&gt;orange&lt;/button&gt;
+    &lt;button @click=&quot;getBanana&quot;&gt;banana&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+  import { getOrange， getApple， getBanana } from &quot;@/apis/fruits.js&quot;;
+  export default {
+    name: &quot;App&quot;，
+    methods: {
+      getApple() {
+        getApple({page:10，pageSize:100}).then((res) =&gt; {
+          console.log(&quot;__SY__🎄 ~ getApple ~ res:&quot;， res);
+        });
+      }，
+      getOrange() {
+        getOrange().then((res) =&gt; {
+          console.log(&quot;__SY__🎄 ~ getOrange ~ res:&quot;， res);
+        });
+      }，
+      getBanana() {
+        getBanana().then((res) =&gt; {
+          console.log(&quot;__SY__🎄 ~ getBanana ~ res:&quot;， res);
+        });
+      }，
+    }，
+  };
+&lt;/script&gt;
+</code></pre>
+<p><strong>取消请求功能</strong></p>
+<p>目前我们的代码是没有任何<code>取消请求</code>功能的， 接下来我们加上<code>取消请求</code>的功能。</p>
+<p>上文中我们已经知道可以使用 <code>source.cancel</code> 方法取消请求了。</p>
+<p>那么我们考虑该如何把 <code>source.cancel</code> 暴露给开发者呢?</p>
+<p>也就是说我们如何为每个 <code>api</code> 新增一个 <code>cancel</code> 方法呢?</p>
+<p>还是受益于 <code>&lt;&lt;vue.js 设计与实现&gt;&gt;</code> 一书中的 effect 函数(其中把副作用函数当做参数)。</p>
+<p>同样我们也可以把 api 函数当做参数传递给某个函数，我们暂且命名这个函数为 <code>useCanCancelRequest</code>(内部提供一个 <code>cancel</code>)。</p>
+<p>先来看下 <code>useCanCancelRequest</code> 函数的函数签名：</p>
+<pre><code class="language-js">function useCanCancelRequest(api){
+  // params 即外部的业务参数
+  const fn = function(params){
+    // params 是非必传的， 如果没有传 params 参数， 那么我们就把 params 设置为一个空对象
+    if(!params) params = {}
+    // 接下来我们为 params 挂载一个 __cancelToken__ 属性(后续会用到)，用于接收前文中的 source 对象
+    // 如果为了严谨，可以设计成一个 symbol 类型
+    params.__cancelToken__ = function(source){
+      fn.source = source
+    }
+    return api(params)
+  }
+  const cancel = function(){
+    fn.source &amp;&amp; fn.source.cancel() // 直接调用 source.cancel 方法即可
+  }
+  return {fn，cancel}
+}
+</code></pre>
+<p>看了这个方法，是不是有点一脸懵逼?</p>
+<p>别慌，我们来看下使用方法，就大致明白了。</p>
+<p>我们以 <code>request.js</code> 中的 <code>getApple</code> 函数为例：</p>
+<pre><code class="language-js">// _getApple 就是我们上文中返回的 fn
+const {fn:_getApple，cancel} = useCanCancelRequest(getApple)
+// 这里的参数对应 useCanCancelRequest 函数中的 params
+_getApple({page:10，pageSize:100}).then((res) =&gt; {
+  console.log(&quot;__SY__🎄 ~ getApple ~ res:&quot;， res);
+});
+</code></pre>
+<p><strong>cancel 方法的实现</strong></p>
+<p>到这里彦祖们可能会说也没看到 cancel 的使用啊!</p>
+<p>好吧，接下来，我们来看下 <code>cancel</code> 的使用。</p>
+<p>使用 <code>cancel</code> 前， 我们还需要修改 <code>request.js</code> 文件(只展示关键代码)</p>
+<pre><code class="language-js">service.interceptors.request.use(
+  async (config) =&gt; {
+    // 前文中的 params.__cancelToken__ 参数， 就是 config?.data?.__cancelToken__ 参数
+    if (typeof config?.data?.__cancelToken__ === &#39;function&#39;) {
+      const cancelTokenSource = axios.CancelToken.source() // 创建一个 source 对象
+      config.cancelToken = cancelTokenSource.token // 把 token 挂载到 config 上
+      config.data.__cancelToken__(cancelTokenSource) // 把 source 对象回调给 useCanCancelRequest 函数内部
+      Reflect.deleteProperty(config?.data， &#39;__cancelToken__&#39;) // 当然我们还需要把 __cancelToken__ 属性删除
+    }
+    return config
+  }，
+  (error) =&gt; {
+    return Promise.reject(error)
+  }
+)
+</code></pre>
+<p>这样我们就完成了一个比较完整的取消请求的功能封装。</p>
+<p>接下来看下如何使用：</p>
+<pre><code class="language-js">const {fn:_getApple，cancel} = useCanCancelRequest(getApple)
+_getApple({page:10，pageSize:100}).then((res) =&gt; {
+  console.log(&quot;__SY__🎄 ~ getApple ~ res:&quot;， res);
+});
+setTimeout(() =&gt; {
+  cancel() // 取消请求
+}，20)
+</code></pre>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>

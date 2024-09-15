@@ -1,6 +1,6 @@
 ---
 title: "利用 Web Worker 编写更稳定的定时器"
-tag: "JavaScript"
+tag: "Web Worker"
 ---
 
 当浏览器最小化或处于后台时，会对`setTimeout`和`setInterval`进行一定的优化，可能是节流，也可能将任务集中到浏览器回到前台的时候（此时可能看到多次定时回调函数在短时间内被触发）。因此如果需要一个更稳定的定时器，比如程序逻辑中需要一个不间断的定时，可以利用 Web Wokrer。

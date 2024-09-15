@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>浅浅聊一下 vue 中的 nextTick 的实现原理</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class=""><a title="Vue3.x 生态最能打的组合" href="/md/Vue3.x 生态最能打的组合.html">01 Vue3.x 生态最能打的组合</a></li><li class="active"><a title="浅浅聊一下 vue 中的 nextTick 的实现原理" href="/md/浅浅聊一下 vue 中的 nextTick 的实现原理.html">02 浅浅聊一下 vue 中的 nextTick 的实现原理</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+        >
+          <h1>浅浅聊一下 vue 中的 nextTick 的实现原理</h1>
+          <h2>前言</h2>
+<p>在 vue 中,<code>nextTick</code>是一个非常有用的方法，可以帮助我们解决一些异步更新队列相关的问题。由于 vue 中的数据响应系统是基于异步更新机制的，当我们修改完数据后，视图不会立即更新，而是会等待下一个 DOM 更新周期才会开始渲染。为此我们需要<code>nextTick</code>帮助我们等待下一次 DOM 更新。</p>
+<h2>正文</h2>
+<h3>场景实例</h3>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;title&gt;Document&lt;/title&gt;
+    &lt;style&gt;
+      h2 {
+        display: inline-block;
+      }
+    &lt;/style&gt;
+    &lt;script src=&quot;https://unpkg.com/vue@3/dist/vue.global.js&quot;&gt;&lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id=&quot;app&quot;&gt;
+      &lt;h2 ref=&quot;h2Ref&quot;&gt;{{ message }}&lt;/h2&gt;
+      &lt;button @click=&quot;updateMessage&quot;&gt;更新&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;script&gt;
+      const { createApp, ref, onMounted } = Vue;
+
+      createApp({
+        setup() {
+          const message = ref(&quot;Hello vue!&quot;);
+          const h2Ref = ref(null);
+          onMounted(() =&gt; {
+            console.log(h2Ref.value.clientWidth);
+          });
+          const updateMessage = () =&gt; {
+            message.value = &quot;Goodbye Vue!&quot;;
+            console.log(h2Ref.value.clientWidth);
+          };
+          return {
+            message,
+            h2Ref,
+            updateMessage,
+          };
+        },
+      }).mount(&quot;#app&quot;);
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>在上述代码中我们在页面挂载完毕时打印了<code>message</code>的宽度，获取宽度需要之一的一个常见问题就是区别<code>clientWidth</code>和<code>offsetWidth</code>，前者是不会计算边框的宽度，后者是会计算边框的宽度的.所以这里我们使用的是<code>clinetWidth</code>。这里我们的流程是点击<code>button</code>按钮，然后<code>message</code>的信息会更新然后再打印出更新后的<code>message</code>的宽度。我们需要思考的一个问题，这样子真的能打印出更新后的宽度吗？</p>
+<img src="../imgs/69/01.webp" />
+
+<p>答案是不能的。点击第一次更新时获取到的宽度依旧是未更新之前的宽度？那么我们思考一下，当我们点击更新按钮，代码的执行顺序是什么，DOM 结构中的<code>h2</code>是什么时候渲染的第一时间是先执行的是<code>message.value = &#39;Goodbye Vue!&#39;</code>， 第二时间执行的是<code>console.log(h2Ref.value.clientWidth);</code>最后才是修改 DOM 结构中的的<code>message</code>。这样我们第一次点击更新，打印的内容依旧是未更新之前的宽度。那么如果我们让这个打印的顺序在最后呢？让<code>message</code>DOJM 结构先行。此时我们就需要使用定时器来等待执行了。</p>
+<pre><code class="language-js">const updateMessage = () =&gt; {
+  message.value = &quot;Goodbye Vue!&quot;;
+  setTimeout(() =&gt; {
+    console.log(h2Ref.value.clientWidth);
+  });
+};
+</code></pre>
+<p>将打印添加到定时器中执行，打印的结果如何呢？</p>
+<img src="../imgs/69/02.webp" />
+
+<p>打印结果是更新之后的宽度，这也就是说明了使用定时器是可行的。但是问题就是使用定时器需要的等待时间,而且等待的时间不是精确的,如果项目比较大，这就会导致需要等待的时间也会比较长。所以这终究不是一个合适的的方法。</p>
+<p>那么我们使用<code>nextTick</code>可以很好的解决这种问题。</p>
+<pre><code class="language-js">const updateMessage = () =&gt; {
+  message.value = &quot;Goodbye Vue!&quot;;
+  nextTick(() =&gt; {
+    console.log(h2Ref.value.clientWidth);
+  });
+};
+</code></pre>
+<p><code>nextTick</code>它会保证内部代码会在页面渲染完成之后执行，也就可以理解为某些需要等待 DOM 结构更新完毕的操作放在<code>nextTick</code>。</p>
+<p>我们看 vue 的官方文档中，有提到<code>nectTick</code>会返回一个<code>Promise</code>的对象。也就是说<code>nextTick</code>的返回值可以接<code>.then()</code>。我们看看<code>nextTick</code>的返回值是什么。</p>
+<pre><code class="language-js">const updateMessage = () =&gt; {
+  message.value = &quot;Goodbye Vue!&quot;;
+  let res = nextTick(() =&gt; {
+    console.log(h2Ref.value.clientWidth);
+  });
+  res.then(() =&gt; {
+    console.log(res);
+  });
+};
+</code></pre>
+<img src="../imgs/69/03.webp" />
+
+<p>返回值是一个<code>Promise</code>对象且状态是<code>fullfilled</code>也就是说在 vue 源码执行中调用了<code>resolve()</code>。</p>
+<h3>实现 nextTick</h3>
+<p>我们创建一个 js 文件,我们知道的<code>nextTick</code>会返回一个<code>Promise</code>对象，且<code>nextTick</code>接受一个回调函数。 那么我们就可以先把模版写好。</p>
+<pre><code class="language-js">function nextTick(fn) {
+  return new Promise((resolve, reject) =&gt; {});
+}
+</code></pre>
+<p>然后我们就需要梳理一下我们需要干什么了？首先我们必须检查 DOM 结构是否发生了更新，如果更新了就需要调用<code>nextTick</code>的回调函数以及<code>resolve()</code>。</p>
+<p>我们如何知道 DOM 结构发生了更新呢？那么这个时候就需要一个辅助 API 了<code>MutationObserver</code></p>
+<img src="../imgs/69/04.webp" />
+
+<p><a href="%22https://developer.mozilla.org/zh-CN/docs/Web/API/MutationObserver%22">MutationObserver</a>可以帮助监听 DOM 结构。使用这个我们上首先需要判断浏览器是否支持。</p>
+<pre><code class="language-js">if (typeof MutationObserver !== &quot;undefined&quot;) {
+  //判断浏览器支不支持
+  const observer = new MutationObserver(() =&gt; {
+    let res = fn();
+    if (res instanceof Promise) {
+      res.then(resolve);
+    } else {
+      resolve();
+    }
+  });
+
+  observer.observe(document.getElementById(&quot;app&quot;), {
+    childList: true, // 观察目标子节点的变化，是否有添加或者删除
+    attributes: true, // 观察属性变动
+    subtree: true, // 观察后代节点，默认为 false
+  });
+}
+</code></pre>
+<p>我们将回调函数<code>fn</code>赋值给<code>res</code>判断返回值是否一个<code>Promise</code>对象如果是则在<code>fn</code>执行完毕后调用<code>resolve()</code>否则直接调用<code>resolve()</code>。</p>
+<p><code>observer.observe()</code>第一个参数是指我们需要监听的 DOM 节点，第二个对象参数是一些配置。</p>
+<p>我们将该代码引入实例中是否也能实现效果呢？</p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;title&gt;Document&lt;/title&gt;
+    &lt;style&gt;
+      h2 {
+        display: inline-block;
+      }
+    &lt;/style&gt;
+    &lt;script src=&quot;https://unpkg.com/vue@3/dist/vue.global.js&quot;&gt;&lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id=&quot;app&quot;&gt;
+      &lt;h2 ref=&quot;h2Ref&quot;&gt;{{ message }}&lt;/h2&gt;
+      &lt;button @click=&quot;updateMessage&quot;&gt;更新&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;script src=&quot;nextTick.js&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+      const { createApp, ref, onMounted } = Vue;
+
+      createApp({
+        setup() {
+          const message = ref(&quot;Hello vue!&quot;);
+          const h2Ref = ref(null);
+          onMounted(() =&gt; {
+            console.log(h2Ref.value.clientWidth);
+          });
+
+          const updateMessage = () =&gt; {
+            message.value = &quot;Goodbye Vue!&quot;;
+            let res = nextTick(() =&gt; {
+              console.log(h2Ref.value.clientWidth);
+            });
+            res.then(() =&gt; {
+              console.log(res);
+              console.log(&quot;nextTick 执行完毕&quot;);
+            });
+          };
+
+          return {
+            message,
+            h2Ref,
+            updateMessage,
+          };
+        },
+      }).mount(&quot;#app&quot;);
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<img src="../imgs/69/05.webp" />
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>

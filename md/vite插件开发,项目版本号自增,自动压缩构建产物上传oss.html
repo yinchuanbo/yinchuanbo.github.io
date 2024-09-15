@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>vite插件开发,项目版本号自增,自动压缩构建产物上传oss</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left">
+          <ul>
+            <li class=""><a title="ESLint 忽略检查行和文件总结" href="/md/ESLint 忽略检查行和文件总结.html">01 ESLint 忽略检查行和文件总结</a></li><li class=""><a title="Eslint 和 Prettier 的配置与冲突处理" href="/md/Eslint 和 Prettier 的配置与冲突处理.html">02 Eslint 和 Prettier 的配置与冲突处理</a></li><li class=""><a title="Eslint 配置指南" href="/md/Eslint 配置指南.html">03 Eslint 配置指南</a></li><li class=""><a title="vite 配置" href="/md/vite 配置.html">04 vite 配置</a></li><li class=""><a title="前端构建系统浅析" href="/md/前端构建系统浅析.html">05 前端构建系统浅析</a></li><li class=""><a title="前端版本管理工具 - volta" href="/md/前端版本管理工具 - volta.html">06 前端版本管理工具 - volta</a></li><li class=""><a title="最新 ESLint 9.0 + vue3.0 + TS 配置" href="/md/最新 ESLint 9.0 + vue3.0 + TS 配置.html">07 最新 ESLint 9.0 + vue3.0 + TS 配置</a></li><li class=""><a title="检查前端项目和 node 项目中未被使用的依赖包" href="/md/检查前端项目和 node 项目中未被使用的依赖包.html">08 检查前端项目和 node 项目中未被使用的依赖包</a></li><li class=""><a title="使用 eslint-plugin-depend 移除无用的 NPM 包" href="/md/使用 eslint-plugin-depend 移除无用的 NPM 包.html">09 使用 eslint-plugin-depend 移除无用的 NPM 包</a></li><li class="active"><a title="vite插件开发,项目版本号自增,自动压缩构建产物上传oss" href="/md/vite插件开发,项目版本号自增,自动压缩构建产物上传oss.html">10 vite插件开发,项目版本号自增,自动压缩构建产物上传oss</a></li><li class=""><a title="vite 创建 vue3 项目" href="/md/vite 创建 vue3 项目.html">11 vite 创建 vue3 项目</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+        >
+          <h1>vite插件开发,项目版本号自增,自动压缩构建产物上传oss</h1>
+          <h2>1.项目版本号自增</h2>
+<blockquote>
+<p>每次项目写完打包前都要手动修改<code>package.json</code>里面的版本号,非常麻烦,借用<code>vite</code>插件来实现版本号自增</p>
+</blockquote>
+<h3>新建<code>autoIncrementVersion.js</code>文件</h3>
+<pre><code class="language-ts">import { Plugin } from &quot;vite&quot;;
+import fs from &quot;fs&quot;;
+import path from &quot;path&quot;;
+//版本号自增
+const incrementVersion = (version: string) =&gt; {
+  const parts = version.split(&quot;.&quot;).map(Number);
+  parts[2]++;
+  if (parts[2] &gt; 9) {
+    parts[2] = 0;
+    parts[1]++;
+    if (parts[1] &gt; 9) {
+      parts[1] = 0;
+      parts[0]++;
+    }
+  }
+  return parts.join(&quot;.&quot;);
+};
+
+export default function autoIncrementVersion(): Plugin {
+  return {
+    name: &quot;vite:autoIncrementVersion&quot;,
+    apply: &quot;build&quot;,
+    //构建开始时的钩子
+    buildStart(options) {
+      if (options) {
+        const pkg = JSON.parse(
+          fs.readFileSync(path.resolve(__dirname, &quot;../package.json&quot;), &quot;utf8&quot;)
+        );
+        pkg.version = incrementVersion(pkg.version);
+        fs.writeFileSync(
+          path.resolve(__dirname, &quot;../package.json&quot;),
+          JSON.stringify(pkg, null, 2)
+        );
+      }
+    },
+  };
+}
+</code></pre>
+<h2>使用</h2>
+<pre><code class="language-js">import { defineConfig } from &quot;vite&quot;;
+import vue from &quot;@vitejs/plugin-vue&quot;;
+import autoIncrementVersion from &quot;./vite-plugin&quot;;
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [vue(), autoIncrementVersion()],
+});
+</code></pre>
+<h2>2.打包完成后自动压缩为<code>zip</code>文件,并且上传至<code>oss</code></h2>
+<blockquote>
+<p>公司项目都是后端来部署的,前端开发完毕打包后需要上传到<code>oss</code>,后端只需要一个下载链接就 ok 了</p>
+</blockquote>
+<pre><code class="language-js">import { Plugin } from &quot;vite&quot;;
+import OSS from &quot;ali-oss&quot;; //阿里云oss
+import path from &quot;path&quot;;
+import archiver from &quot;archiver&quot;;
+import fs from &quot;fs&quot;;
+//我们公司使用的是阿里云oss
+const client = new OSS({
+  region: &quot;&quot;, // 示例：&#39;oss-cn-hangzhou&#39;，填写Bucket所在地域。
+  accessKeyId: &quot;&quot;, // 设置OSS_ACCESS_KEY_ID。
+  accessKeySecret: &quot;&quot;, // 设置OSS_ACCESS_KEY_SECRET。
+  bucket: &quot;&quot;, // 填写存储空间名称。
+});
+//压缩文件夹-上传
+const compressFolder = (fileName: string) =&gt; {
+  const output = fs.createWriteStream(`${__dirname}/../${fileName}.zip`);
+  const archive = archiver(&quot;zip&quot;, {
+    zlib: { level: 9 },
+  });
+
+  output.on(&quot;close&quot;, function () {
+    const size = (archive.pointer() / 1024 / 1024).toFixed(2);
+    console.log(`
+          ----------------------------------------------------------
+          ------                  压缩完成                    ------
+          ------ 文件路径：项目根目录：${fileName}.zip     ------
+          ------               文件大小${size}M                  ------
+          ------                准备上传至oss                 ------
+          ----------------------------------------------------------
+      `);
+    client
+      .put(
+        `/app2/zhong-ning/${fileName}.zip`,
+        path.normalize(`${__dirname}/../${fileName}.zip`)
+      )
+      .then((res) =&gt; {
+        const url = `https:**/${fileName}.zip`;
+        console.log(`
+          ----------------------------------------------------------
+          ------                  上传成功                    ------
+          ------                版本号${pkg.version}                   ------
+          地址：${url}                 
+          ----------------------------------------------------------
+      `);
+      });
+  });
+
+  archive.on(&quot;warning&quot;, function (err: { code: string }) {
+    if (err.code === &quot;ENOENT&quot;) {
+    } else {
+      throw err;
+    }
+  });
+
+  archive.on(&quot;error&quot;, function (err: any) {
+    throw err;
+  });
+  archive.pipe(output);
+  /* 这里需要第二个参数fileName,否则是直接压缩文件夹里面的内容,不带文件夹 */
+  archive.directory(fileName, fileName);
+  archive.finalize();
+};
+
+export default function autoUploadZip(fileName: string): Plugin {
+  return {
+    name: &quot;vite:autoUploadZip&quot;,
+    apply: &quot;build&quot;,
+    enforce: &quot;post&quot;,
+    //服务器关闭时钩子
+    closeBundle() {
+      compressFolder(fileName);
+    },
+  };
+}
+</code></pre>
+<h3>使用</h3>
+<pre><code class="language-js">import { defineConfig } from &quot;vite&quot;;
+import vue from &quot;@vitejs/plugin-vue&quot;;
+import autoUploadZip from &quot;./vite-plugins/autoUploadZip.ts&quot;;
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [vue(), autoUploadZip(&quot;打包文件夹名称&quot;)],
+});
+</code></pre>
+<pre><code class="language-sh">//控制台使出
+✓ built in 18.30s
+
+          ----------------------------------------------------------
+          ------                  压缩完成                    ------
+          ------        文件路径：项目根目录：**.zip           ------
+          ------                文件大小***M                  ------
+          ------                准备上传至oss                 ------
+          ----------------------------------------------------------
+
+
+          ----------------------------------------------------------
+          ------                  上传成功                     ------
+          ------                   版本号*.*.*                 ------
+          地址：************************************************.zip
+          ----------------------------------------------------------
+</code></pre>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>

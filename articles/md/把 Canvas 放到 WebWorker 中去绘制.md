@@ -1,6 +1,6 @@
 ---
 title: "把 Canvas 放到 WebWorker 中去绘制"
-tag: "JavaScript"
+tag: "Web Worker"
 ---
 
 ## 前言

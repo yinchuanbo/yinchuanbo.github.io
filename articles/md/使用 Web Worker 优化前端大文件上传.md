@@ -1,6 +1,6 @@
 ---
 title: "使用 Web Worker 优化前端大文件上传"
-tag: "性能优化"
+tag: "Web Worker"
 ---
 
 ### 1\. 分析任务

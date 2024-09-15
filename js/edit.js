@@ -82,7 +82,6 @@ function init(obj, extension) {
 }
 
 window.onload = () => {
-  // layoutEdit();
   const firstPath = document.querySelector("li[data-path]");
   if (firstPath) {
     firstPath.classList.add("active");
@@ -121,7 +120,6 @@ window.onload = () => {
     };
   });
 
-  //
   const h3s = document.querySelectorAll(".layout__main_left h3");
   h3s.forEach((item) => {
     item.onclick = () => {
@@ -129,32 +127,3 @@ window.onload = () => {
     };
   });
 };
-
-function layoutEdit() {
-  const leftBorder = document.querySelector(".left__border");
-  const resizer = document.querySelector(".layout__main_left");
-  // const resizable = document.querySelector(".layout__main_right");
-  leftBorder.addEventListener("mousedown", initResize);
-  function initResize(e) {
-    e.preventDefault();
-    document.addEventListener("mousemove", startResizing);
-    document.addEventListener("mouseup", stopResizing);
-  }
-  function startResizing(e) {
-    const resizerRect = resizer.getBoundingClientRect();
-    // const resizableRect = resizable.getBoundingClientRect();
-    let newWidth = e.clientX - resizerRect.left;
-
-    if (newWidth < 300) {
-      newWidth = 300;
-    } else if (newWidth > 750) {
-      newWidth = 750;
-    }
-    resizer.style.width = `${newWidth}px`;
-    editor?.layout();
-  }
-  function stopResizing() {
-    document.removeEventListener("mousemove", startResizing);
-    document.removeEventListener("mouseup", stopResizing);
-  }
-}
