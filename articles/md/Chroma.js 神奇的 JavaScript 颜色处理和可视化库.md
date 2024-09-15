@@ -1,6 +1,6 @@
 ---
 title: "Chroma.js， 一款神奇的 JavaScript 开源颜色处理和可视化库？"
-tag: "工具库"
+tag: "工具"
 ---
 
 <img src="../imgs/60/01.webp" />

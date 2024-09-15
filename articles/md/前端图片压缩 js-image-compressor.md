@@ -1,6 +1,6 @@
 ---
 title: "前端图片压缩 js-image-compressor"
-tag: "工具库"
+tag: "工具"
 ---
 
 ### 前言

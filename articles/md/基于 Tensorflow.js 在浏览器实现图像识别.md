@@ -1,6 +1,6 @@
 ---
 title: "基于 Tensorflow.js 在浏览器实现图像识别"
-tag: "JavaScript"
+tag: "工具"
 ---
 
 ## 1.使用预训练模型

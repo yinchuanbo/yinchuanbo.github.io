@@ -1,6 +1,6 @@
 ---
 title: "ES6 类"
-tag: "Class 类"
+tag: "面向对象"
 ---
 
 ```js
