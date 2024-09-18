@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>理解生成器在2024年的秘密力量</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class="active"><a title="理解生成器在2024年的秘密力量" href="/md/理解生成器在2024年的秘密力量.html">01 理解生成器在2024年的秘密力量</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>理解生成器在2024年的秘密力量</h1>
+          <h2>什么是生成器？</h2>
+<p>让我们从基础开始。生成器是 JavaScript 中一种特殊类型的函数，允许你随意暂停和恢复执行。</p>
+<p>与常规函数一次性从上到下执行不同，生成器可以将控制权交回调用上下文，允许对其执行流程进行更细粒度的控制。</p>
+<p>这里有一个简单的例子来设定场景：</p>
+<pre><code class="language-js">function* simpleGenerator() {
+  yield 1;
+  yield 2;
+  yield 3;
+}
+
+const gen = simpleGenerator();
+console.log(gen.next().value); // 1
+console.log(gen.next().value); // 2
+console.log(gen.next().value); // 3
+</code></pre>
+<p>在这个例子中，<code>simpleGenerator</code> 并不是一次性运行完毕。相反，它在每个 <code>yield</code> 语句处暂停，只有当你显式地在它上面调用 <code>next()</code> 时才会恢复。这种行为正是赋予生成器独特优势的原因。</p>
+<h2>生成器的魔力：何时何地？</h2>
+<p>现在，你可能会想，&quot;我应该在什么时候使用生成器而不是 Promise？&quot;好问题！生成器在需要对执行流程进行精细控制的场景中特别有用。以下是一些具体的使用案例：</p>
+<h3>1. 惰性迭代</h3>
+<p>生成器在创建惰性迭代器时大放异彩 — 这些是按需生成的值序列。这在处理潜在的无限数据流或大型数据集时特别有用，因为一次性将所有内容加载到内存中是不切实际的。</p>
+<pre><code class="language-js">function* infiniteSequence() {
+  let i = 0;
+  while (true) {
+    yield i++;
+  }
+}
+
+const numbers = infiniteSequence();
+console.log(numbers.next().value); // 0
+console.log(numbers.next().value); // 1
+// 可以一直进行下去...
+</code></pre>
+<p>在这个例子中，生成器产生了一个无限的数字序列，但它只在需要时计算下一个值。这种方法节省了内存并提高了性能。</p>
+<h3>2. 自定义控制流</h3>
+<p>生成器为管理复杂的控制流提供了一种独特的方式，尤其是那些异步的控制流。通过将生成器与 Promise 结合，你可以创建读起来几乎是同步的代码，但在底层处理异步操作。</p>
+<pre><code class="language-js">function* fetchData() {
+  const result1 = yield fetchDataFromAPI(&quot;/endpoint1&quot;);
+  const result2 = yield fetchDataFromAPI(&quot;/endpoint2&quot;);
+  return [result1, result2];
+}
+
+function runGenerator(generatorFunction) {
+  const generator = generatorFunction();
+
+  function handle(result) {
+    if (result.done) return Promise.resolve(result.value);
+    return Promise.resolve(result.value).then((res) =&gt; {
+      return handle(generator.next(res));
+    });
+  }
+
+  return handle(generator.next());
+}
+
+runGenerator(fetchData).then((results) =&gt; {
+  console.log(results);
+});
+</code></pre>
+<p>在这种情况下，生成器允许你&quot;暂停&quot;执行，直到 <code>fetchDataFromAPI</code> Promise 解决，然后用获取的数据恢复。这种方法在 async/await 成为标准之前特别流行，当你需要比 async/await 提供的更多控制时，它仍然很有用。</p>
+<h3>3. 状态机</h3>
+<p>状态机是复杂应用程序中的常见模式，生成器可以用来清晰简洁地实现它们。在特定状态下 yield 的能力使得生成器非常适合管理状态之间的转换。</p>
+<img src="../imgs/77/01.webp" />
+
+<p>这种方法为处理应用程序逻辑中的各种状态提供了一种清晰、可维护的方式。</p>
+<h2>生成器 vs Promise：对决</h2>
+<p>到目前为止，你可能认为生成器很棒，你说得对！但什么时候应该使用它们而不是 Promise 呢？</p>
+<h3>生成器：优势</h3>
+<ul>
+<li><strong>精细控制</strong>：生成器给你随意暂停和恢复函数执行的能力。这在惰性求值、自定义迭代逻辑或复杂控制流等场景中可能是一个游戏改变者。</li>
+<li><strong>内存效率</strong>：因为生成器按需产生值，它们在内存使用上很高效，特别适合处理大型数据集或流。</li>
+<li><strong>可读的异步代码</strong>：虽然 async/await 已经在很大程度上取代了处理异步操作的方式，但生成器仍然提供了可读性和控制的独特组合，可以使复杂的异步流程更易管理。</li>
+</ul>
+<h3>Promise：优势</h3>
+<ul>
+<li><strong>简单性和普遍性</strong>：Promise 现在是 JavaScript 的一个标准、被广泛理解的部分。对于大多数异步任务来说，它们更简单易用，并且在库和工具方面有更好的支持。</li>
+<li><strong>并发性</strong>：当你需要同时处理多个异步操作时，Promise 表现出色，比如同时进行多个 API 调用。</li>
+<li><strong>错误处理</strong>：使用 async/await，错误处理通过 try/catch 块变得更直接，使得在异步代码中管理异常更容易。</li>
+</ul>
+<h3>何时选择哪个？</h3>
+<p>在以下情况使用生成器：</p>
+<ul>
+<li>你需要精确管理复杂的控制流。</li>
+<li>内存效率至关重要，你想按需生成值。</li>
+<li>你正在实现诸如状态机或惰性迭代之类的模式。</li>
+</ul>
+<p>在以下情况使用 Promise：</p>
+<ul>
+<li>你正在处理简单的异步操作。</li>
+<li>你需要处理并发任务。</li>
+<li>你更喜欢更简单、更直接的错误处理。</li>
+</ul>
+<h2>2024 年使用生成器的最佳实践</h2>
+<p>现在我们已经讨论了为什么和何时使用生成器，让我们深入探讨一些在 2024 年有效使用生成器的最佳实践。</p>
+<h3>1. 保持简单</h3>
+<p>生成器可能会增加代码的复杂性，所以要谨慎使用。如果一个任务可以轻松地用 Promise 或 async/await 处理，就没有必要使用生成器。</p>
+<h3>2. 与 Promise 结合以获得最大效果</h3>
+<p>生成器和 Promise 并不是互斥的。事实上，它们可以完美地互补。例如，你可以使用生成器来构建异步流程，使用 Promise 来处理实际的异步操作。</p>
+<h3>3. 注意迭代</h3>
+<p>当使用生成器进行迭代时，始终要注意何时停止。如果不适当管理，生成器中的无限循环可能会成为一个真正的麻烦。确保你有明确的退出条件，如果你的生成器有潜在的无限运行可能。</p>
+<h3>4. 彻底测试</h3>
+<p>鉴于生成器独特的执行流程，彻底的测试至关重要。确保所有可能的执行路径都被覆盖，包括生成器可能意外 yield 或提前终止的边缘情况。</p>
+<h3>5. 利用 TypeScript 实现类型安全</h3>
+<p>既然你在使用 TypeScript，确保为你的生成器函数定义类型。这增加了一层额外的安全保障，帮助你在编译时捕获潜在问题。</p>
+<pre><code class="language-ts">function* numberGenerator(): Generator&lt;number, void, unknown&gt; {
+  yield 1;
+  yield 2;
+  yield 3;
+}
+</code></pre>
+<h2>结论</h2>
+<p>在 2024 年，生成器可能不再是新鲜事物，但它们肯定没有失去魅力。</p>
+<p>它们精确控制执行流程的能力，结合其内存效率，使它们成为任何开发者武器库中的宝贵工具。</p>
+<p>虽然 Promise 和 async/await 有它们的用武之地，但生成器提供了一种独特的视角，可以简化复杂任务并优化性能。</p>
+<p>与任何工具一样，关键在于知道何时以及如何使用它们。</p>
+<p>所以下次当你面对一个需要比简单的异步解决方案更多的问题时，考虑一下生成器是否可能是你需要的秘密武器。</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    </script>
+  </body>
+</html>
