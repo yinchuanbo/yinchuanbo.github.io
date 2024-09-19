@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端如何避免重排 reflow 和重绘 repaint</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class=""><a title="API 技巧" href="/md/API 技巧.html">01 API 技巧</a></li><li class=""><a title="Performance 面板分析性能瓶颈全流程" href="/md/Performance 面板分析性能瓶颈全流程.html">02 Performance 面板分析性能瓶颈全流程</a></li><li class=""><a title="书写高性能的代码" href="/md/书写高性能的代码.html">03 书写高性能的代码</a></li><li class=""><a title="了解透彻浏览器缓存" href="/md/了解透彻浏览器缓存.html">04 了解透彻浏览器缓存</a></li><li class=""><a title="内存泄漏排查" href="/md/内存泄漏排查.html">05 内存泄漏排查</a></li><li class=""><a title="利用 Performance API 分析网站性能" href="/md/利用 Performance API 分析网站性能.html">06 利用 Performance API 分析网站性能</a></li><li class=""><a title="前端如何优化资源加载" href="/md/前端如何优化资源加载.html">07 前端如何优化资源加载</a></li><li class=""><a title="加载注意事项" href="/md/加载注意事项.html">08 加载注意事项</a></li><li class=""><a title="性能优化-时间分片渲染简单做法" href="/md/性能优化-时间分片渲染简单做法.html">09 性能优化-时间分片渲染简单做法</a></li><li class=""><a title="性能优化全家桶：6 个方面 9 点建议" href="/md/性能优化全家桶：6 个方面 9 点建议.html">10 性能优化全家桶：6 个方面 9 点建议</a></li><li class=""><a title="构建优化" href="/md/构建优化.html">11 构建优化</a></li><li class=""><a title="浅谈前端性能优化之评估工具" href="/md/浅谈前端性能优化之评估工具.html">12 浅谈前端性能优化之评估工具</a></li><li class=""><a title="浏览器渲染性能分析技巧" href="/md/浏览器渲染性能分析技巧.html">13 浏览器渲染性能分析技巧</a></li><li class=""><a title="渲染优化" href="/md/渲染优化.html">14 渲染优化</a></li><li class=""><a title="看《浏览器基本原理与实践》后，36点总结" href="/md/看《浏览器基本原理与实践》后，36点总结.html">15 看《浏览器基本原理与实践》后，36点总结</a></li><li class=""><a title="网站优化之静态资源优化" href="/md/网站优化之静态资源优化.html">16 网站优化之静态资源优化</a></li><li class=""><a title="网页太慢了怎么排查" href="/md/网页太慢了怎么排查.html">17 网页太慢了怎么排查</a></li><li class=""><a title="聊聊图片预加载" href="/md/聊聊图片预加载.html">18 聊聊图片预加载</a></li><li class=""><a title="资源优先级" href="/md/资源优先级.html">19 资源优先级</a></li><li class=""><a title="页面加载流程分析技巧" href="/md/页面加载流程分析技巧.html">20 页面加载流程分析技巧</a></li><li class="active"><a title="前端如何避免重排 reflow 和重绘 repaint" href="/md/前端如何避免重排 reflow 和重绘 repaint.html">21 前端如何避免重排 reflow 和重绘 repaint</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>前端如何避免重排 reflow 和重绘 repaint</h1>
+          <img src="../imgs/78/01.webp" />
+
+<h2>1. 如何避免重排（reflow）和重绘（repaint）</h2>
+<p>避免重排（reflow）和重绘（repaint）对于提高网页性能至关重要。</p>
+<p><strong>重排是指浏览器重新计算元素的位置和大小的过程</strong>，而<strong>重绘则是指浏览器重新绘制元素的过程</strong>。</p>
+<p>频繁的重排和重绘会严重影响用户体验，因为它们会导致页面闪烁并消耗更多的 CPU 资源。</p>
+<p>以下是一些减少重排和重绘的方法：</p>
+<h3>1.1. 避免重排 (Refow)</h3>
+<p><strong>1.1.1. 减少 DOM 操作:</strong></p>
+<ul>
+<li>尽量减少对 DOM 树的更改，特别是那些可能引起大量子元素变化的操作。</li>
+<li>使用文档片段（DocumentFragment）来批量添加多个元素，这可以减少对 DOM 的直接操作次数。</li>
+</ul>
+<p><strong>1.1.2. 避免使用特定属性:</strong></p>
+<ul>
+<li>避免使用如<code>offsetTop</code>, <code>offsetLeft</code>, <code>scrollLeft</code>, <code>scrollTop</code>, <code>clientWidth</code>, <code>clientHeight</code>等会引起重排的属性。</li>
+<li>如果需要这些属性的值，先进行计算，然后执行其他操作。</li>
+</ul>
+<p><strong>1.1.3. 使用 CSS 动画而非 JavaScript:</strong></p>
+<ul>
+<li>使用 CSS3 动画和过渡效果，而不是 JavaScript 来改变元素的位置和尺寸，因为 CSS 动画通常比 JavaScript 更高效。</li>
+</ul>
+<p><strong>1.1.4. 利用 position: fixed 或 position: absolute:</strong></p>
+<ul>
+<li>对于不需要参与文档流中的元素，可以使用绝对定位或固定定位。这样它们的变化不会引起其他元素的重排。</li>
+</ul>
+<p><strong>1.1.5. 使用 display: none:</strong></p>
+<ul>
+<li>要隐藏元素时，使用<code>display: none</code>代替<code>visibility: hidden</code>，因为后者虽然使元素不可见但仍然保留空间，可能会导致其他元素的重排。</li>
+</ul>
+<p><strong>1.1.6. 使用 requestAnimationFrame:</strong></p>
+<ul>
+<li>当需要进行多次 DOM 操作时，可以将这些操作放在<code>requestAnimationFrame</code>回调函数中，这样浏览器可以在下一帧绘制之前合并所有变更。</li>
+</ul>
+<h3>1.2. 避免重绘 (Repaint)</h3>
+<p><strong>1.2.1. 使用 will-change 属性:</strong></p>
+<ul>
+<li>对于经常发生变化的元素，可以使用<code>will-change</code>属性告诉浏览器提前准备好硬件加速，这有助于减少重绘的时间。</li>
+</ul>
+<pre><code class="language-js">.element {
+    will-change: transform;
+}
+</code></pre>
+<p><strong>1.2.2. 使用合成层:</strong></p>
+<ul>
+<li>利用<code>translateZ(0)</code>、<code>transform: translate3d(0, 0, 0)</code>或<code>backface-visibility: hidden</code>创建合成层，这些属性会将元素从其父级的渲染树中分离出来，从而减少影响其他元素的重绘。</li>
+</ul>
+<p><strong>1.2.3. 使用离屏 Canvas:</strong></p>
+<ul>
+<li>对于复杂的图形操作，可以使用离屏 Canvas 进行绘制，然后再将结果绘制到屏幕上，这样可以减少重绘的次数。</li>
+</ul>
+<p><strong>1.2.4. 使用 display: contents:</strong></p>
+<ul>
+<li>对于只作为容器但不希望其自身产生边界的元素，可以使用<code>display: contents</code>，这样元素本身不会产生任何视觉输出，从而减少了重绘。</li>
+</ul>
+<p><strong>1.2.5. 使用 CSS 变量:</strong></p>
+<ul>
+<li>对于需要动态改变的样式，使用 CSS 变量可以减少重绘，因为它们是在渲染阶段处理的。</li>
+</ul>
+<p><strong>1.2.6. 避免昂贵的样式属性:</strong></p>
+<ul>
+<li>尽量避免使用<code>clip-path</code>, <code>filter</code>, <code>mix-blend-mode</code>等昂贵的 CSS 属性，因为它们会导致重绘。</li>
+</ul>
+<h3>1.3. 总结</h3>
+<p>为了最大限度地减少重排和重绘，可以遵循以下策略：</p>
+<ul>
+<li><strong>分批更新</strong>：将多个 DOM 操作放在一个函数里，并通过<code>requestAnimationFrame</code>来执行。</li>
+<li><strong>使用合成层</strong>：对于频繁更新的元素，考虑将其置于合成层中。</li>
+<li><strong>优化样式表</strong>：尽量避免使用触发重排和重绘的 CSS 属性。</li>
+<li><strong>最小化 DOM 树的复杂性</strong>：简化 DOM 结构可以减少元素的变化对整个页面的影响。</li>
+</ul>
+<p>通过上述方法，你可以显著提高网页的性能和响应速度。</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    </script>
+  </body>
+</html>

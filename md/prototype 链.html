@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>prototype 链</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class=""><a title="ES6 类" href="/md/ES6 类.html">01 ES6 类</a></li><li class=""><a title="封装_受保护的属性和方法" href="/md/封装_受保护的属性和方法.html">02 封装_受保护的属性和方法</a></li><li class="active"><a title="prototype 链" href="/md/prototype 链.html">03 prototype 链</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>prototype 链</h1>
+          <p>在 JavaScript 的世界里,原型(prototype)系统是一个常被讨论但不易掌握的概念。作为 JavaScript 继承模型的基石,理解原型对于构建大型应用或进行对象操作至关重要。让我们一起探索这个迷人的话题,揭开原型系统的神秘面纱。</p>
+<h2>什么是原型?</h2>
+<p>在 JavaScript 中,每个对象都有一个内部属性<code>[[Prototype]]</code>。这个属性指向另一个对象,我们称之为原型。原型就像一个模板,对象从中继承属性和方法。</p>
+<p>当我们尝试访问一个对象的属性或方法时,JavaScript 首先在对象本身查找。如果没有找到,它会沿着原型链向上查找,直到找到该属性或达到原型链的顶端(null)。</p>
+<p>我们通过一个简单的例子来理解这个过程:</p>
+<pre><code class="language-js">const animal = {
+  makeSound: function () {
+    console.log(&quot;Some generic animal sound&quot;);
+  },
+};
+
+const dog = Object.create(animal);
+dog.bark = function () {
+  console.log(&quot;Woof!&quot;);
+};
+
+dog.makeSound(); // 输出: &quot;Some generic animal sound&quot;
+dog.bark(); // 输出: &quot;Woof!&quot;
+</code></pre>
+<p>在这个例子中,<code>dog</code>对象继承了<code>animal</code>的<code>makeSound</code>方法,同时拥有自己的<code>bark</code>方法。</p>
+<h2>创建对象与原型</h2>
+<p>我们深入了解对象创建时原型是如何链接的:</p>
+<pre><code class="language-js">function Person(name) {
+  this.name = name;
+}
+
+Person.prototype.greet = function () {
+  console.log(`Hello, I&#39;m ${this.name}`);
+};
+
+const alice = new Person(&quot;Alice&quot;);
+alice.greet(); // 输出: &quot;Hello, I&#39;m Alice&quot;
+</code></pre>
+<p>这里发生了什么?</p>
+<ol>
+<li><code>Person</code>是一个构造函数。</li>
+<li>当我们使用<code>new</code>关键字创建<code>Person</code>的实例时,JavaScript 创建了一个新对象(<code>alice</code>),并将其[[Prototype]]链接到<code>Person.prototype</code>。</li>
+<li>当调用<code>alice.greet()</code>时,JavaScript 首先在<code>alice</code>对象上查找<code>greet</code>方法。没有找到,所以它沿着原型链查找,在<code>Person.prototype</code>上找到并执行了这个方法。</li>
+</ol>
+<h2>原型链与继承</h2>
+<p>JavaScript 通过原型实现继承。与传统的类继承不同,JavaScript 对象直接从其他对象继承。这被称为&quot;原型继承&quot;。让我们扩展前面的例子来演示继承:</p>
+<pre><code class="language-js">function Developer(name, language) {
+  Person.call(this, name);
+  this.language = language;
+}
+
+Developer.prototype = Object.create(Person.prototype);
+Developer.prototype.constructor = Developer;
+
+Developer.prototype.code = function () {
+  console.log(`${this.name} is coding in ${this.language}`);
+};
+
+const bob = new Developer(&quot;Bob&quot;, &quot;JavaScript&quot;);
+bob.greet(); // 输出: &quot;Hello, I&#39;m Bob&quot;
+bob.code(); // 输出: &quot;Bob is coding in JavaScript&quot;
+</code></pre>
+<p>在这个例子中:</p>
+<ol>
+<li>我们使用<code>Object.create(Person.prototype)</code>创建了<code>Developer.prototype</code>,确保<code>Developer</code>实例继承自<code>Person.prototype</code>。</li>
+<li>我们重置了<code>Developer.prototype.constructor</code>,使其指向<code>Developer</code>函数。</li>
+<li><code>bob</code>现在可以访问从<code>Person.prototype</code>继承的<code>greet</code>方法和定义在<code>Developer.prototype</code>上的<code>code</code>方法。</li>
+</ol>
+<h2>原型方法与属性遮蔽</h2>
+<p>当直接在对象上添加一个属性或方法时,它会遮蔽原型链中同名的属性或方法:</p>
+<pre><code class="language-js">bob.greet = function () {
+  console.log(&quot;Hi, I&#39;m a developer!&quot;);
+};
+
+bob.greet(); // 输出: &quot;Hi, I&#39;m a developer!&quot;
+</code></pre>
+<p>在这个例子中,直接定义在<code>bob</code>上的<code>greet</code>方法覆盖了从<code>Person.prototype</code>继承的方法。</p>
+<h2>修改原型的风险</h2>
+<p>虽然可以修改内置原型如<code>Array.prototype</code>或<code>Object.prototype</code>,但这通常是不推荐的做法。这可能导致不可预知的行为和与其他代码的冲突。</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    </script>
+  </body>
+</html>
