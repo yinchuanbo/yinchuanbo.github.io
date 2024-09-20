@@ -80,7 +80,7 @@ function renderNavList(navList = [], filename = "") {
     return bStats.birthtime - aStats.birthtime; // Sort by birthtime
   });
 
-  const allList = navList.map((item, idx) => {
+  let allList = navList.map((item, idx) => {
     return `<li class="${
       item.trim() === filename.trim() ? "active" : ""
     }"><a title="${item.replace(".md", "")}" href="/md/${item.replace(
@@ -91,6 +91,7 @@ function renderNavList(navList = [], filename = "") {
       ""
     )}</a></li>`;
   });
+  allList = allList.reverse();
   return allList.join("");
 }
 
@@ -121,7 +122,7 @@ function renderHome() {
   let homeHTML = `<ul>`;
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
-    const first = tagsNav[key][0];
+    const first = tagsNav[key].at(-1);
     homeHTML += `<li class="card"><a href="/md/${first.replace(
       ".md",
       ".html"
