@@ -126,7 +126,7 @@ function renderHome() {
     homeHTML += `<li class="card"><a href="/md/${first.replace(
       ".md",
       ".html"
-    )}">${key}</a><span class="num">${tagsNav[key]?.length}</span></li>`;
+    )}">${key} (${tagsNav[key]?.length})</a></li>`;
   }
   homeHTML += `</ul>`;
   const homeTempHTML = ejs.render(homeTemplateContent, {
