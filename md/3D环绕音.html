@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D环绕音</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class=""><a title="视频播放错误并重试" href="/md/视频播放错误并重试.html">02 视频播放错误并重试</a></li><li class="active"><a title="3D环绕音" href="/md/3D环绕音.html">01 3D环绕音</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>3D环绕音</h1>
+          <img src="../imgs/78/02.webp" />
+
+<h2>完整代码：</h2>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;title&gt;Web Audio&lt;/title&gt;
+  &lt;/head&gt;
+
+  &lt;body&gt;
+    &lt;h1&gt;3D环绕音&lt;/h1&gt;
+    &lt;audio
+      loop
+      autoplay
+      crossorigin=&quot;anonymous&quot;
+      src=&quot;https://s3-us-west-2.amazonaws.com/s.cdpn.io/858/outfoxing.mp3&quot;
+    &gt;&lt;/audio&gt;
+    &lt;button onclick=&quot;startPlay()&quot;&gt;开始播放&lt;/button&gt;
+    &lt;button onclick=&quot;spatialize()&quot;&gt;开闭空间化&lt;/button&gt;
+    &lt;span&gt;音效状态：&lt;/span&gt;&lt;span id=&quot;status&quot;&gt;关闭&lt;/span&gt;&lt;br /&gt;
+    &lt;img
+      src=&quot;https://wimg.588ku.com/gif/21/07/30/7d40c30d2c5de73bcde94f3bfc8f5a89.gif&quot;
+      alt=&quot;&quot;
+      style=&quot;display: none;&quot;
+    /&gt;
+    &lt;script&gt;
+      // 音源初始位置信息
+      const audioPosition = [0, 0, 1];
+      // 创建音频上下文
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContext();
+      // 设置 AudioListener
+      const listener = audioCtx.listener;
+      listener.positionX.value = 0;
+      listener.positionY.value = 0;
+      listener.positionZ.value = 0;
+      listener.forwardX.value = 0;
+      listener.forwardY.value = 0;
+      listener.forwardZ.value = -1;
+
+      // 创建输入结点，解码 audio 标签的音频源；创建处理结点，处理音频
+      const audioEl = document.querySelector(&quot;audio&quot;);
+      const sourceNode = audioCtx.createMediaElementSource(audioEl);
+      // 创建和设置 PannerNode
+      const pannerNode = new PannerNode(audioCtx, {
+        panningModel: &quot;HRTF&quot;, // 音频空间化算法模型
+        distanceModel: &quot;linear&quot;, // 远离时的音量衰减算法
+        rolloffFactor: 1, // 衰减速度
+        coneInnerAngle: 360, // 声音 360 度扩散
+        positionX: audioPosition[0],
+        positionY: audioPosition[1],
+        positionZ: audioPosition[2],
+        maxDistance: 10000,
+      });
+      // 将输入节点直接连接到输出节点
+      sourceNode.connect(audioCtx.destination);
+
+      // 设置音源自动分别沿 xyz 三个轴来回移动效果，形成环绕效果
+      function autoMove(axis, interval, step = 100, maxDistance = 1000) {
+        let isAdd = true;
+        const positionAxisMap = [&quot;positionX&quot;, &quot;positionY&quot;, &quot;positionZ&quot;];
+        setInterval(() =&gt; {
+          if (isAdd &amp;&amp; audioPosition[axis] &gt;= maxDistance) {
+            isAdd = false;
+          } else if (!isAdd &amp;&amp; audioPosition[axis] &lt;= -maxDistance) {
+            isAdd = true;
+          }
+          if (isAdd) {
+            audioPosition[axis] += step;
+          } else {
+            audioPosition[axis] -= step;
+          }
+          pannerNode[positionAxisMap[axis]].value = audioPosition[axis];
+          console.log(&quot;audioPosition&quot;, audioPosition);
+        }, interval);
+      }
+      // 沿 x 轴在 -1000 到 1000 之间来回移动
+      autoMove(0, 100, 100, 1000);
+      // 沿 z 轴在 -1000 到 1000 之间来回移动
+      autoMove(2, 200, 100, 1000);
+      // 沿 y 轴在 -100 到 100 之间来回移动
+      autoMove(1, 400, 10, 100);
+
+      // 开始播放音乐
+      function startPlay() {
+        audioCtx.resume();
+        // 设置静音播放。
+        audioEl.play();
+        document.querySelector(&quot;img&quot;).style.display = &quot;block&quot;;
+      }
+
+      // 开关 3D 音效
+      let isSpatialized = false;
+      function spatialize() {
+        isSpatialized = !isSpatialized;
+        document.querySelector(&quot;#status&quot;).innerText = isSpatialized
+          ? &quot;开启&quot;
+          : &quot;关闭&quot;;
+        if (isSpatialized) {
+          sourceNode.disconnect();
+          sourceNode.connect(pannerNode);
+          // 将处理节点连接到 destination 输出节点进行效果输出。
+          pannerNode.connect(audioCtx.destination);
+        } else {
+          sourceNode.disconnect();
+          sourceNode.connect(audioCtx.destination);
+        }
+      }
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>
