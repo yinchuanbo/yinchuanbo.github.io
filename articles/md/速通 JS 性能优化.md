@@ -1,6 +1,6 @@
 ---
 title: "速通 JS 性能优化"
-tag: "JavaScript"
+tag: "Performance"
 ---
 
 ### 1. 内存管理方案

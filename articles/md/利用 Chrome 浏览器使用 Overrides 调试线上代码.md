@@ -1,6 +1,6 @@
 ---
 title: "利用 Chrome 浏览器使用 Overrides 调试线上代码"
-tag: "调试"
+tag: "Debug"
 ---
 
 利用 Chrome 开发者工具断点调试功能调试修改代码，一刷新就什么都没有了，且只能调试 JS 代码，太尴尬了。

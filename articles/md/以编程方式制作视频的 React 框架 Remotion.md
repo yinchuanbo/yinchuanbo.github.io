@@ -1,6 +1,6 @@
 ---
 title: "以编程方式制作视频的 React 框架 Remotion"
-tag: "工具"
+tag: "Tools"
 ---
 
 前端工程师们，有一个好消息 **Remotion**  这个神奇的框架可以彻底改变你的视频制作方式！

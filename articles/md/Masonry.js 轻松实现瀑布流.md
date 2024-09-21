@@ -1,6 +1,6 @@
 ---
 title: "瀑布流插件 Masonry.js: 轻松在你的网站实现瀑布流布局"
-tag: "工具"
+tag: "Tools"
 ---
 
 <img src="../imgs/02/01.png" />

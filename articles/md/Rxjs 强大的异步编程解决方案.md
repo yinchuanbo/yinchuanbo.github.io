@@ -1,6 +1,6 @@
 ---
 title: "Rxjs 强大的异步编程解决方案"
-tag: "JavaScript"
+tag: "Tools"
 ---
 
 ![](../imgs/19/01.awebp)

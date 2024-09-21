@@ -1,6 +1,6 @@
 ---
 title: "ESLint 忽略检查行和文件总结"
-tag: "工程化"
+tag: "Engineering"
 ---
 
 ## eslint 忽略某一行代码校验

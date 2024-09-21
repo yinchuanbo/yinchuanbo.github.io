@@ -1,6 +1,6 @@
 ---
 title: "window.open 弹窗被阻止解决方案"
-tag: "疑难问题"
+tag: "Issues"
 ---
 
 ```html

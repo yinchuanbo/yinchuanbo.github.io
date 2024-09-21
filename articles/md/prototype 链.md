@@ -1,6 +1,6 @@
 ---
 title: "prototype 链"
-tag: "面向对象"
+tag: "Object-Oriented"
 ---
 
 在 JavaScript 的世界里,原型(prototype)系统是一个常被讨论但不易掌握的概念。作为 JavaScript 继承模型的基石,理解原型对于构建大型应用或进行对象操作至关重要。让我们一起探索这个迷人的话题,揭开原型系统的神秘面纱。

@@ -1,6 +1,6 @@
 ---
 title: "前端 js 动画库"
-tag: "工具"
+tag: "Tools"
 ---
 
 ## gsap

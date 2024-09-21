@@ -1,6 +1,6 @@
 ---
 title: "NProgress.js，一款神奇的 JavaScript 开源库——页面进度条？"
-tag: "工具"
+tag: "Tools"
 ---
 
 ### NProgress 是什么？

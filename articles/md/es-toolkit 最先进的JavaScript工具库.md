@@ -1,6 +1,6 @@
 ---
 title: "es-toolkit 最先进的JavaScript工具库"
-tag: "工具"
+tag: "Tools"
 ---
 
 <img src="../imgs/27/01.webp" />

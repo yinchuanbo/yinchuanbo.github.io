@@ -1,6 +1,6 @@
 ---
 title: "基于 axios 的 http 竟态问题解决方案"
-tag: "请求"
+tag: "Request"
 ---
 
 本文仅针对 `axios` 库， 如果你使用的是 `fetch` 或者 `xhr`， 请自行适配处理。

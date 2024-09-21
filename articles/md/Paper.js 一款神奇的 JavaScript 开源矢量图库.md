@@ -1,6 +1,6 @@
 ---
 title: "Paper.js 一款神奇的 JavaScript 开源矢量图库"
-tag: "工具"
+tag: "Tools"
 ---
 
 ### Paper.js 是什么？

@@ -1,6 +1,6 @@
 ---
 title: "2024 年新的原生嵌套 CSS 特性"
-tag: "新特性"
+tag: "New Features"
 ---
 
 新的原生嵌套 CSS 特性彻底改变了前端开发。
