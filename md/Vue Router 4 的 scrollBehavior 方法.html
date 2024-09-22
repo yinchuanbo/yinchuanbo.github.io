@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vue Router 4 的 scrollBehavior 方法</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class="active"><a title="Vue Router 4 的 scrollBehavior 方法" href="/md/Vue Router 4 的 scrollBehavior 方法.html">03 Vue Router 4 的 scrollBehavior 方法</a></li><li class=""><a title="浅浅聊一下 vue 中的 nextTick 的实现原理" href="/md/浅浅聊一下 vue 中的 nextTick 的实现原理.html">02 浅浅聊一下 vue 中的 nextTick 的实现原理</a></li><li class=""><a title="Vue3.x 生态最能打的组合" href="/md/Vue3.x 生态最能打的组合.html">01 Vue3.x 生态最能打的组合</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>Vue Router 4 的 scrollBehavior 方法</h1>
+          <p>在构建现代 Web 应用时，单页应用（SPA）已经成为主流。Vue 作为一款灵活且强大的前端框架，结合 Vue Router，能够帮助开发者轻松处理页面导航。而在实际应用中，页面导航后的滚动行为对用户体验的影响至关重要。例如，用户希望在切换页面时自动滚动到顶部、在返回之前的页面时保持原有滚动位置，或者导航到页面的特定锚点。为此，Vue Router 提供了 <code>scrollBehavior</code> 方法，帮助开发者实现自定义的滚动行为。</p>
+<p>本文将深入分析 <code>scrollBehavior</code> 的应用场景，并结合 Vue 3 和 Vue Router 4 提供可运行的代码示例，演示如何使用这一功能来改善用户体验。</p>
+<h2>什么是 <code>scrollBehavior</code>？</h2>
+<p><code>scrollBehavior</code> 是 Vue Router 4 提供的一个配置选项，用于控制路由导航时页面的滚动行为。通过 <code>scrollBehavior</code>，开发者可以自定义页面导航后的滚动位置，比如回到页面顶部、滚动到某个特定的锚点或者恢复到之前的滚动位置。</p>
+<h3>参数介绍：</h3>
+<ul>
+<li><strong><code>to</code></strong>: 目标路由对象，表示即将导航到的路由。</li>
+<li><strong><code>from</code></strong>: 当前路由对象，表示正在离开的路由。</li>
+<li><strong><code>savedPosition</code></strong>: 保存的滚动位置，仅在使用浏览器的前进/后退按钮时生效。如果通过编程方式跳转，该参数为 <code>null</code>。</li>
+</ul>
+<h3>返回值：</h3>
+<ul>
+<li>可以返回滚动位置的对象，例如 <code>{ top: 0 }</code> 表示滚动到页面顶部。</li>
+<li>可以返回 <code>null</code> 表示保持当前的滚动位置不变。</li>
+<li>可以返回 <code>savedPosition</code> 恢复用户离开页面时的滚动位置。</li>
+<li>可以返回 <code>{ el: to.hash }</code>，让页面滚动到某个 DOM 元素，通常是锚点。</li>
+</ul>
+<h2>使用场景</h2>
+<h3>1. 页面导航后自动回到顶部</h3>
+<p>在一些页面较长的应用中，用户可能会滚动到底部。当用户切换到另一个页面时，期望页面自动滚动到顶部，而不是保持在之前的滚动位置。这对于用户体验至关重要，特别是在手机端的小屏幕设备上。</p>
+<h3>2. 恢复之前的滚动位置</h3>
+<p>在某些情况下，当用户从一个页面导航到另一个页面后，再次返回原页面时，期望回到离开时的滚动位置。例如，在商品列表页面滚动查看多个商品后，用户点击查看某个商品的详情，再返回商品列表时，应该回到之前浏览到的商品位置，而不是从页面顶部重新开始。</p>
+<h3>3. 导航到页面的锚点</h3>
+<p>在一些文档类页面中，导航可能需要定位到页面的某个特定部分（例如章节）。这时候，可以利用 <code>scrollBehavior</code> 实现跳转到页面的锚点。</p>
+<h2>在 Vue 3 和 Vue Router 4 中的使用</h2>
+<p>在 Vue 3 和 Vue Router 4 中，<code>scrollBehavior</code> 的 API 基本保持了 Vue 2 的形式，但引入了一些现代化的改进，如 <code>el</code> 选择器的支持和更好的异步处理机制。</p>
+<h3>项目初始化</h3>
+<p>首先，确保项目已经安装了 Vue 3 和 Vue Router 4：</p>
+<pre><code class="language-sh">npm install vue-router@4
+</code></pre>
+<h3>基本的 <code>scrollBehavior</code> 配置</h3>
+<pre><code class="language-js">import { createRouter, createWebHistory } from &#39;vue-router&#39;;
+​
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    // 路由配置
+  ],
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition; // 返回之前保存的位置（前进/后退）
+    } else if (to.hash) {
+      // 如果有 hash 锚点，则滚动到指定元素
+      return { el: to.hash, behavior: &#39;smooth&#39; };
+    } else {
+      // 默认情况下滚动到页面顶部
+      return { top: 0 };
+    }
+  }
+});
+</code></pre>
+<h3>进一步优化：延迟渲染与滚动</h3>
+<p>在实际项目中，页面渲染和组件加载可能存在一定的延迟，特别是在异步加载内容时，直接滚动可能会失效。例如，用户导航到带有 <code>#section1</code> 的页面时，目标元素可能尚未渲染完成，导致滚动无法生效。</p>
+<p>解决方案是引入一个延迟机制，确保页面完全渲染之后再执行滚动操作。</p>
+<pre><code class="language-js">scrollBehavior(to, from, savedPosition) {
+  if (savedPosition) {
+    return savedPosition;
+  } else if (to.hash) {
+    // 使用 Promise 延迟滚动操作，确保渲染完成后再滚动
+    return new Promise((resolve) =&gt; {
+      setTimeout(() =&gt; {
+        resolve({ el: to.hash, behavior: &#39;smooth&#39; });
+      }, 300); // 延迟 300 毫秒
+    });
+  } else {
+    return { top: 0 };
+  }
+}
+</code></pre>
+<p>通过延迟 300 毫秒，可以确保页面渲染完毕后再执行滚动操作，避免滚动操作失败。</p>
+<h3>代码示例</h3>
+<p><strong>main.js 配置路由和 scrollBehavior</strong></p>
+<p>在 <code>main.js</code> 中，我们创建路由，并通过 <code>scrollBehavior</code> 自定义滚动行为。</p>
+<pre><code class="language-js">import { createApp } from &#39;vue&#39;;
+import { createRouter, createWebHistory } from &#39;vue-router&#39;;
+import App from &#39;./App.vue&#39;;
+import PageOne from &#39;./components/PageOne.vue&#39;;
+import PageTwo from &#39;./components/PageTwo.vue&#39;;
+import PageThree from &#39;./components/PageThree.vue&#39;;
+​
+// 定义路由
+const routes = [
+  { path: &#39;/page-one&#39;, component: PageOne },
+  { path: &#39;/page-two&#39;, component: PageTwo },
+  { path: &#39;/page-three&#39;, component: PageThree }
+];
+​
+// 创建路由器实例
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      // 返回保存的滚动位置
+      return savedPosition;
+    } else if (to.hash) {
+      // 如果目标路由包含 hash 锚点，滚动到指定锚点
+      return new Promise((resolve) =&gt; {
+        setTimeout(() =&gt; {
+          resolve({ el: to.hash, behavior: &#39;smooth&#39; });
+        }, 300); // 延迟 300ms，确保页面渲染完成
+      });
+    } else {
+      // 默认滚动到页面顶部
+      return { top: 0 };
+    }
+  }
+});
+​
+// 创建并挂载 Vue 应用
+createApp(App).use(router).mount(&#39;#app&#39;);
+</code></pre>
+<ol>
+<li><p><strong>savedPosition</strong>：如果使用浏览器的前进/后退按钮，Vue Router 会提供保存的滚动位置。通过返回 <code>savedPosition</code>，我们可以恢复到用户离开时的位置。</p>
+</li>
+<li><p><strong>锚点滚动</strong>：如果路由包含 <code>hash</code>（例如 <code>/page-three#section1</code>），<code>scrollBehavior</code> 将会滚动到指定的 DOM 元素并使用平滑滚动。</p>
+</li>
+<li><p><strong>滚动到顶部</strong>：如果既没有 <code>savedPosition</code> 也没有 <code>hash</code>，页面将自动滚动到顶部。</p>
+</li>
+</ol>
+<p><strong>PageOne 页面：</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h1&gt;Page One&lt;/h1&gt;
+    &lt;p&gt;
+      This is the first page. It should scroll to the top when navigating here.
+    &lt;/p&gt;
+    &lt;!-- 模拟长页面 --&gt;
+    &lt;div style=&quot;height: 1500px; background-color: lightblue;&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<p><strong>PageTwo 页面：</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h1&gt;Page Two&lt;/h1&gt;
+    &lt;p&gt;
+      This is the second page. It should retain the scroll position when
+      navigating back.
+    &lt;/p&gt;
+    &lt;!-- 模拟长页面 --&gt;
+    &lt;div style=&quot;height: 2000px; background-color: lightgreen;&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<p><strong>PageThree 页面：</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h1&gt;Page Three&lt;/h1&gt;
+    &lt;p&gt;
+      This is the third page. Clicking a link should scroll to the specific
+      section.
+    &lt;/p&gt;
+    &lt;!-- 模拟长页面 --&gt;
+    &lt;div style=&quot;height: 800px; background-color: lightgray;&quot;&gt;
+      Scroll down to see more content.
+    &lt;/div&gt;
+    &lt;!-- 目标锚点 --&gt;
+    &lt;h2 id=&quot;section1&quot; style=&quot;background-color: lightcoral;&quot;&gt;
+      Section 1 - Scroll to me
+    &lt;/h2&gt;
+    &lt;p&gt;This section should be scrolled to when navigating to #section1.&lt;/p&gt;
+    &lt;div style=&quot;height: 500px; background-color: lightgray;&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<p><strong>App 导航链接</strong></p>
+<p>在 <code>App.vue</code> 中，我们提供了跳转到不同页面和带有锚点的页面的导航链接，帮助用户触发滚动行为。</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div id=&quot;app&quot;&gt;
+    &lt;nav&gt;
+           &lt;router-link to=&quot;/page-one&quot;&gt;Page One&lt;/router-link&gt;      &lt;router-link
+        to=&quot;/page-two&quot;
+        &gt;Page Two&lt;/router-link
+      &gt;
+           &lt;router-link to=&quot;/page-three&quot;&gt;Page Three&lt;/router-link&gt;    
+       &lt;router-link to=&quot;/page-three#section1&quot;&gt;Page Three #Section1&lt;/router-link&gt;
+    &lt;/nav&gt;
+       &lt;router-view&gt;&lt;/router-view&gt;  
+  &lt;/div&gt;
+&lt;/template&gt;
+​
+&lt;style scoped&gt;
+  nav {
+     margin: 20px 0px;
+     position: fixed;
+     top: 0;
+     left: 0;
+     right: 0;
+     display: flex;
+     justify-content: space-around;
+     align-items: center;
+  }
+&lt;/style&gt;
+</code></pre>
+<ul>
+<li><strong>Page One</strong>：点击链接后，页面会导航到 <code>PageOne.vue</code>，并且自动回到页面顶部。</li>
+<li><strong>Page Two</strong>：点击链接后，页面会导航到 <code>PageTwo.vue</code>。如果用户之前在该页面滚动过，再次返回该页面时，页面会恢复之前的滚动位置。</li>
+<li><strong>Page Three</strong>：点击链接后，页面会导航到 <code>PageThree.vue</code>。</li>
+<li><strong>Page Three #Section1</strong>：点击该链接后，页面会滚动到 <code>PageThree.vue</code> 中的 <code>#section1</code> 锚点位置。</li>
+</ul>
+<h2>总结</h2>
+<p>通过本文的详细分析和代码示例，我们展示了如何在 Vue Router 4 中使用 <code>scrollBehavior</code> 来处理三种常见的页面滚动需求：</p>
+<ol>
+<li>页面切换时自动回到顶部。</li>
+<li>浏览器前进/后退时保持页面滚动位置。</li>
+<li>页面导航时滚动到指定锚点位置。</li>
+</ol>
+<p>使用 <code>scrollBehavior</code> 可以显著提升用户在单页应用中的导航体验。通过合适的配置，可以确保在不同场景下，用户的滚动行为符合预期，从而提升页面的友好交互性和用户体验。</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>
