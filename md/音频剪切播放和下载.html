@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>音频剪切播放和下载</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class="active"><a title="音频剪切播放和下载" href="/md/音频剪切播放和下载.html">03 音频剪切播放和下载</a></li><li class=""><a title="视频播放错误并重试" href="/md/视频播放错误并重试.html">02 视频播放错误并重试</a></li><li class=""><a title="3D环绕音" href="/md/3D环绕音.html">01 3D环绕音</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>音频剪切播放和下载</h1>
+          <ul>
+<li>HTML</li>
+</ul>
+<pre><code class="language-html">&lt;button id=&quot;playButton&quot;&gt;剪切&lt;/button&gt;
+&lt;script src=&quot;script.js&quot;&gt;&lt;/script&gt;
+</code></pre>
+<ul>
+<li>JS</li>
+</ul>
+<pre><code class="language-js">class AudioTrimmer {
+  constructor(audioContext) {
+    this.audioContext = audioContext;
+  }
+
+  async loadAudio(url) {
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+  }
+
+  trim(startTime, endTime) {
+    if (startTime &lt; 0) startTime = 0;
+    if (endTime &gt; this.audioBuffer.duration)
+      endTime = this.audioBuffer.duration;
+
+    const trimmedLength = (endTime - startTime) * this.audioBuffer.sampleRate;
+    const trimmedAudioBuffer = this.audioContext.createBuffer(
+      this.audioBuffer.numberOfChannels,
+      trimmedLength,
+      this.audioBuffer.sampleRate
+    );
+
+    for (
+      let channel = 0;
+      channel &lt; this.audioBuffer.numberOfChannels;
+      channel++
+    ) {
+      const channelData = this.audioBuffer.getChannelData(channel);
+      const trimmedData = trimmedAudioBuffer.getChannelData(channel);
+      for (let i = 0; i &lt; trimmedLength; i++) {
+        trimmedData[i] =
+          channelData[i + Math.floor(startTime * this.audioBuffer.sampleRate)];
+      }
+    }
+
+    return trimmedAudioBuffer;
+  }
+
+  play(audioBuffer) {
+    const source = this.audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(this.audioContext.destination);
+    source.start();
+  }
+
+  async createDownloadableFile(audioBuffer, format = &quot;wav&quot;) {
+    const wavBlob = this.bufferToWave(audioBuffer);
+    const url = URL.createObjectURL(wavBlob);
+    const link = document.createElement(&quot;a&quot;);
+    link.href = url;
+    link.download = `trimmed_audio.${format}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  bufferToWave(abuffer) {
+    const numOfChan = abuffer.numberOfChannels;
+    const length = abuffer.length * numOfChan * 2 + 44;
+    const buffer = new ArrayBuffer(length);
+    const view = new DataView(buffer);
+    let writeString = (view, offset, string) =&gt; {
+      for (let i = 0; i &lt; string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+
+    let offset = 0;
+
+    // 写入WAV文件头
+    writeString(view, offset, &quot;RIFF&quot;);
+    offset += 4;
+    view.setUint32(offset, length - 8, true);
+    offset += 4;
+    writeString(view, offset, &quot;WAVE&quot;);
+    offset += 4;
+    writeString(view, offset, &quot;fmt &quot;);
+    offset += 4;
+    view.setUint32(offset, 16, true);
+    offset += 4; // 子块1大小
+    view.setUint16(offset, 1, true);
+    offset += 2; // PCM格式
+    view.setUint16(offset, numOfChan, true);
+    offset += 2; // 声道数
+    view.setUint32(offset, abuffer.sampleRate, true);
+    offset += 4; // 采样率
+    view.setUint32(offset, abuffer.sampleRate * numOfChan * 2, true);
+    offset += 4; // 字节率
+    view.setUint16(offset, numOfChan * 2, true);
+    offset += 2; // 块对齐
+    view.setUint16(offset, 16, true);
+    offset += 2; // 每个采样点的位数
+
+    writeString(view, offset, &quot;data&quot;);
+    offset += 4;
+    view.setUint32(offset, length - offset - 4, true);
+    offset += 4;
+
+    for (let i = 0; i &lt; abuffer.length; i++) {
+      for (let channel = 0; channel &lt; numOfChan; channel++) {
+        let sample = Math.max(
+          -1,
+          Math.min(1, abuffer.getChannelData(channel)[i])
+        );
+        sample = sample &lt; 0 ? sample * 0x8000 : sample * 0x7fff;
+        view.setInt16(offset, sample, true);
+        offset += 2;
+      }
+    }
+
+    return new Blob([buffer], { type: &quot;audio/wav&quot; });
+  }
+}
+
+// 使用示例
+async function trimAndDownloadAudio() {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const trimmer = new AudioTrimmer(audioContext);
+
+  await trimmer.loadAudio(&quot;water.mp3&quot;);
+  const trimmedBuffer = trimmer.trim(5, 10); // 从5秒到10秒
+  // await trimmer.createDownloadableFile(trimmedBuffer, &quot;wav&quot;); // 下载
+  // trimmer.play(trimmedBuffer); // 播放
+}
+playButton.onclick = () =&gt; {
+  trimAndDownloadAudio();
+};
+</code></pre>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>
