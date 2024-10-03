@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>五分钟使用 docker 安装部署 gitlab</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class=""><a title="Vercel + Supabase 快速构建原型的终极工具组合" href="/md/Vercel + Supabase 快速构建原型的终极工具组合.html">03 Vercel + Supabase 快速构建原型的终极工具组合</a></li><li class="active"><a title="五分钟使用 docker 安装部署 gitlab" href="/md/五分钟使用 docker 安装部署 gitlab.html">02 五分钟使用 docker 安装部署 gitlab</a></li><li class=""><a title="前端项目如何部署上线" href="/md/前端项目如何部署上线.html">01 前端项目如何部署上线</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>五分钟使用 docker 安装部署 gitlab</h1>
+          <h2>使用 Docker 安装部署 gitlab</h2>
+<h3>安装 Docker</h3>
+<p>在线安装：<a href="https://www.cnblogs.com/KingArmy/p/11017529.html">https://www.cnblogs.com/KingArmy/p/11017529.html</a></p>
+<p>离线安装：<a href="https://www.cnblogs.com/KingArmy/p/18270258">https://www.cnblogs.com/KingArmy/p/18270258</a></p>
+<h3>安装配置 gitlab</h3>
+<ol>
+<li>版本选择</li>
+</ol>
+<p>选择的是官方稳定版本，gitlab-ce 为稳定版本，后面不填写版本则默认 pull 最新 latest 版本，pull 镜像</p>
+<pre><code class="language-sh"># 1、拉取镜像
+docker pull gitlab/gitlab-ce
+# 打包镜像，如果是离线环境，上面那一步需要在一台有外网的机器拉取，然后打包镜像到本地
+docker save -o gitlab.tar gitlab/gitlab-ce:latest
+# 加载镜像，这个是在离线环境中，离线镜像包上传之后，把镜像加载到docker本地仓库中
+docker load &lt; gitlab.tar
+# 查看镜像
+docker images
+</code></pre>
+<ol start="2">
+<li>安装部署</li>
+</ol>
+<p>1）创建 gitlab 的配置、数据、日志目录，防止数据丢失，便于问题排查</p>
+<p>创建目录，这个目录可以自己更改</p>
+<pre><code class="language-sh">mkdir -p /data/gitlab/config
+mkdir -p /data/gitlab/logs
+mkdir -p /data/gitlab/data
+</code></pre>
+<p>2）编写构建容器脚本，并初始化配置文件</p>
+<pre><code class="language-sh">docker run -d -it \
+        -p 10010:10010 \
+        -p 8013:22 \
+        --name  gitlab \
+        -v /data/gitlab/config:/etc/gitlab \
+        -v /data/gitlab/logs:/var/log/gitlab \
+        -v /data/gitlab/data:/var/opt/gitlab \
+        -v /data/gitlab/logs/reconfigure:/var/log/gitlab/reconfigure \
+        gitlab/gitlab-ce:latest
+</code></pre>
+<p>直接执行这个脚本，然后编辑 <code>/data/gitlab/config/gitlab.rb</code> 文件</p>
+<pre><code class="language-sh">#添加下面3行
+external_url &#39;http://127.0.0.1:10010&#39;
+gitlab_rails[‘gitlab_ssh_host’] = &#39;127.0.0.1&#39;
+gitlab_rails[‘gitlab_shell_ssh_port’] = 8013
+</code></pre>
+<p>3）容器编译配置</p>
+<pre><code class="language-sh">#上面的都执行完之后，重启容器更新授权
+docker restart gitlab &amp;&amp; docker exec -it gitlab update-permissions
+#重新载入配置文件
+docker exec -it gitlab &quot;gitlab-ctl reconfigure&quot;
+# 启动
+docker exec -it gitlab &quot;gitlab-ctl start&quot;
+#查看密码,里面有一个Password的字符串就是root账户对应的密码
+cat /data/gitlab/config/initial_root_password
+</code></pre>
+<p>4）重启</p>
+<pre><code class="language-sh">docker restart gitlab
+</code></pre>
+<ol start="5">
+<li>查看日志</li>
+</ol>
+<pre><code class="language-sh">docker logs -f gitlab
+</code></pre>
+<p>日志如果没有报错那就等着，中间你可以尝试请求10010端口，当刷新到请求日志的时候就是启动成功了，由于服务很多，所以启动过程很慢，具体时间根据服务器性能有所偏差</p>
+<img src="../imgs/84/06.webp" />
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nginx 跨域配置</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class=""><a title="Nginx 日志" href="/md/Nginx 日志.html">06 Nginx 日志</a></li><li class="active"><a title="Nginx 跨域配置" href="/md/Nginx 跨域配置.html">05 Nginx 跨域配置</a></li><li class=""><a title="Nginx 反向代理" href="/md/Nginx 反向代理.html">04 Nginx 反向代理</a></li><li class=""><a title="Nginx 如何防止 DDoS 攻击" href="/md/Nginx 如何防止 DDoS 攻击.html">03 Nginx 如何防止 DDoS 攻击</a></li><li class=""><a title="如何在 Nginx 中阻止特定国家的 IP 地址访问" href="/md/如何在 Nginx 中阻止特定国家的 IP 地址访问.html">02 如何在 Nginx 中阻止特定国家的 IP 地址访问</a></li><li class=""><a title="高级前端应该掌握的 Nginx 相关知识" href="/md/高级前端应该掌握的 Nginx 相关知识.html">01 高级前端应该掌握的 Nginx 相关知识</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>Nginx 跨域配置</h1>
+          <p>Nginx 跨域配置是处理不同源之间资源请求的重要机制，主要用于解决浏览器安全策略中的同源策略限制问题。以下是关于 Nginx 跨域配置的详细说明：</p>
+<img src="../imgs/84/03.webp" />
+
+<h2>一. 跨域请求概述</h2>
+<p>跨域资源共享（CORS，Cross-Origin Resource Sharing）是一种机制，它使用额外的 HTTP 头部来告诉浏览器让运行在一个 origin（域）上的 Web 应用被准许访问来自不同源服务器上的指定的资源。当一个资源从与该资源本身所在的服务器不同的域、协议或端口请求一个资源时，资源会发起一个跨域 HTTP 请求。</p>
+<h2>二. Nginx 跨域配置步骤</h2>
+<h3>1. 定位并打开 Nginx 配置文件</h3>
+<p>Nginx 的主配置文件通常位于<code>/etc/nginx/nginx.conf</code>，但也可能位于<code>/usr/local/nginx/conf/nginx.conf</code>或其他路径。你可能还需要编辑特定站点的配置文件，这些文件通常位于<code>/etc/nginx/sites-available/</code>目录下，并通过符号链接连接到<code>/etc/nginx/sites-enabled/</code>目录。</p>
+<h3>2. 编辑配置文件</h3>
+<p>在 Nginx 配置文件中，找到或创建一个<code>server</code>块，该块定义了特定域名或 IP 的服务器配置。在<code>server</code>块内，你可以使用<code>location</code>指令来定义如何处理特定路径的请求。对于跨域请求，你可以在<code>location</code>块内添加<code>add_header</code>指令来设置 CORS 相关的 HTTP 头部。</p>
+<h3>3. 设置 CORS 头部</h3>
+<ul>
+<li>Access-Control-Allow-Origin：指定允许跨域请求的源。可以是具体的域名（如<code>http://example.com</code>），或者使用<code>*</code>表示允许所有源。但是，当需要携带凭证（如 Cookies）时，必须指定具体的域名。</li>
+<li>Access-Control-Allow-Methods：列出允许的 HTTP 方法，如<code>GET</code>、<code>POST</code>、<code>PUT</code>、<code>DELETE</code>、<code>OPTIONS</code>等。</li>
+<li>Access-Control-Allow-Headers：指定允许在请求中使用的自定义头部，如<code>Content-Type</code>、<code>Authorization</code>等。</li>
+<li>Access-Control-Allow-Credentials：如果设置为<code>true</code>，则允许跨域请求携带凭证（如 Cookies）。当设置此选项时，<code>Access-Control-Allow-Origin</code>不能设置为<code>*</code>，必须指定具体的域名。</li>
+<li>Access-Control-Max-Age：指定预检请求的有效期（以秒为单位），在有效期内，浏览器不会再次发送预检请求。</li>
+</ul>
+<h3>4. 示例配置</h3>
+<pre><code class="language-nginx">server {
+    listen 80;
+    server_name yourdomain.com;
+
+    location /api/ {
+        # 允许特定源跨域访问
+        add_header &#39;Access-Control-Allow-Origin&#39; &#39;http://example.com&#39;;
+        add_header &#39;Access-Control-Allow-Methods&#39; &#39;GET, POST, PUT, DELETE, OPTIONS&#39;;
+        add_header &#39;Access-Control-Allow-Headers&#39; &#39;Content-Type, Authorization, X-Requested-With&#39;;
+        add_header &#39;Access-Control-Allow-Credentials&#39; &#39;true&#39;;
+
+        # 对于OPTIONS预检请求，直接返回204
+        if ($request_method = &#39;OPTIONS&#39;) {
+            return 204;
+        }
+
+        # 其他配置...
+    }
+}
+</code></pre>
+<p>或者，允许所有源跨域访问：</p>
+<pre><code class="language-nginx">server {
+    listen 80;
+    server_name yourdomain.com;
+
+    location /api/ {
+        # 允许所有源跨域访问
+        add_header &#39;Access-Control-Allow-Origin&#39; &#39;*&#39; always;
+        add_header &#39;Access-Control-Allow-Methods&#39; &#39;GET, POST, PUT, DELETE, OPTIONS&#39;;
+        add_header &#39;Access-Control-Allow-Headers&#39; &#39;Content-Type, Authorization, X-Requested-With&#39;;
+        add_header &#39;Access-Control-Allow-Credentials&#39; &#39;true&#39;;
+
+        # 如果使用Nginx作为反向代理，请添加相应的proxy_pass配置
+        # proxy_pass http://backend-server:port/api/;
+
+        # 其他配置...
+    }
+}
+</code></pre>
+<h2>三. 配置生效</h2>
+<p>配置修改完成后，需要保存文件并重启 Nginx 服务以使更改生效。重启 Nginx 服务的命令通常是：</p>
+<pre><code class="language-sh">sudo systemctl restart nginx
+</code></pre>
+<p>或者，如果使用的是其他系统管理工具：</p>
+<pre><code class="language-sh">sudo service nginx restart
+</code></pre>
+<h3>四. 测试和验证</h3>
+<p>配置完成后，可以使用浏览器的开发者工具（如 Chrome 的开发者工具）来测试和验证跨域配置是否生效。观察网络请求和响应的 HTTP 头部，确认是否包含了正确的 CORS 头部信息。</p>
+<h3>五. 安全注意事项</h3>
+<ul>
+<li>跨域配置需确保安全，仅允许可信源访问敏感数据。</li>
+<li>对于复杂场景，可能需要结合 map 指令动态生成 Access-Control-Allow-Origin 值，或使用 if 条件判断。</li>
+<li>测试跨域配置时，务必检查浏览器开发者工具的网络面板，观察实际发送和接收的 HTTP 头信息。</li>
+</ul>
+<p>以上便是使用 Nginx 配置跨域请求的详细步骤，包括代码示例及注释说明。根据实际情况选择合适的配置方式，并确保重启 Nginx 服务以应用配置。如有问题，应检查 Nginx 错误日志以排查故障。</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>

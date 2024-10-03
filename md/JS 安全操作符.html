@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JS新特性：?= 操作符助你告别bug</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class="active"><a title="JS 安全操作符" href="/md/JS 安全操作符.html">04 JS 安全操作符</a></li><li class=""><a title="安全赋值运算符，新的 JavaScript 提案让你告别 try catch" href="/md/安全赋值运算符，新的 JavaScript 提案让你告别 try catch.html">03 安全赋值运算符，新的 JavaScript 提案让你告别 try catch</a></li><li class=""><a title="原生嵌套CSS特性" href="/md/原生嵌套CSS特性.html">02 原生嵌套CSS特性</a></li><li class=""><a title="一个全新的 JavaScript 事件" href="/md/一个全新的 JavaScript 事件.html">01 一个全新的 JavaScript 事件</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>JS新特性：?= 操作符助你告别bug</h1>
+          <p>JavaScript 作为一门动态语言，其<code>错误处理</code>一直是一个让开发者头疼的问题。</p>
+<p>传统的<code>try-catch</code>块虽然功能强大，但往往会导致代码结构变得复杂且难以维护。</p>
+<p>幸运的是，<code>ECMAScript</code> 提出了一个新的提案——安全赋值操作符（<code>?=</code>），旨在简化错误处理，让代码更加清晰和高效。</p>
+<img src="../imgs/83/01.webp" />
+
+<h2>什么是安全赋值操作符？</h2>
+<p>安全赋值操作符（<code>?=</code>）是一种新的语法，它允许开发者在赋值时直接处理错误<code>不会抛出异常</code>。这使得错误处理变得更加直观和简洁。</p>
+<h2>如何使用安全赋值操作符？</h2>
+<p>假设我们有一个异步函数<code>fetchData</code>，它可能会抛出错误。使用传统的<code>try-catch</code>块，我们需要这样写：</p>
+<pre><code class="language-js">async function fetchData() {
+  try {
+    const response = await fetch(&quot;https://api.example.com/data&quot;);
+    if (!response.ok) {
+      throw new Error(&quot;Network response was not ok&quot;);
+    }
+    return response.json();
+  } catch (error) {
+    console.error(&quot;Fetch error:&quot;, error);
+    return null;
+  }
+}
+</code></pre>
+<p>使用安全赋值操作符，我们可以简化为：</p>
+<pre><code class="language-js">async function fetchData() {
+  const [error, data] ?= await fetch(&quot;https://api.example.com/data&quot;).json();
+  if (error) {
+    console.error(&#39;Fetch error:&#39;, error);
+    return null;
+  }
+  return data;
+}
+</code></pre>
+<h2>安全赋值操作符的优点</h2>
+<ol>
+<li><strong>减少代码嵌套</strong>：<code>?=</code>操作符减少了<code>try-catch</code>块的使用，使代码更加简洁。</li>
+<li><strong>提高可读性</strong>：错误处理逻辑更加直观，代码更易于阅读和维护。</li>
+<li><strong>跨 API 一致性</strong>：无论使用哪个 API，都可以使用相同的错误处理方式。</li>
+<li><strong>提高安全性</strong>：自动处理错误，减少因忽略错误而导致的安全风险。</li>
+</ol>
+<h2>与<code>Symbol.result</code>结合使用</h2>
+<p><code>Symbol.result</code>是一个特殊方法，当对象实现了这个方法时，<code>?=</code>操作符可以用来定义自己的错误处理逻辑。例如：</p>
+<pre><code class="language-js">function example() {
+  return {
+    [Symbol.result]() {
+      return [new Error(&quot;Error message&quot;), null];
+    },
+  };
+}
+const [error, result] ?= example();
+if (error) {
+  console.error(&#39;Error:&#39;, error.message);
+}
+</code></pre>
+<h2>递归错误处理</h2>
+<p><code>?=</code>操作符还可以递归处理嵌套对象的错误，这对于处理复杂的错误场景非常有用。</p>
+<pre><code class="language-js">const obj = {
+  [Symbol.result]() {
+    return [
+      null,
+      { [Symbol.result]: () =&gt; [new Error(&quot;Nested error&quot;), null] }
+    ];
+  },
+};
+const [error, data] ?= obj;
+</code></pre>
+<h2>异步函数和 Promise</h2>
+<p><code>?=</code>操作符与 Promise 和 async/await 无缝协作，使得异步代码中的错误处理变得简单。</p>
+<pre><code class="language-js">const [error, data] ?= await fetch(&quot;https://api.example.com&quot;);
+</code></pre>
+<h2>结论</h2>
+<p>安全赋值操作符（<code>?=</code>）是 JavaScript 错误处理的一次重大进步，它有望减少对<code>try-catch</code>块的依赖，使代码更加清晰和安全。虽然这个提案还在开发中，但它的潜力已经显而易见。</p>
+<h3>代码示例</h3>
+<p>最后，让我们通过一个实际的例子来展示<code>?=</code>操作符的用法：</p>
+<pre><code class="language-js">async function getUserData(userId) {
+  const [error, user] ?= await database.getUser(userId);
+  if (error) {
+    console.error(&#39;Database error:&#39;, error);
+    return null;
+  }
+  return user;
+}
+</code></pre>
+<p>在这个例子中，如果<code>getUser</code>函数抛出错误，<code>error</code>变量将捕获这个错误，而<code>user</code>变量将为<code>null</code>。这样，我们就可以在不使用<code>try-catch</code>块的情况下优雅地处理错误。</p>
+<p>当然，目前这个提案还处于初期阶段，现阶段想要尝试的话需要使用  <strong>polyfill</strong>：<a href="https://github.com/arthurfiorette/proposal-safe-assignment-operator/blob/main/polyfill.js">https://github.com/arthurfiorette/proposal-safe-assignment-operator/blob/main/polyfill.js</a></p>
+<p>参考链接：</p>
+<ul>
+<li><a href="https://es.discourse.group/t/safe-assignment-operator/2111">https://es.discourse.group/t/safe-assignment-operator/2111</a></li>
+</ul>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>
