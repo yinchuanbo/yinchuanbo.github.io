@@ -1,6 +1,6 @@
 ---
 title: "你需要知道的 Symbols"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ## 著名 symbol

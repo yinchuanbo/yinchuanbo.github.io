@@ -1,6 +1,6 @@
 ---
 title: "Hammer.js 开源多点触摸手势库"
-tag: "Tools"
+tag: "工具"
 ---
 
 <img src="../imgs/76/01.webp" />

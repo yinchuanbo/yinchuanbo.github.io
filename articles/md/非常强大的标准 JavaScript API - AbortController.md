@@ -1,6 +1,6 @@
 ---
 title: "非常强大的标准 JavaScript API - AbortController"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 今天，我们来聊聊一个可能被你忽视，而且非常强大的标准 JavaScript API - `AbortController` 。

@@ -1,6 +1,6 @@
 ---
 title: "缓存 http 错误，避免多次报错提示"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ### 前言

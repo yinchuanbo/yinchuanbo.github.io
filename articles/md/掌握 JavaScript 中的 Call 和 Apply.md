@@ -1,6 +1,6 @@
 ---
 title: "掌握 JavaScript 中的 Call 和 Apply"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 在学习 JavaScript 时，你可能会遇到 call 和 apply 这两个方法。它们的作用其实很相似，都是用来调用函数并设置函数内部的 this 值，但它们的使用方式稍有不同。

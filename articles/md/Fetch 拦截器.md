@@ -1,6 +1,6 @@
 ---
 title: "Fetch 拦截器"
-tag: "Request"
+tag: "请求"
 ---
 
 ```js

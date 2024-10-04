@@ -1,6 +1,6 @@
 ---
 title: "如何使用 JavaScript 向现有 SVG 中添加元素？"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ### 动态向 SVG 中添加元素的实际应用场景

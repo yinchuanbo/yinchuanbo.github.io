@@ -1,6 +1,6 @@
 ---
 title: "现在前端组长都是这样做 Code Review"
-tag: "Tools"
+tag: "工具"
 ---
 
 ## 前言

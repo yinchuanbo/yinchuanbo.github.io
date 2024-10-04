@@ -1,6 +1,6 @@
 ---
 title: "javascript 奇葩行为大赏"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ## parseInt(0.0000005)

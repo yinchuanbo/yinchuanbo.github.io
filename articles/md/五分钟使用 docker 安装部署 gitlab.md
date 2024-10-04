@@ -1,6 +1,6 @@
 ---
 title: "五分钟使用 docker 安装部署 gitlab"
-tag: "Deploy"
+tag: "部署"
 ---
 
 ## 使用 Docker 安装部署 gitlab

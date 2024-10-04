@@ -1,6 +1,6 @@
 ---
 title: "document.referrer 拦截问题"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ## 问题描述

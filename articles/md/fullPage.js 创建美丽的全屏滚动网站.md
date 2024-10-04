@@ -1,6 +1,6 @@
 ---
 title: "fullPage.js：创建美丽的全屏滚动网站"
-tag: "Tools"
+tag: "工具"
 ---
 
 ### 介绍

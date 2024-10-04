@@ -1,6 +1,6 @@
 ---
 title: "使用 BroadcastChannel 进行跨页面通信"
-tag: "Communication"
+tag: "通信"
 ---
 
 在现代 Web 应用程序中，有时候我们需要在不同的页面之间进行通信，例如在一个页面上的操作需要更新另一个页面上的内容。这时候，`BroadcastChannel` 可以成为一个非常有用的工具。`BroadcastChannel` 允许我们在不同的浏览器标签页或者不同的窗口之间进行消息广播。

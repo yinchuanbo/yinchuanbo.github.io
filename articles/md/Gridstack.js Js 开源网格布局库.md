@@ -1,6 +1,6 @@
 ---
 title: "Gridstack.js Js 开源网格布局库"
-tag: "Tools"
+tag: "工具"
 ---
 
 ## Gridstack.js 是什么？

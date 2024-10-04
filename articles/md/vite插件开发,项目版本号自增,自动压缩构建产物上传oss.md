@@ -1,6 +1,6 @@
 ---
 title: "vite插件开发,项目版本号自增,自动压缩构建产物上传oss"
-tag: "Engineering"
+tag: "工程化"
 ---
 
 ## 1.项目版本号自增

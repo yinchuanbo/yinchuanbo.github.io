@@ -1,6 +1,6 @@
 ---
 title: "FileReader"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ### 读取文件

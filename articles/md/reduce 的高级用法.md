@@ -1,6 +1,6 @@
 ---
 title: "reduce 的高级用法"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ## 用例 1：对数字求和

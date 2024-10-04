@@ -1,6 +1,6 @@
 ---
 title: "vite 创建 vue3 项目 (vue3+vue-router+ts+vite+element-plus+pinia)"
-tag: "Engineering"
+tag: "工程化"
 ---
 
 ## 1. vite 创建 vue3 项目

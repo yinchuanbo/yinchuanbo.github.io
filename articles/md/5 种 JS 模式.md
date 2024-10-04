@@ -1,6 +1,6 @@
 ---
 title: "5 种 JavaScript 模式可提高代码质量和可维护性"
-tag: "Js Mode"
+tag: "模式"
 ---
 
 ## 模块模式

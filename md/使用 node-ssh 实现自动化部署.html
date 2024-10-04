@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>使用 node-ssh 实现自动化部署</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class="active"><a title="使用 node-ssh 实现自动化部署" href="/md/使用 node-ssh 实现自动化部署.html">04 使用 node-ssh 实现自动化部署</a></li><li class=""><a title="Vercel + Supabase 快速构建原型的终极工具组合" href="/md/Vercel + Supabase 快速构建原型的终极工具组合.html">03 Vercel + Supabase 快速构建原型的终极工具组合</a></li><li class=""><a title="五分钟使用 docker 安装部署 gitlab" href="/md/五分钟使用 docker 安装部署 gitlab.html">02 五分钟使用 docker 安装部署 gitlab</a></li><li class=""><a title="前端项目如何部署上线" href="/md/前端项目如何部署上线.html">01 前端项目如何部署上线</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>使用 node-ssh 实现自动化部署</h1>
+          <p>自动化部署的的方式有很多，之前也写过两种，今天跟大家介绍一下如何在不依赖 <code>Jenkins</code>、<code>gitLab CI/CD</code> 和 <code>github Action</code> 的情况下，自己通过 node.js 实现自动化部署。</p>
+<h2>node-ssh</h2>
+<p>这里我们主要依赖一个叫 <code>node-ssh</code> 的工具，它是一个用于通过 <code>SSH</code> 协议远程执行命令、传输文件的 Node.js 库。它在 <code>ssh2</code> 的基础上提供了更高级别的接口，可以让我们在 Node.js 中使用 <code>SSH</code> 变得更简单。</p>
+<p>接下来我们用一些示例来让大家先了解一下它的基本用法。</p>
+<p>首先要安装一下，如果项目使用的 typescript 的话需要安装一下它的类型文件。</p>
+<pre><code class="language-sh">pnpm add node-ssh
+
+# typescript
+pnpm add @types/node-ssh
+</code></pre>
+<p>安装完成之后，就可以通过 <code>node-ssh</code> 和我们的服务器建立连接。</p>
+<pre><code class="language-js">import { NodeSSH } from &quot;node-ssh&quot;;
+import { deployConfig } from &quot;./config.js&quot;;
+
+async function deploy() {
+  const ssh = new NodeSSH();
+
+  await ssh.connect(deployConfig);
+  const result = await ssh.execCommand(&quot;ls&quot;);
+}
+
+deploy();
+</code></pre>
+<p>在这里我们先通过 <code>new NodeSSH</code> 创建一个 <code>ssh</code> 实例，然后通过 <code>connect</code> 跟服务器建立连接。</p>
+<p>deployConfig 中的内容主要是这些：</p>
+<pre><code class="language-js">export const deployConfig = {
+  host: &quot;服务器ip地址&quot;,
+  username: &quot;用户名&quot;,
+  password: &quot;服务器密码&quot;,
+};
+</code></pre>
+<p>到这一步我们已经成功和服务器建立了连接，现在我们可以通过这个连接执行一个服务器上的命令，看一下效果。</p>
+<pre><code class="language-js">import { NodeSSH } from &quot;node-ssh&quot;;
+import { deployConfig } from &quot;./config.js&quot;;
+
+async function deploy() {
+  const ssh = new NodeSSH();
+
+  await ssh.connect(deployConfig);
+  const result = await ssh.execCommand(&quot;ls&quot;);
+  console.log(`result.stdout ==&gt; ${result.stdout}`);
+  console.log(`result.stderr ==&gt; ${result.stderr}`);
+  ssh.dispose();
+}
+
+deploy();
+</code></pre>
+<p>这里我们通过 <code>execCommand</code> 执行了一个 <code>ls</code> 命令，查看一下服务器上的目录，如果执行成功，他的结果会放在他的标准输出(stdout)中，如果执行遇到异常，则会将失败的结果也放在失败的信息中，执行之后我们可以看到如下结果：</p>
+<img src="../imgs/87/09.webp" />
+
+<p>我们可以看到结果已经正常输出了，根服务器上的是一样的。</p>
+<img src="../imgs/87/10.webp" />
+
+<p>这表示我们已经连接成功了，最后的 <code>dispose</code> 是断开与服务器的连接，事办完了，该断开就要断开，不断开那不是浪费资源么……</p>
+<p>我们要实现自动化部署，这里依赖的一个主要的方法是 <code>pitDurectory</code>，他可以把我们本地的目录直接上传到服务器上的指定位置。</p>
+<p>比如我们现在的目录结果是这样的</p>
+<pre><code class="language-sh">.
+├── README.md
+├── dist
+├── index.html
+├── node_modules
+├── package.json
+├── pnpm-lock.yaml
+├── public
+├── scripts
+├── src
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
+</code></pre>
+<p>我们的代码就写在 <code>scripts</code> 这个目录中，现在我们想把 <code>dist</code> 这个目录上传到服务器上的 home 目录下，我们就可以这么做：</p>
+<pre><code class="language-js">import { NodeSSH } from &quot;node-ssh&quot;;
+import { deployConfig } from &quot;./config.js&quot;;
+import path from &quot;path&quot;;
+
+async function deploy() {
+  const ssh = new NodeSSH();
+
+  await ssh.connect(deployConfig);
+
+  const result = await ssh.putDirectory(path.resolve(&quot;./dist&quot;), &quot;dist&quot;);
+  console.log(result);
+  ssh.dispose();
+}
+
+deploy();
+</code></pre>
+<p>执行完成之后，终端会打印如下结果：</p>
+<img src="../imgs/87/11.webp" />
+
+<p>这说明我们已经成功了，也可以在服务器上验证一下看看</p>
+<img src="../imgs/87/12.webp" />
+
+<p>到这里其实已经基本可以实现我们的自动化部署流程了，部署的流程其实也就是将我们本地打包之后的结果推送到远程服务器上 nginx 指定的放置资源的位置，有需要的话可能还会对上一个包做一下备份，我们使用这两个 api 已经可以完成这些步骤了。</p>
+<h2>实现自动化部署</h2>
+<p>结下来就让我们实现一个完整的自动化部署流程</p>
+<pre><code class="language-js">import { NodeSSH } from &quot;node-ssh&quot;;
+import { deployConfig } from &quot;./config.js&quot;;
+import path from &quot;path&quot;;
+
+async function deploy() {
+  const ssh = new NodeSSH();
+
+  await ssh.connect(deployConfig);
+
+  const result = await ssh.execCommand(&quot;ls&quot;, {
+    cwd: &quot;var/www&quot;,
+  });
+  const isHasBackup = result.stdout.includes(&quot;dist.bak&quot;);
+  if (isHasBackup) {
+    await ssh.execCommand(&quot;rm -rf dist.bak&quot;, {
+      cwd: &quot;var/www&quot;,
+    });
+  }
+  await ssh.execCommand(&quot;mv dist dist.bak&quot;, {
+    cwd: &quot;var/www&quot;,
+  });
+
+  await ssh.putDirectory(path.resolve(&quot;./dist&quot;), &quot;var/www/dist&quot;);
+  ssh.dispose();
+}
+
+deploy();
+</code></pre>
+<p>在这段代码里边，我们先检查一下有没有备份文件，有的话就删掉，然后把之前的项目资源备份，再上传新的版本。</p>
+<p>上传之后修改我们的 nginx 配置文件。CentOS 下，nginx 配置文件的位置通常在 <code>/etc/nginx/nginx.conf</code>，打开这个配置文件，在里边添加一个新的 server。</p>
+<pre><code class="language-nginx"> server {
+    listen 10087;
+    allow all;
+    server_name 82.156.78.63;
+    root /root/var/www/dist;
+    index index.html;
+    location / {
+        try_files $uri $uri/ /index.html;
+        index index.html;
+    }
+}
+</code></pre>
+<p>如果是云服务器的话，记得开放配置一下对应端口号的安全组。</p>
+<p>我们可以在浏览器里看一下部署的结果：</p>
+<img src="../imgs/87/13.webp" />
+
+<p>如果要发新的版本，直接调用一下这个 deploy 方法就可以了，也是很方便的。</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>

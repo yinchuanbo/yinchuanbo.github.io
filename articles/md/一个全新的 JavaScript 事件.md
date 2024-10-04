@@ -1,6 +1,6 @@
 ---
 title: "一个全新的 JavaScript 事件"
-tag: "New Features"
+tag: "新特性"
 ---
 
 今天给大家介绍一个新的 JavaScript 事件：`scrollend`。

@@ -1,6 +1,6 @@
 ---
 title: "OpenCV 前端图片磨皮处理"
-tag: "Tools"
+tag: "工具"
 ---
 
 ## 我们来理清思路：

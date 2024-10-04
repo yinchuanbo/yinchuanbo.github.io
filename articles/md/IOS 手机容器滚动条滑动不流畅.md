@@ -1,6 +1,6 @@
 ---
 title: "IOS 手机容器滚动条滑动不流畅"
-tag: "Issues"
+tag: "问题"
 ---
 
 ```css

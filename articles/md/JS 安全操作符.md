@@ -1,6 +1,6 @@
 ---
 title: "JS新特性：?= 操作符助你告别bug"
-tag: "New Features"
+tag: "新特性"
 ---
 
 JavaScript 作为一门动态语言，其`错误处理`一直是一个让开发者头疼的问题。

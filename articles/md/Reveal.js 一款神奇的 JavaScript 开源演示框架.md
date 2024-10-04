@@ -1,6 +1,6 @@
 ---
 title: "Reveal.js，一款神奇的 JavaScript 开源演示框架，可替代 PPT 或 Keynote 吗？"
-tag: "Tools"
+tag: "工具"
 ---
 
 如何实现下面这种效果？

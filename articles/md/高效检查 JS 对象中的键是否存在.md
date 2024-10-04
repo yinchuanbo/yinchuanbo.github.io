@@ -1,6 +1,6 @@
 ---
 title: "如何高效检查 JavaScript 对象中的键是否存在"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ## 问题背景

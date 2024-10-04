@@ -1,6 +1,6 @@
 ---
 title: "js 小众且好用的技巧"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ## 数组

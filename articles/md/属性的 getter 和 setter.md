@@ -1,6 +1,6 @@
 ---
 title: "属性的 getter 和 setter"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 有两种类型的对象属性。

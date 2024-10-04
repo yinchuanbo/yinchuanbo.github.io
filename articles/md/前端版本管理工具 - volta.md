@@ -1,6 +1,6 @@
 ---
 title: "前端版本管理工具 - volta"
-tag: "Engineering"
+tag: "工程化"
 ---
 
 只要在 package.json 配置以下代码即可轻松`切换node版本`而无需`手动切换`

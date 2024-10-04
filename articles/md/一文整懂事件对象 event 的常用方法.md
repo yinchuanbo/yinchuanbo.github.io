@@ -1,6 +1,6 @@
 ---
 title: "一文整懂事件对象 event 的常用方法"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 补充一下事件注册和删除需要注意的事项：

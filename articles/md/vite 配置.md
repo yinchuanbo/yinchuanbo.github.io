@@ -1,6 +1,6 @@
 ---
 title: "vite 配置"
-tag: "Engineering"
+tag: "工程化"
 ---
 
 ## css.preprocessorOptions

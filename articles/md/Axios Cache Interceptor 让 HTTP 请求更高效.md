@@ -1,6 +1,6 @@
 ---
 title: "Axios Cache Interceptor 让 HTTP 请求更高效"
-tag: "Request"
+tag: "请求"
 ---
 
 ## 概述

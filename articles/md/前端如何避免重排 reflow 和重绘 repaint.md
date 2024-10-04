@@ -1,6 +1,6 @@
 ---
 title: "前端如何避免重排 reflow 和重绘 repaint"
-tag: "Performance"
+tag: "性能"
 ---
 
 <img src="../imgs/78/01.webp" />

@@ -1,6 +1,6 @@
 ---
 title: "7 种开发人员都应该知道的高级 JavaScript 技术"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ## 1\. 掌握闭包，让代码更简洁

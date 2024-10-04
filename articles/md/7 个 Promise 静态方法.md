@@ -1,6 +1,6 @@
 ---
 title: "7 个 Promise 静态方法"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 Promise 状态变化如下：

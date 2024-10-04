@@ -1,6 +1,6 @@
 ---
 title: "js 如何监听一个变量改变"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 ## 需求和背景

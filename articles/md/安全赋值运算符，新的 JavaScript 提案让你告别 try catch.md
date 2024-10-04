@@ -1,6 +1,6 @@
 ---
 title: "安全赋值运算符，新的 JavaScript 提案让你告别 try catch"
-tag: "New Features"
+tag: "新特性"
 ---
 
 在现代 Web 开发中，错误处理一直是个重要但复杂的问题。传统的 `try-catch` 语句虽然功能强大，但是容易导致代码冗长且难以维护。

@@ -1,6 +1,6 @@
 ---
 title: "谈谈前端路由的实现原理 hash ＆ history"
-tag: "JavaScript"
+tag: "Js"
 ---
 
 当谈到前端路由时，指的是在前端应用中管理页面导航和 URL 的机制。前端路由使得单页应用（Single-Page Application，SPA）能够在用户与应用交互时动态地加载不同的视图，而无需每次都重新加载整个页面。

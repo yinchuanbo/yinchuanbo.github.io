@@ -1,6 +1,6 @@
 ---
 title: "浏览器指纹 fingerprintjs2.md"
-tag: "Tools"
+tag: "工具"
 ---
 
 ### 1.fingerprintjs2 是什么？

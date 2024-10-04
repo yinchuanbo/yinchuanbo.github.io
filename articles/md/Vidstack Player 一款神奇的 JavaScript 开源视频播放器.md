@@ -1,6 +1,6 @@
 ---
 title: "Vidstack Player 一款神奇的 JavaScript 开源视频播放器"
-tag: "Video & Audio"
+tag: "音视频"
 ---
 
 对于开发者来说，拥有一个强大、可定制且易于集成的媒体播放器库可以大幅提升开发效率。

@@ -1,6 +1,6 @@
 ---
 title: "Performance 面板分析性能瓶颈全流程"
-tag: "Performance"
+tag: "性能"
 ---
 
 **问题出现截图**
