@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web 多线程开发利器 Comlink 的剖析与思考</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class="active"><a title="Web 多线程开发利器 Comlink 的剖析与思考" href="/md/Web 多线程开发利器 Comlink 的剖析与思考.html">05 Web 多线程开发利器 Comlink 的剖析与思考</a></li><li class=""><a title="Web Worker 使用新姿势" href="/md/Web Worker 使用新姿势.html">04 Web Worker 使用新姿势</a></li><li class=""><a title="把 Canvas 放到 WebWorker 中去绘制" href="/md/把 Canvas 放到 WebWorker 中去绘制.html">03 把 Canvas 放到 WebWorker 中去绘制</a></li><li class=""><a title="利用 Web Worker 编写更稳定的定时器" href="/md/利用 Web Worker 编写更稳定的定时器.html">02 利用 Web Worker 编写更稳定的定时器</a></li><li class=""><a title="使用 Web Worker 优化前端大文件上传" href="/md/使用 Web Worker 优化前端大文件上传.html">01 使用 Web Worker 优化前端大文件上传</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>Web 多线程开发利器 Comlink 的剖析与思考</h1>
+          <h2>前言</h2>
+<p>JavaScript 属于单线程语言，所有任务都跑在主线程上，若主线程阻塞，后续任务将无法执行。既然是单线程，那为何我们在使用过程中主观感知却是“多线程”？</p>
+<h2>事件循环</h2>
+<p>主要由于 JavaScript 提供了  <strong>事件循环</strong>  机制，我们在发起异步请求或定时等操作后，处理完地回调会放入任务队列，在执行栈空时，处理任务队列中的回调，因此不会阻塞主线程，参考下图：</p>
+<img src="../imgs/92/01.png" />
+
+<p>Node、Deno 环境同样使用事件循环机制进行处理，不过在模型上存在差异。关于事件循环的具体细节本文不会细说，但核心思想在于：<strong>任务队列 + 异步回调</strong>。</p>
+<p>事实上，即使存在事件循环机制，某些任务依然会极大地占用主线程，例如近无限循环，会直接导致 CPU 占用 100%，此时后续的所有任务被阻塞，页面卡住，甚至失去响应，这在用户体验上是非常不友好的。但往往这样的任务不可避免，通常我们将其分为两类：</p>
+<ul>
+<li>CPU 密集型：完成计算所需的时间主要受限于 CPU 的计算</li>
+<li>I/O 密集型：完成计算所需的时间主要受限于输入/输出操作</li>
+</ul>
+<p>此时，多线程往往能起到关键性的作用，目前绝大多数现代计算机都拥有多核心，多线程处理能力，如果能物尽其用，必然是极好的。</p>
+<p><strong>查看逻辑处理器内核数量</strong></p>
+<pre><code class="language-js">navigator.hardwareConcurrency; // 16
+</code></pre>
+<p>有了上述的先决条件，我们就可以调用多线程处理这些阻塞型任务了。</p>
+<h2>Web Worker</h2>
+<p>现代主流浏览器，都已经支持了 Web Worker API，通过该接口，可以开启多线程。使用过程中需要注意以下几点：</p>
+<ul>
+<li>DOM 限制、BOM 部分限制</li>
+<li>同源限制</li>
+<li>通过消息监听机制通信</li>
+<li>脚本文件必须通过网络访问</li>
+<li>国际惯例，<strong>资源</strong>用完后要及时<strong>释放</strong></li>
+</ul>
+<p><strong>一个非常简单的例子</strong></p>
+<p>index.html</p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot; /&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;p id=&quot;first&quot;&gt;&lt;/p&gt;
+    &lt;p id=&quot;second&quot;&gt;&lt;/p&gt;
+    &lt;p id=&quot;third&quot;&gt;&lt;/p&gt;
+    &lt;script&gt;
+      // 第一个文本
+      document.querySelector(&quot;#first&quot;).innerHTML = &quot;First&quot;;
+      // 第二个文本
+      const second = document.querySelector(&quot;#second&quot;);
+      if (window.Worker) {
+        second.innerHTML = &quot;...&quot;;
+        const worker = new Worker(&quot;worker.js&quot;);
+        worker.postMessage({
+          uuid: new Date().getTime(),
+        });
+        worker.onmessage = function (e) {
+          second.innerHTML = e.data;
+        };
+        worker.onerror = function (e) {
+          second.innerHTML = &quot;Error occured!&quot;;
+        };
+      } else {
+        second.innerHTML = &quot;Not supprot Web Worker!&quot;;
+      }
+      // 第三个文本
+      document.querySelector(&quot;#third&quot;).innerHTML = &quot;Third&quot;;
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>worker.js</p>
+<pre><code class="language-js">onmessage = function (e) {
+  const time = Math.random() * 3000;
+  // 模拟复杂计算
+  setTimeout(() =&gt; {
+    postMessage(`Second ${time.toFixed(0)} ms, ID is ${e.data.uuid}`);
+  }, time);
+};
+</code></pre>
+<img src="../imgs/92/01.gif" />
+
+<p>可以看出，主线程主要负责展示 UI，工作线程负责计算需要展示的值，那么问题来了：</p>
+<ol>
+<li>那这个计算展示值的步骤是否可以后端返回？</li>
+<li>如果要在独立的线程中进行多种操作要如何做到？</li>
+</ol>
+<p>对于问题 1，答案是肯定的，前端开启多线程只是为了扩展现代浏览器的计算能力，通常这一部分未挖掘的潜力是很大的，可以用来做很多事情，比如生成文件、复杂计算等。如果不这样做，很显然可以通过异步请求方式达到。</p>
+<p>对于问题 2，如果在独立工作线程中声明多个  <code>onmessage</code>  函数，根据变量提升规则，只会有最后一个生效。那么想要执行不同的操作，除了新开一个工作线程外（失去意义），就只能在这个监听函数中通过  <code>switch</code>  或  <code>if</code>  进行返回，这样违反了单一职责原则。</p>
+<pre><code class="language-js">// 若要在线程脚本中执行多个操作，通常需要这么写
+onmessage = function(e) {
+ if (condition1) // do something
+ if (condition2) // do something
+ if (condition3) // do something
+ //  ...
+}
+</code></pre>
+<p>除了工作线程外，主线程也存在这样的问题，由于 Message 事件只能绑定一次，想要执行复杂的条件判断会让代码显得异常臃肿难看，那么  <strong>如何优雅的使用多线程开发</strong>  呢？</p>
+<p>对于刚才提到的问题一，我们可以通过异步接口的形式返回想要的结果，得益于 ES6 中的 Promise 对象，通常我们对于异步的写法如下：</p>
+<pre><code class="language-js">fetchSometing().then((res) =&gt; {
+  // do something
+});
+</code></pre>
+<p>再比较 Web Worker 的写法：</p>
+<pre><code class="language-js">worker.postMessage();
+worker.onmessage = function (e) {
+  // do something
+};
+</code></pre>
+<p>设想，我们是否可以将多线程写法进一步优化，将  <code>postMessage</code>  和  <code>onmessage</code>  封装成一个函数，该函数返回一个 Promise，通过调用，进行“异步”操作？</p>
+<p>这当然是可以的。那么，这个函数必然在工作线程中，我们怎么去调用工作线程中的函数进行操作呢？</p>
+<p><code>RPC：Remote Procedure Call</code> (<a href="https://en.wikipedia.org/wiki/Remote%5C_procedure%5C_call)%EF%BC%8C%E8%BF%9C%E7%A8%8B%E8%BF%87%E7%A8%8B%E8%B0%83%E7%94%A8%EF%BC%8C%E6%8C%87%E8%B0%83%E7%94%A8%E4%B8%8D%E5%90%8C%E4%BA%8E%E5%BD%93%E5%89%8D%E4%B8%8A%E4%B8%8B%E6%96%87%E7%8E%AF%E5%A2%83%E7%9A%84%E6%96%B9%E6%B3%95%EF%BC%8C%E9%80%9A%E5%B8%B8%E5%8F%AF%E4%BB%A5%E6%98%AF%E4%B8%8D%E5%90%8C%E7%9A%84%E7%BA%BF%E7%A8%8B%E3%80%81%E5%9F%9F%E3%80%81%E7%BD%91%E7%BB%9C%E4%B8%BB%E6%9C%BA%EF%BC%8C%E9%80%9A%E8%BF%87%E6%8F%90%E4%BE%9B%E7%9A%84%E6%8E%A5%E5%8F%A3%E8%BF%9B%E8%A1%8C%E8%B0%83%E7%94%A8%E3%80%82">https://en.wikipedia.org/wiki/Remote\_procedure\_call)，远程过程调用，指调用不同于当前上下文环境的方法，通常可以是不同的线程、域、网络主机，通过提供的接口进行调用。</a></p>
+<p>通过 RPC 方式，我们可以达到想要的目的。这里就会介绍本文的主角 Comlink (<a href="https://github.com/GoogleChromeLabs/comlink)%EF%BC%81">https://github.com/GoogleChromeLabs/comlink)！</a></p>
+<p>没有条件，就要创造条件</p>
+<h2>Comlink</h2>
+<p>Comlink 是由 Google Chrome Labs 开源出的项目，提供了前端多线程编程的 PRC 能力。</p>
+<p>Comlink makes WebWorkers enjoyable.</p>
+<p>请看该项目提供的最简单的例子：</p>
+<p>main.js</p>
+<pre><code class="language-js">// &lt;script src=&quot;https://unpkg.com/comlink/dist/umd/comlink.js&quot;&gt;&lt;/script&gt;
+async function init() {
+  const worker = new Worker(&quot;worker.js&quot;);
+  const obj = Comlink.wrap(worker);
+  alert(`Counter: ${await obj.counter}`);
+  await obj.inc();
+  alert(`Counter: ${await obj.counter}`);
+}
+init();
+</code></pre>
+<p>worker.js</p>
+<pre><code class="language-js">importScripts(&quot;https://unpkg.com/comlink/dist/umd/comlink.js&quot;);
+
+const obj = {
+  counter: 0,
+  inc() {
+    this.counter++;
+  },
+};
+
+Comlink.expose(obj);
+</code></pre>
+<p>很显然，Comlink 的 “RPC” 能力正是我们想要的，注意上述例子中关键的两点  <code>Comlink.wrap(worker)</code>  和  <code>Comlink.expose(obj)</code>，它通过这种方式，将工作线程脚本中的上下文暴露给主线程环境中，下面通过查看部分核心代码来了解其具体的实现方式。</p>
+<h2>案例：导出 Excel</h2>
+<p>往往业务中有这样的需求，导出 Excel 报表。通常技术实现由后端返回文件流，前端生成文件并下载，这也是考虑到性能问题。事实上，在多线程的加持下，纯前端也完全可以实现，以下为 Comlink 的代码写法（<em>10 万数据</em>）：</p>
+<p>main.js</p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot; /&gt;
+    &lt;script src=&quot;https://unpkg.com/comlink/dist/umd/comlink.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;https://unpkg.com/xlsx/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;https://unpkg.com/file-saver/dist/FileSaver.min.js&quot;&gt;&lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;button id=&quot;btn&quot;&gt;Download&lt;/button&gt;
+    &lt;p id=&quot;time&quot;&gt;&lt;/p&gt;
+    &lt;script&gt;
+      const button = document.querySelector(&quot;#btn&quot;);
+      const worker = new Worker(&quot;worker.js&quot;);
+      // 使用 Comlink 包装
+      const getWorkBook = Comlink.wrap(worker);
+      // 点击触发下载
+      async function download() {
+        button.disabled = true;
+        // 生成 xlsx 文档的 blob 数据
+        const blob = await getWorkBook(100000);
+        // 下载
+        saveAs(blob, &quot;test.xlsx&quot;);
+        button.disabled = false;
+      }
+      button.addEventListener(&quot;click&quot;, download);
+      // 观察时间是否卡顿
+      setInterval(() =&gt; {
+        document.querySelector(&quot;#time&quot;).innerHTML =
+          new Date().toLocaleTimeString();
+      }, 1000);
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>worker.js</p>
+<pre><code class="language-js">importScripts(&quot;https://unpkg.com/comlink/dist/umd/comlink.js&quot;);
+importScripts(&quot;https://unpkg.com/xlsx/dist/xlsx.full.min.js&quot;);
+
+// 模拟生成 Excel 并导出
+const getWorkBook = (count) =&gt; {
+  const aoa = [];
+  for (let i = 0; i &lt; count; i++) {
+    const arr = [];
+    for (let j = 0; j &lt; 10; j++) {
+      if (i === 0) {
+        arr.push(`Column${j + 1}`);
+        continue;
+      }
+      arr.push(Math.floor(Math.random() * 100));
+    }
+    aoa.push(arr);
+  }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  XLSX.utils.book_append_sheet(wb, ws, &quot;Sheet&quot;);
+  // XLSX.writeFile 无法获取 DOM，故采用此写法
+  const data = XLSX.write(wb, { type: &quot;array&quot; });
+  return new Blob([data], { type: &quot;application/octet-stream&quot; });
+};
+
+Comlink.expose(getWorkBook);
+</code></pre>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>

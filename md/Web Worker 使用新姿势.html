@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Worker 使用新姿势</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class=""><a title="Web 多线程开发利器 Comlink 的剖析与思考" href="/md/Web 多线程开发利器 Comlink 的剖析与思考.html">05 Web 多线程开发利器 Comlink 的剖析与思考</a></li><li class="active"><a title="Web Worker 使用新姿势" href="/md/Web Worker 使用新姿势.html">04 Web Worker 使用新姿势</a></li><li class=""><a title="把 Canvas 放到 WebWorker 中去绘制" href="/md/把 Canvas 放到 WebWorker 中去绘制.html">03 把 Canvas 放到 WebWorker 中去绘制</a></li><li class=""><a title="利用 Web Worker 编写更稳定的定时器" href="/md/利用 Web Worker 编写更稳定的定时器.html">02 利用 Web Worker 编写更稳定的定时器</a></li><li class=""><a title="使用 Web Worker 优化前端大文件上传" href="/md/使用 Web Worker 优化前端大文件上传.html">01 使用 Web Worker 优化前端大文件上传</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>Web Worker 使用新姿势</h1>
+          <h2>前言</h2>
+<p>大家都知道，为了防止多个线程同时操作 DOM，带来渲染冲突问题，所以 js 执行器被设计成单线程，但是随着时间的推移，js 也会逐渐涉及到大计算的场景（比如大数据计算，图片、视频、音频处理等等），在这样的场景下，单线程就会被长时间阻塞，甚至造成页面卡顿，影响用户体验。</p>
+<p><code>Web Worker</code>就是为了解决单线程这一弊端形成的产物，它允许我们在 js 主线程之外开辟新的 Worker 线程，并将一段 js 脚本运行其中，它赋予了开发者利用 js 操作多线程的能力。因为是独立的线程，Worker 线程与 js 主线程能够同时运行，互不阻塞。所以，在我们有大量运算任务时，可以把运算任务交给 Worker 线程去处理，当 Worker 线程计算完成，再把结果返回给 js 主线程即可。</p>
+<h2>worker 基础知识</h2>
+<p>这里举个例子，我们要对一个长度为 5000000 的数组进行排序，如果直接在 js 中执行，会影响页面的 UI 渲染，伴有明显卡顿现象，接下来我们用 worker 来实现这个功能，大概了解一下 worker 如何创建，以及 worker 和主进程之间如何通信。</p>
+<ol>
+<li>先创建一个 worker.js 文件，这个 worker 接收一个数组，将这个数组排序后进行输出：</li>
+</ol>
+<pre><code class="language-js">// worker.js
+onmessage = async (e) =&gt; {
+  const nums = e.data;
+  postMessage(nums.sort());
+};
+</code></pre>
+<ol start="2">
+<li>在主文件中创建 worker，再将业务数据（numbers）传到 worker 进行执行：</li>
+</ol>
+<pre><code class="language-js">// main.js
+const numbers = [...Array(5000000)].map(() =&gt; Math.random() * 1000000);
+const onWorkerSort = () =&gt; {
+  const worker = new Worker(&quot;worker.js&quot;); // 创建worker
+  worker.postmessage(numbers); // 传递业务数据到worker，worker开始执行
+  worker.onmessage = (e) =&gt; {
+    // 监听worker的执行结果
+    console.log(&quot;排序结果&quot;, e.data);
+  };
+};
+</code></pre>
+<ol start="3">
+<li>如果我们想要关闭 worker，可以使用如下方法：</li>
+</ol>
+<pre><code class="language-js">// main.js
+myWorker.terminate(); // 关闭 worker
+</code></pre>
+<pre><code class="language-js">// worker.js
+close(); // 直接执行 close 方法就 ok 了
+</code></pre>
+<h3>worker 实际运用</h3>
+<pre><code class="language-js">const worker = new Worker(path, options);
+</code></pre>
+<p>path 是有效的 js 脚本的地址，并且值得一提的是，地址必须遵守<code>同源策略</code>。</p>
+<p>所以如果我们这样使用，本地测试可以，但是发布之后会有问题。假设运行环境的域名是<code>a.com</code>，但是<code>test.worker.js</code>是部署在 cdn 的，所以会存在跨域的问题。</p>
+<pre><code class="language-js">// webpack配置多入口
+module.exports = () =&gt; {
+  extry: {
+    &#39;./src/index.js&#39;: &#39;app.js&#39;,
+    &#39;./worker/test.worker.js&#39;: &#39;test.worker.js&#39;
+  }
+};
+
+// 主js文件使用
+const worker = new Worker(&#39;./test.worker.js&#39;);
+</code></pre>
+<h3>开源的 useWorker</h3>
+<p><a href="https://github.com/alewin/useWorker">github.com/alewin/useW…</a></p>
+<pre><code class="language-jsx">import React from &quot;react&quot;;
+import { useWorker } from &quot;@koale/useworker&quot;;
+
+const numbers = [...Array(5000000)].map(() =&gt; Math.random() * 1000000);
+const sortNumbers = (nums) =&gt; nums.sort();
+
+const Example = () =&gt; {
+  const [sortWorker] = useWorker(sortNumbers);
+
+  const runSort = async () =&gt; {
+    const result = await sortWorker(numbers); // non-blocking UI
+    console.log(result);
+  };
+
+  return (
+    &lt;button type=&quot;button&quot; onClick={runSort}&gt;
+      Run Sort
+    &lt;/button&gt;
+  );
+};
+</code></pre>
+<p>这是官方的一个例子，使用会报如下错误，也没有去深究为啥报错，感觉像是传入一个函数，重新执行的时候上下文环境不一样了。</p>
+<img src="../imgs/91/01.awebp" />
+
+<h2>使用新姿势（自建 useWorker）</h2>
+<h3>Blob URL</h3>
+<img src="../imgs/91/02.awebp" />
+
+<p>从上图可以看出，Worker 构造函数接收的 path 可以是一个 Blob URL，那我们就来看看 Blob URL 是什么东西，并且如何创建。</p>
+<img src="../imgs/91/03.awebp" />
+
+<img src="../imgs/91/04.awebp" />
+
+<p>从上面两个图可以得出，可以通过 URL.createObjectURL()方法来创建一个 Blob URL，并且这个值可以用于 Web Worker，正好完美适配。</p>
+<h3>useWorker</h3>
+<pre><code class="language-js">// content 就是 worker 文件的内容字符串
+const url = URL.createObjectURL(
+  new Blob([content], { type: &quot;text/javascript&quot; })
+);
+const worker = new Worker(url);
+</code></pre>
+<p>这样就可以将 worker 文件的内容构建到源码当中，不用单独发布一个 js 文件了。为了进一步弱化 worker 相互传递事件的复杂度，在业务开发中使用简单，还可以进一步封装，我们来自己实现一个<code>useWorker</code>，核心代码如下：</p>
+<pre><code class="language-jsx">const createWorkerCode = (code) =&gt; {
+  code = code.replace(&quot;export default &quot;, &quot;const __worker_run = &quot;); // worker文件内容需要约定一种格式
+  return `
+    onmessage = async (e) =&gt; {
+      ${code}
+      const __worker_result = await __worker_run(e.data);
+      postMessage(__worker_result);
+    };
+  `;
+};
+
+const useWorker = (code, config = {}) =&gt; {
+  const {
+    params,
+    closeWorkerOnUnmount = true, // hooks卸载时是否结束worker
+    manual = false, // 是否手动执行worker
+  } = config;
+  const [data, setData] = React.useState();
+
+  React.useEffect(() =&gt; {
+    const content = createWorkerCode(code);
+    const url = URL.createObjectURL(
+      new Blob([content], { type: &quot;text/javascript&quot; })
+    );
+    const worker = new Worker(url);
+    worker.onmessage = (e) =&gt; {
+      // 监听worker接收事件，然后更新result
+      setData(e.data);
+    };
+    return () =&gt; {
+      closeWorkerOnUnmount &amp;&amp; worker.terminate(); // hooks卸载时是否结束worker
+    };
+  }, [code]);
+
+  React.useEffect(() =&gt; {
+    !manual &amp;&amp; worker.postMessage(params); // 执行worker文件并给worker传参
+  }, [JSON.stringify(params)]);
+
+  // 手动执行worker逻辑
+  const run = (p) =&gt; {
+    worker.postMessage(p);
+  };
+
+  return {
+    data, // worker执行的结果
+    run, // 手动执行worker
+    worker, // worker实例
+  };
+};
+</code></pre>
+<h3>使用</h3>
+<p>上面大数据排序的实例可以使用自建<code>useWorker</code>轻松实现：</p>
+<pre><code class="language-js">// worker.js
+export default (nums) =&gt; {
+  reutrn nums.sort();
+}
+</code></pre>
+<pre><code class="language-jsx">// main.js
+import workerCode from &#39;./worker.js&#39;; // workerCode是文件内容字符串
+
+const numbers = [...Array(5000000)].map(() =&gt; (Math.random() * 1000000));
+const App = () =&gt; {
+  const { data, run } = useWorker(workerCode, { manual: true })
+  console.log(&#39;排序结果：&#39; data);
+  return (
+    &lt;Button onClick={() =&gt; run(numbers)}&gt;大数据排序&lt;/Button&gt;
+  )
+}
+</code></pre>
+<p>这里还要提到一点，我们针对 worker.js 的文件使用了 raw-loader 进行处理，所以此类文件在 import 的时候不会使用 babel 进行编译，而是直接返回内容字符串，配置如下：</p>
+<pre><code class="language-js">webworker: {
+  test: /\.worker\.(js|ts)$/i,
+  use: [{
+    loader: &#39;raw-loader&#39;,
+  }],
+},
+</code></pre>
+<h2>总结</h2>
+<ol>
+<li><p>worker 的使用成本主要有几点，第一是通信复杂，需要频繁在主进程和 worker 之间调用 postmessage 和 onmessage，容易绕晕；第二是 worker 如果为单独的 js 文件，需要解决跨域问题。</p>
+</li>
+<li><p>本文通过自建 useWorker 来解决上面两个问题，将通信封装在内部，且将 worker 代码也打包到项目 bundle 中。自然在使用上面也存在一定限制，比如 worker 文件里面必须是 <code>export default () =&gt; {}</code> 的格式，另外是项目在处理 worker.js 文件时需要借助<code>raw-loader</code>。</p>
+</li>
+<li><p>最后 worker 不是万能的，一般场景是用于大数据的计算和处理，它还是存在一些限制，比如 worker 文件只能使用原生的 js 语法，不能操作 dom 等等。</p>
+</li>
+</ol>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>
