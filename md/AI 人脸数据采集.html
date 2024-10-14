@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 人脸数据采集</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class="active"><a title="AI 人脸数据采集" href="/md/AI 人脸数据采集.html">01 AI 人脸数据采集</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>AI 人脸数据采集</h1>
+          <img src="../imgs/92/02.webp" />
+
+<p>该案例可以对两种场景进行人脸数据采集，一种乃视频中采集，根据对视频中人物面部数据采集来实现，效果如下：</p>
+<img src="../imgs/92/03.webp" />
+
+<p>另一种为实时数据采集，利用摄像头实时数据对人脸数据进行采集，这种场景通常用于门卫人脸系统，扫脸支付系统等，当然，随着安全问题的频发，支付扫脸或身份识别系统等较为重要的数据系统程序算法更为严谨，对于 face-api 而言，日常人脸数据采集已完全够用。</p>
+<h2>核心代码 index.vue</h2>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h1 style=&quot;text-align: center;&quot;&gt;人脸数据采集&lt;/h1&gt;
+    &lt;input
+      hidden
+      type=&quot;file&quot;
+      @change=&quot;setImage&quot;
+      accept=&quot;image/*&quot;
+      ref=&quot;pickImage&quot;
+    /&gt;
+
+    &lt;!--  图片/视频 捕获区  --&gt;
+    &lt;div class=&quot;detectBox&quot;&gt;
+      &lt;img
+        v-show=&quot;!data.trackVideoFaces &amp;&amp; !data.trackCameraFaces&quot;
+        :src=&quot;data.base64&quot;
+        alt=&quot;&quot;
+        width=&quot;500&quot;
+        ref=&quot;img&quot;
+        id=&quot;myImg&quot;
+        @load=&quot;detectFactory&quot;
+      /&gt;
+
+      &lt;video
+        v-if=&quot;data.trackVideoFaces&quot;
+        width=&quot;500&quot;
+        ref=&quot;video&quot;
+        id=&quot;myVideo&quot;
+        muted
+        playsinline
+        preload
+        loop
+        @durationchange=&quot;video.play()&quot;
+        @play=&quot;data.videoStatus = 1&quot;
+        @pause=&quot;data.videoStatus = 0&quot;
+      &gt;
+        &lt;source src=&quot;./media/shylock.mp4&quot; type=&quot;video/mp4&quot; /&gt;
+        &lt;!-- &lt;source src=&quot;./media/1.mp4&quot; type=&quot;video/mp4&quot;&gt; --&gt;
+        抱歉，您的浏览器不支持嵌入式视频。
+      &lt;/video&gt;
+
+      &lt;video
+        v-if=&quot;data.trackCameraFaces&quot;
+        ref=&quot;video&quot;
+        id=&quot;myVideo&quot;
+        autoplay
+        muted
+        playsinline
+        @play=&quot;data.videoStatus = 1&quot;
+        @pause=&quot;data.videoStatus = 0&quot;
+      /&gt;
+      &lt;img
+        src=&quot;./images/2.png&quot;
+        alt=&quot;&quot;
+        class=&quot;shadows&quot;
+        ref=&quot;shadow&quot;
+        v-if=&quot;data.trackCameraFaces&quot;
+      /&gt;
+
+      &lt;canvas ref=&quot;canvas&quot; /&gt;
+      &lt;canvas ref=&quot;canvas2&quot; /&gt;
+    &lt;/div&gt;
+
+    &lt;section
+      v-show=&quot;data.trackVideoFaces || data.trackCameraFaces&quot;
+      class=&quot;timer&quot;
+    &gt;
+      &lt;p&gt;平均检测时长：{{ data.time }}&lt;/p&gt;
+      &lt;p&gt;fps：{{ data.fps &gt; 200 ? &#39;200+&#39; : data.fps }}&lt;/p&gt;
+    &lt;/section&gt;
+
+    &lt;div class=&quot;bottomBox&quot;&gt;
+      &lt;p&gt;
+        &lt;van-switch
+          v-model=&quot;data.trackVideoFaces&quot;
+          :disabled=&quot;data.trackCameraFaces&quot;
+          size=&quot;24&quot;
+        /&gt;
+        视频人脸追踪
+      &lt;/p&gt;
+      &lt;p&gt;
+        &lt;van-switch
+          v-model=&quot;data.trackCameraFaces&quot;
+          :disabled=&quot;data.trackVideoFaces&quot;
+          size=&quot;24&quot;
+        /&gt;
+        摄像头人脸追踪
+      &lt;/p&gt;
+    &lt;/div&gt;
+
+    &lt;van-checkbox-group v-model=&quot;data.optionList&quot; @change=&quot;detectFactory&quot;&gt;
+      &lt;van-checkbox name=&quot;showBorder&quot;&gt;开始采集&lt;/van-checkbox&gt;
+      &lt;!-- &lt;van-checkbox name=&quot;showBorder&quot;&gt;显示人脸边界&lt;/van-checkbox&gt; --&gt;
+      &lt;van-checkbox name=&quot;showMark&quot;&gt;显示人脸标记点&lt;/van-checkbox&gt;
+    &lt;/van-checkbox-group&gt;
+
+    &lt;!-- 摄像头列表 --&gt;
+    &lt;van-popup
+      :show=&quot;data.showCameraList&quot;
+      position=&quot;bottom&quot;
+      round
+      :close-on-click-overlay=&quot;false&quot;
+    &gt;
+      &lt;van-picker
+        title=&quot;摄像头列表&quot;
+        :columns=&quot;data.cameraList&quot;
+        @confirm=&quot;getVideoStream&quot;
+        @cancel=&quot;data.showCameraList = false; data.trackCameraFaces = false&quot;
+      /&gt;
+    &lt;/van-popup&gt;
+
+    &lt;!-- 人脸检测器配置 --&gt;
+    &lt;van-popup
+      :show=&quot;data.showConfig&quot;
+      position=&quot;bottom&quot;
+      round
+      :close-on-click-overlay=&quot;false&quot;
+    &gt;
+      &lt;van-picker
+        title=&quot;人脸检测器配置&quot;
+        :columns=&quot;data.columns&quot;
+        @confirm=&quot;selectHandle&quot;
+        @cancel=&quot;data.showConfig = false&quot;
+        @change=&quot;handleColumnDisabled&quot;
+      /&gt;
+    &lt;/van-popup&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+  import * as faceapi from &quot;face-api.js&quot;;
+  import { onMounted, reactive, toRefs, watch } from &quot;vue&quot;;
+
+  import { Toast } from &quot;vant&quot;;
+
+  const data = reactive({
+    base64: &quot;&quot;,
+    similarity: 0, // 相似度
+    detectList: [], // 检测项
+    optionList: [], // 辅助项
+    showSimilar: false, // 人脸相似度比较
+    trackVideoFaces: false, // 视频人脸追踪
+    trackCameraFaces: false, // 摄像头人脸追踪
+    videoStream: &quot;&quot;, // 摄像头视频流
+    videoStatus: 0, // 0：暂停，1：播放
+    genderTranslator: {
+      male: &quot;男&quot;,
+      female: &quot;女&quot;,
+    },
+    expressionTranslator: {
+      neutral: &quot;正常&quot;,
+      happy: &quot;开心&quot;,
+      sad: &quot;伤心&quot;,
+      angry: &quot;生气&quot;,
+      fearful: &quot;害怕&quot;,
+      disgusted: &quot;恶心&quot;,
+      surprised: &quot;惊喜&quot;,
+    },
+    // 检测类型
+    detectTypes: [
+      &quot;AgeAndGender&quot;, //  年龄性别
+      &quot;Expression&quot;, //  表情
+      &quot;Face&quot;, //  人脸
+    ],
+    faces: [], // 录入的人脸描述
+
+    showConfig: false, // 人脸检测器配置弹出层
+    columns: [
+      {
+        values: [
+          { text: &quot;SSD&quot;, value: &quot;SSD&quot; },
+          { text: &quot;Tiny&quot;, value: &quot;Tiny&quot; },
+        ],
+        defaultIndex: 1,
+      },
+      {
+        values: [
+          { text: &quot;0.1&quot;, value: 0.1 },
+          { text: &quot;0.2&quot;, value: 0.2 },
+          { text: &quot;0.3&quot;, value: 0.3 },
+          { text: &quot;0.4&quot;, value: 0.4 },
+          { text: &quot;0.5&quot;, value: 0.5 },
+          { text: &quot;0.6&quot;, value: 0.6 },
+          { text: &quot;0.7&quot;, value: 0.7 },
+          { text: &quot;0.8&quot;, value: 0.8 },
+          { text: &quot;0.9&quot;, value: 0.9 },
+        ],
+        defaultIndex: 4,
+      },
+      {
+        values: [
+          { text: &quot;128&quot;, value: 128 },
+          { text: &quot;160&quot;, value: 160 },
+          { text: &quot;224&quot;, value: 224 },
+          { text: &quot;320&quot;, value: 320 },
+          { text: &quot;416&quot;, value: 416 },
+          { text: &quot;512&quot;, value: 512 },
+          { text: &quot;608&quot;, value: 608 },
+        ],
+        defaultIndex: 3,
+      },
+    ],
+    selectedValue: [&quot;Tiny&quot;, 0.5, 320],
+
+    showCameraList: false, // 摄像头列表弹出层
+    cameraList: [],
+    videoTrack: null,
+
+    count: 0,
+    forwardTimes: [],
+    time: &quot;&quot;,
+    fps: &quot;&quot;,
+  });
+  const refs = reactive({
+    canvas: null,
+    canvas2: null,
+    shadow: null,
+    img: null,
+    video: null,
+    pickImage: null,
+  });
+  const { canvas, canvas2, img, shadow, video, pickImage } = toRefs(refs);
+
+  /**
+   * remind
+   *
+   * const input = await faceapi.fetchImage(uri);
+   * */
+
+  /**
+   * @description 录入人脸数据
+   *
+   * 大脸照、黑白照可能识别不出来，可以修改配置，降低人脸的置信度
+   * */
+  const entryFaces = async () =&gt; {
+    const imgs = document.querySelectorAll(&quot;.faceCompare img&quot;);
+
+    for (const img of imgs) {
+      /** 注意：这里不能传options，不然会报错 */
+      const singleResult = await faceapi
+        .detectSingleFace(img)
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+      data.faces = [
+        ...data.faces,
+        new faceapi.LabeledFaceDescriptors(img.alt, [singleResult.descriptor]),
+      ];
+    }
+  };
+
+  /**
+   * @desc 自定义文本描绘框
+   *
+   * @param {object}  box     - 盒子位置大小
+   * @param {object}  options - 配置项
+   * */
+  const drawLabelBox = (box, options) =&gt; {
+    // 绘制框 + 绘制文本
+    const _box = { x: 50, y: 50, width: 100, height: 100 };
+    const drawOptions = {
+      label: &quot;Hello I am a box!&quot;, // 框的描述文字，只能整单行文字
+      lineWidth: 2, // 边框宽度
+      boxColor: &quot;red&quot;, // 边框颜色，默认蓝色
+      drawLabelOptions: {
+        anchorPosition: &quot;TOP_LEFT&quot;, // [TOP_LEFT | TOP_RIGHT | BOTTOM_LEFT | BOTTOM_RIGHT]
+        backgroundColor: &quot;rgba(0, 0, 0, 0.5)&quot;, // label文字块的背景颜色
+        fontColor: &quot;purple&quot;, // label文字颜色
+        fontSize: 20, // label文字大小
+        padding: 15, // label文字的padding
+      },
+    };
+    const drawAreaBox = new faceapi.draw.DrawBox(
+      box || _box,
+      options || drawOptions
+    );
+    drawAreaBox.draw(canvas.value);
+  };
+
+  /**
+   * @desc 自定义文本字段
+   *
+   * @param {array}  texts   - 多行文字
+   * @param {object} pos     - 文本位置
+   * @param {object} options - 配置项
+   * */
+  const drawTexts = (texts, pos, options) =&gt; {
+    // 绘制多行文本块
+    const text = [&quot;This is a textline!&quot;, &quot;This is another textline!&quot;];
+    const anchor = { x: 200, y: 200 }; // 相对于canvas的位置
+    const drawOptions = {
+      // backgroundColor: &#39;rgba(0, 0, 0, 0.5)&#39;, // 文字块的背景颜色
+      // fontColor: &#39;purple&#39;,                   // 文字颜色
+      fontSize: 20, // 文字大小
+      // padding: 15                            // 文字的padding
+    };
+
+    const drawTextBox = new faceapi.draw.DrawTextField(
+      texts || text,
+      pos || anchor,
+      options || drawOptions
+    );
+    drawTextBox.draw(canvas.value);
+  };
+
+  const detectFactory = async () =&gt; {
+    const {
+      detectList,
+      optionList,
+      faces,
+      base64,
+      trackVideoFaces,
+      trackCameraFaces,
+      videoStatus,
+    } = data;
+    const input = trackVideoFaces || trackCameraFaces ? &quot;myVideo&quot; : &quot;myImg&quot;;
+    const ts = Date.now();
+
+    if (
+      (input === &quot;myImg&quot; &amp;&amp; !base64) ||
+      (input === &quot;myVideo&quot; &amp;&amp; !videoStatus)
+    ) {
+      return;
+    }
+
+    let displaySize;
+
+    if (input === &quot;myImg&quot;) {
+      displaySize = {
+        width: img.value.width,
+        height: img.value.height,
+      };
+    } else {
+      displaySize = faceapi.matchDimensions(canvas.value, video.value, true);
+    }
+    // 准备画布，没有这一步方框位置会偏移
+    faceapi.matchDimensions(canvas.value, displaySize);
+
+    const options = getFaceDetectorOptions();
+
+    // 绘制性别年龄
+    if (detectList.includes(&quot;AgeAndGender&quot;)) {
+      const detections = await faceapi
+        .detectAllFaces(input, options)
+        .withFaceLandmarks()
+        .withAgeAndGender();
+
+      // 调整检测到的盒子和地标的大小，以防显示的图像与原始图像大小不同
+      const resizedResults = faceapi.resizeResults(detections, displaySize);
+
+      // 输出年龄、性别、年龄可能性
+      resizedResults.forEach((result) =&gt; {
+        const { age, gender, genderProbability } = result;
+
+        drawTexts(
+          [
+            `${data.genderTranslator[gender]} (${
+              faceapi.utils.round(genderProbability) * 100
+            }%)`,
+            `${faceapi.utils.round(age, 0)} 岁 `,
+          ],
+          result.detection.box.bottomLeft
+        );
+      });
+    }
+
+    // 绘制脸部边界
+    if (optionList.includes(&quot;showBorder&quot;)) {
+      const detections = await faceapi.detectAllFaces(input, options);
+
+      // 调整检测到的盒子和地标的大小，以防显示的图像与原始图像大小不同
+      const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+      // 绘制方框
+      // faceapi.draw.drawDetections(canvas.value, resizedDetections);
+
+      // 自定义输出边界盒子
+      resizedDetections.forEach((result) =&gt; {
+        const { box, _score } = result;
+        // console.log(result,&#39;三观匹配值&#39;);
+
+        if (_score &gt; 0.95) {
+          const ctx = canvas2.value.getContext(&quot;2d&quot;);
+          ctx.drawImage(
+            video.value,
+            0,
+            0,
+            canvas2.value.width,
+            canvas2.value.height
+          );
+          // 将canvas转换为Base64图像
+          let base64 = canvas2.value.toDataURL(&quot;image/png&quot;);
+          let im = new Image();
+          im.src = base64;
+          canvas2.value.style.display = &quot;none&quot;;
+          document.body.append(im);
+          data.trackVideoFaces = false;
+          data.trackCameraFaces = false;
+          alert(&quot;采集成功！&quot;);
+          return;
+        }
+        drawLabelBox(box, {
+          label: `匹配度${Math.round(_score * 100)}%`,
+        });
+      });
+    }
+
+    // 绘制脸部标记点
+    if (optionList.includes(&quot;showMark&quot;)) {
+      const detections = await faceapi
+        .detectAllFaces(input, options)
+        .withFaceLandmarks();
+
+      // 调整检测到的盒子和地标的大小，以防显示的图像与原始图像大小不同
+      const resizedResults = faceapi.resizeResults(detections, displaySize);
+
+      // 将标记点绘制到画布中
+      faceapi.draw.drawFaceLandmarks(canvas.value, resizedResults);
+    }
+
+    if (videoStatus) {
+      updateTimeStats(Date.now() - ts);
+
+      setTimeout(() =&gt; {
+        window.requestAnimationFrame(detectFactory);
+      });
+    }
+  };
+
+  // 计算平均花费时长和FPS
+  const updateTimeStats = (timeInMs) =&gt; {
+    data.forwardTimes = [timeInMs].concat(data.forwardTimes).slice(0, 30);
+    const avgTimeInMs =
+      data.forwardTimes.reduce((total, t) =&gt; total + t) /
+      data.forwardTimes.length;
+
+    data.time = `${Math.round(avgTimeInMs)} ms`;
+    data.fps = `${faceapi.utils.round(1000 / avgTimeInMs)}`;
+  };
+
+  // 配置人脸检测器参数
+  const getFaceDetectorOptions = () =&gt; {
+    const { selectedValue } = data;
+
+    return selectedValue[0] === &quot;SSD&quot;
+      ? new faceapi.SsdMobilenetv1Options({
+          minConfidence: selectedValue[1],
+        })
+      : /**
+         * @param inputSize?: number
+         处理图像的大小，越小越快
+         在检测较小的人脸时， 必须被32整除
+         常见的大小有128、160、224、320、416、512、608 ,
+         用于通过网络摄像头进行人脸跟踪我建议使用较小尺寸的，例如128、160
+         用于检测较小的人脸使用较大尺寸的，例如512、608
+         默认值： 416
+         *  @param scoreThreshold?: number
+         最小置信阈值
+         默认值:0.5
+         *
+         * @desc inputSize和scoreThreshold的不同配置，都会影响返回结果的数量
+         * */
+        new faceapi.TinyFaceDetectorOptions({
+          scoreThreshold: selectedValue[1],
+          inputSize: selectedValue[2],
+        });
+  };
+
+  // 控制人脸检测器选项
+  const handleColumnDisabled = (allSelected, rowIndex) =&gt; {
+    if (rowIndex === 0) {
+      data.columns[2].values =
+        allSelected[0].value === &quot;SSD&quot;
+          ? data.columns[2].values.map((item) =&gt; ({ ...item, disabled: true }))
+          : data.columns[2].values.map((item) =&gt; ({
+              ...item,
+              disabled: false,
+            }));
+    }
+  };
+
+  // 人脸检测器配置项改变
+  const selectHandle = (values) =&gt; {
+    const { trackVideoFaces, trackCameraFaces } = data;
+
+    data.selectedValue = values.map((item) =&gt; item.value);
+    data.showConfig = false;
+
+    // 图片检测，重新加载检测函数，视频不需要（播放时会一直重复调用）
+    if (!trackVideoFaces &amp;&amp; !trackCameraFaces) {
+      detectFactory();
+    }
+  };
+
+  // 获取媒体设备列表
+  const getMediaDevices = () =&gt; {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      Toast.fail({
+        message: &quot;不支持 enumerateDevices()&quot;,
+        forbidClick: true,
+        mask: true,
+      });
+
+      return;
+    }
+
+    navigator.mediaDevices
+      .enumerateDevices()
+      .then((devices) =&gt; {
+        const cameras = devices
+          .filter((item) =&gt; item.kind === &quot;videoinput&quot;)
+          .map((item, index) =&gt; ({
+            text: item.label || `摄像头${index + 1}`,
+            value: item.deviceId,
+          }));
+
+        if (cameras.length) {
+          data.showCameraList = true;
+          data.cameraList = cameras;
+        } else {
+          Toast.fail({
+            message: &quot;未找到网络摄像头&quot;,
+            forbidClick: true,
+            mask: true,
+          });
+        }
+      })
+      .catch((err) =&gt; {
+        console.log(err);
+      });
+  };
+
+  // 请求媒体设备，获取视频流
+  const getVideoStream = (deviceId) =&gt; {
+    data.showCameraList = false;
+
+    navigator.mediaDevices
+      .getUserMedia({
+        audio: false,
+        video: {
+          sourceId: deviceId[0],
+        },
+      })
+      .then(function (stream) {
+        video.value.srcObject = stream;
+        console.log(video.value.offsetWidth, video.value.offsetHeight);
+        shadow.value.width = video.value.offsetWidth;
+        shadow.value.height = video.value.offsetHeight * 1.5;
+
+        data.videoTrack = stream.getTracks()[0];
+        window.requestAnimationFrame(detectFactory);
+      })
+      .catch(function () {
+        Toast.fail({
+          message: &quot;摄像头调用失败&quot;,
+          forbidClick: true,
+          mask: true,
+        });
+      });
+  };
+
+  // 加载模型
+  const init = () =&gt; {
+    const toast = Toast.loading({
+      duration: 0,
+      message: &quot;模型加载中...&quot;,
+      forbidClick: true,
+      mask: true,
+    });
+
+    // 加载训练好的模型np
+    // ageGenderNet:          年龄、性别识别模型，大约420KB
+    // faceExpressionNet:     人脸表情识别模型，识别表情,开心，沮丧，普通，大约310KB
+    // faceLandmark68Net：    68个点人脸地标检测模型（默认模型），大约350KB
+    // faceLandmark68TinyNet：68个点人脸地标检测模型（小模型），大约80KB
+    // faceRecognitionNet:    人脸识别模型，可以比较任意两个人脸的相似性，大约6.2MB
+    // ssdMobilenetv1：       SSD 移动网络 V1，大约5.4MB，准确的最高，推理时间最慢
+    // tinyFaceDetector:      微型人脸检测器（实时人脸检测器），与 SSD Mobilenet V1 人脸检测器相比，它速度更快、体积更小且资源消耗更少，但在检测小人脸方面的表现略逊一筹。移动和网络友好
+    // mtcnn                  大约2MB
+    // tinyYolov2             识别身体轮廓的算法，不知道怎么用
+    Promise.all([
+      faceapi.nets.faceRecognitionNet.loadFromUri(&quot;./models&quot;),
+      faceapi.nets.faceLandmark68Net.loadFromUri(&quot;./models&quot;),
+      faceapi.nets.faceLandmark68TinyNet.loadFromUri(&quot;./models&quot;),
+      faceapi.nets.ssdMobilenetv1.loadFromUri(&quot;./models&quot;),
+      faceapi.nets.tinyFaceDetector.loadFromUri(&quot;./models&quot;),
+      faceapi.nets.mtcnn.loadFromUri(&quot;./models&quot;),
+      faceapi.nets.faceExpressionNet.loadFromUri(&quot;./models&quot;),
+      faceapi.nets.ageGenderNet.loadFromUri(&quot;./models&quot;),
+      // faceapi.nets.tinyYolov.loadFromUri(&#39;./models&#39;)
+    ])
+      .then(() =&gt; {
+        entryFaces();
+        toast.clear();
+      })
+      .catch(() =&gt; {
+        toast.clear();
+      });
+  };
+
+  onMounted(() =&gt; {
+    init();
+  });
+
+  // 监听摄像头
+  watch(
+    () =&gt; data.trackCameraFaces,
+    (newValue) =&gt; {
+      if (newValue) {
+        getMediaDevices();
+      } else {
+        // 关闭摄像头
+        data.videoTrack?.stop();
+      }
+    }
+  );
+&lt;/script&gt;
+
+&lt;style lang=&quot;less&quot; scoped&gt;
+  /* 图片/视频 捕获区 */
+  .detectBox {
+    position: relative;
+    // min-height: 200px;
+
+    img,
+    video {
+      width: 100%;
+    }
+
+    canvas {
+      width: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  }
+
+  /* 美化样式 */
+  .van-button {
+    margin: 20px 15px 0 0;
+  }
+
+  .van-checkbox-group {
+    background: #fff;
+    padding: 15px;
+    margin-top: 10px;
+
+    .van-checkbox {
+      margin-bottom: 10px;
+    }
+  }
+
+  .bottomBox {
+    p {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+      font-size: 14px;
+      background-color: #fff;
+      padding: 5px;
+      color: #666;
+      font-style: italic;
+
+      .van-switch {
+        margin-right: 10px;
+      }
+    }
+  }
+
+  .faceCompare,
+  .similarity {
+    box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.5);
+    background-color: #fff;
+    padding: 5px;
+    margin: 10px 0;
+    box-sizing: border-box;
+
+    h2 {
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+
+    .referenceImgs {
+      display: flex;
+      justify-content: flex-start;
+      text-align: center;
+
+      img {
+        width: 100px;
+        height: 140px;
+        margin-right: 10px;
+        display: block;
+      }
+      span {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .danger {
+    color: red;
+  }
+
+  .timer {
+    font-size: 14px;
+    line-height: 20px;
+    background-color: #fff;
+    padding: 5px;
+    margin: 10px 0;
+    box-sizing: border-box;
+  }
+  .shadows {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+  }
+&lt;/style&gt;
+</code></pre>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>

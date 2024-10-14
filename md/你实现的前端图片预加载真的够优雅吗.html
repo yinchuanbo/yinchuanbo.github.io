@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>你实现的前端图片预加载真的够优雅吗</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class="active"><a title="你实现的前端图片预加载真的够优雅吗" href="/md/你实现的前端图片预加载真的够优雅吗.html">23 你实现的前端图片预加载真的够优雅吗</a></li><li class=""><a title="前端如何避免重排 reflow 和重绘 repaint" href="/md/前端如何避免重排 reflow 和重绘 repaint.html">22 前端如何避免重排 reflow 和重绘 repaint</a></li><li class=""><a title="页面加载流程分析技巧" href="/md/页面加载流程分析技巧.html">21 页面加载流程分析技巧</a></li><li class=""><a title="速通 JS 性能优化" href="/md/速通 JS 性能优化.html">20 速通 JS 性能优化</a></li><li class=""><a title="资源优先级" href="/md/资源优先级.html">19 资源优先级</a></li><li class=""><a title="聊聊图片预加载" href="/md/聊聊图片预加载.html">18 聊聊图片预加载</a></li><li class=""><a title="网页太慢了怎么排查" href="/md/网页太慢了怎么排查.html">17 网页太慢了怎么排查</a></li><li class=""><a title="网站优化之静态资源优化" href="/md/网站优化之静态资源优化.html">16 网站优化之静态资源优化</a></li><li class=""><a title="看《浏览器基本原理与实践》后，36点总结" href="/md/看《浏览器基本原理与实践》后，36点总结.html">15 看《浏览器基本原理与实践》后，36点总结</a></li><li class=""><a title="渲染优化" href="/md/渲染优化.html">14 渲染优化</a></li><li class=""><a title="浏览器渲染性能分析技巧" href="/md/浏览器渲染性能分析技巧.html">13 浏览器渲染性能分析技巧</a></li><li class=""><a title="浅谈前端性能优化之评估工具" href="/md/浅谈前端性能优化之评估工具.html">12 浅谈前端性能优化之评估工具</a></li><li class=""><a title="构建优化" href="/md/构建优化.html">11 构建优化</a></li><li class=""><a title="性能优化全家桶：6 个方面 9 点建议" href="/md/性能优化全家桶：6 个方面 9 点建议.html">10 性能优化全家桶：6 个方面 9 点建议</a></li><li class=""><a title="性能优化-时间分片渲染简单做法" href="/md/性能优化-时间分片渲染简单做法.html">09 性能优化-时间分片渲染简单做法</a></li><li class=""><a title="加载注意事项" href="/md/加载注意事项.html">08 加载注意事项</a></li><li class=""><a title="前端如何优化资源加载" href="/md/前端如何优化资源加载.html">07 前端如何优化资源加载</a></li><li class=""><a title="利用 Performance API 分析网站性能" href="/md/利用 Performance API 分析网站性能.html">06 利用 Performance API 分析网站性能</a></li><li class=""><a title="内存泄漏排查" href="/md/内存泄漏排查.html">05 内存泄漏排查</a></li><li class=""><a title="了解透彻浏览器缓存" href="/md/了解透彻浏览器缓存.html">04 了解透彻浏览器缓存</a></li><li class=""><a title="书写高性能的代码" href="/md/书写高性能的代码.html">03 书写高性能的代码</a></li><li class=""><a title="Performance 面板分析性能瓶颈全流程" href="/md/Performance 面板分析性能瓶颈全流程.html">02 Performance 面板分析性能瓶颈全流程</a></li><li class=""><a title="API 技巧" href="/md/API 技巧.html">01 API 技巧</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>你实现的前端图片预加载真的够优雅吗</h1>
+          <h2>图片预加载场景</h2>
+<p>本篇文章只讨论用户在界面上的某种交互行为后，需要加载并显示新的图片资源的应用场景。</p>
+<p>例如：在做移动端开发时，尤其是 H5 活动页，难免会遇到一些花里胡哨的 Tab，这个时候 UI 同学往往会给前端开发者提供若干张不同高亮 Tab 的图片，用户在点击 Tab 不同位置时，前端开发者需要切换对应 Tab 容器的背景图。</p>
+<img src="../imgs/92/04.webp" />
+
+<p>有的同学可能会问，在这种场景下，我们没做图片预加载，好像也没什么问题，是否有点大题小作？</p>
+<p>这个时候我们需要探讨一下图片预加载的原理和意义。</p>
+<p><strong>原理：提前下载将来需要的图片资源，让浏览器持有图片资源的缓存，将来需要使用对应图片资源时直接从缓存中获取即可</strong></p>
+<p><strong>意义：图片无缝加载显示，更好的用户体验</strong></p>
+<p>因此，如果不做图片预加载也不会有太大的问题，只是用户在第一次切换 Tab 时，需要先下载对应的图片资源再进行显示，在页面上可能就会有闪一下再显示 Tab 的效果，一定程度上会影响用户体验。但是，用户二次切换同一 Tab 时，由于之前已经切换过一次，因此浏览器同样持有了图片资源的缓存，后续的用户体验还是非常好的。</p>
+<p>日常前端开发中，需要图片预加载的场景还有很多，本文就不一一列举，接下来我们一起来实现一个相对优雅的图片预加载功能</p>
+<h2>图片预加载实现</h2>
+<blockquote>
+<p>图片预加载的具体实现方式很多，本篇文章只探讨最常见和易理解的实现，并在其基础上进行相对优雅的优化处理。</p>
+</blockquote>
+<p>我们可以通过 JavaScript 创建一个新的 Image 对象，并将图片的 Url 赋值给它的 Src 属性，这样图片就会开始加载。</p>
+<pre><code class="language-js">function preloadImages(urls) {
+  urls.forEach((url) =&gt; {
+    const img = new Image();
+    img.src = url;
+  });
+}
+
+preloadImages([&quot;image1.jpg&quot;, &quot;image2.jpg&quot;, &quot;image3.jpg&quot;]);
+</code></pre>
+<p>我们需要明白我们上述所说的图片预加载的意义，本质上是为了更好的用户体验。但是，如果我们直接使用上述代码，在页面初始化时就进行图片预加载，这个时候会一定程度上影响我们首屏的渲染速度以及用户的首屏体验。</p>
+<p><strong>因此，图片预加载代码执行的时间点是我们需要思考的问题。</strong></p>
+<p>本篇文章推荐两种方式，考虑使用 <code>window.onload</code> 或 <code>requestIdleCallback</code> ，将图片的预加载操作推迟到页面及所有依赖资源加载完成或浏览器空闲时间时进行。这样可以确保页面的关键内容（首屏内容）优先渲染，避免阻塞用户的首屏体验。</p>
+<p>详细了解 API：Window：load 事件、requestIdleCallback</p>
+<pre><code class="language-js">function preloadImages(urls) {
+  urls.forEach((url) =&gt; {
+    const img = new Image();
+    img.src = url;
+  });
+}
+
+if (&quot;requestIdleCallback&quot; in window) {
+  requestIdleCallback(() =&gt; {
+    preloadImages([&quot;image1.jpg&quot;, &quot;image2.jpg&quot;, &quot;image3.jpg&quot;]);
+  });
+} else {
+  // 如果浏览器不支持 requestIdleCallback，则使用 window.onload 事件作为后备方案
+  window.addEventListener(
+    &quot;load&quot;,
+    (event) =&gt; {
+      preloadImages([&quot;image1.jpg&quot;, &quot;image2.jpg&quot;, &quot;image3.jpg&quot;]);
+    },
+    {
+      once: true, // 细节，调用一次后，自动移除事件处理函数
+    }
+  );
+}
+</code></pre>
+<p>不知道兄弟们怕不怕麻烦，反正我怕麻烦。那如果我有很多张图片都需要预加载，一个一个导入图片路径不得麻烦死了。</p>
+<p><strong>因此，我们希望有一种约定式的方式，来简化这个导入操作。</strong></p>
+<p>譬如，我们希望项目工程目录的 assets/img 文件夹下以及子文件夹下的 pre-开头的图片资源，都能被自动预加载。</p>
+<p>本篇文章推荐使用 <code>require.context()</code> 来分析满足上述约定的所有图片，并拿到文件路径数组（前提：项目构建工具选用的是 webpack）</p>
+<p>详细了解 API：<code>require.context()</code></p>
+<pre><code class="language-js">function autoPreloadImages() {
+  // 使用 require.context 动态获取指定文件夹及其子文件夹下的所有图片
+  // require.context(目录, 是否递归, 匹配文件的正则表达式)
+  const files = require.context(&#39;../../assets/img&#39;, true, /^./.*pre-.*.(png|jpe?g|gif|webp)$/i);
+
+  // 调用 files.keys() 获取匹配的文件路径数组，并通过 files(key) 获取每个文件的实际 URL
+  const urls = files.keys().map(key =&gt; files(key));
+
+  // 检查浏览器是否支持 requestIdleCallback 方法
+  if (&#39;requestIdleCallback&#39; in window) {
+    requestIdleCallback(() =&gt; {
+      preloadImages(urls);
+    });
+  } else {
+    // 如果浏览器不支持 requestIdleCallback，则使用 window.onload 事件作为后备方案
+    window.addEventListener(&#39;load&#39;, event =&gt; {
+      preloadImages(urls);
+    });
+  }
+
+  // 定义图片预加载函数
+  function preloadImages(urls) {
+    urls.forEach(url =&gt; {
+      const img = new Image();
+      img.src = url;
+    });
+  }
+}
+</code></pre>
+<img src="../imgs/92/05.webp" />
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>
