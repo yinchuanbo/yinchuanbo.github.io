@@ -1,6 +1,6 @@
 ---
 title: "Eslint 和 Prettier 的配置与冲突处理"
-tag: "工程化"
+tag: "前端工程化"
 ---
 
 ### 前言

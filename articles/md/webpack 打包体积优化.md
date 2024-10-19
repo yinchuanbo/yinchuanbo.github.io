@@ -1,6 +1,6 @@
 ---
 title: "webpack 打包体积优化，app.js 文件从 9.2MB 优化至 2.7MB"
-tag: "工程化"
+tag: "前端工程化"
 ---
 
 ## 未优化前 app.js 文件大小

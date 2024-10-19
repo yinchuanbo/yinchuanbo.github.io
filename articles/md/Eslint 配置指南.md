@@ -1,6 +1,6 @@
 ---
 title: "Eslint 配置指南"
-tag: "工程化"
+tag: "前端工程化"
 ---
 
 1. Eslint 配置指南

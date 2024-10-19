@@ -242,3 +242,207 @@ git rebase –i bed58d54e
 <img src="../imgs/95/08.webp" />
 
 上文仅仅说明了修改历史提交的`message`，但是如果在某个历史提交中少提交内容，比如上文某个源码文件里的内容修改不完整，提交很多天经过严格测试才发现，那么我们就可以使用`git rebase`的`edit`命令修改提交内容了。
+
+```sh
+git rebase –i bdc6778948a
+```
+
+上面的命令后我们可以使用`edit`命令替换`pick`命令。保存后，此时`git rebase`会停止工作，以便我们可以编辑文件和`commit message`，修改并提交后，可以继续其它的`edit`命令。在这个过程中我们会使用到以下这两条命令：
+
+```sh
+$ git commit –-amend
+$ git rebse --continue
+```
+
+如果在修改前所有的`commit`都已经`push`到远程仓库的话，需要使用`git push --force`强制推送到远程仓库。
+
+## 04 查看 commit 的内容
+
+(1) git log 不带任何参数。
+
+```sh
+git log
+```
+
+输出示例：
+
+```sh
+commit ac75ee8505774336c3f28a539d6371f1147939ab (HEAD -> master)
+Author: long-xu <ntf_work@163.com>
+Date:   Sat Aug 10 20:42:46 2024 +0800
+
+    Optimize log and print.
+
+commit 53cc38f9d2999182b7b5825ab35d90882b341271 (origin/master, origin/HEAD)
+Author: long-xu <ntf_work@163.com>
+Date:   Sat Aug 10 18:15:46 2024 +0800
+
+    Add Configures class and modify makeFile.
+
+commit a60663fad8bc9d6b063051addd8b4551dee02346
+Author: long-xu <ntf_work@163.com>
+Date:   Sun Aug 4 19:49:07 2024 +0800
+```
+
+(2) 每条日志显示一行
+
+```sh
+git log --oneline
+```
+
+输出示例：
+
+```sh
+ac75ee8 (HEAD -> master) Optimize log and print.
+53cc38f (origin/master, origin/HEAD) Add Configures class and modify makeFile.
+a60663f feat: add test0 algorithm
+3235113 optimized code
+71d5555 optimize code
+1be415f Add os class and update src
+66f95bb feat: add asynLogger class
+5a29202 feat:update JsonValue and JsonParser
+909a271 feat:add src file(JsonValue,JsonParser)
+c310237 Initial commit
+```
+
+<img src="../imgs/95/09.webp" />
+
+(3) 只显示前面的 length 条日志。
+
+```sh
+git log –[length]
+```
+
+输出示例：
+
+```sh
+$ git log -2
+commit ac75ee8505774336c3f28a539d6371f1147939ab (HEAD -> master)
+Author: long-xu <ntf_work@163.com>
+Date:   Sat Aug 10 20:42:46 2024 +0800
+
+    Optimize log and print.
+
+commit 53cc38f9d2999182b7b5825ab35d90882b341271 (origin/master, origin/HEAD)
+Author: long-xu <ntf_work@163.com>
+Date:   Sat Aug 10 18:15:46 2024 +0800
+
+    Add Configures class and modify makeFile.
+```
+
+(4) 跳过前面的 skip 条日志。
+
+```sh
+git log --skip=[skip] -3
+```
+
+输出示例：
+
+```sh
+$ git log --skip=2 -3
+commit a60663fad8bc9d6b063051addd8b4551dee02346
+Author: long-xu <ntf_work@163.com>
+Date:   Sun Aug 4 19:49:07 2024 +0800
+
+    feat: add test0 algorithm
+
+commit 323511332f090810978032e7270fc88f8ac851e9
+Author: long-xu <ntf_work@163.com>
+Date:   Wed Jun 26 22:36:32 2024 +0800
+
+    optimized code
+
+commit 71d55551a0d6a9302da028468571e2fee7f0ac5d
+Author: long-xu <ntf_work@163.com>
+Date:   Sun May 26 22:57:27 2024 +0800
+```
+
+(5) 显示一些统计信息以及文件的改动内容和行信息。
+
+```sh
+git log -p
+```
+
+<img src="../imgs/95/10.webp" />
+
+(6) 显示提交的作者 日期 message 和文件内容统计信息。
+
+```sh
+git log --stat
+```
+
+<img src="../imgs/95/11.webp" />
+
+(7) 显示每个 author 提交 commit 和多少条 commit。
+
+```sh
+git shortlog
+```
+
+输出示例：
+
+```sh
+$  git shortlog
+Long_xu (1):
+      Initial commit
+
+long-xu (6):
+      Add os class and update src
+      optimize code
+      optimized code
+      feat: add test0 algorithm
+      Add Configures class and modify makeFile.
+      Optimize log and print.
+
+nongtengfei (3):
+      feat:add src file(JsonValue,JsonParser)
+      feat:update JsonValue and JsonParser
+      feat: add asynLogger class
+```
+
+(8) 过滤
+
+- 按日期：
+
+```sh
+git log --after="2018-7-1"    # 2018年7月1好之后的所有日志
+git log –-before="2014-7-1"
+```
+
+- 按作者：
+
+```sh
+git log --author="Dounin"
+```
+
+- 按照提交信息：
+
+```sh
+git log --grep=“issue”  # 按照提交本中是否包含issue的日志
+```
+
+- 按文件：
+
+```sh
+git log -- ./src/http/modules/ngx_http_xslt_filter_module.c
+```
+
+- 按照内容：
+
+```sh
+git log -S “ngx_free” # 即所有文件中包含了 ngx_free字符串的修改
+```
+
+- 按照范围 ：
+
+```sh
+git log <since>..<until> # 比如 git log master..feature这可以显示出自从master分支fork之后，feature分支上所有的提交
+```
+
+(9) 显示 commit-id 的提交内容，包括所有文件的修改信息。
+
+```sh
+git show commit-id
+```
+
+<img src="../imgs/95/12.webp" />

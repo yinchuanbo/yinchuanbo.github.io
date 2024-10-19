@@ -1,6 +1,6 @@
 ---
 title: "Mock.js 前端生成模拟数据的库"
-tag: "工具"
+tag: "工具集"
 ---
 
 > http://mockjs.com/

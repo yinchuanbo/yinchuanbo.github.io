@@ -1,6 +1,6 @@
 ---
 title: "利用 Performance API 分析网站性能"
-tag: "性能"
+tag: "性能优化"
 ---
 
 ![](../imgs/50/01.png)

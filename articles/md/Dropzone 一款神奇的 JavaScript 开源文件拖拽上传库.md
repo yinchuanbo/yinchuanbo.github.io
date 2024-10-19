@@ -1,6 +1,6 @@
 ---
 title: "Dropzone 一款神奇的 JavaScript 开源文件拖拽上传库"
-tag: "工具"
+tag: "工具集"
 ---
 
 ## 1. Dropzone 是什么？

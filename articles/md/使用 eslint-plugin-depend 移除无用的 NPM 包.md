@@ -1,6 +1,6 @@
 ---
 title: "使用 eslint-plugin-depend 移除无用的 NPM 包"
-tag: "工程化"
+tag: "前端工程化"
 ---
 
 介绍了如何使用 eslint-plugin-depend 插件来移除不必要的 NPM 包，提高代码质量和性能，并强调了原生 JavaScript 功能的重要性。

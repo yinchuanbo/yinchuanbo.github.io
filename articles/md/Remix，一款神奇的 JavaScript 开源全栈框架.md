@@ -1,6 +1,6 @@
 ---
 title: "Remix，一款神奇的 JavaScript 开源全栈框架？"
-tag: "工具"
+tag: "工具集"
 ---
 
 今天，我们将探讨一个名为  `Remix`  的开源  `JavaScript`  库。它不仅仅是一个库，而是一个全栈的  `React`  框架，旨在重新定义如何构建 Web 应用程序。

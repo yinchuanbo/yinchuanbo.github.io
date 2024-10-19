@@ -1,6 +1,6 @@
 ---
 title: "ESLint 现已支持检查 JSON 和 Markdown"
-tag: "工程化"
+tag: "前端工程化"
 ---
 
 最近，Eslint 正式宣布已支持 JSON 和 Markdown 的 Lint 检查。
