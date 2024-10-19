@@ -57,9 +57,9 @@ function init(obj, extension) {
     // monaco.editor.setTheme("myCustomTheme");
 
     let lan = extension;
-    if(extension === "js") lan = "javascript";
-    if(extension === "ejs") lan = "html";
-    if(extension === "babelrc") lan = "json";
+    if (extension === "js") lan = "javascript";
+    if (extension === "ejs") lan = "html";
+    if (extension === "babelrc") lan = "json";
     editor = monaco.editor.create(wrapperContent, {
       value: obj,
       language: lan,
