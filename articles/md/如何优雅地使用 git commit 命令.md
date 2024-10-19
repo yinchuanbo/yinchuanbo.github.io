@@ -35,3 +35,7 @@ git commit –a –m "commit messeages"
 ```sh
 git commit
 ```
+
+可能有时候手抖忘记输入`-m`参数，直接输入了`git commit`，于是出现了下面这个界面，即打开了一个`vim`编辑界面，敲入`i`键后保存，输入要添加的`message`后，输入“`ESC`”按键退出编辑界面，然后再敲入“`:wqa`”后会保存`message`内容，并且提交此次修改，如果敲入“`:q`”会取消这次提交。
+
+<img src="../imgs/95/01.webp" />
