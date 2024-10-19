@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>webpack 打包体积优化，app.js 文件从 9.2MB 优化至 2.7MB</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1;">
+          <ul>
+            <li class=""><a title="详解 Monorepo 进化、优劣与使用场景" href="/md/详解 Monorepo 进化、优劣与使用场景.html">17 详解 Monorepo 进化、优劣与使用场景</a></li><li class=""><a title="检查前端项目和 node 项目中未被使用的依赖包" href="/md/检查前端项目和 node 项目中未被使用的依赖包.html">16 检查前端项目和 node 项目中未被使用的依赖包</a></li><li class=""><a title="最新 ESLint 9.0 + vue3.0 + TS 配置" href="/md/最新 ESLint 9.0 + vue3.0 + TS 配置.html">15 最新 ESLint 9.0 + vue3.0 + TS 配置</a></li><li class=""><a title="如何使用 Vike 和 Vite 构建可扩展的微前端" href="/md/如何使用 Vike 和 Vite 构建可扩展的微前端.html">14 如何使用 Vike 和 Vite 构建可扩展的微前端</a></li><li class=""><a title="前端项目中的 node_modules 无用依赖检测工具" href="/md/前端项目中的 node_modules 无用依赖检测工具.html">13 前端项目中的 node_modules 无用依赖检测工具</a></li><li class=""><a title="前端版本管理工具 - volta" href="/md/前端版本管理工具 - volta.html">12 前端版本管理工具 - volta</a></li><li class=""><a title="前端构建系统浅析" href="/md/前端构建系统浅析.html">11 前端构建系统浅析</a></li><li class=""><a title="使用 eslint-plugin-depend 移除无用的 NPM 包" href="/md/使用 eslint-plugin-depend 移除无用的 NPM 包.html">10 使用 eslint-plugin-depend 移除无用的 NPM 包</a></li><li class=""><a title="使用 Axios 配置动态域名的基础 URL 和项目打包" href="/md/使用 Axios 配置动态域名的基础 URL 和项目打包.html">09 使用 Axios 配置动态域名的基础 URL 和项目打包</a></li><li class="active"><a title="webpack 打包体积优化" href="/md/webpack 打包体积优化.html">08 webpack 打包体积优化</a></li><li class=""><a title="vite插件开发,项目版本号自增,自动压缩构建产物上传oss" href="/md/vite插件开发,项目版本号自增,自动压缩构建产物上传oss.html">07 vite插件开发,项目版本号自增,自动压缩构建产物上传oss</a></li><li class=""><a title="vite 配置" href="/md/vite 配置.html">06 vite 配置</a></li><li class=""><a title="vite 创建 vue3 项目" href="/md/vite 创建 vue3 项目.html">05 vite 创建 vue3 项目</a></li><li class=""><a title="Eslint 配置指南" href="/md/Eslint 配置指南.html">04 Eslint 配置指南</a></li><li class=""><a title="ESLint 现已支持检查 JSON 和 Markdown" href="/md/ESLint 现已支持检查 JSON 和 Markdown.html">03 ESLint 现已支持检查 JSON 和 Markdown</a></li><li class=""><a title="ESLint 忽略检查行和文件总结" href="/md/ESLint 忽略检查行和文件总结.html">02 ESLint 忽略检查行和文件总结</a></li><li class=""><a title="Eslint 和 Prettier 的配置与冲突处理" href="/md/Eslint 和 Prettier 的配置与冲突处理.html">01 Eslint 和 Prettier 的配置与冲突处理</a></li>
+          </ul>
+        </div>
+        <div
+          class="layout__main_right md "
+          style="order: 0;"
+        >
+          <h1>webpack 打包体积优化，app.js 文件从 9.2MB 优化至 2.7MB</h1>
+          <h2>未优化前 app.js 文件大小</h2>
+<p>未优化前 app.js 文件大小为 9.2MB</p>
+<h2>写一个 webpack 插件，找出 size 比较大的 module</h2>
+<pre><code class="language-js">class WebpackCustomPlugin {
+    compiler.hooks.done.tap(&#39;&#39;, (stats) =&gt; {
+        const chunks = stats.compilation.chunks
+        chunks.forEach(chunk =&gt; {
+            consone.log(chunk.id, chunk.files)
+            const newModules = []
+            // 遍历组合成chunk的modules，将一些需要的数据放入到数组中
+            for(const module of chunk._modules) {
+                newModules.push({
+                    id: module.id,
+                    resource: module.resource,
+                    _sourceSize: module._sourceSize,
+                    reasons: module.reason[0]?.module?.id
+                })
+            }
+            // 对newModules数组按大小排序
+            newModules.sort((a, b) =&gt; b._sourceSize - a._sourceSize)
+            if (chunk?.id.toString().indexOf(&#39;app&#39;) &gt; -1) {
+                console.log(newModules.slice(0, 20))
+            }
+        })
+    })
+}
+</code></pre>
+<h2>优化 1</h2>
+<p><code>src/theme/index.less</code> 文件大小 706977，定位到该文件，发现语句<code>@import &#39;~ant-design-vue/dist/antd.less&#39;</code>，项目已经按需加载 <code>ant-design-vue</code>，所以只需要删除该语句。删除后 app.js 大小为<code>7.5MB</code>。</p>
+<h2>优化 2</h2>
+<p>一个大小为 26943 的 <code>TableSetting.vue</code> 组件全局引入了，但没有地方使用，所以删除。删除后 app.js 大小为<code>7.4MB</code></p>
+<h2>优化 3</h2>
+<p>将个别页面使用到的组件，从 main.js 文件移除注册，优化后，app.js 文件大小为<code>6.8MB</code>。</p>
+<h2>优化 4</h2>
+<p>发现很多大的图片，都被打包到了 app.js 中</p>
+<p>设置 url-loader 的阀值为 8KB，即超过 8K 大小的图片文件不会转换为 DataURL。</p>
+<p>优化后 app.js 文件大小为<code>2.7MB</code></p>
+<p>原来 app.js 文件里面大部分都是图片的大小！！！</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      // const liActive = document.querySelector(".layout__main_left li.active");
+      // liActive.scrollIntoView({
+      //   behavior: "smooth",
+      //   block: "center",
+      //   inline: "nearest",
+      // });
+    </script>
+  </body>
+</html>
