@@ -248,6 +248,7 @@ const getLastestData = () => {
 };
 
 window.onload = () => {
+  renderHtml()
   const getBallData = localStorage.getItem("shuangseqiu");
   if (!getBallData) {
     checkBox.innerHTML = "";
@@ -284,33 +285,33 @@ function generateSSQNumbers(count) {
   const maxRedBall = 33;
   const maxBlueBall = 16;
   function getRandomNumber(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
   }
   function generateSingleSSQ() {
-      let redBalls = new Set();
-      while (redBalls.size < redBallCount) {
-          redBalls.add(getRandomNumber(1, maxRedBall));
-      }
-      redBalls = Array.from(redBalls).sort((a, b) => a - b);
-      let blueBall = getRandomNumber(1, maxBlueBall);
-      return {
-          redBalls: redBalls,
-          blueBall: blueBall
-      };
+    let redBalls = new Set();
+    while (redBalls.size < redBallCount) {
+      redBalls.add(getRandomNumber(1, maxRedBall));
+    }
+    redBalls = Array.from(redBalls).sort((a, b) => a - b);
+    let blueBall = getRandomNumber(1, maxBlueBall);
+    return {
+      redBalls: redBalls,
+      blueBall: blueBall
+    };
   }
   function formatSSQNumbers(ssq) {
-      return ssq.redBalls.join(',') + ' + ' + ssq.blueBall;
+    return ssq.redBalls.join(',') + ' + ' + ssq.blueBall;
   }
   let results = [];
   for (let i = 0; i < count; i++) {
-      let ssq = generateSingleSSQ();
-      results.push(formatSSQNumbers(ssq));
+    let ssq = generateSingleSSQ();
+    results.push(formatSSQNumbers(ssq));
   }
   return results;
 }
 
 randomBtn.onclick = () => {
-  let numbers = generateSSQNumbers(6);
+  let numbers = generateSSQNumbers(5);
   numbers = numbers.join("\n")
   ssqTextarea.value = numbers
 };
