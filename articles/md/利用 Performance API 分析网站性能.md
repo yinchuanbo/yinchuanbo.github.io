@@ -1,6 +1,7 @@
 ---
 title: "利用 Performance API 分析网站性能"
 tag: "性能优化"
+time: 2024-09-01 15:21:24
 ---
 
 ![](../imgs/50/01.png)

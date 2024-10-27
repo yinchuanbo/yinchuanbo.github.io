@@ -1,6 +1,7 @@
 ---
 title: "javascript 奇葩行为大赏"
 tag: "Js"
+time: 2024-09-01 15:21:24
 ---
 
 ## parseInt(0.0000005)

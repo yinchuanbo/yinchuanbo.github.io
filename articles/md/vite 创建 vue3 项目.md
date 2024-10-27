@@ -1,6 +1,7 @@
 ---
 title: "vite 创建 vue3 项目 (vue3+vue-router+ts+vite+element-plus+pinia)"
 tag: "前端工程化"
+time: 2024-09-15 12:50:54
 ---
 
 ## 1. vite 创建 vue3 项目

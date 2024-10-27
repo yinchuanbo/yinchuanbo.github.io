@@ -1,6 +1,7 @@
 ---
 title: "基于 workbox 实现 PWA 预缓存能力"
 tag: "Services Worker"
+time: 2024-10-13 20:52:51
 ---
 
 ## 引言

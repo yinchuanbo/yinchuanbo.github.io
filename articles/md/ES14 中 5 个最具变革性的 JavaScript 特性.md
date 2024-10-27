@@ -1,6 +1,7 @@
 ---
 title: "ES14 中 5 个最具变革性的 JavaScript 特性"
 tag: "Js"
+time: 2024-10-04 19:21:46
 ---
 
 ## 1. toSorted()

@@ -1,6 +1,7 @@
 ---
 title: "Nginx 日志"
 tag: "Nginx"
+time: 2024-10-03 21:49:11
 ---
 
 Nginx 日志主要分为访问日志（access_log）和错误日志（error_log）两种，每种日志的格式和配置方式有所不同。

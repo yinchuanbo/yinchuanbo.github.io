@@ -1,6 +1,7 @@
 ---
 title: "nginx 轻松实现从 HTTP 到 HTTPS 的重定向"
 tag: "Nginx"
+time: 2024-10-11 13:06:06
 ---
 
 ## 1. 概述

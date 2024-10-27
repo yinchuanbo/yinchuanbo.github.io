@@ -1,6 +1,7 @@
 ---
 title: "FileReader"
 tag: "Js"
+time: 2024-09-01 15:21:24
 ---
 
 ### 读取文件

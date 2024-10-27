@@ -1,6 +1,7 @@
 ---
 title: "sessionStorage 能在多个标签页之间共享数据吗?"
 tag: "Js"
+time: 2024-09-01 15:21:24
 ---
 
 sessionStorage 就是会话级别的存储（关键在于会话）

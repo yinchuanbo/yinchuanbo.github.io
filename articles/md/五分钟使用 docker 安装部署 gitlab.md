@@ -1,6 +1,7 @@
 ---
 title: "五分钟使用 docker 安装部署 gitlab"
 tag: "部署"
+time: 2024-10-03 21:49:11
 ---
 
 ## 使用 Docker 安装部署 gitlab

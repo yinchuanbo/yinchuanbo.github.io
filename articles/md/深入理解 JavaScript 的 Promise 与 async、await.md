@@ -1,6 +1,7 @@
 ---
 title: "深入理解 JavaScript 的 Promise 与 async/await"
 tag: "Promise"
+time: 2024-09-20 23:36:53
 ---
 
 JavaScript 中的异步编程是开发现代 Web 应用的核心部分，而 Promise 和 async/await 是处理异步操作的关键工具。本文将详细讲解 Promise 的概念与用法，并介绍如何使用 async/await 来简化异步代码。

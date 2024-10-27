@@ -1,6 +1,7 @@
 ---
 title: "EventSource"
 tag: "Js"
+time: 2024-09-01 15:21:24
 ---
 
 EventSource 是一个用于接收服务器发送的事件流的接口，通常用于实现服务器端推送（Server-Sent Events，SSE）。通过 EventSource，客户端可以与服务器建立持久的连接，服务器可以随时向客户端发送事件数据，而客户端则可以通过监听这些事件来实时获取数据更新。

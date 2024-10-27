@@ -1,6 +1,7 @@
 ---
 title: "Vercel + Supabase 快速构建原型的终极工具组合"
 tag: "部署"
+time: 2024-10-03 21:49:11
 ---
 
 Vercel 是一个强大无比的前端应用部署平台，不仅能轻松将你的应用快速上线，还提供了多样的 AI 集成功能，甚至可以通过 AI 自动生成页面。而如果你的项目需要一个可靠的 PostgreSQL 数据库，Supabase 将是你不二的选择。Supabase 提供便捷的 JavaScript SDK，使得在 Vercel 上部署 Next.js 应用时使用数据库变得异常简单。

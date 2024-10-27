@@ -1,6 +1,7 @@
 ---
 title: "把 Canvas 放到 WebWorker 中去绘制"
 tag: "Web Worker"
+time: 2024-09-01 15:21:24
 ---
 
 ## 前言

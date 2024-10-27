@@ -1,6 +1,7 @@
 ---
 title: "使用 Web Worker 优化前端大文件上传"
 tag: "Web Worker"
+time: 2024-09-01 15:21:24
 ---
 
 ### 1\. 分析任务

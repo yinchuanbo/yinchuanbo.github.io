@@ -1,6 +1,7 @@
 ---
 title: "git commit 时检查是否有中文字符并阻断"
 tag: "Git"
+time: 2024-09-18 15:43:33
 ---
 
 ## 安装 Husky

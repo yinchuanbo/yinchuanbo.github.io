@@ -1,6 +1,7 @@
 ---
 title: "Tesseract.js 神奇的前端 OCR 库"
 tag: "工具集"
+time: 2024-09-12 22:31:52
 ---
 
 `Tesseract.js`是一个基于`JavaScript`的开源`OCR`（光学字符识别）引擎。

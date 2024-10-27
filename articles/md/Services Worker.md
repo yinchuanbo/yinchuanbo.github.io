@@ -1,6 +1,7 @@
 ---
 title: "Services Worker"
 tag: "Services Worker"
+time: 2024-09-14 12:18:42
 ---
 
 Service Worker 是一个强大的工具，可以让我们精确控制缓存和网络请求，从而提高网站性能和离线体验。下面是一个详细的实施方案：

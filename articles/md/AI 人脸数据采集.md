@@ -1,6 +1,7 @@
 ---
 title: "AI 人脸数据采集"
 tag: "AI"
+time: 2024-10-14 21:15:08
 ---
 
 <img src="../imgs/92/02.webp" />

@@ -1,6 +1,7 @@
 ---
 title: "noUiSlider 一款轻量级的 JavaScript 开源滑块库"
 tag: "工具集"
+time: 2024-10-03 21:49:11
 ---
 
 在前端开发中，滑块控件因其直观性和灵活性而成为常用的界面元素之一。今天，我们将探讨一个流行的开源  `JavaScript`  滑块库—— `noUiSlider` 。

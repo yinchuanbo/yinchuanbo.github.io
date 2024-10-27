@@ -1,6 +1,7 @@
 ---
 title: "使用 node-ssh 实现自动化部署"
 tag: "部署"
+time: 2024-10-04 19:21:46
 ---
 
 自动化部署的的方式有很多，之前也写过两种，今天跟大家介绍一下如何在不依赖 `Jenkins`、`gitLab CI/CD` 和 `github Action` 的情况下，自己通过 node.js 实现自动化部署。

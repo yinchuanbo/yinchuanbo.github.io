@@ -1,6 +1,7 @@
 ---
 title: "前端如何避免重排 reflow 和重绘 repaint"
 tag: "性能优化"
+time: 2024-09-19 21:56:30
 ---
 
 <img src="../imgs/78/01.webp" />

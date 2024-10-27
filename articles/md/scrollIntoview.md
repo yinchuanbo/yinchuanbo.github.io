@@ -1,6 +1,7 @@
 ---
 title: "scrollIntoview"
 tag: "Js"
+time: 2024-09-01 15:21:24
 ---
 
 大家可能都知道 dom 有一个  `scrollIntoview`方法，它可以轻易的让目标元素滚动到可视范围之内，而无需手动计算偏移量

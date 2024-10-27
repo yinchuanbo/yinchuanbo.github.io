@@ -1,6 +1,7 @@
 ---
 title: "一个全新的 JavaScript 事件"
 tag: "新特性"
+time: 2024-09-01 15:21:24
 ---
 
 今天给大家介绍一个新的 JavaScript 事件：`scrollend`。

@@ -1,6 +1,7 @@
 ---
 title: "属性的 getter 和 setter"
 tag: "Js"
+time: 2024-08-30 22:46:17
 ---
 
 有两种类型的对象属性。

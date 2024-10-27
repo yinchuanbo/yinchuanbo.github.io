@@ -1,6 +1,7 @@
 ---
 title: "使用 JavaScript 加载字体"
 tag: "Js"
+time: 2024-09-01 15:21:24
 ---
 
 > 有一个库，叫 Web Font Loader，这个库体积很小，在浏览器支持的情况下，他会使用原生的字体加载 API；在浏览器不支持的情况下，它会模拟相同的功能。这个库内置了一些 web 字体服务，比如 Typekit、Google Fonts 和 Fonts.com，同时也支持自托管的字体。
