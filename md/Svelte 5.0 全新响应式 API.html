@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Svelte 5.0 全新响应式 API</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 1">
+          <ul>
+            <li class="active"><a title="Svelte 5.0 全新响应式 API" href="/md/Svelte 5.0 全新响应式 API.html">01 Svelte 5.0 全新响应式 API</a></li>
+          </ul>
+        </div>
+        <div
+          style="order: 0"
+          class="layout__main_right md "
+        >
+          <h1>Svelte 5.0 全新响应式 API</h1>
+          <p class="time">HaoTian · 2024-11-03 14:00:49</p>
+          <p>Svelte 是一个 Web 开发框架，无虚拟 dom，同时提供了许多开箱即用的功能，感兴趣的可以查看 <a href="https://svelte.dev/">Svelte 文档</a>。</p>
+<p>Svelte 前几天发布了最新的 V5.0 大版本，其中最核心的修改就是重构了它的响应式系统。Svelte 把它起名叫做 runes, 所有 runes API 都使用 <code>$</code> 开头。</p>
+<p>今天一起来学习一下全新的 runes 响应式 API。</p>
+<h2><code>$state</code></h2>
+<p>在旧版本中，直接使用 <code>let</code> 就可以定义一个响应式变量：</p>
+<pre><code class="language-html">&lt;script&gt;
+  // 像普通变量一样直接用 let 定义
+  let counter = 1;
+  function increment() {
+    counter++;
+  }
+&lt;/script&gt;
+&lt;div&gt;
+  &lt;button onclick=&quot;{increment}&quot;&gt;Increment With legacy&lt;/button&gt;
+  &lt;p&gt;Counter With legacy: {counter}&lt;/p&gt;
+&lt;/div&gt;
+</code></pre>
+<p>在 Svelte5 中，需要使用 <code>$state</code> 来定义响应式变量：</p>
+<pre><code class="language-html">&lt;script&gt;
+  let counter2 = $state(1);
+  function increment2() {
+    counter2++;
+  }
+&lt;/script&gt;
+&lt;div&gt;
+  &lt;button onclick=&quot;{increment2}&quot;&gt;Increment With new&lt;/button&gt;
+  &lt;p&gt;Counter With new: {counter2}&lt;/p&gt;
+&lt;/div&gt;
+</code></pre>
+<p>那么在 Svelte5 中，旧版写法是否还兼容呢。 是这样的，如果你不使用 runes，仍然是可以用旧版写法的。如果同时使用旧版写法和新版写法，就会失去响应式，变成一个普通变量：</p>
+<pre><code class="language-html">&lt;script&gt;
+  // 这是一个普通变量，不具有响应式
+  let counter = 1;
+  function increment() {
+    counter++;
+  }
+  // 和 runes 并存
+  let counter2 = $state(1);
+  function increment2() {
+    counter2++;
+  }
+&lt;/script&gt;
+&lt;div&gt;
+  &lt;button onclick=&quot;{increment}&quot;&gt;Increment With legacy&lt;/button&gt;
+  &lt;p&gt;Counter With legacy: {counter}&lt;/p&gt;
+&lt;/div&gt;
+&lt;div&gt;
+  &lt;button onclick=&quot;{increment2}&quot;&gt;Increment With new&lt;/button&gt;
+  &lt;p&gt;Counter With new: {counter2}&lt;/p&gt;
+&lt;/div&gt;
+</code></pre>
+<h2>使用外部 *.svelte.js 中的 runes</h2>
+<p>在 Svelte5 中，由于有了 runes，你可以在组件中导入外部 <code>*.svelte.js</code> 或者 <code>*.svelte.ts</code> 中的 runes 来使用，这在 Svelte4 中无法做到。</p>
+<pre><code class="language-js">export const rune = $state({
+  count2: 1,
+});
+
+export function increment2() {
+  rune.count2++;
+}
+</code></pre>
+<p>在 svelte 组件中直接导入就可以了：</p>
+<pre><code class="language-html">&lt;script&gt;
+  import { rune, increment2 } from &quot;./runes-in-js.svelte.js&quot;;
+&lt;/script&gt;
+&lt;div&gt;
+  &lt;button onclick=&quot;{increment2}&quot;&gt;Increment the rune inside js&lt;/button&gt;
+  &lt;p&gt;Counter2: {rune.count2}&lt;/p&gt;
+&lt;/div&gt;
+</code></pre>
+<h2>$derived</h2>
+<p><code>$derived</code> 类似于 Vue 中的计算属性：</p>
+<pre><code class="language-html">&lt;script&gt;
+  let counter = $state(1);
+  function increment() {
+    counter++;
+  }
+  // 自动计算 counter * 2 的结果
+  let counterTimesTwo = $derived(counter * 2);
+&lt;/script&gt;
+&lt;div&gt;
+  &lt;button onclick=&quot;{increment}&quot;&gt;Increment the new way&lt;/button&gt;
+  &lt;p&gt;Counter: {counter}&lt;/p&gt;
+  &lt;p&gt;Counter Times Two: {counterTimesTwo}&lt;/p&gt;
+&lt;/div&gt;
+</code></pre>
+<h2>$state 的其他用法</h2>
+<p>当然可以用来创建一个对象：</p>
+<pre><code class="language-html">&lt;script&gt;
+  // 基本类型
+  let count = $state(1);
+  // 可以创建对象
+  let user = $state({ name: &quot;John&quot;, age: 30 });
+&lt;/script&gt;
+</code></pre>
+<p><code>$state.raw</code> 用于创建一个浅层（shallow）响应式对象。 这意味着，这个对象是响应式的，但是它的属性不是，你只可以重新设置整个对象来触发响应式。</p>
+<pre><code class="language-html">&lt;script&gt;
+  let shallowState = $state.raw([&quot;Alice&quot;, &quot;Bob&quot;, &quot;Charlie&quot;]);
+
+  // 这将不会变化。
+  shallowState.push(&quot;Dave&quot;);
+
+  // It works!
+  shallowState = [...shallowState, &quot;Dave&quot;];
+&lt;/script&gt;
+</code></pre>
+<p><code>$state.snapshot</code> 用于获取一个响应式对象的原始类型（非响应式）。</p>
+<pre><code class="language-html">&lt;script&gt;
+  const originalObject = { name: &quot;John&quot;, age: 30 };
+  const reactiveState = $state(originalObject);
+  let snapshot = $state.snapshot(reactiveState);
+&lt;/script&gt;
+</code></pre>
+<h2>$effect</h2>
+<p><code>$effect</code> 类似于 React 的 <code>useEffect</code>，区别是会自动收集响应式依赖。</p>
+<pre><code class="language-html">&lt;script&gt;
+  $effect(() =&gt; {
+    console.log(&quot;effect: counterTimesTwo is now&quot;, counterTimesTwo);
+    return () =&gt; {
+      console.log(&quot;Component unmounted&quot;);
+    };
+  });
+&lt;/script&gt;
+</code></pre>
+<p><code>$effect.pre</code> 用于在 DOM 更新之前运行代码：</p>
+<pre><code class="language-html">&lt;script&gt;
+  $effect.pre(() =&gt; {
+    console.log(&quot;effect.pre: counterTimesTwo is now&quot;, counterTimesTwo);
+  });
+&lt;/script&gt;
+</code></pre>
+<p><code>$effect.root</code> 将会创建一个 effect root，它不会在组件卸载时自动释放，你可以手动调用 <code>cleanup()</code> 来释放</p>
+<pre><code class="language-html">&lt;script&gt;
+	const cleanup = $effect.root(() =&gt; {
+		console.log(&#39;effect.root: counterTimesTwo is now&#39;, counterTimesTwo);
+		$effect(() =&gt; {
+			console.log(&#39;effect.root: counterTimesTwo is now&#39;, counterTimesTwo);
+
+			return () =&gt; {
+				console.log(&#39;effect.root - $effect: effect unmounted&#39;);
+			};
+		});
+
+		return () =&gt; {
+			console.log(&#39;effect.root: Component unmounted&#39;);
+		};
+	});
+&lt;/script&gt;
+&lt;button onclick={() =&gt; cleanup()}&gt;Dispose effect.root&lt;/button&gt;
+</code></pre>
+<h2>$props</h2>
+<p>在 Svelte4 中，使用 <code>export let value</code> 来定义组件 props。</p>
+<p>在 Svelte5 中，使用 <code>$props</code> 来定义组件 props。</p>
+<p>子组件：</p>
+<pre><code class="language-html">&lt;script&gt;
+	let { count } = $props();
+&lt;/script&gt;
+
+&lt;button onclick={() =&gt; (count += 1)}&gt;
+	clicks (child): {count}
+&lt;/button&gt;
+</code></pre>
+<p>父组件：</p>
+<pre><code class="language-html">&lt;script&gt;
+	import Child from &#39;./Child.svelte&#39;;
+	let count = $state(0);
+&lt;/script&gt;
+
+&lt;button onclick={() =&gt; (count += 1)}&gt;
+	clicks (parent): {count}
+&lt;/button&gt;
+
+&lt;Child {count} /&gt;
+</code></pre>
+<p>父组件点击增加 count，会传给子组件，而子组件点击增加，不会反映给父组件，此时是一个单向的数据流。</p>
+<h2>使用 $bindable 实现双向绑定</h2>
+<p>上面说了，默认 props 是单向数据流，子组件无法修改父组件的数据，这也是合理的。</p>
+<p>那么我们常见的一些表单实现效果如下，实现一个受控 Input 组件。</p>
+<p>子组件定义 onChange props, 把更改后的值通过 onChange 传回去：</p>
+<pre><code class="language-html">&lt;script lang=&quot;ts&quot;&gt;
+  interface Props {
+    value: string;
+    onChange: (value: string) =&gt; void;
+  }
+  let { value, onChange }: Props = $props();
+&lt;/script&gt;
+
+&lt;input type=&quot;text&quot; {value} onchange={(event) =&gt; { onChange((event.target as
+HTMLInputElement).value); }}/&gt;
+</code></pre>
+<p>父组件传 onChange，接受子组件回传的值：</p>
+<pre><code class="language-html">&lt;script&gt;
+  import Input from &quot;./Input.svelte&quot;;
+  let value = $state(&quot;123&quot;);
+&lt;/script&gt;
+
+&lt;Input {value} onChange={(e) =&gt; { console.log(&#39;child changed to&#39;, e); value = e;
+}}/&gt;
+</code></pre>
+<p>熟悉 React 同学看的就很眼熟，我们经常这么写。</p>
+<p>而在 Vue 中，有 <code>v-model</code> 可以实现双向绑定。 在 Svelte5 中，可以使用 <code>$bindable</code> 实现双向绑定：</p>
+<pre><code class="language-html">&lt;script&gt;
+  let { value = $bindable(&quot;&quot;), ...rest } = $props();
+&lt;/script&gt;
+
+&lt;input type=&quot;text&quot; bind:value /&gt;
+</code></pre>
+<p>父组件中的 value 也被修改了：</p>
+<pre><code class="language-html">&lt;script&gt;
+  import Input from &quot;./Input.svelte&quot;;
+  let value = $state(&quot;&quot;);
+  // `$inspect` 也是一个 runes，用于调试打印。类似 `$effect(() =&gt; console.log(value))`
+  $inspect(value);
+&lt;/script&gt;
+&lt;input bind:value /&gt;
+</code></pre>
+<h2>$host</h2>
+<p><code>$host</code> 是一个高级特性，当组件被编译为自定义元素时，用来获取当前组件的引用，发送自定义事件。</p>
+<pre><code class="language-html">&lt;svelte:options customElement=&quot;my-stepper&quot; /&gt;
+
+&lt;script&gt;
+	function dispatch(type) {
+		$host().dispatchEvent(new CustomEvent(type));
+	}
+&lt;/script&gt;
+
+&lt;button onclick={() =&gt; dispatch(&#39;decrement&#39;)}&gt;decrement&lt;/button&gt;
+&lt;button onclick={() =&gt; dispatch(&#39;increment&#39;)}&gt;increment&lt;/button&gt;
+</code></pre>
+<h2>最后</h2>
+<p>Svelte5 的 runes <code>$state</code>，Vue3 的组合式 API <code>ref</code>，Solid 的 signal <code>createSignal</code>，Angular Signals <code>signal</code>，似乎除了 React 都拥抱了 <code>signal</code>，你觉得这套东西怎么样呢。</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // const leftBorder = document.querySelector(".left__border");
+      // const resizer = document.querySelector(".layout__main_left");
+      // const resizable = document.querySelector(".layout__main_right");
+      // leftBorder.addEventListener("mousedown", initResize);
+      // function initResize(e) {
+      //   e.preventDefault();
+      //   document.addEventListener("mousemove", startResizing);
+      //   document.addEventListener("mouseup", stopResizing);
+      // }
+      // function startResizing(e) {
+      //   const resizerRect = resizer.getBoundingClientRect();
+      //   const resizableRect = resizable.getBoundingClientRect();
+      //   let newWidth = e.clientX - resizerRect.left;
+      //   if (newWidth < 300) {
+      //     newWidth = 300;
+      //   } else if (newWidth > 850) {
+      //     newWidth = 850;
+      //   }
+      //   resizer.style.width = `${newWidth}px`;
+      // }
+      // function stopResizing() {
+      //   document.removeEventListener("mousemove", startResizing);
+      //   document.removeEventListener("mouseup", stopResizing);
+      // }
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      const imgs = document.querySelectorAll("img");
+      imgs.forEach((img) => {
+        img.onclick = () => {
+          let imgHove = document.querySelector(".img-hover");
+          if (imgHove) imgHove.remove();
+          const src = img.src;
+          const html = `
+            <div class="img-hover">
+              <img src="${src}" />
+            </div>
+          `;
+          document.body.insertAdjacentHTML("beforeend", html);
+          document.body.style.overflow = "hidden";
+          imgHove = document.querySelector(".img-hover");
+          imgHove.onclick = () => {
+            imgHove.remove();
+            document.body.style.overflow = "initial";
+          };
+        };
+      });
+    </script>
+  </body>
+</html>
