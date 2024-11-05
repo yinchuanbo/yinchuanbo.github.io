@@ -77,6 +77,7 @@ function create(allRedBalls, allBlueBalls) {
 }
 
 const createCanvas = (arr) => {
+  console.log('arr', arr)
   const conArr = convertArray(arr);
   const ssqLocal = localStorage.getItem("shuangseqiu");
   if (!ssqLocal) {
