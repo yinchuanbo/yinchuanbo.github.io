@@ -246,3 +246,11 @@ const getLastestDataDLT = () => {
       }
     });
 }
+
+ssqClear.onclick = () => {
+  localStorage.removeItem("shuangseqiu")
+}
+
+dltClear.onclick = () => {
+  localStorage.removeItem("dlt")
+}
