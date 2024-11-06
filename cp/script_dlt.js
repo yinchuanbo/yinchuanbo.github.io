@@ -1,15 +1,15 @@
 function generateLotteryNumbersDLT(nums = 10) {
   const numbers = [];
   for (let i = 0; i < nums; i++) {
-    const redNumbers = generateRedNumbers();
-    const blueNumbers = generateBlueNumbers();
-    const formattedNumbers = formatNumbers(redNumbers, blueNumbers);
+    const redNumbers = generateRedNumbersDLT();
+    const blueNumbers = generateBlueNumbersDLT();
+    const formattedNumbers = formatNumbersDLT(redNumbers, blueNumbers);
     numbers.push(formattedNumbers);
   }
   return numbers;
 }
 
-function generateRedNumbers() {
+function generateRedNumbersDLT() {
   const redNumbers = [];
   while (redNumbers.length < 5) {
     const randomNumber = Math.floor(Math.random() * 35) + 1;
@@ -20,7 +20,7 @@ function generateRedNumbers() {
   return redNumbers.sort((a, b) => a - b);
 }
 
-function generateBlueNumbers() {
+function generateBlueNumbersDLT() {
   const blueNumbers = [];
   while (blueNumbers.length < 2) {
     const randomNumber = Math.floor(Math.random() * 12) + 1;
@@ -31,7 +31,7 @@ function generateBlueNumbers() {
   return blueNumbers.sort((a, b) => a - b);
 }
 
-function formatNumbers(redNumbers, blueNumbers) {
+function formatNumbersDLT(redNumbers, blueNumbers) {
   const redNumbersString = redNumbers.join(",");
   const blueNumbersString = blueNumbers.join(",");
   return `${redNumbersString}+${blueNumbersString}`;
@@ -42,11 +42,11 @@ generateDLT.onclick = () => {
   leftTextareaDLT.value = lotteryNumbers.join("\n");
 };
 
-function excludeNumbers(arr, excludeList) {
+function excludeNumbersDLT(arr, excludeList) {
   return arr.filter((num) => !excludeList.includes(num));
 }
 
-function createLotteryNumbers(redPool, bluePool, nums = 20) {
+function createLotteryNumbersDLT(redPool, bluePool, nums = 20) {
   const results = [];
   for (let i = 0; i < nums; i++) {
     const redBalls = [];
@@ -86,10 +86,10 @@ createDLT.onclick = () => {
     const blueBall = valArr.split("+")[1];
     const redBallArr = redBall.split(",").map(Number);
     const blueBallArr = blueBall.split(",").map(Number);
-    redBalls = excludeNumbers(redBalls, redBallArr);
-    blueBalls = excludeNumbers(blueBalls, blueBallArr);
+    redBalls = excludeNumbersDLT(redBalls, redBallArr);
+    blueBalls = excludeNumbersDLT(blueBalls, blueBallArr);
   }
-  let result = createLotteryNumbers(redBalls, blueBalls, 5);
+  let result = createLotteryNumbersDLT(redBalls, blueBalls, 5);
   result = result.map((item) => {
     const str = item.replace("+", ",");
     return str.split(",");
