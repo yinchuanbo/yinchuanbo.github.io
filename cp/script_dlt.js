@@ -221,6 +221,8 @@ const getLastestDataDLT = () => {
         let openCode = res?.data?.openCode || "";
         const time = res?.data?.time || "";
         document.querySelector("#time__dlt").textContent = time;
+        document.querySelector("#code__dlt").textContent = openCode;
+        document.querySelector(".mask_dlt .wrapper__left_mask_time").style.display = "";
         openCode = openCode.split("+");
         let openCodeRed = openCode[0].trim();
         openCodeRed = openCodeRed.split(",");

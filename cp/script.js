@@ -211,6 +211,8 @@ const getLastestData = () => {
         let openCode = res?.data?.openCode || "";
         const time = res?.data?.time || "";
         document.querySelector("#time__ssq").textContent = time;
+        document.querySelector("#code__ssq").textContent = openCode;
+        document.querySelector(".mask_ssq .wrapper__left_mask_time").style.display = "";
         // console.log('time', time)
         // const expect = res?.data?.expect || "";
         // if (time) {
