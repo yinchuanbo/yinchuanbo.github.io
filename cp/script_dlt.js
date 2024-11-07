@@ -98,7 +98,7 @@ createDLT.onclick = () => {
 };
 
 const createCanvasDLT = (arr) => {
-  const conArr = convertArray(arr);
+  const conArr = convertArrayDLT(arr);
   const dltLocal = localStorage.getItem("dlt");
   if (!dltLocal) {
     localStorage.setItem("dlt", conArr);
@@ -137,7 +137,7 @@ const createCanvasDLT = (arr) => {
   document.body.removeChild(link);
 };
 
-function convertArray(arr) {
+function convertArrayDLT(arr) {
   var result = "";
   for (var i = 0; i < arr.length; i++) {
     var row = arr[i];
