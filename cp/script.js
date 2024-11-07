@@ -1,4 +1,4 @@
-function generateLotteryNumbers(nums = 5) {
+function generateLotteryNumbers(nums = 7) {
   const numbers = [];
   for (let i = 0; i < nums; i++) {
     const redNumbers = generateRedNumbers();
