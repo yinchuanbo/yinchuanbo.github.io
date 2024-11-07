@@ -136,7 +136,7 @@ function handleEditTemp(
   tag = "",
   time = ""
 ) {
-  const editPage = fs.readFileSync("./templates/edit2.html", "utf-8");
+  const editPage = fs.readFileSync("./templates/edit.html", "utf-8");
   const navList = tagsNav[tag];
   const navHTML = renderNavList(navList, filename);
   const detailHTML = ejs.render(editPage, {
