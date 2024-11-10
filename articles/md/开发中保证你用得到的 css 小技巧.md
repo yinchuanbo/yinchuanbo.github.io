@@ -250,7 +250,7 @@ backdrop-filter: blur(2px);
 
 ### 图片循环轮播
 
-<img src="../imgs/99/08.awebp" />
+<img src="../imgs/99/08.webp" />
 
 ```html
 <template>
