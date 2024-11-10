@@ -442,3 +442,5 @@ export default [
 
 
 github: https://github.com/vinomanick/pnpm-monorepo-v2
+
+youtube: https://www.youtube.com/watch?v=pz4f9Q6VYZA
