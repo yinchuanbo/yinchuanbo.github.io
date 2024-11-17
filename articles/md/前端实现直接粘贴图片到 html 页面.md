@@ -1,6 +1,6 @@
 ---
 title: "前端实现直接粘贴图片到 html 页面"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-11-10 10:12:44
 ---
 

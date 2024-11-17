@@ -1,6 +1,6 @@
 ---
 title: "7 种开发人员都应该知道的高级 JavaScript 技术"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-19 21:56:30
 ---
 

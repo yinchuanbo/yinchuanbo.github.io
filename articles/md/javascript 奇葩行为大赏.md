@@ -1,6 +1,6 @@
 ---
 title: "javascript 奇葩行为大赏"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-01 15:21:24
 ---
 

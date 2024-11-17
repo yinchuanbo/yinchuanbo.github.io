@@ -1,6 +1,6 @@
 ---
 title: "谈谈前端路由的实现原理 hash ＆ history"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-08-30 22:46:17
 ---
 

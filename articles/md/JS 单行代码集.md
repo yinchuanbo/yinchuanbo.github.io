@@ -1,6 +1,6 @@
 ---
 title: "25 个杀手级 JavaScript 单行代码"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-08-30 17:34:29
 ---
 

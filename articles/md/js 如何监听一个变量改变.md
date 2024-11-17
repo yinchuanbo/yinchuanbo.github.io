@@ -1,6 +1,6 @@
 ---
 title: "js 如何监听一个变量改变"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-01 15:21:24
 ---
 

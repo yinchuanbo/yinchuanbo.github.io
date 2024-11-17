@@ -1,6 +1,6 @@
 ---
 title: "reduce 的高级用法"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-01 15:21:24
 ---
 

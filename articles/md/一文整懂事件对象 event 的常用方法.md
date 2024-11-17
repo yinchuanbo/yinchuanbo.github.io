@@ -1,6 +1,6 @@
 ---
 title: "一文整懂事件对象 event 的常用方法"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-19 21:56:30
 ---
 

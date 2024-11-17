@@ -1,6 +1,6 @@
 ---
 title: "JavaScript 原生实现图片复制与粘贴"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-08 12:25:22
 ---
 

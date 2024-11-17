@@ -1,6 +1,6 @@
 ---
 title: "JavaScript 中设置器和获取器"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-10-03 21:49:11
 ---
 

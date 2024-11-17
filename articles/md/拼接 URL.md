@@ -1,6 +1,6 @@
 ---
 title: "别再用模板语法和 + 来拼接 url 了"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-10-30 21:12:22
 ---
 

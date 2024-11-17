@@ -1,6 +1,6 @@
 ---
 title: "split 方法我算是白学了"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-10-30 21:37:49
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "非常强大的标准 JavaScript API - AbortController"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-29 22:09:04
 ---
 

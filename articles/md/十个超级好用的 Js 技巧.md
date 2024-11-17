@@ -1,6 +1,6 @@
 ---
 title: "十个超级好用的 Js 技巧"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-01 15:21:24
 ---
 

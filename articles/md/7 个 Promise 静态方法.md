@@ -1,6 +1,6 @@
 ---
 title: "7 个 Promise 静态方法"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-01 15:21:24
 ---
 

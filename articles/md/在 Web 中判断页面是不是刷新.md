@@ -1,6 +1,6 @@
 ---
 title: "在 Web 中判断页面是不是刷新"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-11-03 15:56:07
 ---
 

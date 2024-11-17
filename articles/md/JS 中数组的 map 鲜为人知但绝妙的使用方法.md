@@ -1,6 +1,6 @@
 ---
 title: "JS 中数组的 map 鲜为人知但绝妙的使用方法"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-11-03 16:20:52
 ---
 

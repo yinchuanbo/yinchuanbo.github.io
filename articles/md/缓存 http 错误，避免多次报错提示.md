@@ -1,6 +1,6 @@
 ---
 title: "缓存 http 错误，避免多次报错提示"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-01 15:21:24
 ---
 

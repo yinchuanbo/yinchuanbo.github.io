@@ -1,6 +1,6 @@
 ---
 title: "掌握 JavaScript 中的 Call 和 Apply"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-21 17:21:17
 ---
 

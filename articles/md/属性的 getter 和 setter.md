@@ -1,6 +1,6 @@
 ---
 title: "属性的 getter 和 setter"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-08-30 22:46:17
 ---
 

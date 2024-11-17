@@ -1,6 +1,6 @@
 ---
 title: "实现鼠标滚轮缩放SVG内容"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-08-30 17:34:29
 ---
 

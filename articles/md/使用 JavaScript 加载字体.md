@@ -1,6 +1,6 @@
 ---
 title: "使用 JavaScript 加载字体"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-01 15:21:24
 ---
 

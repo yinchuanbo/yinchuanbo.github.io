@@ -1,6 +1,6 @@
 ---
 title: "如何使用 JavaScript 向现有 SVG 中添加元素？"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-08-30 17:34:29
 ---
 

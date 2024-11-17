@@ -1,6 +1,6 @@
 ---
 title: "Js 小技巧"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-11-02 16:31:49
 ---
 

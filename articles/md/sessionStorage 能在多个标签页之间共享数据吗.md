@@ -1,6 +1,6 @@
 ---
 title: "sessionStorage 能在多个标签页之间共享数据吗?"
-tag: "Js"
+tag: "JavaScript"
 time: 2024-09-01 15:21:24
 ---
 

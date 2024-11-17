@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>20 几个你不得不知道的 Promise 高级用法</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism2.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 2">
+          <ul>
+            <li class="active"><a title="20 几个你不得不知道的 Promise 高级用法" href="/md/20 几个你不得不知道的 Promise 高级用法.html">2 20 几个你不得不知道的 Promise 高级用法</a></li><li class=""><a title="深入理解 JavaScript 的 Promise 与 async、await" href="/md/深入理解 JavaScript 的 Promise 与 async、await.html">1 深入理解 JavaScript 的 Promise 与 async、await</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_map" style="order: 0">
+          <div class="layout__main_map_content"></div>
+          <div class="layout__main_map_swicth">
+            <svg
+              t="1731159783731"
+              class="icon"
+              viewBox="0 0 1024 1024"
+              version="1.1"
+              xmlns="http://www.w3.org/2000/svg"
+              p-id="12012"
+              width="30"
+              height="30"
+            >
+              <path
+                d="M569.315556 800.142222c-19.2 0-28.728889-9.528889-28.728889-28.728889V252.586667c0-19.2 9.528889-28.728889 28.728889-28.728889s28.728889 9.528889 28.728888 28.728889v518.826666c0 19.2-9.528889 28.728889-28.728888 28.728889zM693.475556 751.502222l248.888888-239.502222-248.888888-239.502222c-5.546667-5.262222-8.675556-12.515556-8.675556-20.195556 0-25.457778 32-38.115556 50.631111-20.195555l248.888889 239.36c23.182222 22.328889 23.182222 58.311111 0 80.64l-248.888889 239.502222c-18.631111 17.92-50.631111 5.262222-50.631111-20.195556 0-7.395556 3.128889-14.648889 8.675556-19.911111zM420.835556 771.413333V252.586667c0-19.2 9.528889-28.728889 28.728888-28.728889s28.728889 9.528889 28.728889 28.728889v518.826666c0 19.2-9.528889 28.728889-28.728889 28.728889s-28.728889-9.528889-28.728888-28.728889zM325.404444 751.502222c5.546667 5.262222 8.675556 12.515556 8.675556 20.195556 0 25.315556-31.857778 38.115556-50.631111 20.195555l-248.888889-239.502222c-23.182222-22.328889-23.182222-58.311111 0-80.64l248.888889-239.36c18.631111-17.92 50.631111-5.262222 50.631111 20.195556 0 7.68-3.128889 14.933333-8.675556 20.195555L76.515556 512l248.888888 239.502222z"
+                fill="#fff"
+                p-id="12013"
+              ></path>
+            </svg>
+          </div>
+        </div>
+        <div
+          style="order: 1"
+          class="layout__main_right md "
+        >
+          <h1>20 几个你不得不知道的 Promise 高级用法</h1>
+          <p class="time">HaoTian · 2024-11-15 22:07:57</p>
+          <h2>1. 并发控制</h2>
+<p>使用<code>Promise.all</code>可以并行执行多个 Promise，但当需要控制并发的请求数量时，可以通过实现一个并发控制函数来控制同时执行的 Promise 数量。</p>
+<pre><code class="language-js">const concurrentPromises = (promises, limit) =&gt; {
+  return new Promise((resolve, reject) =&gt; {
+    let i = 0;
+    let result = [];
+    const executor = () =&gt; {
+      if (i &gt;= promises.length) {
+        return resolve(result);
+      }
+      const promise = promises[i++];
+      Promise.resolve(promise)
+        .then((value) =&gt; {
+          result.push(value);
+          if (i &lt; promises.length) {
+            executor();
+          } else {
+            resolve(result);
+          }
+        })
+        .catch(reject);
+    };
+    for (let j = 0; j &lt; limit &amp;&amp; j &lt; promises.length; j++) {
+      executor();
+    }
+  });
+};
+</code></pre>
+<h2>2. Promise 超时</h2>
+<p>有时候，我们希望 Promise 在一定时间内如果没有得到解决就自动 reject。这可以用下面的方式实现。</p>
+<pre><code class="language-js">const promiseWithTimeout = (promise, ms) =&gt;
+  Promise.race([
+    promise,
+    new Promise((resolve, reject) =&gt;
+      setTimeout(() =&gt; reject(new Error(&quot;Timeout after &quot; + ms + &quot;ms&quot;)), ms)
+    ),
+  ]);
+</code></pre>
+<h2>3. Promise 的取消</h2>
+<p>JavaScript 原生的 Promise 是无法取消的，但我们可以通过引入一个可控的中断逻辑来模拟取消 Promise。</p>
+<pre><code class="language-js">const cancellablePromise = (promise) =&gt; {
+  let isCanceled = false;
+
+  const wrappedPromise = new Promise((resolve, reject) =&gt; {
+    promise.then(
+      (value) =&gt; (isCanceled ? reject({ isCanceled, value }) : resolve(value)),
+      (error) =&gt; (isCanceled ? reject({ isCanceled, error }) : reject(error))
+    );
+  });
+
+  return {
+    promise: wrappedPromise,
+    cancel() {
+      isCanceled = true;
+    },
+  };
+};
+</code></pre>
+<h2>4. 检测 Promise 状态</h2>
+<p>原生的 Promise 不允许直接查询状态。但可以通过一定的技巧来了解当前 Promise 是否已解决、被拒绝或尚未解决。</p>
+<pre><code class="language-js">const reflectPromise = (promise) =&gt;
+  promise.then(
+    (value) =&gt; ({ status: &quot;fulfilled&quot;, value }),
+    (error) =&gt; ({ status: &quot;rejected&quot;, error })
+  );
+</code></pre>
+<h2>5. 顺序执行 Promise 数组</h2>
+<p>有时候我们需要按顺序执行一组 Promise，以确保前一个异步操作完成后再开始下一个。</p>
+<pre><code class="language-js">const sequencePromises = (promises) =&gt;
+  promises.reduce((prev, next) =&gt; prev.then(() =&gt; next()), Promise.resolve());
+</code></pre>
+<h2>6. 基于条件的 Promise 链</h2>
+<p>在某些场合下，需要根据条件判断是否执行下一个 Promise。</p>
+<pre><code class="language-js">const conditionalPromise = (conditionFn, promise) =&gt;
+  conditionFn() ? promise : Promise.resolve();
+</code></pre>
+<h2>7. Promise 的重试逻辑</h2>
+<p>当 Promise 因为某些暂时性的错误被拒绝时，可能希望能够重试执行。</p>
+<pre><code class="language-js">const retryPromise = (promiseFn, maxAttempts, interval) =&gt; {
+  return new Promise((resolve, reject) =&gt; {
+    const attempt = (attemptNumber) =&gt; {
+      if (attemptNumber === maxAttempts) {
+        reject(new Error(&quot;Max attempts reached&quot;));
+        return;
+      }
+      promiseFn()
+        .then(resolve)
+        .catch(() =&gt; {
+          setTimeout(() =&gt; {
+            attempt(attemptNumber + 1);
+          }, interval);
+        });
+    };
+    attempt(0);
+  });
+};
+</code></pre>
+<h2>8. 确保 Promise 只解决一次</h2>
+<p>在某些情况下，可能希望确保 Promise 只会解决一次，即使可能会被多次调用<code>resolve</code>。</p>
+<pre><code class="language-js">const onceResolvedPromise = (executor) =&gt; {
+  let isResolved = false;
+  return new Promise((resolve, reject) =&gt; {
+    executor((value) =&gt; {
+      if (!isResolved) {
+        isResolved = true;
+        resolve(value);
+      }
+    }, reject);
+  });
+};
+</code></pre>
+<h2>9. 使用 Promise.allSettled 处理多个异步操作</h2>
+<p>与<code>Promise.all</code>不同的是，<code>Promise.allSettled</code>会等到所有的 prromise 都结束后才完成，无论每个 promise 结束后是 fulfilled 还是 rejected。</p>
+<pre><code class="language-js">const promises = [fetch(&quot;/api/endpoint1&quot;), fetch(&quot;/api/endpoint2&quot;)];
+Promise.allSettled(promises).then((results) =&gt; {
+  results.forEach((result, index) =&gt; {
+    if (result.status === &quot;fulfilled&quot;) {
+      console.log(`Promise ${index + 1} succeeded with value ${result.value}`);
+    } else {
+      console.error(`Promise ${index + 1} failed with reason ${result.reason}`);
+    }
+  });
+});
+</code></pre>
+<h2>10. 处理多个 Promises 的最快响应</h2>
+<p>当处理多个异步请求，而只关心最快回应的结果时，可以使用<code>Promise.race</code>来实现。</p>
+<pre><code class="language-js">const promises = [fetch(&quot;/api/endpointA&quot;), fetch(&quot;/api/endpointB&quot;)];
+Promise.race(promises)
+  .then((value) =&gt; {
+    // 处理最快的响应
+  })
+  .catch((reason) =&gt; {
+    // 处理最早的拒绝
+  });
+</code></pre>
+<h2>11. 使用 async/await 简化 Promise</h2>
+<p><code>async</code>和<code>await</code>关键字可以让异步代码看起来更像同步代码，使得逻辑更清晰。</p>
+<pre><code class="language-js">async function asyncFunction() {
+  try {
+    const result = await aPromise;
+    // Do something with result
+  } catch (error) {
+    // Handle error
+  }
+}
+</code></pre>
+<h2>12. 连续获取不确定数量的数据页</h2>
+<p>当获取分页数据时，我们可能不知道一共有多少页，可以采取递归的方式直到取完所有页。</p>
+<pre><code class="language-js">async function fetchPages(apiEndpoint, page = 1, allResults = []) {
+  const response = await fetch(`${apiEndpoint}?page=${page}`);
+  const data = await response.json();
+  if (data.nextPage) {
+    return fetchPages(apiEndpoint, page + 1, allResults.concat(data.results));
+  } else {
+    return allResults.concat(data.results);
+  }
+}
+</code></pre>
+<h2>13. 映射并发 Promises 并处理结果数组</h2>
+<p>当需要并发执行异步函数并处理所有结果时，可以使用<code>Promise.all</code>。</p>
+<pre><code class="language-js">const fetchUrls = (urls) =&gt; {
+  const fetchPromises = urls.map((url) =&gt;
+    fetch(url).then((response) =&gt; response.json())
+  );
+  return Promise.all(fetchPromises);
+};
+</code></pre>
+<h2>14. 使用 Generators 管理流程</h2>
+<p>通过将<code>async/await</code>与 Generators 配合，可以创建一个可控制的异步流程管理器。</p>
+<pre><code class="language-js">function* asyncGenerator() {
+  const result1 = yield aPromise1;
+  const result2 = yield aPromise2(result1);
+  // ...
+}
+</code></pre>
+<h2>15. 使用 Promises 替代回调</h2>
+<p>Promise 提供了一种更标准和便捷的方式来处理异步操作，将回调函数替换为 Promise。</p>
+<pre><code class="language-js">const callbackToPromise = (fn, ...args) =&gt; {
+  return new Promise((resolve, reject) =&gt; {
+    fn(...args, (error, result) =&gt; {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+};
+</code></pre>
+<h2>16. 流式处理大型数据集</h2>
+<p>使用 Promise 处理大型数据集时，最好是流式地获取和处理这些数据，以避免内存过载。</p>
+<pre><code class="language-js">async function processLargeDataSet(dataSet) {
+  for (const dataChunk of dataSet) {
+    const processedChunk = await process(dataChunk); // Returns a Promise
+    await save(processedChunk); // Another async operation
+  }
+}
+</code></pre>
+<h2>17. 同时执行多个异步任务并处理中途的失败</h2>
+<p>有时即便其中一个异步任务失败了，也希望其他任务能够顺利完成。</p>
+<pre><code class="language-js">const promises = [promise1, promise2, promise3];
+Promise.all(promises.map(reflectPromise)).then((results) =&gt; {
+  results.forEach((result) =&gt; {
+    if (result.status === &quot;fulfilled&quot;) {
+      // Do something with result.value
+    } else {
+      // Handle result.error
+    }
+  });
+});
+</code></pre>
+<h2>18. Promise-pipeline</h2>
+<p>通过管道化 promise 可以依次执行一系列异步操作。</p>
+<pre><code class="language-js">const promisePipe =
+  (...fns) =&gt;
+  (value) =&gt;
+    fns.reduce((p, f) =&gt; p.then(f), Promise.resolve(value));
+</code></pre>
+<h2>19. 使用 promise 实现一个延时</h2>
+<p>可以使用 Promise 结合 setTimeout 来实现一个异步的延时函数。</p>
+<pre><code class="language-js">const delay = (ms) =&gt; new Promise((resolve) =&gt; setTimeout(resolve, ms));
+</code></pre>
+<h2>20. 动态生成 Promise 链</h2>
+<p>在一些情况下，可能需要根据不同条件动态生成一系列的 Promise 链。</p>
+<pre><code class="language-js">const tasks = [task1, task2, task3]; // Array of asynchronous tasks
+
+const promiseChain = tasks.reduce((chain, currentTask) =&gt; {
+  return chain.then(currentTask);
+}, Promise.resolve());
+</code></pre>
+<h2>21. 使用 Promise 实现简易的异步锁</h2>
+<p>在多线程环境中，可以使用 Promise 来实现一个简易的异步锁。</p>
+<pre><code class="language-js">let lock = Promise.resolve();
+
+const acquireLock = () =&gt; {
+  let release;
+  const waitLock = new Promise((resolve) =&gt; {
+    release = resolve;
+  });
+  const tryAcquireLock = lock.then(() =&gt; release);
+  lock = waitLock;
+  return tryAcquireLock;
+};
+</code></pre>
+<h2>22. 组合多个 Promise 操作为一个函数</h2>
+<p>可以将多个 Promise 操作合并为一个函数，通过函数复用减少冗余代码。</p>
+<pre><code class="language-js">const fetchDataAndProcess = async (url) =&gt; {
+  const data = await fetch(url).then((resp) =&gt; resp.json());
+  return processData(data);
+};
+</code></pre>
+<h2>23. 处理可选的异步操作</h2>
+<p>有些场合下，一个异步操作是可选的，可以使用下面的方式来处理。</p>
+<pre><code class="language-js">async function optionallyAsyncTask(condition, asyncOperation, fallbackValue) {
+  if (condition) {
+    return await asyncOperation;
+  } else {
+    return fallbackValue;
+  }
+}
+</code></pre>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      const imgs = document.querySelectorAll("img");
+      imgs.forEach((img) => {
+        img.onclick = () => {
+          img.style.opacity = 0;
+          let imgHove = document.querySelector(".img-hover");
+          if (imgHove) imgHove.remove();
+          const src = img.src;
+          const html = `
+            <div class="img-hover">
+              <img src="${src}" />
+            </div>
+          `;
+          document.body.insertAdjacentHTML("beforeend", html);
+          document.body.style.overflow = "hidden";
+          imgHove = document.querySelector(".img-hover");
+          imgHove.onclick = () => {
+            imgHove.remove();
+            document.body.style.overflow = "initial";
+            img.style.opacity = 1;
+          };
+        };
+      });
+      const headings = document.querySelectorAll(".md h2, .md h3");
+      const navContainer = document.querySelector(".layout__main_map_content");
+      const layoutMainMap = document.querySelector(".layout__main_map");
+      if (!headings?.length) {
+        layoutMainMap.style.display = "none";
+      }
+      headings.forEach((heading, index) => {
+        const id = `heading-${index}`;
+        heading.id = id;
+        const link = document.createElement("a");
+        link.href = `#${id}`;
+        link.textContent =
+          heading.tagName === "H2"
+            ? `${heading.textContent}`
+            : `· ${heading.textContent}`;
+        link.title = link.textContent;
+        link.style.display = "block";
+        link.style.margin = "5px 0";
+        link.style.color = heading.tagName === "H2" ? "blue" : "darkblue";
+        link.style.cursor = "pointer";
+        link.className = heading.tagName === "H2" ? "H2" : "H3";
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+        });
+        navContainer.appendChild(link);
+      });
+      const swicthDom = document.querySelector(".layout__main_map_swicth");
+      const mapDom = document.querySelector(".layout__main_map");
+      swicthDom.onclick = () => {
+        mapDom.classList.toggle("show");
+      };
+    </script>
+  </body>
+</html>
