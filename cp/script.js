@@ -1,4 +1,11 @@
-function generateLotteryNumbers(nums = 7) {
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const randomIndex = Math.floor(Math.random() * (i + 1));
+    [array[i], array[randomIndex]] = [array[randomIndex], array[i]];
+  }
+}
+
+function generateLotteryNumbers(nums = 5) {
   const numbers = [];
   for (let i = 0; i < nums; i++) {
     const redNumbers = generateRedNumbers();
@@ -10,14 +17,9 @@ function generateLotteryNumbers(nums = 7) {
 }
 
 function generateRedNumbers() {
-  const redNumbers = [];
-  while (redNumbers.length < 6) {
-    const randomNumber = Math.floor(Math.random() * 33) + 1;
-    if (!redNumbers.includes(randomNumber)) {
-      redNumbers.push(randomNumber);
-    }
-  }
-  return redNumbers.sort((a, b) => a - b);
+  const redPool = Array.from({ length: 33 }, (_, i) => i + 1);
+  shuffleArray(redPool);
+  return redPool.slice(0, 6).sort((a, b) => a - b);
 }
 
 function generateBlueNumber() {
@@ -83,11 +85,11 @@ create.onclick = () => {
 
 const createCanvas = (arr) => {
   const conArr = convertArray(arr);
-  const ssqLocal = localStorage.getItem("shuangseqiu");
+  const ssqLocal = localStorage.getItem("ssq");
   if (!ssqLocal) {
-    localStorage.setItem("shuangseqiu", conArr);
+    localStorage.setItem("ssq", conArr);
   } else {
-    localStorage.setItem("shuangseqiu", `${ssqLocal}\n${conArr}`);
+    localStorage.setItem("ssq", `${ssqLocal}\n${conArr}`);
   }
   var canvas = document.createElement("canvas");
   canvas.width = 400;
@@ -126,8 +128,9 @@ const createCanvas = (arr) => {
 };
 
 function generateRandomString(length) {
-  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
+  const charset =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
   for (let i = 0; i < length; i++) {
     const randomIndex = Math.floor(Math.random() * charset.length);
     result += charset[randomIndex];
@@ -161,7 +164,7 @@ closeLeftDom.onclick = () => {
 
 const renderHtml = () => {
   wrapperLeftMaskContent.innerHTML = "";
-  const getBallData = localStorage.getItem("shuangseqiu");
+  const getBallData = localStorage.getItem("ssq");
   const ulDom = document.createElement("ul");
   ulDom.id = "boxUl";
   wrapperLeftMaskContent.append(ulDom);
@@ -195,7 +198,7 @@ const renderHtml = () => {
       }, 100);
     }
   } else {
-    alert('没有存储号码')
+    alert("没有存储号码");
   }
 };
 
@@ -212,7 +215,9 @@ const getLastestData = () => {
         const time = res?.data?.time || "";
         document.querySelector("#time__ssq").textContent = time;
         document.querySelector("#code__ssq").textContent = openCode;
-        document.querySelector(".mask_ssq .wrapper__left_mask_time").style.display = "";
+        document.querySelector(
+          ".mask_ssq .wrapper__left_mask_time"
+        ).style.display = "";
         // console.log('time', time)
         // const expect = res?.data?.expect || "";
         // if (time) {

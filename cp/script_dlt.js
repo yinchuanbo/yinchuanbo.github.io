@@ -1,4 +1,4 @@
-function generateLotteryNumbersDLT(nums = 10) {
+function generateLotteryNumbersDLT(nums = 7) {
   const numbers = [];
   for (let i = 0; i < nums; i++) {
     const redNumbers = generateRedNumbersDLT();
@@ -10,25 +10,15 @@ function generateLotteryNumbersDLT(nums = 10) {
 }
 
 function generateRedNumbersDLT() {
-  const redNumbers = [];
-  while (redNumbers.length < 5) {
-    const randomNumber = Math.floor(Math.random() * 35) + 1;
-    if (!redNumbers.includes(randomNumber)) {
-      redNumbers.push(randomNumber);
-    }
-  }
-  return redNumbers.sort((a, b) => a - b);
+  const redPool = Array.from({ length: 35 }, (_, i) => i + 1);
+  shuffleArray(redPool);
+  return redPool.slice(0, 5).sort((a, b) => a - b);
 }
 
 function generateBlueNumbersDLT() {
-  const blueNumbers = [];
-  while (blueNumbers.length < 2) {
-    const randomNumber = Math.floor(Math.random() * 12) + 1;
-    if (!blueNumbers.includes(randomNumber)) {
-      blueNumbers.push(randomNumber);
-    }
-  }
-  return blueNumbers.sort((a, b) => a - b);
+  const redPool = Array.from({ length: 12 }, (_, i) => i + 1);
+  shuffleArray(redPool);
+  return redPool.slice(0, 2).sort((a, b) => a - b);
 }
 
 function formatNumbersDLT(redNumbers, blueNumbers) {
@@ -151,7 +141,9 @@ const wrapperLeftMaskDLT = document.querySelector(".mask_dlt");
 const wrapperLeftMaskContentDLT = wrapperLeftMaskDLT.querySelector(
   ".wrapper__left_mask_content"
 );
-const closeLeftDomDLT = wrapperLeftMaskDLT.querySelector(".wrapper__left_mask_close");
+const closeLeftDomDLT = wrapperLeftMaskDLT.querySelector(
+  ".wrapper__left_mask_close"
+);
 
 checkDLT.onclick = () => {
   renderHtmlDLT();
@@ -162,7 +154,7 @@ closeLeftDomDLT.onclick = () => {
 };
 
 const renderHtmlDLT = () => {
-  wrapperLeftMaskContentDLT.innerHTML = ""
+  wrapperLeftMaskContentDLT.innerHTML = "";
   const getBallData = localStorage.getItem("dlt");
   const ulDom = document.createElement("ul");
   ulDom.id = "boxUlDLT";
@@ -176,7 +168,7 @@ const renderHtmlDLT = () => {
         const getBallList = getBallLists[i].trim();
         const splitSymbol = getBallList.includes("-") ? "-" : "+";
         const curBall = getBallList.split(splitSymbol);
-        console.log('curBall', curBall)
+        console.log("curBall", curBall);
         if (curBall?.length === 2) {
           const curBallRed = (curBall[0] + "").trim();
           const curBallBlue = curBall[1].trim();
@@ -205,7 +197,7 @@ const renderHtmlDLT = () => {
       }, 100);
     }
   } else {
-    alert('没有存储号码')
+    alert("没有存储号码");
   }
 };
 
@@ -222,11 +214,13 @@ const getLastestDataDLT = () => {
         const time = res?.data?.time || "";
         document.querySelector("#time__dlt").textContent = time;
         document.querySelector("#code__dlt").textContent = openCode;
-        document.querySelector(".mask_dlt .wrapper__left_mask_time").style.display = "";
+        document.querySelector(
+          ".mask_dlt .wrapper__left_mask_time"
+        ).style.display = "";
         openCode = openCode.split("+");
         let openCodeRed = openCode[0].trim();
         openCodeRed = openCodeRed.split(",");
-        let openCodeBlue = [openCode[1], openCode[2]]
+        let openCodeBlue = [openCode[1], openCode[2]];
         for (let k = 0; k < openCodeRed.length; k++) {
           const redball = parseInt(openCodeRed[k].trim());
           const getAllRed = document.querySelectorAll(
@@ -247,12 +241,12 @@ const getLastestDataDLT = () => {
         }
       }
     });
-}
+};
 
 ssqClear.onclick = () => {
-  localStorage.removeItem("shuangseqiu")
-}
+  localStorage.removeItem("ssq");
+};
 
 dltClear.onclick = () => {
-  localStorage.removeItem("dlt")
-}
+  localStorage.removeItem("dlt");
+};
