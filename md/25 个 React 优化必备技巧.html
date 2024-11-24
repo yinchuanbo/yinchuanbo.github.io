@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>25 个 React 优化必备技巧</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 2">
+          <div class="layout__main_left-switch"></div>
+          <ul>
+            <li class="active"><a title="25 个 React 优化必备技巧" href="/md/25 个 React 优化必备技巧.html">03 25 个 React 优化必备技巧</a></li><li class=""><a title="前端屏幕适配" href="/md/前端屏幕适配.html">02 前端屏幕适配</a></li><li class=""><a title="React Hooks - 布局效果的终极解决方案" href="/md/React Hooks - 布局效果的终极解决方案.html">01 React Hooks - 布局效果的终极解决方案</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_map" style="order: 0">
+          <div class="layout__main_map_content"></div>
+          <div class="layout__main_map_swicth">
+          </div>
+        </div>
+        <div
+          style="order: 1"
+          class="layout__main_right md "
+        >
+          <div class="page-header">
+            <h1>25 个 React 优化必备技巧</h1>
+            <p class="time">HaoTian · 2024-11-23 22:25:19</p>
+          </div>
+          <h2>一. 性能优化：编写高效、流畅的 React 应用</h2>
+<p>性能是任何应用成功的基石，尤其在 React 中，合理的性能优化能显著提升用户体验。以下技巧将帮助您编写高效、流畅的 React 应用：</p>
+<h3>1. 避免在组件内部声明或嵌套组件</h3>
+<p>虽然在组件内部声明或嵌套其他组件看起来很方便，但这会严重影响应用性能。 每次父组件因状态更新而重新渲染时，嵌套组件也会被重新创建，导致嵌套组件中之前声明的状态和数据丢失，从而造成性能问题。 为了避免这种情况，建议将组件声明独立出来，而不是嵌套在其他组件内部。</p>
+<pre><code class="language-jsx">// 错误的做法：
+const UsersList = () =&gt; {
+  // ❌ 在UsersList组件内部声明User组件
+  const User = ({ user }) =&gt; {
+    // 部分代码
+    return &lt;div&gt;{/* User组件JSX */}&lt;/div&gt;;
+  };
+  return &lt;div&gt;{/* UsersList组件JSX */}&lt;/div&gt;;
+};
+
+// 正确的做法：
+// ✅ 在UsersList组件外部声明User组件
+const User = ({ user }) =&gt; {
+  // 部分代码
+  return &lt;div&gt;{/* User组件JSX */}&lt;/div&gt;;
+};
+
+const UsersList = ({ users }) =&gt; {
+  // 部分代码
+  return &lt;div&gt;{/* UsersList组件JSX */}&lt;/div&gt;;
+};
+</code></pre>
+<h3>2. 正确使用 useEffect 中的依赖项数组</h3>
+<p><code>useEffect</code>钩子是 React 中处理副作用的重要工具，但如果不正确使用依赖项数组，很容易导致意想不到的 bug，例如闭包过时问题。 为了避免此类问题，请务必将<code>useEffect</code>内部引用的所有外部变量都包含在依赖项数组<code>[]</code>中。 这能确保<code>useEffect</code>只在相关依赖项发生变化时才执行，避免不必要的重新渲染和潜在的错误。</p>
+<pre><code class="language-jsx">useEffect(() =&gt; {
+  const fetchData = (id) =&gt; {
+    // 获取数据的代码
+  };
+  id &amp;&amp; fetchData(id);
+}, [id]);
+</code></pre>
+<h3>3. 使用 useState 进行状态的延迟初始化</h3>
+<p>对于复杂的初始状态计算，如果在组件挂载前就执行，可能会影响应用的加载速度。<code>useState</code>允许您通过传入一个函数来延迟初始化状态，直到组件实际渲染时才进行计算。 这能确保复杂的计算不会阻塞应用的初始加载过程，从而提升用户体验。</p>
+<pre><code class="language-jsx">const useLocalStorage = (key, initialValue) =&gt; {
+  const [value, setValue] = useState(() =&gt; {
+    // 状态的延迟初始化
+    try {
+      const localValue = window.localStorage.getItem(key);
+      return localValue ? JSON.parse(localValue) : initialValue;
+    } catch (error) {
+      return initialValue;
+    }
+  });
+
+  useEffect(() =&gt; {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+
+  return [value, setValue];
+};
+</code></pre>
+<h3>4. 使用 useMemo 记忆化耗时函数</h3>
+<p>在 React 应用中，一些计算可能比较耗时，如果在每次渲染时都重复执行，就会降低应用的性能。<code>useMemo</code>钩子可以缓存耗时函数的计算结果，只有当依赖项发生变化时才会重新计算。 这能有效避免重复计算，提高应用的响应速度。</p>
+<pre><code class="language-jsx">// 不要这样写：
+function App({ users }) {
+  return (
+    &lt;ul&gt;
+      {users
+        .map((user) =&gt; ({
+          id: user.id,
+          name: user.name,
+          age: user.age,
+        }))
+        .sort((a, b) =&gt; a.age - b.age)
+        .map(({ id, name, age }) =&gt; {
+          return (
+            &lt;li key={id}&gt;
+              {name} - {age}
+            &lt;/li&gt;
+          );
+        })}
+    &lt;/ul&gt;
+  );
+}
+
+// 应该这样写：
+function App({ users }) {
+  const sortedUsers = useMemo(() =&gt; {
+    return users
+      .map((user) =&gt; ({
+        id: user.id,
+        name: user.name,
+        age: user.age,
+      }))
+      .sort((a, b) =&gt; a.age - b.age);
+  }, [users]);
+
+  return (
+    &lt;ul&gt;
+      {sortedUsers.map(({ id, name, age }) =&gt; {
+        return (
+          &lt;li key={id}&gt;
+            {name} - {age}
+          &lt;/li&gt;
+        );
+      })}
+    &lt;/ul&gt;
+  );
+}
+</code></pre>
+<h3>5. 使用自定义钩子实现可复用逻辑</h3>
+<p>代码复用是提高开发效率的关键。自定义钩子允许您将常用的逻辑封装成可复用的函数，方便在多个组件中使用。 这不仅能减少代码冗余，还能提高代码的可读性和可维护性。</p>
+<pre><code class="language-jsx">function useFetch(url) {
+  // 通过url获取API数据的自定义钩子
+  const [data, setData] = useState(null);
+
+  useEffect(() =&gt; {
+    fetch(url)
+      .then((response) =&gt; response.json())
+      .then((data) =&gt; setData(data));
+  }, [url]);
+
+  return data;
+}
+</code></pre>
+<h3>6. 使用 Fragments 避免多余的 DOM 节点</h3>
+<p>不必要的 DOM 节点会增加渲染负担，影响应用性能。React Fragments (<code>&lt;&gt; &lt;/&gt;</code> 或 <code>&lt;React.Fragment&gt;&lt;/React.Fragment&gt;</code>) 允许您对多个元素进行分组，而无需在 DOM 中添加额外的节点，从而保持 DOM 结构简洁，提升渲染效率。</p>
+<pre><code class="language-jsx">// 不要这样写：
+return (
+  &lt;div&gt;
+    &lt;Child1 /&gt;
+    &lt;Child2 /&gt;
+  &lt;/div&gt;
+);
+
+// 应该这样写：
+return (
+  &lt;&gt;
+    &lt;Child1 /&gt;
+    &lt;Child2 /&gt;
+  &lt;/&gt;
+);
+
+// 或者这样写：
+return (
+  &lt;React.Fragment&gt;
+    &lt;Child1 /&gt;
+    &lt;Child2 /&gt;
+  &lt;/React.Fragment&gt;
+);
+</code></pre>
+<h3>7. 利用复合组件构建灵活的 UI</h3>
+<p>复合组件通过组合多个子组件来创建一个更复杂的组件，子组件之间可以隐式地进行通信，实现更灵活的 UI 交互。 这使得组件更具扩展性和复用性。</p>
+<pre><code class="language-jsx">function Tab({ children }) {
+  return &lt;div&gt;{children}&lt;/div&gt;;
+}
+
+Tab.Item = function TabItem({ label, children }) {
+  return (
+    &lt;div&gt;
+      &lt;h3&gt;{label}&lt;/h3&gt;
+      &lt;div&gt;{children}&lt;/div&gt;
+    &lt;/div&gt;
+  );
+};
+
+// 使用示例
+&lt;Tab&gt;
+  &lt;Tab.Item label=&quot;Tab 1&quot;&gt;Content 1&lt;/Tab.Item&gt;
+  &lt;Tab.Item label=&quot;Tab 2&quot;&gt;Content 2&lt;/Tab.Item&gt;
+&lt;/Tab&gt;;
+</code></pre>
+<h3>8. 使用 map 方法渲染列表时始终添加 key 属性</h3>
+<p>在使用<code>map</code>方法渲染列表时，<code>key</code>属性至关重要。它能帮助 React 高效地更新列表，避免不必要的重新渲染，从而提升性能和用户体验。 <code>key</code>的值应该在每次渲染时保持唯一，最好使用数据库 ID 等唯一标识符。 避免使用索引作为<code>key</code>，因为索引在数组元素重新排序时会失效，导致性能问题和 UI 异常。</p>
+<pre><code class="language-jsx">// ✅ 使用唯一id作为key
+{
+  items.map((item) =&gt; &lt;Item key={item.id} item={item} /&gt;);
+}
+
+// ❌ 不要使用索引作为key
+{
+  items.map((item, index) =&gt; &lt;Item key={index} item={item} /&gt;);
+}
+</code></pre>
+<h3>9. 使用 IntersectionObserver 进行元素的懒加载</h3>
+<p>对于包含大量图片或视频的长页面，懒加载可以显著提升加载速度和用户体验。Intersection Observer API 可以检测元素是否进入视口，从而实现懒加载，减少初始加载时间和资源消耗。</p>
+<pre><code class="language-js">useEffect(() =&gt; {
+  const observer = new IntersectionObserver((entries) =&gt; {
+    entries.forEach((entry) =&gt; {
+      if (entry.isIntersecting) {
+        // 加载图像或其他数据
+      }
+    });
+  });
+  observer.observe(elementRef.current);
+}, []);
+</code></pre>
+<h3>10. 避免不必要的 useEffect 和 setState 调用</h3>
+<p><code>useEffect</code> 和 <code>setState</code> 会触发组件重新渲染，这会影响性能。 应尽量避免不必要的调用，减少不必要的计算。 在<code>useEffect</code>中合理运用依赖项数组可以避免不必要的重新渲染。 同样，减少不必要的<code>setState</code>调用能显著提高应用的性能。</p>
+<pre><code class="language-js">// 不要这样写：
+const [username, setUsername] = useState(&quot;&quot;);
+const [age, setAge] = useState(&quot;&quot;);
+const [displayText, setDisplayText] = useState(&quot;&quot;);
+
+useEffect(() =&gt; {
+  setDisplayText(
+    `Hello ${username}, your year of birth is ${new Date().getFullYear() - age}`
+  );
+}, [username, age]);
+
+// 应该这样写：
+
+const [username, setUsername] = useState(&quot;&quot;);
+const [age, setAge] = useState(&quot;&quot;);
+
+// 在组件中创建局部变量
+const displayText = `Hello ${username},
+your year of birth is ${new Date().getFullYear() - age}`;
+</code></pre>
+<h2>二. 代码规范与最佳实践</h2>
+<h3>11. 使用错误边界避免生产环境中的应用崩溃</h3>
+<p><strong>React 错误边界</strong> 提供了一种强大的机制来捕获和优雅地处理组件渲染过程中发生的错误。它们通过将错误隔离到特定组件来防止整个应用程序崩溃，从而允许应用程序的其他部分继续运行。</p>
+<pre><code class="language-jsx">&lt;ErrorBoundary
+  FallbackComponent={ErrorPage}
+  onReset={() =&gt; (location.href = &quot;/&quot;)}
+&gt;
+  &lt;App /&gt;
+&lt;/ErrorBoundary&gt;
+</code></pre>
+<h3>12. 将大型组件拆分成较小的组件</h3>
+<p>将大型组件分解成更小、可重用的组件，以提高可读性和可维护性。目标是遵循“单一职责”原则的组件。较小的组件更容易测试、维护和理解。</p>
+<pre><code class="language-jsx">const Header = () =&gt; &lt;header&gt;{/* Header组件代码 */}&lt;/header&gt;;
+const Footer = () =&gt; &lt;footer&gt;{/* Footer组件代码 */}&lt;/footer&gt;;
+</code></pre>
+<h3>13. 始终为 useState 钩子分配初始值</h3>
+<p>在函数式组件中声明状态时，始终像这样分配初始值：</p>
+<pre><code class="language-jsx">// 设置空数组的初始值
+const [pageNumbers, setPageNumbers] = useState([]);
+</code></pre>
+<p>永远不要像这样声明没有任何默认值的任何状态：</p>
+<pre><code class="language-jsx">const [pageNumbers, setPageNumbers] = useState();
+</code></pre>
+<h3>14. 尽可能避免在组件中编写额外的函数</h3>
+<p>函数式组件中声明的每个函数都会在组件每次重新渲染时重新创建。因此，如果您声明了单独的函数来显示/隐藏操作状态的模态框，例如：</p>
+<pre><code class="language-jsx">const [isOpen, setIsOpen] = React.useState(false);
+
+function openModal() {
+  setIsOpen(true);
+}
+
+function closeModal() {
+  setIsOpen(false);
+}
+</code></pre>
+<p>那么，您可以通过创建一个处理模态框打开和关闭的单个<code>toggleModal</code>函数来简化此逻辑：</p>
+<pre><code class="language-jsx">const [isOpen, setIsOpen] = React.useState(false);
+
+function toggleModal() {
+  setIsOpen((open) =&gt; !open);
+}
+</code></pre>
+<h3>15. 理解 React 中的状态更新和立即访问</h3>
+<p>在 React 中，请记住状态不会在设置后立即更新。这意味着如果您尝试在设置状态后立即访问状态值，则可能无法获取更新后的值。例如，考虑以下代码，我们尝试在调用<code>setIsOnline</code>后立即记录更新后的状态：</p>
+<pre><code class="language-jsx">const [isOnline, setIsOnline] = React.useState(false);
+
+function toggleOnlineStatus() {
+  setIsOnline(!isOnline);
+  console.log(isOnline); // 记录旧值，而不是更新后的值
+}
+</code></pre>
+<p>下面的代码也是如此：</p>
+<pre><code class="language-jsx">const [isOnline, setIsOnline] = React.useState(false);
+
+function doSomething() {
+  if (isOnline) {
+    // isOnline值仍然是旧的，尚未更新
+    // 做某事
+  }
+}
+
+function toggleOnlineStatus() {
+  setIsOnline(!isOnline);
+  doSomething();
+}
+</code></pre>
+<h3>16. 不要在所有情况下都使用 Context API</h3>
+<p>将属性向下传递到一两个级别的组件并不是问题。属性旨在传递给组件，因此无需仅为避免传递这些属性而使用 Context API。</p>
+<p>许多 React 开发人员使用 Context API 只是为了避免传递属性，但这并不是预期的用例。只有当您想要避免<strong>属性穿透</strong>（指的是将属性传递给深度嵌套的组件）时，才应使用 Context API。</p>
+<h3>17. 始终使用<code>null</code>作为在状态中存储对象的初始值</h3>
+<p>当您想在状态中存储对象时，请使用<code>null</code>作为初始值，如下所示：</p>
+<pre><code class="language-jsx">const [user, setUser] = useState(null);
+</code></pre>
+<p>而不是空对象：</p>
+<pre><code class="language-jsx">const [user, setUser] = useState({});
+</code></pre>
+<h3>18. 始终创建 ContextProvider 组件而不是直接使用 Context.Provider</h3>
+<p>使用 React Context API 时，不要像下面这样直接将<code>value</code>属性传递给<code>Provider</code>：</p>
+<pre><code class="language-jsx">const App = () =&gt; {
+  // ....
+  return (
+    &lt;AuthContext.Provider value={{ user, updateUser }}&gt;
+      &lt;ComponentA /&gt;
+      &lt;ComponentB /&gt;
+    &lt;/AuthContext.Provider&gt;
+  );
+};
+</code></pre>
+<p>在上面的代码中，每当<code>App</code>组件因状态更新而重新渲染时，传递给<code>AuthContext.Provider</code>的<code>value</code>属性都会更改，因此，<code>AuthContext.Provider</code>的开始和结束标记之间的所有直接和间接组件都会不必要地重新渲染。</p>
+<p>因此，始终创建一个单独的组件，如下所示：</p>
+<pre><code class="language-jsx">export const AuthContextProvider = ({ children }) =&gt; {
+  const [user, setUser] = useState(null);
+
+  const updateUser = (user) =&gt; {
+    setUser(user);
+  };
+
+  return (
+    &lt;AuthContext.Provider value={{ user, updateUser }}&gt;
+      {children}
+    &lt;/AuthContext.Provider&gt;
+  );
+};
+</code></pre>
+<p>并像下面这样使用它：</p>
+<pre><code class="language-jsx">&lt;AuthContextProvider&gt;
+  &lt;ComponentA /&gt;
+  &lt;ComponentB /&gt;
+&lt;/AuthContextProvider&gt;
+</code></pre>
+<h3>19. 避免在 JSX 中使用逻辑与运算符 (&amp;&amp;) 导致的意外渲染</h3>
+<p>不要犯这样的错误：</p>
+<pre><code class="language-jsx">{
+  users.length &amp;&amp; &lt;User /&gt;;
+}
+</code></pre>
+<p>在上面的代码中，如果<code>users.length</code>为零，那么最终会在屏幕上显示<code>0</code>。因为逻辑<code>&amp;&amp;</code>运算符（也称为短路运算符）如果它的值为假值，则会立即返回该值。</p>
+<p>因此，如果<code>users.length</code>为<code>0</code>，则上面的代码等效于下面的代码：</p>
+<pre><code class="language-jsx">{
+  0 &amp;&amp; &lt;User /&gt;;
+}
+</code></pre>
+<p>其计算结果为<code>{0}</code>。</p>
+<p>相反，您可以使用以下任何一种方法来正确编写 JSX：</p>
+<pre><code class="language-jsx">→ { users.length &gt; 0 &amp;&amp; &lt;User /&gt; }
+→ { !!users.length &amp;&amp; &lt;User /&gt; }
+→ { Boolean(users.length) &amp;&amp; &lt;User /&gt; }
+→ { users.length ? &lt;User /&gt; : null }
+</code></pre>
+<h2>三、状态管理</h2>
+<h3>20. 使用 Context 避免属性穿透</h3>
+<p>不要将属性通过许多嵌套组件传递，使用 React Context API 进行更易于管理的数据共享。最佳用例：共享全局状态，例如主题、用户数据或设置。</p>
+<pre><code class="language-jsx">export const AuthContext = React.createContext();
+
+export const AuthContextProvider = ({ children }) =&gt; {
+  const [user, setUser] = useState(null);
+
+  const updateUser = (user) =&gt; {
+    setUser(user);
+  };
+
+  return (
+    &lt;AuthContext.Provider value={{ user, updateUser }}&gt;
+      {children}
+    &lt;/AuthContext.Provider&gt;
+  );
+};
+
+// 使用示例
+&lt;AuthContextProvider&gt;
+  &lt;App /&gt;
+&lt;/AuthContextProvider&gt;;
+</code></pre>
+<h2>四、高级特性应用</h2>
+<h3>21. 使用 useRef 钩子在渲染之间保持值不变</h3>
+<p>如果您不想在设置值时重新渲染组件，请使用<code>useRef</code>钩子，而不是使用<code>useState</code>钩子存储值。用例：存储超时、间隔、DOM 引用或任何不需要触发重新渲染的值，以避免闭包问题。</p>
+<pre><code class="language-jsx">const interval = useRef(-1);
+
+useEffect(() =&gt; {
+  interval.current = setInterval(() =&gt; {
+    console.log(&quot;Timer executed&quot;);
+  }, 1000);
+
+  return () =&gt; clearInterval(interval.current);
+}, []);
+</code></pre>
+<h3>22. 使用 React Suspense 进行代码分割</h3>
+<p>React 的 Suspense 允许您将代码分割成更小的块，通过仅在需要时加载组件来提高性能。</p>
+<pre><code class="language-jsx">import { Suspense, lazy } from &quot;react&quot;;
+import { BrowserRouter, Route, Routes } from &quot;react-router-dom&quot;;
+
+const Dashboard = lazy(() =&gt; import(&quot;./pages/dashboard&quot;));
+const Profile = lazy(() =&gt; import(&quot;./pages/profile&quot;));
+
+const App = () =&gt; {
+  return (
+    &lt;BrowserRouter&gt;
+      &lt;Suspense fallback={&lt;p&gt;Loading...&lt;/p&gt;}&gt;
+        &lt;Routes&gt;
+          &lt;Route path=&quot;/dashboard&quot; element={&lt;Dashboard /&gt;} /&gt;
+          &lt;Route path=&quot;/profile&quot; element={&lt;Profile /&gt;} /&gt;
+        &lt;/Routes&gt;
+      &lt;/Suspense&gt;
+    &lt;/BrowserRouter&gt;
+  );
+};
+</code></pre>
+<h3>23. 使用 StrictMode 突出潜在问题</h3>
+<p>在开发环境中启用 React 的<code>StrictMode</code>可以识别应用程序中的潜在问题，例如不安全的生命周期、已弃用的方法或意外的副作用。启用<code>StrictMode</code>会在浏览器控制台中显示警告，这有助于避免未来的错误。</p>
+<pre><code class="language-jsx">&lt;React.StrictMode&gt;
+  &lt;App /&gt;
+&lt;/React.StrictMode&gt;
+</code></pre>
+<h2>五、其他最佳实践</h2>
+<h3>24. 在提升状态之前先在本地管理状态</h3>
+<p>避免不必要地将状态提升到父组件。如果某个状态只被单个组件或紧密相关的组件使用，则将其保留在本地，避免使状态管理过于复杂。因为每当父组件中的状态发生变化时，所有直接和间接子组件都会重新渲染。</p>
+<pre><code class="language-jsx">function ChildComponent() {
+  const [value, setValue] = useState(0);
+  return &lt;div&gt;{value}&lt;/div&gt;;
+}
+</code></pre>
+<h3>25. 始终为 useState 钩子分配初始值</h3>
+<p>在函数式组件中声明状态时，始终像这样分配初始值：</p>
+<pre><code class="language-jsx">// 设置空数组的初始值
+const [pageNumbers, setPageNumbers] = useState([]);
+</code></pre>
+<p>永远不要像这样声明没有任何默认值的任何状态：</p>
+<pre><code class="language-jsx">const [pageNumbers, setPageNumbers] = useState();
+</code></pre>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      const imgs = document.querySelectorAll("img");
+      imgs.forEach((img) => {
+        img.onclick = () => {
+          img.style.opacity = 0;
+          let imgHove = document.querySelector(".img-hover");
+          if (imgHove) imgHove.remove();
+          const src = img.src;
+          const html = `
+            <div class="img-hover">
+              <img src="${src}" />
+            </div>
+          `;
+          document.body.insertAdjacentHTML("beforeend", html);
+          document.body.style.overflow = "hidden";
+          imgHove = document.querySelector(".img-hover");
+          imgHove.onclick = () => {
+            imgHove.remove();
+            document.body.style.overflow = "initial";
+            img.style.opacity = 1;
+          };
+        };
+      });
+      const headings = document.querySelectorAll(".md h2, .md h3");
+      const navContainer = document.querySelector(".layout__main_map_content");
+      const layoutMainMap = document.querySelector(".layout__main_map");
+      if (!headings?.length) {
+        layoutMainMap.style.display = "none";
+      }
+      headings.forEach((heading, index) => {
+        const id = `heading-${index}`;
+        heading.id = id;
+        const link = document.createElement("a");
+        link.href = `#${id}`;
+        link.textContent =
+          heading.tagName === "H2"
+            ? `▪ ${heading.textContent}`
+            : `· ${heading.textContent}`;
+        link.title = link.textContent;
+        link.style.display = "block";
+        link.style.margin = "5px 0";
+        link.style.color = heading.tagName === "H2" ? "blue" : "darkblue";
+        link.style.cursor = "pointer";
+        link.className = heading.tagName === "H2" ? "H2" : "H3";
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+        });
+        navContainer.appendChild(link);
+      });
+      const swicthDom = document.querySelector(".layout__main_map_swicth");
+      const mapDom = document.querySelector(".layout__main_map");
+      swicthDom.onclick = () => {
+        mapDom.classList.toggle("show");
+      };
+      const swicthDom2 = document.querySelector(".layout__main_left-switch");
+      const mapDom2 = document.querySelector(".layout__main_left");
+      swicthDom2.onclick = () => {
+        mapDom2.classList.toggle("show");
+      };
+    </script>
+  </body>
+</html>
