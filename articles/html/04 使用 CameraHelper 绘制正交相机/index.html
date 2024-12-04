@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>04 使用 CameraHelper 绘制正交相机</title>
+</head>
+
+<body>
+    <main id="myContainer"></main>
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.171.0/+esm';
+
+        const myAspect = window.innerWidth / window.innerHeight;
+        const myFrustumSize = 700;
+
+        let myCamera, myScene, myRenderer, mySphereMesh;
+
+        let myOrthographicCamera, myOrthographicCameraHelper;
+
+        myRenderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true
+        });
+
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+
+        myRenderer.setClearColor("white", 1.0);
+
+        document.getElementById('myContainer').appendChild(myRenderer.domElement);
+
+        myScene = new THREE.Scene();
+
+        myCamera = new THREE.PerspectiveCamera(45, myAspect, 1, 5000);
+        myCamera.position.z = 2500;
+
+        myOrthographicCamera = new THREE.OrthographicCamera(
+            0.5 * myFrustumSize * myAspect / -2,
+            0.5 * myFrustumSize * myAspect / 2,
+            myFrustumSize / 2,
+            myFrustumSize / -2,
+            150,
+            1000
+        );
+        myOrthographicCameraHelper = new THREE.CameraHelper(myOrthographicCamera);
+        myScene.add(myOrthographicCameraHelper);
+
+        // 绘制圆球
+        const myGeometry = new THREE.SphereGeometry(200, 16, 8);
+        const myMaterial = new THREE.MeshBasicMaterial({ color: "green", wireframe: true });
+        mySphereMesh = new THREE.Mesh(myGeometry, myMaterial);
+        myScene.add(mySphereMesh);
+
+        function render() {
+            requestAnimationFrame(render);
+            const r = Date.now() * 0.0005;
+            mySphereMesh.rotation.x = myFrustumSize * Math.cos(r);
+            mySphereMesh.rotation.y = myFrustumSize * Math.sin(r);
+            mySphereMesh.rotation.z = myFrustumSize * Math.sin(r);
+            myOrthographicCamera.lookAt(mySphereMesh.position);
+            myRenderer.render(myScene, myCamera);
+        }
+        render();
+
+    </script>
+</body>
+
+</html>
