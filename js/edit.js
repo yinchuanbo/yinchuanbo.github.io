@@ -40,22 +40,6 @@ function init(obj, extension) {
     },
   });
   require(["vs/editor/editor.main"], function () {
-    // monaco.editor.defineTheme("myCustomTheme", {
-    //   base: "vs", // 基础主题: 'vs', 'vs-dark', 'hc-black'
-    //   inherit: true,
-    //   rules: [{ token: "comment", foreground: "999999", fontStyle: "italic" }],
-    //   colors: {
-    //     "editor.foreground": "#D4D4D4",
-    //     "editor.selectionBackground": "#264F78",
-    //     "editor.lineHighlightBackground": "#242424",
-    //     "editor.inactiveSelectionBackground": "#3B3A30",
-    //     "editorIndentGuide.background": "#2A2D2E",
-    //     "editorIndentGuide.activeBackground": "#2A2D2E",
-    //   },
-    // });
-
-    // monaco.editor.setTheme("myCustomTheme");
-
     let lan = extension;
     if (extension === "js") lan = "javascript";
     if (extension === "ejs") lan = "html";
