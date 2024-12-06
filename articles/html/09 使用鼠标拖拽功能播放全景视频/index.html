@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>09 使用鼠标拖拽功能播放全景视频</title>
+    <style>
+      body {
+        overflow: hidden;
+        padding: 0;
+        margin: 0;
+      }
+      p {
+        position: fixed;
+        top: 0;
+        left: 10px;
+        z-index: 1;
+      }
+      button {
+        background-color: #4caf50;
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      <button id="myButton1">Play</button>
+      <button id="myButton2">Pause</button>
+    </p>
+    <main id="myContainer"></main>
+    <video
+      id="myVideo"
+      loop
+      muted
+      style="display: none"
+      source
+      src="video02.mp4"
+    ></video>
+    <script type="module">
+      import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.171.0/+esm";
+      var myMouse = false,
+        myLongitude = 0,
+        myLatitude = 0,
+        myPhi = 0,
+        myTheta = 0,
+        myDistance = 50,
+        myPointerX = 0,
+        myPointerY = 0,
+        myPointerLongitude = 0,
+        myPointerLatitude = 0,
+        myContainer = document.getElementById("myContainer"),
+        videoDom = document.getElementById("myVideo"),
+        myButton1 = document.getElementById("myButton1"),
+        myButton2 = document.getElementById("myButton2");
+
+      var myRenderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+      });
+
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myContainer.appendChild(myRenderer.domElement);
+      // 创建透视相机
+      const myCamera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        1,
+        1100
+      );
+      // target 是相机的一个属性，表示相机的朝向目标位置。相机总是朝向这个目标。
+      myCamera.target = new THREE.Vector3(0, 0, 0);
+      const myScene = new THREE.Scene();
+
+      // 创建球体
+      const myGeometry = new THREE.SphereGeometry(500, 60, 40);
+      /*
+      scale 方法的作用是沿着 X、Y 和 Z 轴分别进行缩放。这里的参数是 (-1, 1, 1)，它表示：
+
+        1. -1: 沿 X 轴缩放倍数为 -1，意味着沿 X 轴反转几何体。这个操作将球体的内部和外部进行了翻转，通常用于创建一个“内表面可见”的效果。例如，如果你希望球体内部可见而不是外部，那么你可以通过这种方式实现。
+
+        2. 1: 沿 Y 轴和 Z 轴的缩放倍数分别为 1，表示 Y 轴和 Z 轴不进行缩放，保持原状。
+      */
+      myGeometry.scale(-1, 1, 1);
+      // 视频播放
+      videoDom.play();
+      // 指定视频作为球体纹理
+      const myTexture = new THREE.VideoTexture(videoDom);
+      const myMaterial = new THREE.MeshBasicMaterial({
+        map: myTexture,
+      });
+      const myVideoMesh = new THREE.Mesh(myGeometry, myMaterial);
+      myScene.add(myVideoMesh);
+
+      // 渲染球体
+      animate();
+      function animate() {
+        requestAnimationFrame(animate);
+        myLatitude = Math.max(-85, Math.min(85, myLatitude));
+        myPhi = THREE.MathUtils.degToRad(90 - myLatitude);
+        myTheta = THREE.MathUtils.degToRad(myLongitude);
+        // 重置透视相机的位置
+        myCamera.position.x = myDistance * Math.sin(myPhi) * Math.cos(myTheta);
+        myCamera.position.y = myDistance * Math.cos(myPhi);
+        myCamera.position.z = myDistance * Math.sin(myPhi) * Math.sin(myTheta);
+        myCamera.lookAt(myCamera.target); // 等价于 myCamera.lookAt(0, 0, 0);
+        myRenderer.render(myScene, myCamera);
+      }
+      // 鼠标操作
+      document.addEventListener("mousedown", function (event) {
+        event.preventDefault();
+        myMouse = true;
+        // 获取鼠标点击位置的坐标
+        myPointerX = event.clientX;
+        myPointerY = event.clientY;
+        myPointerLongitude = myLongitude;
+        myPointerLatitude = myLatitude;
+      });
+      document.addEventListener("mousemove", function (event) {
+        if (myMouse) {
+          myLongitude = (myPointerX - event.clientX) * 0.1 + myPointerLongitude;
+          myLatitude = (event.clientY - myPointerY) * 0.1 + myPointerLatitude;
+        }
+      });
+      document.addEventListener("mouseup", function () {
+        myMouse = false;
+      });
+      myButton1.onclick = function () {
+        videoDom.play();
+      };
+      myButton2.onclick = function () {
+        videoDom.pause();
+      };
+    </script>
+  </body>
+</html>

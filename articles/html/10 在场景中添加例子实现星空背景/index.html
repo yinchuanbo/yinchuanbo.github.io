@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>10 在场景中添加例子实现星空背景</title>
+    <style>
+      body {
+        overflow: hidden;
+        padding: 0;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="myContainer"></main>
+    <script type="module">
+      import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.171.0/+esm";
+      const myAspect = window.innerWidth / window.innerHeight;
+      let myCamera, myScene, myRenderer, mySphereMesh;
+
+      // 创建渲染器
+      myRenderer = new THREE.WebGLRenderer({
+        antialias: true, // 开启抗锯齿
+        alpha: true, // 允许背景透明
+      });
+
+      // 设置渲染器的大小为窗口大小
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setClearColor("black", 1); // 设置渲染器的背景颜色为黑色
+
+      // 将渲染器的 DOM 元素添加到 HTML 中指定的容器中
+      document.getElementById("myContainer").appendChild(myRenderer.domElement);
+
+      myScene = new THREE.Scene();
+
+      myCamera = new THREE.PerspectiveCamera(45, myAspect, 1, 5000);
+      myCamera.position.z = 2500;
+
+      // 绘制绿色圆球
+      mySphereMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(400, 16, 8),
+        new THREE.MeshBasicMaterial({ color: "green", wireframe: true })
+      );
+      myScene.add(mySphereMesh);
+
+      // 绘制星空背景
+      const myGeometry = new THREE.BufferGeometry();
+      const vertices = new Float32Array(5000 * 3);
+
+      for (let i = 0; i < 5000; i++) {
+        vertices[i * 3] = THREE.MathUtils.randFloatSpread(2000); // x 在 -1000 到 1000 之间生成一个随机数
+        vertices[i * 3 + 1] = THREE.MathUtils.randFloatSpread(2000); // y 在 -1000 到 1000 之间生成一个随机数
+        vertices[i * 3 + 2] = THREE.MathUtils.randFloatSpread(2000); // z 在 -1000 到 1000 之间生成一个随机数
+      }
+
+      myGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(vertices, 3)
+      );
+
+      const myPoints = new THREE.Points(
+        myGeometry,
+        new THREE.PointsMaterial({ color: 0xffffff })
+      );
+      myScene.add(myPoints);
+
+      animate();
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const r = Date.now() * 0.001;
+        mySphereMesh.rotation.x = 700 * Math.cos(r);
+        mySphereMesh.rotation.z = 700 * Math.sin(r);
+        mySphereMesh.rotation.y = 700 * Math.sin(r);
+        myRenderer.render(myScene, myCamera);
+      }
+    </script>
+  </body>
+</html>
