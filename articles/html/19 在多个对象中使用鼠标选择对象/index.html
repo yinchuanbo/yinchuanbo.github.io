@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>19 在多个对象中使用鼠标选择对象</title>
+    <style>
+      body {
+        overflow: hidden;
+        padding: 0;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="myContainer"></main>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setPixelRatio(window.devicePixelRatio);
+
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setClearColor("white", 1);
+
+      document.getElementById("myContainer").appendChild(myRenderer.domElement);
+
+      var myScene = new THREE.Scene();
+
+      myScene.add(new THREE.AmbientLight(0xffffff));
+
+      var myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      myCamera.position.set(622, 342, 443);
+      myCamera.lookAt(0, 0, 0);
+
+      var myArray = [];
+      // 创建多个立方体
+      var myGeometry = new THREE.BoxGeometry(80, 80, 80);
+
+      for (var i = 0; i < 10; i++) {
+        var myMaterial = new THREE.MeshBasicMaterial({
+          color: Math.random() * 0xffffff,
+          opacity: 0.5,
+        });
+        var myMesh = new THREE.Mesh(myGeometry, myMaterial);
+
+        myMesh.position.x = Math.random() * 480 - 140;
+        myMesh.position.y = Math.random() * 480 - 140;
+        myMesh.position.z = Math.random() * 480 - 140;
+
+        myScene.add(myMesh);
+        myArray.push(myMesh);
+      }
+
+      animate(); // 渲染
+
+      function animate() {
+        requestAnimationFrame(animate);
+        myRenderer.render(myScene, myCamera);
+      }
+
+      document.addEventListener("mousedown", onDocumentMouseDown, false);
+
+      function onDocumentMouseDown(event) {
+        var myMouse = new THREE.Vector2();
+        // 将鼠标坐标转换为屏幕坐标
+        /*
+          这两行代码是在进行坐标系转换，将鼠标在屏幕上的坐标转换为 Three.js 标准化设备坐标系（Normalized Device Coordinates，简称 NDC）中的坐标。
+
+            1. myMouse.x = (event.clientX / window.innerWidth) * 2 - 1
+
+            - event.clientX 获取鼠标在屏幕上的水平位置（像素值，从左到右，0 到 window.innerWidth）
+            - 除以 window.innerWidth 将值归一化到 0-1 范围
+            - 乘以 2 再减 1，将范围转换为 -1 到 1
+            - 这样 x 轴的映射关系是：屏幕最左边 = -1，屏幕中间 = 0，屏幕最右边 = 1
+
+            2. myMouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+            
+            - event.clientY 获取鼠标在屏幕上的垂直位置（像素值，从上到下，0 到 window.innerHeight）
+            - 除以 window.innerHeight 将值归一化到 0-1 范围
+            - 乘以 -2 再加 1，将范围转换为 1 到 -1，并且翻转方向
+            - 这样 y 轴的映射关系是：屏幕顶部 = 1，屏幕中间 = 0，屏幕底部 = -1
+        */
+        myMouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        myMouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        var raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(myMouse, myCamera);
+        // 获取与射线相交的 myArray 中的对象
+        var intersects = raycaster.intersectObjects(myArray);
+        if (intersects.length > 0) {
+          var myObject = intersects[0].object;
+          myObject.material.color.set(0xff0000);
+        }
+      }
+    </script>
+  </body>
+</html>
