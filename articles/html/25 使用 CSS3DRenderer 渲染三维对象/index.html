@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>25 使用 CSS3DRenderer 渲染三维对象</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import {
+        CSS3DRenderer,
+        CSS3DObject,
+        CSS3DSprite,
+      } from "three/addons/renderers/CSS3DRenderer.js";
+      import { TrackballControls } from "three/addons/controls/TrackballControls.js";
+      import * as TWEEN from "three/addons/libs/tween.module.js";
+
+      var myPositions = [],
+        myObjects = [],
+        myIndex = 0;
+      //创建渲染器 CSS3DRenderer
+      var myRenderer = new CSS3DRenderer();
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      document.getElementById("myContainer").append(myRenderer.domElement);
+      var myCamera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        1,
+        5000
+      );
+      myCamera.position.set(600, 400, 1500);
+      myCamera.lookAt(0, 0, 0);
+      var myScene = new THREE.Scene();
+      var myTrackballControls = new TrackballControls(
+        myCamera,
+        myRenderer.domElement
+      );
+      //创建多个3D图形(小球)
+      var myImage = document.createElement("img");
+      myImage.onload = function () {
+        for (var i = 0; i < 512; i++) {
+          var myObject = new CSS3DSprite(myImage.cloneNode());
+          myObject.position.x = Math.random() * 4000 - 2000;
+          myObject.position.y = Math.random() * 4000 - 2000;
+          myObject.position.z = Math.random() * 4000 - 2000;
+          myScene.add(myObject);
+          myObjects.push(myObject);
+        }
+        var myOffset = myIndex * 512 * 3;
+        for (var i = 0, j = myOffset; i < 512; i++, j += 3) {
+          var myObject = myObjects[i];
+          new TWEEN.Tween(myObject.position)
+            .to(
+              {
+                x: myPositions[j],
+                y: myPositions[j + 1],
+                z: myPositions[j + 2],
+              },
+              Math.random() * 2000 + 2000
+            )
+            .easing(TWEEN.Easing.Exponential.InOut)
+            .start();
+        }
+        myIndex = (myIndex + 1) % 4;
+      };
+      myImage.src = "imgs/img103.png";
+      for (var i = 0; i < 512; i++) {
+        var x = (i % 16) * 150;
+        var z = Math.floor(i / 16) * 150;
+        var y = (Math.sin(x * 0.5) + Math.sin(z * 0.5)) * 200;
+        myPositions.push(x - 1125, y, z - 2325);
+      }
+      for (var i = 0; i < 512; i++) {
+        var x = (i % 8) * 150;
+        var y = Math.floor((i / 8) % 8) * 150;
+        var z = Math.floor(i / 64) * 150;
+        myPositions.push(x - 525, y - 525, z - 525);
+      }
+      for (var i = 0; i < 512; i++) {
+        myPositions.push(
+          Math.random() * 4000 - 2000,
+          Math.random() * 4000 - 2000,
+          Math.random() * 4000 - 2000
+        );
+      }
+      for (var i = 0; i < 512; i++) {
+        var myPhi = Math.acos(-1 + (2 * i) / 512);
+        var myTheta = Math.sqrt(512 * Math.PI) * myPhi;
+        myPositions.push(
+          750 * Math.cos(myTheta) * Math.sin(myPhi),
+          750 * Math.sin(myTheta) * Math.sin(myPhi),
+          750 * Math.cos(myPhi)
+        );
+      }
+      //渲染多个3D图形(小球)
+      animate();
+      function animate() {
+        requestAnimationFrame(animate);
+        TWEEN.update();
+        myTrackballControls.update();
+        var myTime = performance.now();
+        for (var i = 0, l = myObjects.length; i < l; i++) {
+          var myObject = myObjects[i];
+          var myScale =
+            Math.sin((Math.floor(myObject.position.x) + myTime) * 0.002) * 0.3 +
+            1;
+          myObject.scale.set(myScale, myScale, myScale);
+        }
+        myRenderer.render(myScene, myCamera);
+      }
+    </script>
+  </body>
+</html>
