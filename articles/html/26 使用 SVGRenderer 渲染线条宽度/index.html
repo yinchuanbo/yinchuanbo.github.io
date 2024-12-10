@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>26 使用 SVGRenderer 渲染线条宽度</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+        background: #000;
+      }
+      button {
+        outline: none;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      <button id="myButton1">启用SVG渲染器</button>
+      <button id="myButton2">启用WebGL渲染器</button>
+    </p>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import {
+        CSS3DRenderer,
+        CSS3DObject,
+        CSS3DSprite,
+      } from "three/addons/renderers/CSS3DRenderer.js";
+      import { TrackballControls } from "three/addons/controls/TrackballControls.js";
+      import * as TWEEN from "three/addons/libs/tween.module.js";
+      import { SVGRenderer } from "three/addons/renderers/SVGRenderer.js";
+
+      var myContainer = document.getElementById("myContainer");
+
+      var isSVGRenderer = true;
+      var myRenderer1 = new SVGRenderer();
+
+      myRenderer1.setSize(window.innerWidth, window.innerHeight);
+      myContainer.appendChild(myRenderer1.domElement);
+
+      var myRenderer2 = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer2.setSize(window.innerWidth, window.innerHeight);
+
+      var myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+
+      myCamera.position.z = 4;
+      var myScene = new THREE.Scene();
+      myScene.background = new THREE.Color(0xffffff);
+
+      var myVertices = [];
+      for (var i = 0; i <= 150; i++) {
+        var v = (i / 150) * (Math.PI * 2);
+        var x = Math.sin(v);
+        var z = Math.cos(v);
+        myVertices.push(x, 0, z);
+      }
+
+      var myGeometry = new THREE.BufferGeometry();
+
+      myGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(myVertices, 3)
+      );
+
+      for (var i = 1; i <= 3; i++) {
+        var myMaterial = new THREE.LineBasicMaterial({
+          color: Math.random() * 0xffffff,
+          linewidth: 20,
+        });
+        var myLine = new THREE.Line(myGeometry, myMaterial);
+        myLine.scale.setScalar(i / 3);
+        myScene.add(myLine);
+      }
+
+      animate();
+
+      // Add button event listeners
+      document
+        .getElementById("myButton1")
+        .addEventListener("click", function () {
+          isSVGRenderer = true;
+          switchRenderer();
+        });
+
+      document
+        .getElementById("myButton2")
+        .addEventListener("click", function () {
+          isSVGRenderer = false;
+          switchRenderer();
+        });
+
+      // Handle window resize
+      window.addEventListener("resize", onWindowResize);
+
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer1.setSize(window.innerWidth, window.innerHeight);
+        myRenderer2.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function switchRenderer() {
+        // Remove current renderer
+        while (myContainer.firstChild) {
+          myContainer.removeChild(myContainer.firstChild);
+        }
+        // Add new renderer
+        if (isSVGRenderer) {
+          myContainer.appendChild(myRenderer1.domElement);
+        } else {
+          myContainer.appendChild(myRenderer2.domElement);
+        }
+      }
+
+      function animate() {
+        var myOffset = 0;
+        var myTime = performance.now() / 1000;
+        myScene.traverse(function (child) {
+          child.rotation.x = myOffset + myTime / 3;
+          child.rotation.z = myOffset + myTime / 4;
+          myOffset++;
+        });
+
+        if (isSVGRenderer) {
+          myRenderer1.render(myScene, myCamera);
+        } else {
+          myRenderer2.render(myScene, myCamera);
+        }
+
+        requestAnimationFrame(animate);
+      }
+    </script>
+  </body>
+</html>
