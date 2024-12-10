@@ -64,11 +64,12 @@ function getDirectoryStructure(dirPath) {
       } else {
         if (!itemPath.includes(".zip")) {
           const fileContent = fs.readFileSync(itemPath, "utf-8");
-          if (itemPath.includes(".md")) {
-            result[item] = marked.parse(fileContent);
-          } else {
-            result[item] = fileContent;
-          }
+          result[item] = fileContent;
+          // if (itemPath.includes(".md")) {
+          //   result[item] = marked.parse(fileContent);
+          // } else {
+          //   result[item] = fileContent;
+          // }
         }
       }
     }
