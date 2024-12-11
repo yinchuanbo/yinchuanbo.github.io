@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>33 使用多个图像设置立方体的表面</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      // 创建渲染器
+      const myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setClearColor("white", 1.0);
+      const container = document.querySelector("#myContainer");
+      container.appendChild(myRenderer.domElement);
+
+      // 创建场景和相机
+      const myScene = new THREE.Scene();
+      const myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        1,
+        1000
+      );
+      myCamera.position.set(-24, -29, 50);
+      myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+
+      // 添加轨道控制器
+      const controls = new OrbitControls(myCamera, myRenderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // 设置光照
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      myScene.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      directionalLight.position.set(1, 1, 1);
+      myScene.add(directionalLight);
+
+      // 创建加载管理器
+      const loadingManager = new THREE.LoadingManager();
+      loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
+        console.log(
+          `Loading file: ${url}. Loaded ${itemsLoaded}/${itemsTotal} files.`
+        );
+      };
+      loadingManager.onError = function (url) {
+        console.error("Error loading texture:", url);
+      };
+
+      // 创建纹理加载器
+      const textureLoader = new THREE.TextureLoader(loadingManager);
+
+      // 创建立方体（骰子模型）
+      const myGeometry = new THREE.BoxGeometry(16, 16, 16);
+      const myMaterials = [];
+
+      // 加载六个面的纹理
+      const textureUrls = Array.from(
+        { length: 6 },
+        (_, i) => `imgs/img13${i + 1}.jpg`
+      );
+      let loadedTextures = 0;
+
+      textureUrls.forEach((url, index) => {
+        textureLoader.load(
+          url,
+          (texture) => {
+            myMaterials[index] = new THREE.MeshStandardMaterial({
+              map: texture,
+              metalness: 0.1,
+              roughness: 0.5,
+            });
+            loadedTextures++;
+
+            // 当所有纹理都加载完成时创建网格
+            if (loadedTextures === 6) {
+              const myMesh = new THREE.Mesh(myGeometry, myMaterials);
+              myScene.add(myMesh);
+              window.myMesh = myMesh; // 存储网格引用用于动画
+            }
+          },
+          undefined,
+          (error) => console.error(`Error loading texture ${url}:`, error)
+        );
+      });
+
+      // 处理窗口大小变化
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+      window.addEventListener("resize", onWindowResize);
+
+      // 动画循环
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // 更新控制器
+        controls.update();
+
+        // 如果网格存在则旋转
+        if (window.myMesh) {
+          const time = performance.now() * 0.001;
+          window.myMesh.rotation.x = time * 0.5;
+          window.myMesh.rotation.y = time * 0.3;
+          window.myMesh.rotation.z = time * 0.2;
+        }
+
+        myRenderer.render(myScene, myCamera);
+      }
+      animate();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>34 使用多种颜色设置立方体的表面</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      // 创建渲染器
+      const myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setClearColor("white", 1.0);
+      myRenderer.shadowMap.enabled = true; // 启用阴影
+      document.querySelector("#myContainer").appendChild(myRenderer.domElement);
+
+      // 创建场景
+      const myScene = new THREE.Scene();
+
+      // 创建相机
+      const myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        1,
+        1000
+      );
+      myCamera.position.set(-50, 40, 50);
+      myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+
+      // 添加光源
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      myScene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(50, 50, 50);
+      directionalLight.castShadow = true;
+      myScene.add(directionalLight);
+
+      // 创建立方体参数
+      const mySize = 9;
+      const myCubeGeometry = new THREE.BoxGeometry(
+        mySize - 0.1,
+        mySize - 0.1,
+        mySize - 0.1
+      );
+
+      // 创建材质数组 - 使用 MeshPhongMaterial 以支持光照
+      const myMaterials = [
+        new THREE.MeshPhongMaterial({ color: "red" }),
+        new THREE.MeshPhongMaterial({ color: "green" }),
+        new THREE.MeshPhongMaterial({ color: "blue" }),
+        new THREE.MeshPhongMaterial({ color: "cyan" }),
+        new THREE.MeshPhongMaterial({ color: "yellow" }),
+        new THREE.MeshPhongMaterial({ color: "pink" }),
+      ];
+
+      // 创建单个立方体
+      const myCubeMesh = new THREE.Mesh(myCubeGeometry, myMaterials);
+      myCubeMesh.position.set(
+        -mySize * 3 + mySize,
+        mySize * 3 - mySize,
+        -mySize * 3
+      );
+      myCubeMesh.castShadow = true;
+      myCubeMesh.receiveShadow = true;
+      myScene.add(myCubeMesh);
+
+      // 创建魔方组（27个立方体）
+      const myGroupMesh = new THREE.Group(); // 使用 Group 替代 Mesh
+      for (let x = 0; x < 3; x++) {
+        for (let y = 0; y < 3; y++) {
+          for (let z = 0; z < 3; z++) {
+            const myMesh = new THREE.Mesh(myCubeGeometry, myMaterials);
+            myMesh.position.set(
+              x * mySize - mySize,
+              y * mySize - mySize,
+              z * mySize - mySize
+            );
+            myMesh.castShadow = true;
+            myMesh.receiveShadow = true;
+            myGroupMesh.add(myMesh);
+          }
+        }
+      }
+      myScene.add(myGroupMesh);
+
+      // 创建轨道控制器
+      const controls = new OrbitControls(myCamera, myRenderer.domElement);
+      controls.enableDamping = true; // 启用阻尼效果
+      controls.dampingFactor = 0.05;
+      controls.maxDistance = 200;
+      controls.minDistance = 30;
+
+      // 处理窗口大小变化
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+        render();
+      }
+      window.addEventListener("resize", onWindowResize);
+
+      // 渲染函数
+      function render() {
+        myRenderer.render(myScene, myCamera);
+      }
+
+      // 动画循环
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update(); // 更新控制器
+        render();
+      }
+      animate();
+    </script>
+  </body>
+</html>
