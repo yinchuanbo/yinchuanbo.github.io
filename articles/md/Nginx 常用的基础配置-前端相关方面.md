@@ -85,11 +85,11 @@ server {
 
   # 后缀匹配，解决静态资源找不到问题
   location ~* \.(gif|jpg|jpeg|png|css|js|ico)$ {
-    root           html/static/;
+    root           html/../svg-tutorial/static/;
   }
 
   # 图片防盗链
-  location ~/static/.*\.(jpg|jpeg|png|gif|webp)$ {
+  location ~/../svg-tutorial/static/.*\.(jpg|jpeg|png|gif|webp)$ {
     root              html;
     valid_referers    *.deeruby.com;
     if ($invalid_referer) {
@@ -114,9 +114,9 @@ server {
 server {
   #......
   location / {
-    root /home/static/pc;
+    root /home/../svg-tutorial/static/pc;
     if ($http_user_agent ~* '(mobile|android|iphone|ipad|phone)') {
-      root /home/static/mobile;
+      root /home/../svg-tutorial/static/mobile;
     }
     index index.html;
   }
