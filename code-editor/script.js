@@ -2,7 +2,7 @@
 const createEditor = (element, mode) => {
     return CodeMirror.fromTextArea(element, {
         mode: mode,
-        theme: "dracula",
+        theme: "ayu-dark",
         lineNumbers: true,
         lineWrapping: true,
         indentUnit: 2,
