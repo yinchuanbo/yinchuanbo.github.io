@@ -75,6 +75,26 @@ function clearEditors() {
 document.getElementById('runButton').addEventListener('click', updatePreview);
 document.getElementById('clearButton').addEventListener('click', clearEditors);
 
+// Add collapse/expand functionality
+document.querySelectorAll('.collapse-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const container = btn.closest('.editor-container') || btn.closest('.result-container');
+        const icon = btn.querySelector('i');
+
+        if (container.classList.contains('collapsed')) {
+            // Expand
+            container.classList.remove('collapsed');
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+        } else {
+            // Collapse
+            container.classList.add('collapsed');
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
+    });
+});
+
 // Add auto-update on editor changes
 htmlEditor.on('change', debouncedUpdate);
 cssEditor.on('change', debouncedUpdate);
