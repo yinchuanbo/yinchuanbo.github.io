@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>36 使用颜色和视频设置立方体表面</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="myContainer"></div>
+    <video
+      id="video"
+      autoplay
+      loop
+      muted
+      playsinline
+      crossorigin="anonymous"
+      src="imgs/video01.mp4"
+      style="display: none"
+    ></video>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      //创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setClearColor("white", 1.0);
+      myRenderer.shadowMap.enabled = true;
+      document.getElementById("myContainer").append(myRenderer.domElement);
+
+      var myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      myCamera.position.set(55.21, -19.35, 21.02);
+      myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+      var myScene = new THREE.Scene();
+
+      // 添加轨道控制器
+      const controls = new OrbitControls(myCamera, myRenderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      //多创建几个聚光灯光源，否则可能有部分表面是暗的
+      var mySpotLight1 = new THREE.SpotLight(0xffffff, 0.6);
+      mySpotLight1.position.set(40, 40, 40);
+      mySpotLight1.castShadow = true;
+      myScene.add(mySpotLight1);
+      myScene.add(new THREE.AmbientLight(0xffffff, 1));
+      var mySpotLight2 = new THREE.SpotLight(0xffffff);
+      mySpotLight2.position.set(-400, -400, -400);
+      myScene.add(mySpotLight2);
+      var mySpotLight3 = new THREE.SpotLight(0xffffff);
+      mySpotLight3.position.set(400, 400, 400);
+      myScene.add(mySpotLight3);
+      //使用视频创建纹理并作为立方体的表面
+      var myGeometry = new THREE.BoxGeometry(26, 26, 26);
+      var myVideo = document.getElementById("video");
+
+      // 确保视频加载和播放
+      myVideo.addEventListener("loadedmetadata", () => {
+        myVideo.play().catch((e) => console.error("视频播放失败:", e));
+      });
+
+      var myVideoTexture = new THREE.VideoTexture(myVideo);
+      myVideoTexture.minFilter = THREE.LinearFilter;
+      myVideoTexture.magFilter = THREE.LinearFilter;
+
+      //创建材质数组
+      var myMaterials = [];
+      //在材质数组中添加视频材质
+      myMaterials.push(
+        new THREE.MeshPhongMaterial({
+          map: myVideoTexture,
+          side: THREE.DoubleSide,
+        })
+      );
+      //在材质数组中添加颜色材质
+      myMaterials.push(new THREE.MeshBasicMaterial({ color: "yellow" }));
+      myMaterials.push(new THREE.MeshBasicMaterial({ color: "pink" }));
+      myMaterials.push(new THREE.MeshBasicMaterial({ color: "blue" }));
+      myMaterials.push(new THREE.MeshBasicMaterial({ color: "darkgreen" }));
+      myMaterials.push(new THREE.MeshBasicMaterial({ color: "red" }));
+      var myMesh = new THREE.Mesh(myGeometry, myMaterials);
+      myMesh.castShadow = true;
+      myMesh.receiveShadow = true;
+      myScene.add(myMesh);
+      //渲染立方体并播放视频
+      animate();
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+
+        // 更新视频纹理
+        if (myVideo.readyState === myVideo.HAVE_ENOUGH_DATA) {
+          myVideoTexture.needsUpdate = true;
+        }
+
+        myRenderer.render(myScene, myCamera);
+      }
+
+      // 添加窗口大小调整监听
+      window.addEventListener("resize", onWindowResize, false);
+
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+    </script>
+  </body>
+</html>

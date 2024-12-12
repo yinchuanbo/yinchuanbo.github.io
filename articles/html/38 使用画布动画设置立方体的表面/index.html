@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>38 使用画布动画设置立方体的表面</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <canvas
+      id="surface"
+      width="512"
+      height="512"
+      style="display: none"
+    ></canvas>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      // 全局变量
+      var myRenderer,
+        myCamera,
+        myScene,
+        myMesh,
+        myMaterial,
+        controls,
+        canvasWidth = 512,
+        canvasHeight = 512;
+
+      //创建画布动画
+      function initCanvas() {
+        var space = document.getElementById("surface");
+        space.width = canvasWidth;
+        space.height = canvasHeight;
+        var surface = space.getContext("2d");
+        surface.scale(1, 1);
+        var particles = [];
+        var particle_count = 150;
+        for (var i = 0; i < particle_count; i++) {
+          particles.push(new particle());
+        }
+
+        // 规范化requestAnimationFrame
+        window.requestAnimFrame = (function () {
+          return (
+            window.requestAnimationFrame ||
+            window.webkitRequestAnimationFrame ||
+            window.mozRequestAnimationFrame ||
+            function (callback) {
+              window.setTimeout(callback, 1000 / 60);
+            }
+          );
+        })();
+
+        function particle() {
+          this.speed = { x: -1 + Math.random() * 2, y: -5 + Math.random() * 5 };
+          this.location = { x: canvasWidth / 2, y: canvasHeight / 2 + 35 };
+          this.radius = 0.5 + Math.random() * 1;
+          this.life = 10 + Math.random() * 10;
+          this.death = this.life;
+          this.r = 255;
+          this.g = Math.round(Math.random() * 155);
+          this.b = 0;
+        }
+
+        function ParticleAnimation() {
+          surface.globalCompositeOperation = "source-over";
+          surface.fillStyle = "black";
+          surface.fillRect(0, 0, canvasWidth, canvasHeight);
+          surface.globalCompositeOperation = "lighter";
+
+          for (var i = 0; i < particles.length; i++) {
+            var p = particles[i];
+            surface.beginPath();
+            p.opacity = Math.round((p.death / p.life) * 100) / 100;
+            var gradient = surface.createRadialGradient(
+              p.location.x,
+              p.location.y,
+              0,
+              p.location.x,
+              p.location.y,
+              p.radius
+            );
+            gradient.addColorStop(
+              0,
+              "rgba(" + p.r + "," + p.g + "," + p.b + "," + p.opacity + ")"
+            );
+            gradient.addColorStop(
+              0.5,
+              "rgba(" + p.r + "," + p.g + "," + p.b + "," + p.opacity + ")"
+            );
+            gradient.addColorStop(
+              1,
+              "rgba(" + p.r + "," + p.g + "," + p.b + ",0)"
+            );
+            surface.fillStyle = gradient;
+            surface.arc(
+              p.location.x,
+              p.location.y,
+              p.radius,
+              Math.PI * 2,
+              false
+            );
+            surface.fill();
+            p.death--;
+            p.radius++;
+            p.location.x += p.speed.x;
+            p.location.y += p.speed.y;
+            if (
+              p.death < 0 ||
+              p.radius < 0 ||
+              p.location.x < 0 ||
+              p.location.x > canvasWidth ||
+              p.location.y < 0 ||
+              p.location.y > canvasHeight
+            ) {
+              particles[i] = new particle();
+            }
+          }
+          requestAnimFrame(ParticleAnimation);
+        }
+        ParticleAnimation();
+      }
+
+      //创建渲染器
+      function initRender() {
+        myScene = new THREE.Scene();
+        myRenderer = new THREE.WebGLRenderer({ antialias: true });
+        myRenderer.setPixelRatio(window.devicePixelRatio);
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+        myRenderer.setClearColor(0xffffff);
+        myContainer.append(myRenderer.domElement);
+
+        myCamera = new THREE.PerspectiveCamera(
+          45,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        myCamera.position.set(0, 0, 25);
+
+        // 添加轨道控制器
+        controls = new OrbitControls(myCamera, myRenderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+      }
+
+      //创建立方体
+      function initModel() {
+        var myGeometry = new THREE.BoxGeometry(6, 6, 6);
+        var myTexture = new THREE.Texture(document.getElementById("surface"));
+        myTexture.minFilter = THREE.LinearFilter;
+        myTexture.magFilter = THREE.LinearFilter;
+        myMaterial = new THREE.MeshBasicMaterial({
+          map: myTexture,
+          side: THREE.DoubleSide,
+        });
+        myMesh = new THREE.Mesh(myGeometry, myMaterial);
+        myScene.add(myMesh);
+      }
+
+      //渲染立方体
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+
+        myMaterial.map.needsUpdate = true;
+        var myTimer = Date.now() * 0.0001;
+        myMesh.rotation.x = myTimer * 5;
+        myMesh.rotation.y = myTimer * 3;
+        myMesh.rotation.z = myTimer * 2;
+
+        myRenderer.render(myScene, myCamera);
+      }
+
+      // 处理窗口大小变化
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+      window.addEventListener("resize", onWindowResize);
+
+      // 初始化并启动
+      initCanvas();
+      initRender();
+      initModel();
+      animate();
+    </script>
+  </body>
+</html>

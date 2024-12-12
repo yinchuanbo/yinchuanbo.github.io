@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>37 使用画布贴图设置立方体的表面</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      const myContainer = document.getElementById("myContainer");
+
+      //创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setClearColor("white", 1.0);
+      myContainer.append(myRenderer.domElement);
+
+      var myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      myCamera.position.set(-24, -29, 50);
+      myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+      var myScene = new THREE.Scene();
+      myScene.add(new THREE.AmbientLight("white"));
+
+      // 添加轨道控制器
+      const controls = new OrbitControls(myCamera, myRenderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      //创建立方体
+      var myGeometry = new THREE.BoxGeometry(16, 16, 16);
+      var myMaterials = [];
+
+      // 创建纹理加载器
+      const textureLoader = new THREE.TextureLoader();
+
+      // 加载纹理的Promise数组
+      const texturePromises = [];
+
+      // 加载5个图片纹理
+      for (let i = 1; i < 6; i++) {
+        const promise = new Promise((resolve, reject) => {
+          textureLoader.load(`./imgs/img03${i}.png`, (texture) => {
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            const material = new THREE.MeshBasicMaterial({ map: texture });
+            // myMaterials[i - 1] = material;
+            myMaterials.push(material);
+            resolve();
+          });
+        });
+        texturePromises.push(promise);
+      }
+
+      //创建在画布上添加文字的函数
+      function getTextCanvas(myText) {
+        var myWidth = 512, // 使用2的幂次方的尺寸
+          myHeight = 512;
+        var myCanvas = document.createElement("canvas");
+        myCanvas.width = myWidth;
+        myCanvas.height = myHeight;
+        var myContext = myCanvas.getContext("2d");
+
+        // 绘制背景
+        myContext.fillStyle = "#00FF00";
+        myContext.fillRect(0, 0, myWidth, myHeight);
+
+        // 设置文字样式
+        myContext.font = "bold 80px Arial";
+        myContext.fillStyle = "#FFFFFF";
+        myContext.textAlign = "center";
+        myContext.textBaseline = "middle";
+
+        // 绘制文字
+        myContext.fillText(myText, myWidth / 2, myHeight / 2);
+
+        return myCanvas;
+      }
+
+      // 创建文字纹理
+      const textCanvas = getTextCanvas("世界杯");
+      const canvasTexture = new THREE.CanvasTexture(textCanvas);
+      canvasTexture.minFilter = THREE.LinearFilter;
+      canvasTexture.magFilter = THREE.LinearFilter;
+
+      // 添加文字材质
+      myMaterials.push(
+        new THREE.MeshBasicMaterial({
+          map: canvasTexture,
+        })
+      );
+
+      // 等待所有纹理加载完成
+      Promise.all(texturePromises).then(() => {
+        var myMesh = new THREE.Mesh(myGeometry, myMaterials);
+        myScene.add(myMesh);
+
+        //渲染立方体
+        animate();
+        function animate() {
+          requestAnimationFrame(animate);
+          controls.update();
+
+          var myTimer = Date.now() * 0.0001;
+          myMesh.rotation.x = myTimer * 5;
+          myMesh.rotation.y = myTimer * 3;
+          myMesh.rotation.z = myTimer * 2;
+
+          myRenderer.render(myScene, myCamera);
+        }
+      });
+
+      // 处理窗口大小变化
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+      window.addEventListener("resize", onWindowResize);
+    </script>
+  </body>
+</html>
