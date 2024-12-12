@@ -232,10 +232,10 @@ div {
 
 ```css
 div {
-    // ...
-    background: randomLinear(14);
-    background-clip: text;
-    color: transparent;
+  // ...
+  background: randomLinear(14);
+  background-clip: text;
+  color: transparent;
 }
 ```
 
@@ -251,7 +251,7 @@ div {
 <div></div>
 ```
 
-```css
+```scss
 $str: "QWERTYUIOPASDFGHJKLZXCVBNMabcdefghigklmnopqrstuvwxyz123456789";
 $length: str-length($str);
 
@@ -490,10 +490,24 @@ html {
 
 改造原有的立方体结构，大致改成如下形式：
 
-```html
-.perspective .container .g-panel -for(var i=0; i<32; i++) div .g-panel -for(var
-i=0; i<32; i++) div .g-panel -for(var i=0; i<32; i++) div .g-panel -for(var i=0;
-i<32; i++) div .g-panel -for(var i=0; i<32; i++) div
+```sh
+.perspective
+    .container
+        .g-panel
+            -for(var i=0; i<32; i++)
+                div
+        .g-panel
+            -for(var i=0; i<32; i++)
+                div
+        .g-panel
+            -for(var i=0; i<32; i++)
+                div
+        .g-panel
+            -for(var i=0; i<32; i++)
+                div
+        .g-panel
+            -for(var i=0; i<32; i++)
+                div
 ```
 
 上面采用了 PUG 模板引擎来简化代码，编译后的效果如下：
