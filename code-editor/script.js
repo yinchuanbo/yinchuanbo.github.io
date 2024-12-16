@@ -202,16 +202,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Set default content
-        htmlEditor.setValue(`<!DOCTYPE html>
-<html>
-<body>
-    <div class="container">
-        <h1>Welcome to Code Editor</h1>
-        <p>This is a live preview of your code.</p>
-        <button id="demoButton" class="button">Click me!</button>
-    </div>
-</body>
-</html>`);
+        htmlEditor.setValue(`<div class="g-container">
+  <div class="g-item"></div>
+</div>`);
 
         cssEditor.setValue(`@use "sass:string";
 @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Ubuntu+Mono&display=swap');
@@ -365,23 +358,7 @@ html {
     }
 }`);
 
-        jsEditor.setValue(`// 获取按钮元素
-const demoButton = document.getElementById('demoButton');
-let clickCount = 0;
-
-// 添加点击事件监听器
-if (demoButton) {
-    demoButton.addEventListener('click', () => {
-        clickCount++;
-        demoButton.textContent = \`Clicked \${clickCount} time\${clickCount === 1 ? '' : 's'}!\`;
-        
-        // 添加点击动画
-        demoButton.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-            demoButton.style.transform = 'translateY(-2px)';
-        }, 100);
-    });
-}`);
+        jsEditor.setValue(``);
 
         // Initial preview
         updatePreview();
