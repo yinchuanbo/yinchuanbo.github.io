@@ -1,128 +1,144 @@
 // 等待 DOM 加载完成
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Monaco editors
-    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.1/min/vs' }});
+document.addEventListener("DOMContentLoaded", () => {
+  // Initialize Monaco editors
+  require.config({
+    paths: {
+      vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.1/min/vs",
+    },
+  });
 
-    require(['vs/editor/editor.main'], function() {
-        // Register SCSS language
-        monaco.languages.register({ id: 'scss' });
-        monaco.languages.setMonarchTokensProvider('scss', {
-            tokenizer: {
-                root: [
-                    [/[@][\w\-_]+/, 'keyword'],
-                    [/[$][\w\-_]+/, 'variable'],
-                    [/&/, 'operator'],
-                    [/[{}]/, 'delimiter.bracket'],
-                    [/[;]/, 'delimiter'],
-                    [/\/\*/, 'comment', '@comment'],
-                    [/\/\/.*$/, 'comment'],
-                    [/"([^"\\]|\\.)*$/, 'string.invalid'],
-                    [/'([^'\\]|\\.)*$/, 'string.invalid'],
-                    [/"/, 'string', '@string."'],
-                    [/'/, 'string', '@string.\''],
-                    [/[a-z][\w\-_]*/, 'tag'],
-                    [/#[\w\-_]+/, 'tag.id'],
-                    [/\.[\w\-_]+/, 'tag.class'],
-                    [/\d+(\.\d+)?(%|px|em|rem|vh|vw|pt)?/, 'number'],
-                    [/[<>]/, 'tag'],
-                ],
-                comment: [
-                    [/[^/*]+/, 'comment'],
-                    [/\*\//, 'comment', '@pop'],
-                    [/[/*]/, 'comment']
-                ],
-                string: [
-                    [/[^\\"']+/, 'string'],
-                    [/\\./, 'string.escape'],
-                    [/["']/, { cases: {
-                        '@eos': 'string.invalid',
-                        '@default': { token: 'string', next: '@pop' }
-                    }}]
-                ]
-            }
+  require(["vs/editor/editor.main"], function () {
+    // Register SCSS language
+    monaco.languages.register({ id: "scss" });
+    monaco.languages.setMonarchTokensProvider("scss", {
+      tokenizer: {
+        root: [
+          [/[@][\w\-_]+/, "keyword"],
+          [/[$][\w\-_]+/, "variable"],
+          [/&/, "operator"],
+          [/[{}]/, "delimiter.bracket"],
+          [/[;]/, "delimiter"],
+          [/\/\*/, "comment", "@comment"],
+          [/\/\/.*$/, "comment"],
+          [/"([^"\\]|\\.)*$/, "string.invalid"],
+          [/'([^'\\]|\\.)*$/, "string.invalid"],
+          [/"/, "string", '@string."'],
+          [/'/, "string", "@string.'"],
+          [/[a-z][\w\-_]*/, "tag"],
+          [/#[\w\-_]+/, "tag.id"],
+          [/\.[\w\-_]+/, "tag.class"],
+          [/\d+(\.\d+)?(%|px|em|rem|vh|vw|pt)?/, "number"],
+          [/[<>]/, "tag"],
+        ],
+        comment: [
+          [/[^/*]+/, "comment"],
+          [/\*\//, "comment", "@pop"],
+          [/[/*]/, "comment"],
+        ],
+        string: [
+          [/[^\\"']+/, "string"],
+          [/\\./, "string.escape"],
+          [
+            /["']/,
+            {
+              cases: {
+                "@eos": "string.invalid",
+                "@default": { token: "string", next: "@pop" },
+              },
+            },
+          ],
+        ],
+      },
+    });
+
+    // Create editors
+    const htmlEditor = monaco.editor.create(
+      document.getElementById("htmlEditor"),
+      {
+        value: "",
+        language: "html",
+        theme: "vs-dark",
+        minimap: { enabled: false },
+        automaticLayout: true,
+        fontSize: 14,
+        tabSize: 2,
+        fontFamily: "JetBrains Mono",
+        fontLigatures: true,
+      }
+    );
+
+    const cssEditor = monaco.editor.create(
+      document.getElementById("cssEditor"),
+      {
+        value: "",
+        language: "scss",
+        theme: "vs-dark",
+        minimap: { enabled: false },
+        automaticLayout: true,
+        fontSize: 14,
+        tabSize: 2,
+        fontFamily: "JetBrains Mono",
+        fontLigatures: true,
+      }
+    );
+
+    const jsEditor = monaco.editor.create(document.getElementById("jsEditor"), {
+      value: "",
+      language: "javascript",
+      theme: "vs-dark",
+      minimap: { enabled: false },
+      automaticLayout: true,
+      fontSize: 14,
+      tabSize: 2,
+      fontFamily: "JetBrains Mono",
+      fontLigatures: true,
+    });
+
+    // Function to compile SCSS using the server
+    async function compileSCSS(scss) {
+      try {
+        const response = await fetch("http://localhost:7001/compile-scss", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ scss }),
         });
 
-        // Create editors
-        const htmlEditor = monaco.editor.create(document.getElementById('htmlEditor'), {
-            value: '',
-            language: 'html',
-            theme: 'vs-dark',
-            minimap: { enabled: false },
-            automaticLayout: true,
-            fontSize: 14,
-            tabSize: 2,
-            fontFamily: 'JetBrains Mono',
-            fontLigatures: true
-        });
-
-        const cssEditor = monaco.editor.create(document.getElementById('cssEditor'), {
-            value: '',
-            language: 'scss',
-            theme: 'vs-dark',
-            minimap: { enabled: false },
-            automaticLayout: true,
-            fontSize: 14,
-            tabSize: 2,
-            fontFamily: 'JetBrains Mono',
-            fontLigatures: true
-        });
-
-        const jsEditor = monaco.editor.create(document.getElementById('jsEditor'), {
-            value: '',
-            language: 'javascript',
-            theme: 'vs-dark',
-            minimap: { enabled: false },
-            automaticLayout: true,
-            fontSize: 14,
-            tabSize: 2,
-            fontFamily: 'JetBrains Mono',
-            fontLigatures: true
-        });
-
-        // Function to compile SCSS using the server
-        async function compileSCSS(scss) {
-            try {
-                const response = await fetch('http://localhost:7001/compile-scss', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ scss })
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.message || 'SCSS compilation failed');
-                }
-
-                const data = await response.json();
-                return data.css;
-            } catch (error) {
-                console.error('SCSS compilation error:', error);
-                throw error;
-            }
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "SCSS compilation failed");
         }
 
-        // Function to update preview with debounce
-        let updateTimeout;
-        function debouncedUpdate() {
-            clearTimeout(updateTimeout);
-            updateTimeout = setTimeout(updatePreview, 1000);
-        }
+        const data = await response.json();
+        return data.css;
+      } catch (error) {
+        console.error("SCSS compilation error:", error);
+        throw error;
+      }
+    }
 
-        // Function to update preview
-        async function updatePreview() {
-            const html = htmlEditor.getValue();
-            const scss = cssEditor.getValue();
-            const js = jsEditor.getValue();
+    // Function to update preview with debounce
+    let updateTimeout;
+    function debouncedUpdate() {
+      clearTimeout(updateTimeout);
+      updateTimeout = setTimeout(updatePreview, 1000);
+    }
 
-            try {
-                // Compile SCSS to CSS
-                const css = await compileSCSS(scss);
-                
-                const iframe = document.getElementById('result');
-                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                const wrappedJs = `
+    // Function to update preview
+    async function updatePreview() {
+      const html = htmlEditor.getValue();
+      const scss = cssEditor.getValue();
+      const js = jsEditor.getValue();
+
+      try {
+        // Compile SCSS to CSS
+        const css = scss ? await compileSCSS(scss) : "";
+
+        const iframe = document.getElementById("result");
+        const iframeDoc =
+          iframe.contentDocument || iframe.contentWindow.document;
+        const wrappedJs = `
                     document.addEventListener('DOMContentLoaded', () => {
                         try {
                             ${js}
@@ -132,8 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 `;
 
-                iframeDoc.open();
-                iframeDoc.write(`
+        iframeDoc.open();
+        iframeDoc.write(`
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -154,61 +170,62 @@ document.addEventListener('DOMContentLoaded', () => {
                     </body>
                     </html>
                 `);
-                iframeDoc.close();
-            } catch (error) {
-                console.error('Error updating preview:', error);
-            }
+        iframeDoc.close();
+      } catch (error) {
+        console.error("Error updating preview:", error);
+      }
+    }
+
+    // Clear all editors
+    function clearEditors() {
+      htmlEditor.setValue("");
+      cssEditor.setValue("");
+      jsEditor.setValue("");
+      updatePreview();
+    }
+
+    // Add event listeners
+    const runButton = document.getElementById("runButton");
+    const clearButton = document.getElementById("clearButton");
+
+    if (runButton) {
+      runButton.addEventListener("click", updatePreview);
+    }
+    if (clearButton) {
+      clearButton.addEventListener("click", clearEditors);
+    }
+
+    // Add editor change listeners
+    htmlEditor.onDidChangeModelContent(debouncedUpdate);
+    cssEditor.onDidChangeModelContent(debouncedUpdate);
+    jsEditor.onDidChangeModelContent(debouncedUpdate);
+
+    // Add collapse/expand functionality
+    document.querySelectorAll(".collapse-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const container =
+          btn.closest(".editor-container") || btn.closest(".result-container");
+        container.classList.toggle("collapsed");
+
+        // 重新布局编辑器以适应新的大小
+        if (container.contains(document.getElementById("htmlEditor"))) {
+          htmlEditor.layout();
+        } else if (container.contains(document.getElementById("cssEditor"))) {
+          cssEditor.layout();
+        } else if (container.contains(document.getElementById("jsEditor"))) {
+          jsEditor.layout();
         }
+      });
+    });
 
-        // Clear all editors
-        function clearEditors() {
-            htmlEditor.setValue('');
-            cssEditor.setValue('');
-            jsEditor.setValue('');
-            updatePreview();
-        }
-
-        // Add event listeners
-        const runButton = document.getElementById('runButton');
-        const clearButton = document.getElementById('clearButton');
-        
-        if (runButton) {
-            runButton.addEventListener('click', updatePreview);
-        }
-        if (clearButton) {
-            clearButton.addEventListener('click', clearEditors);
-        }
-
-        // Add editor change listeners
-        htmlEditor.onDidChangeModelContent(debouncedUpdate);
-        cssEditor.onDidChangeModelContent(debouncedUpdate);
-        jsEditor.onDidChangeModelContent(debouncedUpdate);
-
-        // Add collapse/expand functionality
-        document.querySelectorAll('.collapse-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const container = btn.closest('.editor-container') || btn.closest('.result-container');
-                container.classList.toggle('collapsed');
-                
-                // 重新布局编辑器以适应新的大小
-                if (container.contains(document.getElementById('htmlEditor'))) {
-                    htmlEditor.layout();
-                } else if (container.contains(document.getElementById('cssEditor'))) {
-                    cssEditor.layout();
-                } else if (container.contains(document.getElementById('jsEditor'))) {
-                    jsEditor.layout();
-                }
-            });
-        });
-
-        // Set default content
-        htmlEditor.setValue(`<div class="g-container">
+    // Set default content
+    htmlEditor.setValue(`<div class="g-container">
   <div class="g-item"></div>
 </div><div class="g-container">
   <div class="g-item"></div>
 </div>`);
 
-        cssEditor.setValue(`@use "sass:string";
+    cssEditor.setValue(`@use "sass:string";
 @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Ubuntu+Mono&display=swap');
 
 $str: 'QWERTYUIOPASDFGHJKLZXCVBNMabcdefghigklmnopqrstuvwxyz123456789';
@@ -359,9 +376,9 @@ html {
     }
 }`);
 
-        jsEditor.setValue(``);
+    jsEditor.setValue(``);
 
-        // Initial preview
-        updatePreview();
-    });
+    // Initial preview
+    updatePreview();
+  });
 });
