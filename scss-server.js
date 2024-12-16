@@ -30,7 +30,7 @@ app.post('/compile-scss', (req, res) => {
     }
 });
 
-const PORT = 3001;
+const PORT = 7001;
 app.listen(PORT, () => {
     console.log(`SCSS compilation server running on port ${PORT}`);
 });
