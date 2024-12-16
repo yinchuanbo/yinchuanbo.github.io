@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Function to compile SCSS using the server
         async function compileSCSS(scss) {
             try {
-                const response = await fetch('http://localhost:3001/compile-scss', {
+                const response = await fetch('http://localhost:7001/compile-scss', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
