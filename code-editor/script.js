@@ -204,6 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set default content
         htmlEditor.setValue(`<div class="g-container">
   <div class="g-item"></div>
+</div><div class="g-container">
+  <div class="g-item"></div>
 </div>`);
 
         cssEditor.setValue(`@use "sass:string";
@@ -267,7 +269,7 @@ html {
     width: 100%;
     height: 100%;
     display: flex;
-    background: #000;
+    background: #1e1e1e;
     font-family: 'Ubuntu Mono', monospace;
 }
 
@@ -327,7 +329,6 @@ html {
         filter: hue-rotate(999deg);
     }
 }
-
 @keyframes contentChange {
     10% {
         content: var(--content1);
