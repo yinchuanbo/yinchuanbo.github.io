@@ -60,8 +60,9 @@ document.addEventListener("DOMContentLoaded", () => {
         theme: "vs-dark",
         minimap: { enabled: false },
         automaticLayout: true,
-        fontSize: 14,
+        fontSize: 16,
         tabSize: 2,
+        lineHeight: 1.8,
         fontFamily: "JetBrains Mono",
         fontLigatures: true,
       }
@@ -75,8 +76,9 @@ document.addEventListener("DOMContentLoaded", () => {
         theme: "vs-dark",
         minimap: { enabled: false },
         automaticLayout: true,
-        fontSize: 14,
+        fontSize: 16,
         tabSize: 2,
+        lineHeight: 1.8,
         fontFamily: "JetBrains Mono",
         fontLigatures: true,
       }
@@ -88,8 +90,9 @@ document.addEventListener("DOMContentLoaded", () => {
       theme: "vs-dark",
       minimap: { enabled: false },
       automaticLayout: true,
-      fontSize: 14,
+      fontSize: 16,
       tabSize: 2,
+      lineHeight: 1.8,
       fontFamily: "JetBrains Mono",
       fontLigatures: true,
     });
