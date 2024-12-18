@@ -158,84 +158,84 @@ span {
 </div>
 ```
 
-```css
+```scss
 .g-emoji {
-    position: relative;
+  position: relative;
+  width: 200px;
+  height: 200px;
+  perspective: 2000px;
+  transform-style: preserve-3d;
+  font-size: 200px;
+  animation: rotate 2s alternate infinite ease-in-out;
+
+  &::before,
+  &::after {
+    content: "\1F600";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 200px;
     height: 200px;
-    perspective: 2000px;
+  }
+  &::after {
+    transform: translate(-50%, -50%) translateZ(-4px);
+  }
+
+  .g-foo,
+  .g-bar,
+  .g-baz {
+    position: absolute;
+    inset: 0;
     transform-style: preserve-3d;
-    font-size: 200px;
-    animation: rotate 2s alternate infinite ease-in-out;
+  }
 
-    &::before,
-    &::after {
-        content: "\1F600"
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 200px;
-        height: 200px;
-    }
-    &::after {
-        transform: translate(-50%, -50%) translateZ(-4px);
-    }
-
-    .g-foo,
-    .g-bar,
-    .g-baz{
-        position: absolute;
-        inset: 0;
-        transform-style: preserve-3d;
-    }
-
-    .g-foo::before,
-    .g-foo::after,
-    .g-bar::before,
-    .g-bar::after,
-    .g-baz::before,
-    .g-baz::after{
-        content: "\1F600";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 200px;
-        height: 200px;
-    }
-    .g-foo::before {
-        transform: translate(-50%, -50%) translateZ(-8px);
-        opacity: .95;
-    }
-    .g-foo::after {
-        transform: translate(-50%, -50%) translateZ(-12px);
-        opacity: .9;
-    }
-    .g-bar::before {
-        transform: translate(-50%, -50%) translateZ(-16px);
-        opacity: .85;
-    }
-    .g-bar::after {
-        transform: translate(-50%, -50%) translateZ(-20px);
-        opacity: .8;
-    }
-    .g-baz::before {
-        transform: translate(-50%, -50%) translateZ(-24px);
-        opacity: .75;
-    }
-    .g-baz::after {
-        transform: translate(-50%, -50%) translateZ(-28px);
-        opacity: .7;
-    }
+  .g-foo::before,
+  .g-foo::after,
+  .g-bar::before,
+  .g-bar::after,
+  .g-baz::before,
+  .g-baz::after {
+    content: "\1F600";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200px;
+    height: 200px;
+  }
+  .g-foo::before {
+    transform: translate(-50%, -50%) translateZ(-8px);
+    opacity: 0.95;
+  }
+  .g-foo::after {
+    transform: translate(-50%, -50%) translateZ(-12px);
+    opacity: 0.9;
+  }
+  .g-bar::before {
+    transform: translate(-50%, -50%) translateZ(-16px);
+    opacity: 0.85;
+  }
+  .g-bar::after {
+    transform: translate(-50%, -50%) translateZ(-20px);
+    opacity: 0.8;
+  }
+  .g-baz::before {
+    transform: translate(-50%, -50%) translateZ(-24px);
+    opacity: 0.75;
+  }
+  .g-baz::after {
+    transform: translate(-50%, -50%) translateZ(-28px);
+    opacity: 0.7;
+  }
 }
 
 @keyframes rotate {
-    0% {
-        transform: rotateY(-45deg);
-    }
-    100% {
-        transform: rotateY(45deg);
-    }
+  0% {
+    transform: rotateY(-45deg);
+  }
+  100% {
+    transform: rotateY(45deg);
+  }
 }
 ```
 
@@ -362,7 +362,7 @@ OK，接下来，我们要解决另外一个难点。
 </div>
 ```
 
-```css
+```scss
 .g-emoji {
   position: relative;
   animation: rotate 2.3s alternate infinite ease-in-out, fall 0.6s alternate
