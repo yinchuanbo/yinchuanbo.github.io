@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>45 在场景中绘制居中展示的魔方</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      const myContainer = document.getElementById("myContainer");
+
+      //创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myContainer.append(myRenderer.domElement);
+
+      var myScene = new THREE.Scene();
+      myScene.add(new THREE.AxesHelper(120));
+
+      myScene.background = new THREE.Color("#000");
+
+      myScene.add(new THREE.AmbientLight(0xffffff));
+
+      var myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      myCamera.position.set(100, 100, 250);
+      myCamera.lookAt(myScene.position);
+
+      var myControls = new OrbitControls(myCamera, myRenderer.domElement);
+
+      //创建魔方模型
+      var myMaterials = [];
+      myMaterials.push(new THREE.MeshPhongMaterial({ color: 0x009e60 }));
+      myMaterials.push(new THREE.MeshPhongMaterial({ color: 0x0051ba }));
+      myMaterials.push(new THREE.MeshPhongMaterial({ color: 0xffd500 }));
+      myMaterials.push(new THREE.MeshPhongMaterial({ color: 0xff5800 }));
+      myMaterials.push(new THREE.MeshPhongMaterial({ color: 0xc41e3a }));
+      myMaterials.push(new THREE.MeshPhongMaterial({ color: 0xffffff }));
+
+      var myGroup = new THREE.Group();
+
+      for (var x = 0; x < 6; x++) {
+        for (var y = 0; y < 6; y++) {
+          for (var z = 0; z < 6; z++) {
+            var myGeometry = new THREE.BoxGeometry(5.9, 5.9, 5.9);
+            var myMesh = new THREE.Mesh(myGeometry, myMaterials);
+            myMesh.position.set(x * 6 - 6, y * 6 + 6, z * 6 - 6);
+            myGroup.add(myMesh);
+          }
+        }
+      }
+      // x/y/z 轴的缩放比例
+      myGroup.scale.set(2, 2, 2);
+      myScene.add(myGroup);
+
+      /**
+       * 包围盒
+       */
+
+      var myBox3 = new THREE.Box3();
+      myBox3.expandByObject(myGroup);
+
+      var myX = myBox3.max.x - myBox3.min.x;
+      var myY = myBox3.max.y - myBox3.min.y;
+      var myZ = myBox3.max.z - myBox3.min.z;
+      var myNewX = myBox3.min.x + myX / 2;
+      var myNewY = myBox3.min.y + myY / 2;
+      var myNewZ = myBox3.min.z + myZ / 2;
+
+      // 根据计算结果重新设置魔方位置，使其居中显示
+      myGroup.position.set(-myNewX, -myNewY, -myNewZ);
+
+      //渲染魔方模型
+      animate();
+      function animate() {
+        myRenderer.render(myScene, myCamera);
+        requestAnimationFrame(animate);
+      }
+    </script>
+  </body>
+</html>
