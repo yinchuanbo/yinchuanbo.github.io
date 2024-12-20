@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>53 在场景中绘制旋转的圆柱体</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      const myContainer = document.getElementById("myContainer");
+
+      // 创建渲染器
+      const myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setClearColor(new THREE.Color(0x808080), 1.0);
+      myRenderer.shadowMap.enabled = true; // 启用阴影
+      myRenderer.shadowMap.type = THREE.PCFSoftShadowMap; // 使用柔和阴影
+      myContainer.append(myRenderer.domElement);
+
+      // 处理窗口大小变化
+      window.addEventListener("resize", onWindowResize, false);
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // 创建相机
+      const myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      myCamera.position.set(0, 40, 150);
+      myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+
+      // 添加 OrbitControls
+      const controls = new OrbitControls(myCamera, myRenderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.screenSpacePanning = false; // 禁止屏幕空间平移
+
+      // 创建场景
+      const myScene = new THREE.Scene();
+      myScene.add(new THREE.AmbientLight(0xffffff, 0.5)); // 环境光
+
+      // 创建点光源
+      const myLight = new THREE.PointLight(0xffffff, 1, 100);
+      myLight.position.set(30, 30, 30);
+      myLight.castShadow = true;
+      myScene.add(myLight);
+
+      // 添加点光源助手
+      const pointLightHelper = new THREE.PointLightHelper(myLight, 1);
+      myScene.add(pointLightHelper);
+
+      // 创建投影平面
+      const myPlaneGeometry = new THREE.PlaneGeometry(100, 100);
+      const myPlaneMaterial = new THREE.MeshStandardMaterial({
+        color: "green",
+        roughness: 1,
+        metalness: 0,
+      });
+      const myPlaneMesh = new THREE.Mesh(myPlaneGeometry, myPlaneMaterial);
+      myPlaneMesh.rotation.x = -0.5 * Math.PI;
+      myPlaneMesh.position.y = -10;
+      myPlaneMesh.receiveShadow = true; // 地板接收阴影
+      myScene.add(myPlaneMesh);
+
+      // 创建圆柱体
+      const myCylinderGeometry = new THREE.CylinderGeometry(10, 10, 60, 40, 20);
+      const myCylinderMaterial = new THREE.MeshPhongMaterial({
+        color: 0xff5f4d,
+      });
+      const myCylinderMesh = new THREE.Mesh(
+        myCylinderGeometry,
+        myCylinderMaterial
+      );
+      myCylinderMesh.position.set(0, 10, 0);
+      myCylinderMesh.castShadow = true; // 圆柱体投射阴影
+      myScene.add(myCylinderMesh);
+
+      // 渲染和动画
+      let myStep = 0;
+      function animate() {
+        controls.update(); // 更新控制器
+        myRenderer.render(myScene, myCamera);
+
+        // 在 xyz 方向缩放圆柱体
+        myStep += 0.01;
+        myCylinderMesh.scale.x = Math.abs(Math.sin(myStep));
+        myCylinderMesh.scale.y = Math.abs(Math.cos(myStep));
+        myCylinderMesh.scale.z = Math.abs(Math.sin(myStep));
+
+        requestAnimationFrame(animate);
+      }
+
+      animate(); // 启动动画
+    </script>
+  </body>
+</html>

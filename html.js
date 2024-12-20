@@ -188,7 +188,10 @@ for (const key in structure) {
   });
   const sanitizedKey = key.replace(/\s+/g, "_");
   const htmlName = `${sanitizedKey}.html`;
-  const outputFilePath = path.join(__dirname, `html/${htmlName.replace("_-_download", "")}`);
+  const outputFilePath = path.join(
+    __dirname,
+    `html/${htmlName.replace("_-_download", "")}`
+  );
   fs.writeFileSync(outputFilePath, tempHTML, "utf-8");
   urls.push({
     htmlName,
@@ -200,9 +203,13 @@ const homeTemplateContent = fs.readFileSync("./templates/index.html", "utf-8");
 const homeOutputFilePath = path.join(__dirname, `html/index.html`);
 
 let homeHTML = `<ul>`;
+urls = urls.reverse()
 for (let i = 0; i < urls.length; i++) {
   const url = urls[i];
-  homeHTML += `<li class="card"><a href="/html/${url.htmlName.replace("_-_download", "")}">${url.key.replace(" - download", "")}</a></li>`;
+  homeHTML += `<li class="card"><a href="/html/${url.htmlName.replace(
+    "_-_download",
+    ""
+  )}">${url.key.replace(" - download", "")}</a></li>`;
 }
 
 homeHTML += `</ul>`;
