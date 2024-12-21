@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>76 在场景中自定义顶点绘制曲线</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      const myContainer = document.getElementById("myContainer");
+
+      // 创建渲染器
+      const myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setClearColor("white", 1);
+      myContainer.append(myRenderer.domElement);
+
+      // 创建场景
+      const myScene = new THREE.Scene();
+
+      // 创建相机
+      const myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      myCamera.position.set(0, 0, 100);
+      myCamera.lookAt(myScene.position);
+
+      // 创建控制器
+      const myControls = new OrbitControls(myCamera, myRenderer.domElement);
+      myControls.enableDamping = true;
+      myControls.dampingFactor = 0.05;
+
+      // 定义顶点
+      const myPoints = [
+        new THREE.Vector3(-50, 30, 0),
+        new THREE.Vector3(50, 30, 0),
+        new THREE.Vector3(50, -20, 0),
+        new THREE.Vector3(-50, -20, 0),
+        new THREE.Vector3(-50, 30, 0),
+      ];
+
+      // 创建曲线
+
+      const myCurve = new THREE.CatmullRomCurve3(myPoints);
+      const points = myCurve.getPoints(250);
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+      // 创建材质和线条
+      const myLineMaterial = new THREE.LineBasicMaterial({
+        color: 0xff0000,
+        linewidth: 2,
+      });
+      const mySplineCurve = new THREE.Line(geometry, myLineMaterial);
+      mySplineCurve.position.set(3, -5, 0);
+      myScene.add(mySplineCurve);
+
+      // 添加点的可视化
+      const pointsMaterial = new THREE.PointsMaterial({
+        color: 0x0000ff,
+        size: 5,
+      });
+      const pointsGeometry = new THREE.BufferGeometry().setFromPoints(myPoints);
+      const pointCloud = new THREE.Points(pointsGeometry, pointsMaterial);
+      pointCloud.position.copy(mySplineCurve.position);
+      myScene.add(pointCloud);
+
+      // 处理窗口大小变化
+      window.addEventListener("resize", onWindowResize, false);
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // 渲染循环
+      function animate() {
+        requestAnimationFrame(animate);
+        myControls.update();
+        myRenderer.render(myScene, myCamera);
+      }
+      animate();
+    </script>
+  </body>
+</html>

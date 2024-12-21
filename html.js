@@ -174,7 +174,6 @@ let urls = [];
 for (const key in structure) {
   const len = Object.keys(structure[key]).length;
   const hasHtml = !!structure[key]["index.html"];
-  console.log("iisisisi", key);
   const tempHTML = ejs.render(templateContent, {
     nav: convertToHTML(structure[key]),
     datas: structure[key],
@@ -203,7 +202,20 @@ const homeTemplateContent = fs.readFileSync("./templates/index.html", "utf-8");
 const homeOutputFilePath = path.join(__dirname, `html/index.html`);
 
 let homeHTML = `<ul>`;
-urls = urls.reverse()
+// 对 urls 进行排序，根据文件夹名称中的数字进行降序排序
+urls.sort((a, b) => {
+  // 提取文件夹名称中的数字
+  const getNumber = (str) => {
+    const match = str.match(/^(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  };
+  
+  const numA = getNumber(a.htmlName);
+  const numB = getNumber(b.htmlName);
+  
+  return numB - numA;  // 降序排序
+});
+
 for (let i = 0; i < urls.length; i++) {
   const url = urls[i];
   homeHTML += `<li class="card"><a href="/html/${url.htmlName.replace(

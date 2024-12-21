@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>75 在场景中自定义曲线绘制扭结</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { GrannyKnot } from "three/addons/curves/CurveExtras.js";
+
+      const myContainer = document.getElementById("myContainer");
+
+      //创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myContainer.append(myRenderer.domElement);
+
+      // 创建场景
+      var myScene = new THREE.Scene();
+      myScene.background = new THREE.Color(0xffffff);
+
+      // 创建相机
+      var myCamera = new THREE.PerspectiveCamera(
+        50,
+        window.innerWidth / window.innerHeight,
+        0.01,
+        1000
+      );
+      myCamera.position.set(0, 50, 260);
+
+      // 创建控制器
+      var myControls = new OrbitControls(myCamera, myRenderer.domElement);
+      myControls.enableDamping = true;
+      myControls.dampingFactor = 0.05;
+
+      // 添加光源
+      var myLight = new THREE.DirectionalLight(0xffffff, 1);
+      myLight.position.set(0, 0, 1);
+      myScene.add(myLight);
+
+      // 添加环境光
+      var ambientLight = new THREE.AmbientLight(0x404040);
+      myScene.add(ambientLight);
+
+      //创建自定义扭结
+      var myCurve = new GrannyKnot();
+      var myGeometry = new THREE.TubeGeometry(myCurve, 500, 2, 20);
+      var myMesh = new THREE.Mesh(
+        myGeometry,
+        new THREE.MeshPhongMaterial({
+          color: 0xff00ff,
+          shininess: 100,
+        })
+      );
+      myMesh.scale.set(2, 2, 2);
+      myScene.add(myMesh);
+
+      // 处理窗口大小变化
+      window.addEventListener("resize", onWindowResize, false);
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      //渲染自定义扭结
+      animate();
+      function animate() {
+        requestAnimationFrame(animate);
+        myControls.update();
+        myRenderer.render(myScene, myCamera);
+      }
+    </script>
+  </body>
+</html>

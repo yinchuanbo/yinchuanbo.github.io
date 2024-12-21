@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>85 在场景中自定义顶点绘制凸面体</title>
+    <style>
+      body {
+        overflow: hidden; /* 禁止页面滚动 */
+        margin: 0; /* 移除默认边距 */
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- 用于存放 WebGL 渲染器的容器 -->
+    <div id="myContainer"></div>
+
+    <!-- 用于加载和导入 Three.js 库 -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      // 导入必要的 Three.js 模块
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { ConvexGeometry } from "three/addons/geometries/ConvexGeometry.js";
+
+      // 获取页面中的 DOM 元素
+      const myContainer = document.getElementById("myContainer");
+
+      // 创建渲染器
+      const myRenderer = new THREE.WebGLRenderer({
+        antialias: true, // 启用抗锯齿
+        alpha: true, // 启用透明度
+      });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setPixelRatio(window.devicePixelRatio); // 设置设备像素比
+      myContainer.appendChild(myRenderer.domElement);
+
+      // 创建场景
+      const myScene = new THREE.Scene();
+      myScene.background = new THREE.Color(0xffffff);
+
+      // 创建相机
+      const myCamera = new THREE.PerspectiveCamera(
+        45, // 视场角度
+        window.innerWidth / window.innerHeight, // 宽高比
+        0.1, // 近裁剪面
+        1000 // 远裁剪面
+      );
+      myCamera.position.set(-30, 40, 30);
+      myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+
+      // 创建轨道控制器
+      const controls = new OrbitControls(myCamera, myRenderer.domElement);
+      controls.enableDamping = true; // 启用阻尼效果
+      controls.dampingFactor = 0.05; // 设置阻尼系数
+
+      // 添加光源
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(1, 1, 1);
+      myScene.add(directionalLight);
+
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      myScene.add(ambientLight);
+
+      // 随机生成顶点
+      const myPoints = [];
+      for (let i = 0; i < 20; i++) {
+        const randomX = -15 + Math.round(Math.random() * 30);
+        const randomY = -15 + Math.round(Math.random() * 30);
+        const randomZ = -15 + Math.round(Math.random() * 30);
+        myPoints.push(new THREE.Vector3(randomX, randomY, randomZ));
+      }
+
+      // 创建顶点可视化组
+      const myGroup = new THREE.Group();
+      const myPointMaterial = new THREE.MeshPhongMaterial({
+        color: 0xff0000,
+        shininess: 100,
+      });
+
+      // 为每个顶点创建小球体
+      myPoints.forEach((point) => {
+        const myPointGeometry = new THREE.SphereGeometry(0.4);
+        const myPointMesh = new THREE.Mesh(myPointGeometry, myPointMaterial);
+        myPointMesh.position.copy(point);
+        myGroup.add(myPointMesh);
+      });
+      myScene.add(myGroup);
+
+      // 创建凸面体
+      let myConvexMesh;
+      try {
+        const myConvexGeometry = new ConvexGeometry(myPoints);
+
+        // 创建实体材质
+        const myConvexMaterial = new THREE.MeshPhongMaterial({
+          color: 0x00ff00,
+          transparent: true,
+          opacity: 0.2,
+          side: THREE.DoubleSide,
+          shininess: 100,
+        });
+
+        // 创建线框材质
+        const myWireFrameMaterial = new THREE.LineBasicMaterial({
+          color: 0x000000,
+          linewidth: 1,
+        });
+
+        // 创建实体网格
+        const solidMesh = new THREE.Mesh(myConvexGeometry, myConvexMaterial);
+
+        // 创建线框网格
+        const wireframe = new THREE.LineSegments(
+          new THREE.WireframeGeometry(myConvexGeometry),
+          myWireFrameMaterial
+        );
+
+        // 创建组合对象
+        myConvexMesh = new THREE.Group();
+        myConvexMesh.add(solidMesh);
+        myConvexMesh.add(wireframe);
+
+        myScene.add(myConvexMesh);
+      } catch (error) {
+        console.error("Error creating ConvexGeometry:", error);
+      }
+
+      // 处理窗口大小变化
+      window.addEventListener("resize", onWindowResize, false);
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // 动画循环
+      let myStep = 0;
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // 更新控制器
+        controls.update();
+
+        // 旋转物体
+        if (myGroup && myConvexMesh) {
+          myStep += 0.01;
+          myGroup.rotation.y = myStep;
+          myConvexMesh.rotation.y = myStep;
+        }
+
+        // 渲染场景
+        myRenderer.render(myScene, myCamera);
+      }
+
+      // 启动动画循环
+      animate();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>91 在场景中使用渐变色线条绘制图形</title>
+    <style>
+      body {
+        overflow: hidden; /* 禁止页面滚动 */
+        margin: 0; /* 移除默认边距 */
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- 用于存放 WebGL 渲染器的容器 -->
+    <div id="myContainer"></div>
+
+    <!-- 用于加载和导入 Three.js 库 -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      // 导入必要的 Three.js 模块
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      // 获取页面中的 DOM 元素
+      const myContainer = document.getElementById("myContainer");
+
+      // 创建渲染器
+      const myRenderer = new THREE.WebGLRenderer({ 
+        antialias: true,  // 启用抗锯齿
+        alpha: true       // 启用透明度
+      });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setPixelRatio(window.devicePixelRatio);
+      myRenderer.setClearColor(0xffffff, 1.0);
+      myContainer.appendChild(myRenderer.domElement);
+
+      // 创建场景
+      const myScene = new THREE.Scene();
+
+      // 创建相机
+      const myCamera = new THREE.PerspectiveCamera(
+        45,                                     // 视场角度
+        window.innerWidth / window.innerHeight, // 宽高比
+        1,                                      // 近裁剪面
+        500                                     // 远裁剪面
+      );
+      myCamera.position.set(0, 0, 100);
+      myCamera.lookAt(myScene.position);
+
+      // 创建轨道控制器
+      const controls = new OrbitControls(myCamera, myRenderer.domElement);
+      controls.enableDamping = true;   // 启用阻尼效果
+      controls.dampingFactor = 0.05;   // 设置阻尼系数
+      controls.enableZoom = true;      // 允许缩放
+      controls.autoRotate = true;      // 自动旋转
+      controls.autoRotateSpeed = 0.5;  // 自动旋转速度
+
+      // 创建几何体
+      const myGeometry = new THREE.BufferGeometry();
+
+      // 定义顶点位置
+      const vertices = new Float32Array([
+        -50, -20, 0,  // 顶点1
+        0, 30, 0,     // 顶点2
+        50, -20, 0,   // 顶点3
+        -50, -20, 0   // 顶点4（闭合路径）
+      ]);
+
+      // 定义顶点颜色
+      const colors = new Float32Array([
+        1, 0, 0,    // 红色
+        0, 1, 0,    // 绿色
+        0, 0, 1,    // 蓝色
+        1, 0, 0     // 红色（闭合路径）
+      ]);
+
+      // 设置顶点位置属性
+      myGeometry.setAttribute(
+        'position',
+        new THREE.BufferAttribute(vertices, 3)
+      );
+
+      // 设置顶点颜色属性
+      myGeometry.setAttribute(
+        'color',
+        new THREE.BufferAttribute(colors, 3)
+      );
+
+      // 创建材质
+      const myMaterial = new THREE.LineBasicMaterial({
+        vertexColors: true,     // 启用顶点颜色
+        linewidth: 2,           // 线条宽度
+      });
+
+      // 创建线条
+      const myLine = new THREE.Line(myGeometry, myMaterial);
+      myScene.add(myLine);
+
+      // 处理窗口大小变化
+      window.addEventListener('resize', onWindowResize, false);
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // 动画循环
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // 更新控制器
+        controls.update();
+
+        // 旋转线条
+        if (myLine) {
+          myLine.rotation.z += 0.005;
+        }
+
+        // 渲染场景
+        myRenderer.render(myScene, myCamera);
+      }
+
+      // 启动动画循环
+      animate();
+    </script>
+  </body>
+</html>
