@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>132 使用自定义属性自定义线条颜色</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="myContainer"></div>
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="x-shader/x-vertex" id="myVertexShader">
+      attribute vec3 myColor;
+      varying vec3 myNewColor;
+      void main(){
+        vec3 myPosition=position+5.0;
+        myNewColor=myColor;
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(myPosition,1.0);
+      }
+    </script>
+    <script type="x-shader/x-fragment" id="myFragmentShader">
+      varying vec3 myNewColor;
+      void main(){
+        gl_FragColor=vec4(myNewColor,0.3);
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { TTFLoader } from "three/addons/loaders/TTFLoader.js";
+      import { FontLoader } from "three/addons/loaders/FontLoader.js";
+      import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
+
+      //创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      $("#myContainer").append(myRenderer.domElement);
+      var myCamera = new THREE.PerspectiveCamera(
+        30,
+        window.innerWidth / window.innerHeight,
+        1,
+        10000
+      );
+      myCamera.position.z = 400;
+      var myScene = new THREE.Scene();
+      myScene.background = new THREE.Color("black");
+      //创建艺术字母
+      var myLoader = new FontLoader();
+      myLoader.load("Data/MyFont.json", function (font) {
+        var myMaterial = new THREE.ShaderMaterial({
+          vertexShader: $("#myVertexShader")[0].text,
+          fragmentShader: $("#myFragmentShader")[0].text,
+        });
+        var myGeometry = new TextGeometry("three.js", {
+          font: font,
+          size: 50,
+          height: 10,
+        });
+        myGeometry.center();
+        var myCount = myGeometry.attributes.position.count;
+        var myColorArray = new THREE.Float32BufferAttribute(myCount * 3, 3);
+        myGeometry.setAttribute("myColor", myColorArray);
+        var myColor = new THREE.Color(0xffffff);
+        for (var i = 0, l = myColorArray.count; i < l; i++) {
+          myColor.setHSL(i / l, 0.5, 0.5);
+          // myColor.set(0xffffff*Math.random(),
+          //     0xffffff*Math.random(),0xffffff*Math.random());
+          myColor.toArray(myColorArray.array, i * myColorArray.itemSize);
+        }
+        var myLine = new THREE.Line(myGeometry, myMaterial);
+        myScene.add(myLine);
+        //渲染艺术字母
+        animate();
+        function animate() {
+          requestAnimationFrame(animate);
+          myLine.rotation.y += 0.01;
+          myRenderer.render(myScene, myCamera);
+        }
+      });
+    </script>
+  </body>
+</html>

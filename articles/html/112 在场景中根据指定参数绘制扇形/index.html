@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>112 在场景中根据指定参数绘制扇形</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+      #controls {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .control-group {
+        margin: 10px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      button {
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        margin: 0 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+      }
+      button:hover {
+        background: #45a049;
+      }
+      button:active {
+        background: #3d8b40;
+      }
+      label {
+        font-size: 14px;
+        color: #666;
+      }
+      input[type="range"] {
+        width: 150px;
+      }
+      #info {
+        position: fixed;
+        bottom: 10px;
+        width: 100%;
+        text-align: center;
+        color: #666;
+        pointer-events: none;
+        z-index: 100;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="controls">
+      <div class="control-group">
+        <button id="emptyBtn">绘制空心扇形</button>
+        <button id="filledBtn">绘制实心扇形</button>
+      </div>
+      <div class="control-group">
+        <label>半径：</label>
+        <input type="range" id="radiusSlider" min="20" max="80" value="48" />
+        <span id="radiusValue">48</span>
+      </div>
+      <div class="control-group">
+        <label>角度：</label>
+        <input type="range" id="angleSlider" min="30" max="360" value="240" />
+        <span id="angleValue">240°</span>
+      </div>
+    </div>
+    <div id="info">使用鼠标拖动来旋转视角，滚轮缩放</div>
+    <div id="container"></div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      // 场景初始化
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf0f0f0);
+
+      // 相机设置
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        1,
+        1000
+      );
+      camera.position.set(0, 0, 160);
+
+      // 渲染器设置
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: "high-performance",
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      document.getElementById("container").appendChild(renderer.domElement);
+
+      // 控制器设置
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.screenSpacePanning = false;
+      controls.minDistance = 50;
+      controls.maxDistance = 300;
+
+      // 光照设置
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+
+      // 当前扇形对象
+      let currentShape = null;
+
+      // 创建扇形
+      function createShape(filled = false) {
+        // 获取当前参数值
+        const radius = parseFloat(
+          document.getElementById("radiusSlider").value
+        );
+        const angle = parseFloat(document.getElementById("angleSlider").value);
+        const angleRad = (angle * Math.PI) / 180;
+
+        // 如果存在旧的扇形，先清理
+        if (currentShape) {
+          scene.remove(currentShape);
+          if (currentShape.geometry) {
+            currentShape.geometry.dispose();
+          }
+          if (currentShape.material) {
+            currentShape.material.dispose();
+          }
+        }
+
+        // 创建几何体
+        const segments = Math.max(32, Math.floor(angle / 6)); // 根据角度动态调整分段数
+        const geometry = new THREE.CircleGeometry(
+          radius,
+          segments,
+          0,
+          angleRad
+        );
+
+        if (filled) {
+          // 创建实心扇形
+          const material = new THREE.MeshPhongMaterial({
+            color: 0x2196f3,
+            side: THREE.DoubleSide,
+            shininess: 50,
+          });
+          currentShape = new THREE.Mesh(geometry, material);
+        } else {
+          // 创建空心扇形
+          const points = [];
+          // 添加圆心
+          points.push(new THREE.Vector3(0, 0, 0));
+          // 添加圆弧上的点
+          const positions = geometry.attributes.position.array;
+          for (let i = 0; i < positions.length; i += 3) {
+            points.push(
+              new THREE.Vector3(
+                positions[i],
+                positions[i + 1],
+                positions[i + 2]
+              )
+            );
+          }
+          // 创建线条几何体
+          const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+          const material = new THREE.LineBasicMaterial({
+            color: 0x2196f3,
+            linewidth: 2,
+          });
+          currentShape = new THREE.LineLoop(lineGeometry, material);
+        }
+
+        scene.add(currentShape);
+      }
+
+      // 按钮事件监听
+      document.getElementById("emptyBtn").addEventListener("click", () => {
+        createShape(false);
+      });
+
+      document.getElementById("filledBtn").addEventListener("click", () => {
+        createShape(true);
+      });
+
+      // 滑块事件监听
+      document.getElementById("radiusSlider").addEventListener("input", (e) => {
+        document.getElementById("radiusValue").textContent = e.target.value;
+        if (currentShape) createShape(currentShape instanceof THREE.Mesh);
+      });
+
+      document.getElementById("angleSlider").addEventListener("input", (e) => {
+        document.getElementById(
+          "angleValue"
+        ).textContent = `${e.target.value}°`;
+        if (currentShape) createShape(currentShape instanceof THREE.Mesh);
+      });
+
+      // 动画循环
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      // 窗口大小调整
+      window.addEventListener("resize", onWindowResize, false);
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // 清理函数
+      window.addEventListener("beforeunload", () => {
+        if (currentShape) {
+          scene.remove(currentShape);
+          if (currentShape.geometry) {
+            currentShape.geometry.dispose();
+          }
+          if (currentShape.material) {
+            currentShape.material.dispose();
+          }
+        }
+        renderer.dispose();
+      });
+
+      // 开始动画
+      animate();
+
+      // 默认显示实心扇形
+      createShape(true);
+    </script>
+  </body>
+</html>

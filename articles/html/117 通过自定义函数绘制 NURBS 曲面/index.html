@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>117 通过自定义函数绘制 NURBS 曲面</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+      #controls {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .control-group {
+        margin: 10px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      label {
+        font-size: 14px;
+        color: #666;
+        min-width: 120px;
+      }
+      input[type="range"] {
+        width: 150px;
+      }
+      input[type="color"] {
+        width: 50px;
+        height: 25px;
+        padding: 0;
+        border: none;
+        border-radius: 4px;
+      }
+      button {
+        padding: 8px 16px;
+        background: #2196f3;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      button:hover {
+        background: #1976d2;
+      }
+      #info {
+        position: fixed;
+        bottom: 10px;
+        width: 100%;
+        text-align: center;
+        color: #666;
+        pointer-events: none;
+        z-index: 100;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="controls">
+      <div class="control-group">
+        <label>分段数：</label>
+        <input type="range" id="segmentsSlider" min="2" max="20" value="10" />
+        <span id="segmentsValue">10</span>
+      </div>
+      <div class="control-group">
+        <label>曲面颜色：</label>
+        <input type="color" id="colorPicker" value="#00ff00" />
+      </div>
+      <div class="control-group">
+        <label>显示控制点：</label>
+        <button id="toggleControlPoints">显示/隐藏</button>
+      </div>
+      <div class="control-group">
+        <label>显示线框：</label>
+        <button id="toggleWireframe">显示/隐藏</button>
+      </div>
+    </div>
+    <div id="info">使用鼠标拖动来旋转视角，滚轮缩放</div>
+    <div id="container"></div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { ParametricGeometry } from "three/addons/geometries/ParametricGeometry.js";
+
+      // 场景初始化
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf0f0f0);
+
+      // 相机设置
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        1,
+        2000
+      );
+      camera.position.set(0, 100, 400);
+
+      // 渲染器设置
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: "high-performance",
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      document.getElementById("container").appendChild(renderer.domElement);
+
+      // 控制器设置
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.screenSpacePanning = false;
+      controls.minDistance = 100;
+      controls.maxDistance = 800;
+
+      // 光照设置
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+
+      const pointLight = new THREE.PointLight(0xffffff, 0.5);
+      pointLight.position.copy(camera.position);
+      scene.add(pointLight);
+
+      // 创建参数化曲面函数
+      function surfaceFunction(u, v, target) {
+        // 这是一个简单的波浪曲面函数
+        const x = 100 * (u - 0.5);
+        const y = 100 * (v - 0.5);
+        const z = 20 * Math.sin(Math.PI * u) * Math.sin(Math.PI * v);
+        target.set(x, y, z);
+      }
+
+      // 当前曲面对象
+      let currentSurface = null;
+      let controlPointsHelper = null;
+      let wireframeMesh = null;
+
+      // 创建控制点辅助对象
+      function createControlPointsHelper() {
+        if (controlPointsHelper) {
+          scene.remove(controlPointsHelper);
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const colors = [];
+        const color = new THREE.Color(0xff0000);
+
+        // 创建一个网格的控制点
+        const gridSize = 10;
+        for (let i = 0; i <= gridSize; i++) {
+          for (let j = 0; j <= gridSize; j++) {
+            const u = i / gridSize;
+            const v = j / gridSize;
+            const point = new THREE.Vector3();
+            surfaceFunction(u, v, point);
+            positions.push(point.x, point.y, point.z);
+            colors.push(color.r, color.g, color.b);
+          }
+        }
+
+        geometry.setAttribute(
+          "position",
+          new THREE.Float32BufferAttribute(positions, 3)
+        );
+        geometry.setAttribute(
+          "color",
+          new THREE.Float32BufferAttribute(colors, 3)
+        );
+
+        const material = new THREE.PointsMaterial({
+          size: 5,
+          vertexColors: true,
+        });
+
+        controlPointsHelper = new THREE.Points(geometry, material);
+        scene.add(controlPointsHelper);
+      }
+
+      // 创建参数化曲面
+      function createParametricSurface() {
+        // 如果存在旧的曲面，先清理
+        if (currentSurface) {
+          scene.remove(currentSurface);
+          if (currentSurface.geometry) {
+            currentSurface.geometry.dispose();
+          }
+          if (currentSurface.material) {
+            currentSurface.material.dispose();
+          }
+        }
+
+        if (wireframeMesh) {
+          scene.remove(wireframeMesh);
+          if (wireframeMesh.geometry) {
+            wireframeMesh.geometry.dispose();
+          }
+          if (wireframeMesh.material) {
+            wireframeMesh.material.dispose();
+          }
+        }
+
+        // 获取当前参数
+        const segments = parseInt(
+          document.getElementById("segmentsSlider").value
+        );
+        const color = document.getElementById("colorPicker").value;
+
+        // 创建几何体
+        const geometry = new ParametricGeometry(
+          surfaceFunction,
+          segments,
+          segments
+        );
+
+        // 创建材质
+        const material = new THREE.MeshPhongMaterial({
+          color: new THREE.Color(color),
+          side: THREE.DoubleSide,
+          shininess: 50,
+          flatShading: false,
+        });
+
+        // 创建网格
+        currentSurface = new THREE.Mesh(geometry, material);
+        scene.add(currentSurface);
+
+        // 创建线框
+        const wireframeGeometry = new THREE.WireframeGeometry(geometry);
+        const wireframeMaterial = new THREE.LineBasicMaterial({
+          color: 0x000000,
+          opacity: 0.25,
+          transparent: true,
+        });
+        wireframeMesh = new THREE.LineSegments(
+          wireframeGeometry,
+          wireframeMaterial
+        );
+        wireframeMesh.visible = false;
+        scene.add(wireframeMesh);
+      }
+
+      // 参数控制事件监听
+      document
+        .getElementById("segmentsSlider")
+        .addEventListener("input", (e) => {
+          document.getElementById("segmentsValue").textContent = e.target.value;
+          createParametricSurface();
+        });
+
+      document.getElementById("colorPicker").addEventListener("input", () => {
+        createParametricSurface();
+      });
+
+      document
+        .getElementById("toggleControlPoints")
+        .addEventListener("click", () => {
+          if (!controlPointsHelper) {
+            createControlPointsHelper();
+          } else {
+            controlPointsHelper.visible = !controlPointsHelper.visible;
+          }
+        });
+
+      document
+        .getElementById("toggleWireframe")
+        .addEventListener("click", () => {
+          if (wireframeMesh) {
+            wireframeMesh.visible = !wireframeMesh.visible;
+          }
+        });
+
+      // 动画循环
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        pointLight.position.copy(camera.position);
+        renderer.render(scene, camera);
+      }
+
+      // 窗口大小调整
+      window.addEventListener("resize", onWindowResize, false);
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // 清理函数
+      window.addEventListener("beforeunload", () => {
+        if (currentSurface) {
+          scene.remove(currentSurface);
+          if (currentSurface.geometry) {
+            currentSurface.geometry.dispose();
+          }
+          if (currentSurface.material) {
+            currentSurface.material.dispose();
+          }
+        }
+
+        if (wireframeMesh) {
+          scene.remove(wireframeMesh);
+          if (wireframeMesh.geometry) {
+            wireframeMesh.geometry.dispose();
+          }
+          if (wireframeMesh.material) {
+            wireframeMesh.material.dispose();
+          }
+        }
+
+        if (controlPointsHelper) {
+          scene.remove(controlPointsHelper);
+          if (controlPointsHelper.geometry) {
+            controlPointsHelper.geometry.dispose();
+          }
+          if (controlPointsHelper.material) {
+            controlPointsHelper.material.dispose();
+          }
+        }
+
+        renderer.dispose();
+      });
+
+      // 开始动画
+      animate();
+
+      // 创建初始曲面
+      createParametricSurface();
+    </script>
+  </body>
+</html>

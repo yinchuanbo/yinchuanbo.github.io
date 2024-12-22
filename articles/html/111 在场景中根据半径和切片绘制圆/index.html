@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>111 在场景中根据半径和切片绘制圆</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+      #controls {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      button {
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        margin: 0 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+      }
+      button:hover {
+        background: #45a049;
+      }
+      button:active {
+        background: #3d8b40;
+      }
+      #info {
+        position: fixed;
+        bottom: 10px;
+        width: 100%;
+        text-align: center;
+        color: #666;
+        pointer-events: none;
+        z-index: 100;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="controls">
+      <button id="emptyCircleBtn">绘制空心圆</button>
+      <button id="filledCircleBtn">绘制实心圆</button>
+    </div>
+    <div id="info">使用鼠标拖动来旋转视角，滚轮缩放</div>
+    <div id="container"></div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      // 场景初始化
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf0f0f0);
+
+      // 相机设置
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        1,
+        1000
+      );
+      camera.position.set(0, 0, 160);
+
+      // 渲染器设置
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: "high-performance",
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      document.getElementById("container").appendChild(renderer.domElement);
+
+      // 控制器设置
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.screenSpacePanning = false;
+      controls.minDistance = 50;
+      controls.maxDistance = 300;
+
+      // 光照设置
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+
+      // 圆形对象
+      let currentCircle = null;
+
+      // 创建圆形
+      function createCircle(filled = false) {
+        // 如果存在旧的圆形，先清理
+        if (currentCircle) {
+          scene.remove(currentCircle);
+          if (currentCircle.geometry) {
+            currentCircle.geometry.dispose();
+          }
+          if (currentCircle.material) {
+            currentCircle.material.dispose();
+          }
+        }
+
+        // 创建几何体
+        const geometry = new THREE.CircleGeometry(50, 64);
+
+        // 创建材质
+        const material = new THREE.MeshPhongMaterial({
+          color: 0x2196f3,
+          side: THREE.DoubleSide,
+          shininess: 50,
+        });
+
+        if (filled) {
+          // 创建实心圆
+          currentCircle = new THREE.Mesh(geometry, material);
+        } else {
+          // 创建空心圆（只保留边缘）
+          const edges = new THREE.EdgesGeometry(geometry);
+          currentCircle = new THREE.LineSegments(
+            edges,
+            new THREE.LineBasicMaterial({ color: 0x2196f3, linewidth: 2 })
+          );
+        }
+
+        scene.add(currentCircle);
+      }
+
+      // 按钮事件监听
+      document
+        .getElementById("emptyCircleBtn")
+        .addEventListener("click", () => {
+          createCircle(false);
+        });
+
+      document
+        .getElementById("filledCircleBtn")
+        .addEventListener("click", () => {
+          createCircle(true);
+        });
+
+      // 动画循环
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      // 窗口大小调整
+      window.addEventListener("resize", onWindowResize, false);
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // 清理函数
+      window.addEventListener("beforeunload", () => {
+        if (currentCircle) {
+          scene.remove(currentCircle);
+          if (currentCircle.geometry) {
+            currentCircle.geometry.dispose();
+          }
+          if (currentCircle.material) {
+            currentCircle.material.dispose();
+          }
+        }
+        renderer.dispose();
+      });
+
+      // 开始动画
+      animate();
+
+      // 默认显示实心圆
+      createCircle(true);
+    </script>
+  </body>
+</html>

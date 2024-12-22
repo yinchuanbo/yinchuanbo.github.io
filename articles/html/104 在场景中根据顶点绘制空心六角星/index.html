@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>104 在场景中根据顶点绘制空心六角星</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="myContainer"></div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      const myContainer = document.getElementById("myContainer");
+
+      // 创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myContainer.append(myRenderer.domElement);
+
+      var myScene = new THREE.Scene();
+      myScene.background = new THREE.Color("white");
+
+      var myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        1,
+        1000
+      );
+      myCamera.position.set(0, 0, 140);
+      myScene.add(myCamera);
+      myScene.add(new THREE.AmbientLight(0xffffff));
+
+      // 创建六角星
+      var myMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+
+      // 使用 BufferGeometry 替代 Geometry
+      var myGeometry = new THREE.BufferGeometry();
+      var myVertices = [];
+
+      // 如果 myCount = 5, 则为五角星，如果 myCount = 7, 则为七角星，依此类推
+      var myCount = 6;
+      for (var i = 0; i < myCount * 2; i++) {
+        var l = i % 2 == 1 ? 24 : 48;
+        var a = (i / myCount) * Math.PI;
+        myVertices.push(Math.cos(a) * l, Math.sin(a) * l, 0); // 更新为 x, y, z 三个值
+      }
+
+      // 设置顶点数据
+      myGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(myVertices, 3)
+      );
+
+      // 创建 LineLoop
+      var myLine = new THREE.LineLoop(myGeometry, myMaterial);
+      myScene.add(myLine);
+
+      // 渲染六角星
+      animate();
+      function animate() {
+        myRenderer.render(myScene, myCamera);
+        requestAnimationFrame(animate);
+      }
+
+      // 处理窗口大小调整
+      window.addEventListener("resize", function () {
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+      });
+
+      // 添加 OrbitControls 使得用户可以拖动旋转视图
+      var controls = new OrbitControls(myCamera, myRenderer.domElement);
+    </script>
+  </body>
+</html>

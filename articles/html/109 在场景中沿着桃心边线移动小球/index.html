@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>109 在场景中沿着桃心边线移动小球</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+      }
+      #info {
+        position: fixed;
+        top: 10px;
+        width: 100%;
+        text-align: center;
+        color: #333;
+        font-family: Arial, sans-serif;
+        pointer-events: none;
+        z-index: 100;
+      }
+      #loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="info">沿着桃心边线移动的小球 - 使用鼠标拖动来旋转视角</div>
+    <div id="loading">加载中...</div>
+    <div id="container"></div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      // 场景初始化
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf0f0f0);
+
+      // 相机设置
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        1,
+        1000
+      );
+      camera.position.set(0, 0, 200);
+
+      // 渲染器设置
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: "high-performance",
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      document.getElementById("container").appendChild(renderer.domElement);
+
+      // 控制器设置
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.screenSpacePanning = false;
+      controls.minDistance = 100;
+      controls.maxDistance = 500;
+
+      // 光照设置
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+
+      // 创建桃心形状
+      function createHeartShape() {
+        const x = -20;
+        const y = -40;
+
+        const shape = new THREE.Shape()
+          .moveTo(x + 25, y + 25)
+          .bezierCurveTo(x + 25, y + 25, x + 20, y, x, y)
+          .bezierCurveTo(x - 30, y, x - 30, y + 35, x - 30, y + 35)
+          .bezierCurveTo(x - 30, y + 55, x - 10, y + 77, x + 25, y + 95)
+          .bezierCurveTo(x + 60, y + 77, x + 80, y + 55, x + 80, y + 35)
+          .bezierCurveTo(x + 80, y + 35, x + 80, y, x + 50, y)
+          .bezierCurveTo(x + 35, y, x + 25, y + 25, x + 25, y + 25);
+
+        return shape;
+      }
+
+      // 创建桃心轮廓点
+      const heartShape = createHeartShape();
+      const points = heartShape.getPoints(50); // 增加点的数量使运动更平滑
+      const heartGeometry = new THREE.BufferGeometry().setFromPoints(points);
+      const heartMaterial = new THREE.PointsMaterial({
+        color: 0xff0000,
+        size: 3,
+        sizeAttenuation: true,
+      });
+      const heart = new THREE.Points(heartGeometry, heartMaterial);
+      scene.add(heart);
+
+      // 创建运动的小球
+      const sphereGeometry = new THREE.SphereGeometry(5, 32, 32);
+      const loadingManager = new THREE.LoadingManager(
+        // 加载完成
+        () => {
+          document.getElementById("loading").style.display = "none";
+          animate();
+        },
+        // 加载进度
+        (url, loaded, total) => {
+          document.getElementById("loading").style.display = "block";
+        },
+        // 加载错误
+        (url) => {
+          console.error("加载纹理失败:", url);
+          // 使用默认材质
+          sphere.material = new THREE.MeshPhongMaterial({
+            color: 0x00ff00,
+            shininess: 100,
+          });
+          document.getElementById("loading").style.display = "none";
+          animate();
+        }
+      );
+
+      const textureLoader = new THREE.TextureLoader(loadingManager);
+      const sphere = new THREE.Mesh(sphereGeometry);
+
+      textureLoader.load("images/img055.jpg", (texture) => {
+        sphere.material = new THREE.MeshPhongMaterial({
+          map: texture,
+          shininess: 100,
+        });
+      });
+
+      scene.add(sphere);
+
+      // 动画控制
+      let currentIndex = 0;
+      const pointCount = points.length;
+      const speed = 0.5; // 控制运动速度
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // 更新控制器
+        controls.update();
+
+        // 更新小球位置
+        currentIndex = (currentIndex + speed) % pointCount;
+        const currentPoint = points[Math.floor(currentIndex)];
+        sphere.position.set(currentPoint.x, currentPoint.y, 0);
+
+        // 渲染场景
+        renderer.render(scene, camera);
+      }
+
+      // 窗口大小调整
+      window.addEventListener("resize", onWindowResize, false);
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // 清理函数
+      window.addEventListener("beforeunload", () => {
+        scene.remove(heart);
+        scene.remove(sphere);
+        heartGeometry.dispose();
+        heartMaterial.dispose();
+        sphereGeometry.dispose();
+        if (sphere.material) {
+          sphere.material.dispose();
+          if (sphere.material.map) {
+            sphere.material.map.dispose();
+          }
+        }
+        renderer.dispose();
+      });
+    </script>
+  </body>
+</html>

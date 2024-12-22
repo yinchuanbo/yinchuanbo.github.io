@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>120 在场景中为平面图形添加波浪</title>
+    <style>
+      body {
+        overflow: hidden;
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+    </style>
+  </head>
+
+  <body>
+    <p>
+      <button id="myButton1">添加波浪效果</button>
+      <button id="myButton2">删除波浪效果</button>
+    </p>
+    <div id="myContainer"></div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      const myContainer = document.getElementById("myContainer");
+      const myButton1 = document.getElementById("myButton1");
+      const myButton2 = document.getElementById("myButton2");
+
+      // 创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myContainer.append(myRenderer.domElement);
+
+      var myScene = new THREE.Scene();
+      myScene.background = new THREE.Color("white");
+
+      var myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.01,
+        1000
+      );
+      myCamera.position.set(0, 90, 300);
+      myCamera.lookAt(myScene.position);
+      myScene.add(new THREE.AmbientLight(0xffffff));
+
+      // 创建贴图平面（平面图形）
+      var myGeometry = new THREE.PlaneGeometry(
+        window.innerWidth,
+        window.innerHeight,
+        100,
+        100
+      );
+
+      var myTexture = new THREE.TextureLoader().load("images/img130.jpg");
+      var myMaterial = new THREE.MeshPhongMaterial({ map: myTexture });
+      var myPlaneMesh = new THREE.Mesh(myGeometry, myMaterial);
+      myPlaneMesh.rotation.x = -Math.PI / 4;
+      myScene.add(myPlaneMesh);
+
+      // 使用 BufferGeometry 获取顶点数据
+      var position = myPlaneMesh.geometry.getAttribute("position");
+      var originalZ = new Float32Array(position.count); // 用于存储原始Z坐标
+
+      // 获取平面图形的初始顶点Z坐标
+      for (let i = 0; i < position.count; i++) {
+        originalZ[i] = position.getZ(i);
+      }
+
+      // 渲染波浪效果
+      var isWave = false;
+      animate();
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        if (isWave) {
+          for (let i = 0; i < position.count; i++) {
+            let x = position.getX(i);
+            let y = position.getY(i);
+
+            // 根据正弦波算法动态调整顶点的z坐标实现波浪效果
+            let waveFactor =
+              Math.sin(Date.now() / 200 + x * 0.05 + y * 0.05) * 3;
+
+            position.setZ(i, originalZ[i] + waveFactor);
+          }
+
+          // 通知几何体更新
+          position.needsUpdate = true;
+        }
+
+        myRenderer.render(myScene, myCamera);
+      }
+
+      // 响应“添加波浪效果”按钮点击
+      myButton1.onclick = function () {
+        isWave = true;
+      };
+
+      // 响应“删除波浪效果”按钮点击
+      myButton2.onclick = function () {
+        isWave = false;
+        // 恢复原始的平面样式
+        for (let i = 0; i < position.count; i++) {
+          position.setZ(i, originalZ[i]);
+        }
+        position.needsUpdate = true;
+      };
+
+      // 处理窗口大小调整
+      window.addEventListener("resize", () => {
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+      });
+
+      // 添加 OrbitControls 使得用户可以旋转视图
+      var controls = new OrbitControls(myCamera, myRenderer.domElement);
+    </script>
+  </body>
+</html>
