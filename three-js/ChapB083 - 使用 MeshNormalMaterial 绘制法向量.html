@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three"; //导入three.js
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      //创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      $("#myContainer").append(myRenderer.domElement);
+      var myCamera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      myCamera.position.set(100.23, 98.92, 99.18);
+      myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+      var myScene = new THREE.Scene();
+      myScene.background = new THREE.Color("white");
+      //创建二十面体
+      /*
+      IcosahedronGeometry(radius : Float, detail : Integer)
+        - radius — 默认值为 1。
+        - detail — 默认值为 0。将此值设置为大于 0 的数值会增加更多的顶点，从而使其不再是一个正二十面体。当 detail 大于 1 时，实际上它会变成一个球体。
+      */
+      var myGeometry = new THREE.IcosahedronGeometry(80);
+      //创建法向量材质
+      var myMaterial = new THREE.MeshNormalMaterial();
+      var myMesh = new THREE.Mesh(myGeometry, myMaterial);
+
+      // 获取几何体的顶点位置和法向量
+      const positionAttribute = myGeometry.attributes.position; // 顶点位置
+      myGeometry.computeVertexNormals(); // 确保法向量被正确计算
+
+      // 遍历每个三角形面
+      const vertexCount = positionAttribute.count; // 顶点总数
+      for (let i = 0; i < vertexCount; i += 3) {
+        // 获取三角形的三个顶点
+        const vA = new THREE.Vector3().fromBufferAttribute(
+          positionAttribute,
+          i
+        );
+        const vB = new THREE.Vector3().fromBufferAttribute(
+          positionAttribute,
+          i + 1
+        );
+        const vC = new THREE.Vector3().fromBufferAttribute(
+          positionAttribute,
+          i + 2
+        );
+        // 计算面的中心点
+        const center = new THREE.Vector3()
+          .add(vA)
+          .add(vB)
+          .add(vC)
+          .divideScalar(3);
+
+        console.log("center", center);
+
+        // 计算法向量（面的平均法向量）
+        const normal = new THREE.Vector3()
+          .copy(vA)
+          .sub(vB)
+          .cross(new THREE.Vector3().copy(vA).sub(vC))
+          .normalize();
+
+        // 创建箭头辅助线显示法向量
+        /*
+        ArrowHelper 构造函数的参数说明：
+          - dir — 从起点（origin）指向的方向。必须是单位向量（长度为1的向量）。
+          - origin — 箭头的起点位置。
+          - length — 箭头的长度，默认值为 1。
+          - hex — 用十六进制值定义箭头的颜色，默认值为 `0xffff00`（黄色）。
+          - headLength — 箭头头部的长度，默认值为箭头总长度的 0.2 倍。
+          - headWidth — 箭头头部的宽度，默认值为箭头头部长度的 0.2 倍。
+        */
+        const myArrowHelper = new THREE.ArrowHelper(
+          normal, // 法向量方向
+          center, // 起点为面的中心点
+          30, // 箭头长度
+          0xff0000, // 箭头颜色
+          5, // 箭头头部长度
+          6 // 箭头头部宽度
+        );
+        // 将箭头辅助线添加到场景
+        myScene.add(myArrowHelper);
+      }
+      myScene.add(myMesh);
+      //渲染二十面体及箭头
+      myRenderer.render(myScene, myCamera);
+
+      animate();
+
+      // 创建轨道控制器
+      var myControls = new OrbitControls(myCamera, myRenderer.domElement);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        myControls?.update?.();
+        myRenderer.render(myScene, myCamera);
+      }
+    </script>
+  </body>
+</html>

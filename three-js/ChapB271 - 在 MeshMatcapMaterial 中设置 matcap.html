@@ -1,0 +1,135 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div id="myContainer"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three"; //导入three.js
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      var myMesh;
+      var myDummy = new THREE.Object3D();
+      var myCount = Math.pow(8, 3); // 512
+
+      //创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      $("#myContainer").append(myRenderer.domElement);
+
+      // 创建场景
+      var myScene = new THREE.Scene();
+      myScene.background = new THREE.Color(0xffffff);
+
+      // 创建相机
+      var myCamera = new THREE.PerspectiveCamera(
+        40,
+        window.innerWidth / window.innerHeight,
+        1,
+        100
+      );
+      myCamera.position.set(0, 0, 20);
+
+      //根据材质创建多个模型
+      /**
+       * 作用：用于加载 BufferGeometry 格式的几何体数据的加载器
+       * 性能：与传统的 THREE.Geometry 不同，BufferGeometry 提供了更高效的内存和性能管理，特别是在处理复杂或大量的几何体数据时。
+       */
+      var myGeometryLoader = new THREE.BufferGeometryLoader();
+      myGeometryLoader.load("Data/MySuzanne.json", function (geometry) {
+        var myColor = [];
+        for (var i = 0; i < myCount; i++) {
+          // Math.random() 生成一个 0 到 1 之间的随机数 [0,1)
+          myColor.push(Math.random());
+          myColor.push(Math.random());
+          myColor.push(Math.random());
+        }
+        // Float32Array 是 JavaScript 中用于存储浮点数数组的类，它提供了高效的内存和性能管理。
+        // InstancedBufferAttribute 是 Three.js 中用于存储实例化几何体属性的类，它允许我们在同一几何体上创建多个实例，并为每个实例设置不同的属性值。
+        geometry.setAttribute(
+          "myColor",
+          new THREE.InstancedBufferAttribute(new Float32Array(myColor), 3)
+        );
+        // 计算几何体的顶点法线
+        geometry.computeVertexNormals();
+        geometry.scale(0.5, 0.5, 0.5);
+        var myTextureLoader = new THREE.TextureLoader();
+        myTextureLoader.load("images/img101.jpg", function (texture) {
+          var myMaterial = new THREE.MeshMatcapMaterial({
+            color: 0xffffff,
+            matcap: texture,
+          });
+          var myVertexChunk = [
+            "attribute vec3 myColor;",
+            "varying vec3 myNewColor;",
+            "#include <common>",
+          ].join("\n");
+          var myColorsChunk = [
+            "#include <begin_vertex>",
+            "\tmyNewColor=myColor;",
+          ].join("\n");
+          var myFragmentChunk = [
+            "varying vec3 myNewColor;",
+            "#include <common>",
+          ].join("\n");
+          var myDiffuseColorChunk = [
+            "vec4 diffuseColor=vec4(diffuse*myNewColor,opacity);",
+          ].join("\n");
+          myMaterial.onBeforeCompile = function (shader) {
+            shader.vertexShader = shader.vertexShader
+              .replace("#include <common>", myVertexChunk)
+              .replace("#include <begin_vertex>", myColorsChunk);
+            shader.fragmentShader = shader.fragmentShader
+              .replace("#include <common>", myFragmentChunk)
+              .replace(
+                "vec4 diffuseColor = vec4( diffuse, opacity );",
+                myDiffuseColorChunk
+              );
+          };
+          myMesh = new THREE.InstancedMesh(geometry, myMaterial, myCount);
+          myScene.add(myMesh);
+        });
+      });
+      //渲染多个模型
+      animate();
+      function animate() {
+        requestAnimationFrame(animate);
+        if (myMesh) {
+          var myTime = Date.now() * 0.001;
+          myMesh.rotation.x = Math.sin(myTime / 4);
+          myMesh.rotation.y = Math.sin(myTime / 2);
+          var i = 0;
+          for (var x = 0; x < 8; x++) {
+            for (var y = 0; y < 8; y++) {
+              for (var z = 0; z < 8; z++) {
+                myDummy.position.set(4 - x, 4 - y, 4 - z);
+                myDummy.rotation.y =
+                  Math.sin(x / 4 + myTime) +
+                  Math.sin(y / 4 + myTime) +
+                  Math.sin(z / 4 + myTime);
+                myDummy.rotation.z = myDummy.rotation.y * 2;
+                myDummy.updateMatrix();
+                myMesh.setMatrixAt(i++, myDummy.matrix);
+              }
+            }
+          }
+          myMesh.instanceMatrix.needsUpdate = true;
+        }
+        myRenderer.render(myScene, myCamera);
+      }
+    </script>
+  </body>
+</html>

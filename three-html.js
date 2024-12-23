@@ -58,7 +58,7 @@ let strHTML = "";
 for (let i = 0; i < sortedHtmlFiles.length; i++) {
   const element = sortedHtmlFiles[i];
   if (element === "index.html") continue;
-  strHTML += `<li class="card"><a href="${element}">${element}</a></li>`;
+  strHTML += `<li class="card"><a href="${element}">${element.replace(".html", "")}</a></li>`;
 }
 
 fs.writeFileSync("./three-js/index.html", html(strHTML));
