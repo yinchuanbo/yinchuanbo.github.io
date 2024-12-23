@@ -1,0 +1,102 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <!-- <script src="http://threejs.org/build/three.js"></script>-->
+ <!-- <script src="http://cdn.bootcss.com/jquery/3.4.1/jquery.js"></script>-->
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/THREE.MeshLine.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script>
+</head>
+<body><center id="myContainer" ></center>
+<script>
+ var myRenderer,myCamera,myScene;
+ var myLineColor = '#00ff00';
+ var myOrbitControls = null;
+ var myLineWidth = 0.5;
+ var lineGeometryObj = {};
+ var myWorldGeometry = {};
+ // 绘制世界地图线条函数
+ var drawWorldLine = function (pos, identify) {
+  var geometry = new THREE.Geometry();
+  pos.forEach(function (item) {
+   var v = new THREE.Vector3(item[0], item[1], 0);
+   geometry.vertices.push(v);
+  })
+  // 定义线条
+  var myMeshLine = new MeshLine();
+  myMeshLine.setGeometry(geometry);
+  // 定义线条材质
+  var material = new MeshLineMaterial({
+   color: myLineColor, lineWidth: myLineWidth })
+  // 绘制地图
+  lineGeometryObj['lineGeometry' + identify] = new THREE.Mesh(myMeshLine.geometry, material);
+  // 将地图加入场景
+  myScene.add(lineGeometryObj['lineGeometry' + identify])
+ }
+ // 计算绘制地图参数函数
+ var drawWorldLineFun = function () {
+  // 绘制世界地图
+  myWorldGeometry.features.forEach(function (worldItem, worldItemIndex) {
+   var length = worldItem.geometry.coordinates.length;
+   var multipleBool = length > 1 ? true : false;
+   worldItem.geometry.coordinates.forEach(function (worldChildItem, worldChildItemIndex) {
+    if (multipleBool) {
+     // 值界可以使用的经纬度
+     if (worldChildItem.length && worldChildItem[0].length == 2) {
+      drawWorldLine(worldChildItem, '' + worldItemIndex + worldChildItemIndex);
+     }
+     // 需要转换才可以使用的经纬度
+     if (worldChildItem.length && worldChildItem[0].length > 2) {
+      worldChildItem.forEach(function (countryItem, countryItenIndex) {
+       drawWorldLine(countryItem, '' + worldItemIndex + worldChildItemIndex + countryItenIndex);
+      })
+     } } else {
+     var countryPos = null;
+     if (worldChildItem.length > 1) {
+      countryPos = worldChildItem;
+     } else {
+      countryPos = worldChildItem[0];
+     }
+     if (countryPos) {
+      drawWorldLine(countryPos, '' + worldItemIndex + worldChildItemIndex);
+     } }  })  })
+ }
+ function  render() {
+  //myScene.rotation.x = -0.8;
+  myRenderer.render(myScene, myCamera);
+  myCamera.updateProjectionMatrix();
+  requestAnimationFrame(render);
+ }
+ // 初始化函数
+ function initThree() {
+  myScene = new THREE.Scene();
+  myCamera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 1, 1000);
+  myCamera.position.set(0, 0,600);
+  myRenderer= new THREE.WebGLRenderer({antialias: true});
+  myRenderer.setSize(window.innerWidth,window.innerHeight);
+  myRenderer.setClearColor('white', 1.0);
+  $("#myContainer").append(myRenderer.domElement);
+  myOrbitControls = new THREE.OrbitControls(myCamera,myRenderer.domElement);
+  // 绘制世界地图线条
+  drawWorldLineFun();
+  // 渲染地图
+  render();
+ }
+ // 获取世界地图经纬度信息
+ var getWorldGeometry = function () {
+  $.ajax({
+   type : "GET", //提交方式
+   url : "Data/world.json",
+   async: false,
+   success : function(response) {
+    myWorldGeometry = response;
+   }
+  })
+ }
+ // 页面资源加载完全执行函数
+ window.onload = function () {
+  getWorldGeometry();
+  initThree();
+ }
+</script></body>
+</html>
+

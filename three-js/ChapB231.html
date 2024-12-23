@@ -1,0 +1,59 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><script>
+ var isMouse=false,myMouseX=0,myMouseY=0,myLongitude=0,myLatitude=0,
+     myTempLongitude=0,myTempLatitude=0,myPhi=0,myTheta=0;
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer();
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ $(document.body).append(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(75,
+     window.innerWidth/window.innerHeight,1,1100);
+ myCamera.target=new THREE.Vector3(0,0,0);
+ var myScene=new THREE.Scene();
+ //创建球体并设置全景图
+ var myGeometry=new THREE.SphereBufferGeometry(40,30,30);
+ myGeometry.scale(-1,1,1);
+ var myLoader=new THREE.TextureLoader();
+ var myTexture=myLoader.load('images/img129.jpg');
+ var myMaterial=new THREE.MeshBasicMaterial({map:myTexture});
+ var mySphere=new THREE.Mesh(myGeometry,myMaterial);
+ myScene.add(mySphere);
+ //渲染全景图(拖拽查看全景图)
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myLatitude=Math.max(-85,Math.min(85,myLatitude));
+  myPhi=THREE.MathUtils.degToRad(90-myLatitude);
+  myTheta=THREE.MathUtils.degToRad(myLongitude);
+  myCamera.target.x=Math.sin(myPhi)*Math.cos(myTheta);
+  myCamera.target.y=Math.cos(myPhi);
+  myCamera.target.z=Math.sin(myPhi)*Math.sin(myTheta);
+  myCamera.lookAt(myCamera.target);
+  myRenderer.render(myScene,myCamera);
+ }
+ document.addEventListener('mousedown',function(event){
+  isMouse=true;
+  //记录鼠标按下的位置
+  myMouseX=event.clientX;
+  myMouseY=event.clientY;
+  myTempLongitude=myLongitude;
+  myTempLatitude=myLatitude;
+ });
+ document.addEventListener('mousemove',function(event){
+  if(isMouse){
+   //根据鼠标当前位置和按下的位置重新计算经纬度
+   myLongitude=(myMouseX-event.clientX)*0.1+myTempLongitude;
+   myLatitude=(event.clientY-myMouseY)*0.1+myTempLatitude;
+  }
+ });
+ document.addEventListener('mouseup',function(){isMouse=false;});
+ document.addEventListener('wheel',function(event){
+  var myFOV=myCamera.fov+event.deltaY*0.05;
+  myCamera.fov=THREE.MathUtils.clamp(myFOV,10,75);
+  myCamera.updateProjectionMatrix();
+ });
+</script></body>
+</html>

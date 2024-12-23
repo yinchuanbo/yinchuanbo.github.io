@@ -1,0 +1,81 @@
+<!DOCTYPE html><html>
+<head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><p style="margin:10px">调节饱和度：
+ <input type="range" value="100" min="0.01" max="199.9"></p>
+<div id="myContainer"></div>
+<script type="x-shader/x-fragment" id="myFragmentShader">
+  //创建片元着色器
+  uniform sampler2D myTexture;
+  uniform float saturation;
+  varying vec2 vUv;
+  void main(){
+   //获取原始图像像素值
+   vec4 myColor=texture2D(myTexture,vUv);
+   //根据饱和度参数重新计算RGB分量值
+   float myR=0.213*(1.0-saturation);
+   float myG=0.715*(1.0-saturation);
+   float myB=0.072*(1.0-saturation);
+   //根据RGB分量值和饱和度参数值生成对应的颜色矩阵
+   mat4 myColorMatrix=mat4(myR+saturation,myG,myB,0.0,
+                           myR,myG+saturation,myB,0.0,
+                           myR,myG,myB+saturation,0.0,
+                           0.0,0.0,0.0,1.0);
+   //根据颜色矩阵计算最终颜色值
+   gl_FragColor=myColor*myColorMatrix;
+  }
+ </script>
+<script type="x-shader/x-vertex" id="myVertexShader">
+  //创建顶点着色器
+  varying vec2 vUv;
+  void main(){
+   vUv=uv;
+   vec4 mvPosition=modelViewMatrix*vec4(position,1.0);
+   gl_Position=projectionMatrix*mvPosition;
+  }
+ </script>
+<script type="text/javascript">
+ //创建渲染器
+ var myRenderer = new THREE.WebGLRenderer( {antialias: true});
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ myRenderer.setClearColor('white', 1.0);
+ $('#myContainer')[0].appendChild(myRenderer.domElement);
+ var myScene=new THREE.Scene();
+ var myCamera=new THREE.PerspectiveCamera(45,
+     window.innerWidth/window.innerHeight,0.1,1000);
+ myCamera.position.set(100,100,400);
+ myCamera.lookAt(myScene.position);
+ var myTextureLoader=new THREE.TextureLoader();
+ var myTexture=myTextureLoader.load('images/img004.jpg');
+ //封装片元着色器所使用的参数
+ var myUniforms={myTexture:{value:myTexture},saturation:{value:1}};
+ //根据着色器及其参数创建THREE.ShaderMaterial
+ var myShaderMaterial=new THREE.ShaderMaterial({ uniforms:myUniforms,
+  vertexShader:$('#myVertexShader').text(),
+  fragmentShader:$('#myFragmentShader').text()});
+ //使用THREE.ShaderMaterial创建立方体
+ var myBoxGeometry = new THREE.BoxGeometry(160,160,160);
+ var myMesh = new THREE.Mesh(myBoxGeometry, myShaderMaterial);
+ myScene.add(myMesh);
+ var myStep = 0;
+ //渲染(旋转)立方体
+ animate();
+ function animate() {
+  myMesh.rotation.y = myStep += 0.01;
+  myMesh.rotation.x = myStep;
+  myMesh.rotation.z = myStep;
+  requestAnimationFrame(animate);
+  myRenderer.render(myScene, myCamera);
+ }
+ //为滑块元素添加拖拽事件监听器
+ $("input").on("input",function(){
+  //获取滑块当前值
+  var mySaturation=parseFloat($(this).val()/100);
+  //动态设置片元着色器的饱和度参数，同时更新材质对象
+  myMesh.material.uniforms.saturation={value:mySaturation};
+  myMesh.material.needsUpdate=true;
+ });
+</script></body>
+</html>

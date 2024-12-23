@@ -1,0 +1,83 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><p><button id="myButton1">执行粒子波动动画</button>
+ <button id="myButton2">暂停粒子波动动画</button></p>
+<canvas id="myCanvas" style="position:fixed;left:0px;top:0px;
+                       width:100%;height:100%; z-index:-1;"></canvas>
+<div id="myView" style="width:500px;height:300px"></div>
+<script>
+ //判断是否执行粒子波动动画
+ var isAnimate=true,mySize=10;
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer({canvas:$("#myCanvas")[0]});
+ myRenderer.setSize($("#myCanvas").width(),$("#myCanvas").height());
+ var myRect=$("#myView")[0].getBoundingClientRect();
+ var myWidth=myRect.right-myRect.left;
+ var myHeight=myRect.bottom-myRect.top;
+ var myLeft=myRect.left;
+ var myBottom=myRenderer.domElement.clientHeight-myRect.bottom;
+ myRenderer.setViewport(myLeft,myBottom,myWidth,myHeight);
+ myRenderer.setScissor(myLeft,myBottom,myWidth,myHeight);
+ var myCamera=new THREE.PerspectiveCamera(75,1,0.1,100);
+ myCamera.position.set(0,0,1.2*mySize);
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ //设置粒子群的每个粒子的坐标
+ var myVertices=[];
+ for(var i=0;i<Math.pow(mySize,3);i++){
+  var x=mySize*Math.random()-mySize/2;
+  var y=mySize*Math.random()-mySize/2;
+  var z=mySize*Math.random()-mySize/2;
+  myVertices.push(x,y,z);
+ }
+ //创建粒子群
+ var myGeometry=new THREE.BufferGeometry();
+ var myCopyGeometry=new THREE.BufferGeometry();
+ myGeometry.setAttribute('position',
+     new THREE.Float32BufferAttribute(myVertices,3));
+ myCopyGeometry.setAttribute('position',
+     new THREE.Float32BufferAttribute(myVertices,3));
+ var myMaterial=new THREE.PointsMaterial({size:0.25,color:0x0000ff});
+ var myPoints=new THREE.Points(myGeometry,myMaterial);
+ myScene.add(myPoints);
+ //渲染粒子群
+ var myTime=0;
+ animate();
+ function animate(){
+  myRenderer.render(myScene,myCamera);
+  //var myPoints=myScene.children[0];
+  var myPosition=myPoints.geometry.attributes.position;
+  var myPoint=new THREE.Vector3();
+  var myOffset=new THREE.Vector3();
+  for(var i=0;i<myPosition.count;i++){
+   myPoint.fromBufferAttribute(myCopyGeometry.attributes.position,i);
+   var myRadius=Math.sqrt(myPoint.x*myPoint.x
+       +myPoint.y*myPoint.y+myPoint.z*myPoint.z);
+   var myTheta=Math.acos(myPoint.z/myRadius);
+   var myPhi=Math.atan2(myPoint.y,myPoint.x);
+   var myNewX=3*Math.cos(myPhi)*Math.sin(myTheta)
+       *Math.sin(myRadius-myTime/5) /myRadius;
+   var myNewY=3*Math.sin(myPhi)*Math.sin(myTheta)
+       *Math.sin(myRadius-myTime/5) /myRadius;
+   var myNewZ=3*Math.cos(myTheta)*Math.sin(myRadius-myTime/5)/myRadius ;
+   myOffset.set(myNewX,myNewY,myNewZ);
+   //重新设置粒子顶点坐标，实现波动效果
+   myPosition.setXYZ(i,myPoint.x+myOffset.x,
+       myPoint.y+myOffset.y,myPoint.z+myOffset.z);
+   // var myX=mySize*Math.random()-mySize/2;
+   // var myY=mySize*Math.random()-mySize/2;
+   // var myZ=mySize*Math.random()-mySize/2;
+   // myPosition.setXYZ(i,myX+myOffset.x,myY+myOffset.y,myZ+myOffset.z);
+  }
+  myPosition.needsUpdate=true;
+  if(isAnimate) myTime++;
+  requestAnimationFrame(animate);
+ }
+ //响应单击“执行粒子波动动画”按钮
+ $("#myButton1").click(function(){isAnimate=true;});
+ //响应单击“暂停粒子波动动画”按钮
+ $("#myButton2").click(function(){isAnimate=false;});
+</script></body>
+</html>

@@ -1,0 +1,65 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ //创建渲染器
+ var myRenderer= new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myScene=new THREE.Scene();
+ var myCamera=new THREE.PerspectiveCamera(45,
+     window.innerWidth/window.innerHeight,2,500);
+ myCamera.position.set(0,0,40);
+ myScene.add(myCamera);
+ myScene.background=new THREE.TextureLoader().load('images/img004.jpg');
+ //创建多个雪花
+ var myMap=new THREE.TextureLoader().load('images/img109.png');
+ var myPointsMaterials=[];
+ for(var i=0;i<2;i++){
+  var myPointsMaterial=new THREE.PointsMaterial({
+   size:2, map:myMap, blending:THREE.AdditiveBlending});
+  myPointsMaterial.map.offset=new THREE.Vector2(1/2*i,0);
+  myPointsMaterial.map.repeat=new THREE.Vector2(1/2,1);
+  myPointsMaterials.push(myPointsMaterial);
+ }
+ var myGeometries=[];
+ for(var k=0;k<2;k++){
+  var myGeometry=new THREE.Geometry();
+  for(var i=0;i<100;i++){
+   var myVector=new THREE.Vector3( Math.random()*50-25,
+       Math.random()*50-25,Math.random()*50-25);
+   myVector.velocityY=0.1+Math.random()/5;
+   myVector.velocityX=(Math.random()-0.5)/3;
+   myVector.velocityZ=(Math.random()-0.5)/3;
+   myGeometry.vertices.push(myVector);
+  }
+  myGeometries.push(myGeometry);
+ }
+ var myGroup=[];
+ for(var i=0;i<2;i++){
+  var myPoints=new THREE.Points(myGeometries[i],myPointsMaterials[i]);
+  myGroup.push(myPoints);
+  myScene.add(myPoints);
+ }
+ //渲染多个雪花
+ animate();
+ function animate(){
+  myGroup.forEach(function(points, i){
+   var myVertices=points.geometry.vertices;
+   myVertices.forEach(function(v,idx){
+    v.y=v.y-(v.velocityY);
+    v.x=v.x-(v.velocityX);
+    v.z=v.z-(v.velocityZ);
+    if(v.y<=-25) v.y=25;
+    if(v.x<=-25||v.x>=25) v.x=-v.x;
+    if(v.z<=-25||v.z>=25) v.velocityZ=-v.velocityZ;
+   });
+   points.geometry.verticesNeedUpdate=true;
+  });
+  myRenderer.render(myScene,myCamera);
+  requestAnimationFrame(animate);
+ }
+</script></body>
+</html>

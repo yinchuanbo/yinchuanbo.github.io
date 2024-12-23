@@ -1,0 +1,65 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><center id="myContainer" ></center>
+<script type="text/javascript">
+ //初始化渲染器
+ var myRenderer=new THREE.WebGLRenderer({antialias:true});
+ myRenderer.setPixelRatio(window.devicePixelRatio);
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ myRenderer.setClearColor("white");
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(30,
+     window.innerWidth/window.innerHeight,1,1500);
+ myCamera.position.set(0,400,700);
+ myCamera.lookAt(new THREE.Vector3(0,150,0));
+ var myScene=new THREE.Scene();
+ //初始化FontLoader，并加载指定汉字字库
+ var myFontLoader=new THREE.FontLoader();
+ myFontLoader.load('Data/MicrosoftYaHei_Regular1.json',function(font){
+  var myMaterial=new THREE.LineBasicMaterial({color:0x00ff00});
+  //将文本(字)转换为图形
+  var myShapes=font.generateShapes('罗斌',120);
+  var myShapeGeometry=new THREE.ShapeBufferGeometry(myShapes);
+  myShapeGeometry.computeBoundingBox();
+  var myOffsetX=(myShapeGeometry.boundingBox.min.x
+      -myShapeGeometry.boundingBox.max.x)/2;
+  //初始化数组，用于保存图形轮廓信息
+  var myHoles=[];
+  for(var i=0;i<myShapes.length;i++){
+   var myShape=myShapes[i];
+   if(myShape.holes&&myShape.holes.length>0){
+    for(var j=0;j<myShape.holes.length;j++){
+     var myHole=myShape.holes[j];
+     myHoles.push(myHole);
+    }
+   }
+  }
+  myShapes.push.apply(myShapes,myHoles);
+  var myTextLines=new THREE.Object3D();
+  for(var i=0;i<myShapes.length;i++){
+   //获取每个字符对应的图形
+   var myShape=myShapes[i];
+   //获取当前图形坐标点
+   var myPoints=myShape.getPoints();
+   //根据坐标点初始化BufferGeometry，并设置其所在位置
+   var myGeometry=new THREE.BufferGeometry().setFromPoints(myPoints);
+   myGeometry.translate(myOffsetX,100,0);
+   //创建文字线条，实现镂空效果
+   var myTextLine=new THREE.Line(myGeometry,myMaterial);
+   myTextLines.add(myTextLine);
+  }
+  //在场景中添加线条
+  myScene.add(myTextLines);
+ });
+ //渲染镂空汉字
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myRenderer.render(myScene,myCamera);
+ }
+</script></body>
+</html>
+
+

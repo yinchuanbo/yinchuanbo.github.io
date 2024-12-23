@@ -1,0 +1,58 @@
+<html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ var myAmount=6;
+ var myCount=Math.pow(6,3);
+ var myObject=new THREE.Object3D();
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer({antialias:true});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(60,
+     window.innerWidth/window.innerHeight,0.1,100);
+ myCamera.position.set(myAmount*0.9,myAmount*0.9,myAmount*0.9);
+ myCamera.lookAt(0,0,0);
+ var  myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ //以实例化方式加载并创建模型
+ var myMesh;
+ var myLoader=new THREE.BufferGeometryLoader();
+ myLoader.load('Data/MySuzanne.json',function(geometry){
+  geometry.computeVertexNormals();
+  geometry.scale(0.5,0.5,0.5);
+  var myMaterial=new THREE.MeshNormalMaterial();
+  myMesh=new THREE.InstancedMesh(geometry,myMaterial,myCount);
+  myMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  myScene.add(myMesh);
+ });
+ //渲染实例化模型
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  if(myMesh){
+   var myTime=Date.now()*0.001;
+   myMesh.rotation.x=Math.sin(myTime/4);
+   myMesh.rotation.y=Math.sin(myTime/2);
+   var i=0;
+   var myOffset=(myAmount-1)/2;
+   for(var x=0;x<myAmount;x++){
+    for(var y=0;y<myAmount;y++){
+     for(var z=0;z<myAmount;z++){
+      myObject.position.set(myOffset-x,myOffset-y,myOffset-z);
+      myObject.rotation.y=(Math.sin(x/4+myTime)
+          +Math.sin(y/4+myTime)+Math.sin(z/4+myTime));
+      myObject.rotation.z=myObject.rotation.y*2;
+      myObject.updateMatrix();
+      myMesh.setMatrixAt(i++,myObject.matrix);
+     }
+    }
+   }
+   myMesh.instanceMatrix.needsUpdate=true;
+  }
+  myRenderer.render(myScene,myCamera);
+ }
+</script></body>
+</html>

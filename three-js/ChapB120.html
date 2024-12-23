@@ -1,0 +1,70 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <!-- <script src="http://threejs.org/build/three.js"></script>-->
+ <!-- <script src="http://cdn.bootcss.com/jquery/3.4.1/jquery.js"></script>-->
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><p><button id="myButton1">导出场景</button>
+ <button id="myButton2">清空场景</button>
+ <button id="myButton3">导入场景</button></p>
+<center id="myContainer"></center>
+<script>
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer();
+ myRenderer.setPixelRatio( window.devicePixelRatio );
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ myRenderer.setClearColor('white', 1);
+ myRenderer.shadowMap.enabled = true;
+ $("#myContainer").append(myRenderer.domElement);
+ var myScene=new THREE.Scene();
+ var myCamera=new THREE.PerspectiveCamera(45,
+     window.devicePixelRatio, 0.1, 1000);
+ myCamera.position.set(4, 4, 2);
+ myCamera.position.multiplyScalar(2);
+ myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+ var myPointLight=new THREE.PointLight('white');
+ myPointLight.position.set(0, 6, 0 );
+ myPointLight.distance =180;
+ myPointLight.castShadow = true;
+ myScene.add( myPointLight);
+ //创建用于投射阴影的球体
+ var mySphereGeometry=new THREE.SphereBufferGeometry(2,36,36 );
+ var mySphereMaterial=new THREE.MeshNormalMaterial({
+  wireframe:true,transparent:true});
+ var mySphereMesh=new THREE.Mesh(mySphereGeometry,mySphereMaterial);
+ mySphereMesh.position.set(0,2.5,0);
+ mySphereMesh.castShadow=true;
+ myScene.add(mySphereMesh);
+ //创建(白色不可见)平面
+ var myPlaneGeometry=new THREE.PlaneGeometry(120,120,1,1);
+ var myPlaneMaterial=new THREE.MeshStandardMaterial({color:'white'});
+ var myPlaneMesh=new THREE.Mesh(myPlaneGeometry,myPlaneMaterial );
+ myPlaneMesh.rotateX(-Math.PI/2 );
+ myPlaneMesh.rotateZ(-Math.PI/7 );
+ myPlaneMesh.position.set(0,-3.5,0)
+ //表示平面支持投射阴影
+ myPlaneMesh.receiveShadow = true;
+ myScene.add(myPlaneMesh );
+ //渲染球体及阴影
+ animate();
+ function animate(){
+  myRenderer.render(myScene, myCamera);
+  requestAnimationFrame(animate);
+ }
+ $("#myButton1").click(function(){   //响应单击“导出场景”按钮
+  localStorage.setItem('mySceneData', JSON.stringify(myScene.toJSON()));
+ });
+ $("#myButton2").click(function(){   //响应单击“清空场景”按钮
+  myScene=new THREE.Scene();
+ });
+ $("#myButton3").click(function(){   //响应单击“导入场景”按钮
+  var myImportJSON=localStorage.getItem("mySceneData");
+  if (myImportJSON){
+   var myJSON=JSON.parse(myImportJSON);
+   var myObjectLoader=new THREE.ObjectLoader();
+   myScene=myObjectLoader.parse(myJSON);
+  }
+ });
+</script></body>
+</html>
+

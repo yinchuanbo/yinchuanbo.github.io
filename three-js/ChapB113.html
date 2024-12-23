@@ -1,0 +1,101 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><canvas id="surface" style="display: none"></canvas>
+<div id="myContainer"></div>
+<script>
+ var myRenderer,myCamera,myScene,myMesh,myMaterial;
+ //创建画布动画
+ function initCanvas(){
+  var space=document.getElementById("surface");
+  var surface=space.getContext("2d");
+  surface.scale(1,1);
+  var particles=[];
+  var particle_count=150;
+  for(var i=0; i<particle_count;i++){
+   particles.push(new particle());
+  }
+  window.requestAnimFrame=(function(){
+   return window.requestAnimationFrame||
+       window.webkitRequestAnimationFrame||
+       window.mozRequestAnimationFrame||
+       function(callback){window.setTimeout(callback,6000/60);};
+  })();
+  function particle(){
+   this.speed={x:-1+Math.random()*2,y:-5+Math.random()*5};
+   canvasWidth=document.getElementById("surface").width;
+   canvasHeight=document.getElementById("surface").height;
+   this.location={x:canvasWidth/2,y:(canvasHeight/2)+35};
+   this.radius=.5+Math.random()*1;
+   this.life=10+Math.random()*10;
+   this.death=this.life;
+   this.r=255;
+   this.g=Math.round(Math.random()*155);
+   this.b=0;
+  }
+  function ParticleAnimation(){
+   surface.globalCompositeOperation="source-over";
+   surface.fillStyle="black";
+   surface.fillRect(0,0,canvasWidth,canvasHeight);
+   surface.globalCompositeOperation="lighter";
+   for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    surface.beginPath();
+    p.opacity=Math.round(p.death/p.life*100)/100;
+    var gradient=surface.createRadialGradient(p.location.x,
+        p.location.y,0,p.location.x,p.location.y,p.radius);
+    gradient.addColorStop(0,"rgba("+p.r+","+p.g+","+p.b+","+p.opacity+")");
+    gradient.addColorStop(0.5,"rgba("+p.r+","+p.g+","+p.b+","+p.opacity+")");
+    gradient.addColorStop(1,"rgba("+p.r+","+p.g+","+p.b+",0)");
+    surface.fillStyle=gradient;
+    surface.arc(p.location.x,p.location.y,p.radius,Math.PI*2,false);
+    surface.fill();
+    p.death--;
+    p.radius++;
+    p.location.x+=(p.speed.x);
+    p.location.y+=(p.speed.y);
+    if(p.death<0||p.radius<0){
+     particles[i]=new particle();
+    }
+   }
+   requestAnimFrame(ParticleAnimation);
+  }
+  ParticleAnimation();
+ }
+ //创建渲染器
+ function initRender(){
+  myScene=new THREE.Scene();
+  myRenderer=new THREE.WebGLRenderer({antialias:true});
+  myRenderer.setPixelRatio(window.devicePixelRatio);
+  myRenderer.setSize(window.innerWidth,window.innerHeight);
+  myRenderer.setClearColor(0xffffff);
+  $("#myContainer").append(myRenderer.domElement);
+  myCamera=new THREE.PerspectiveCamera(45,
+      window.innerWidth/window.innerHeight,0.1,1000);
+  myCamera.position.set(0,0,15);
+ }
+ //创建立方体
+ function initModel(){
+  var myGeometry=new THREE.BoxBufferGeometry(6,6,6);
+  var myTexture=new THREE.Texture($("#surface")[0]);
+  myMaterial=new THREE.MeshBasicMaterial({map:myTexture});
+  myMesh=new THREE.Mesh(myGeometry,myMaterial);
+  myScene.add(myMesh);
+ }
+ //渲染立方体
+ function animate(){
+  myMaterial.map.needsUpdate=true;
+  var myTimer=Date.now()*0.0001;
+  myMesh.rotation.x=myTimer*5;
+  myMesh.rotation.y=myTimer*3;
+  myMesh.rotation.z=myTimer*2;
+  myRenderer.render(myScene,myCamera);
+  requestAnimationFrame(animate);
+ }
+ initCanvas();
+ initRender();
+ initModel();
+ animate();
+</script></body>
+</html>

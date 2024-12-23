@@ -1,0 +1,97 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/EffectComposer.js"></script>
+ <script src="ThreeJS/ShaderPass.js"></script>
+ <script src="ThreeJS/RenderPass.js"></script>
+ <script src="ThreeJS/HorizontalBlurShader.js"></script>
+ <script src="ThreeJS/VerticalBlurShader.js"></script>
+</head>
+<body><p><button id="myButton1">在水平方向模糊图形</button>
+ <button id="myButton2">在垂直方向模糊图形</button></p>
+<div id="myContainer"></div>
+<script>
+ //创建渲染器
+ var myRenderer= new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setClearColor(new THREE.Color(0xaaaaff, 1.0));
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ myRenderer.shadowMapEnabled = true;
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera = new THREE.PerspectiveCamera(45,
+     window.innerWidth / window.innerHeight, 0.1, 1000);
+ myCamera.position.x = 30;
+ myCamera.position.y = 30;
+ myCamera.position.z = 30;
+ myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+ var myScene = new THREE.Scene();
+ var myDirectionalLight = new THREE.DirectionalLight(0xffffff);
+ myDirectionalLight.position.set(30, 30, 30);
+ myDirectionalLight.intensity = 0.8;
+ myScene.add(myDirectionalLight);
+ var mySpotLight = new THREE.SpotLight(0xffffff);
+ mySpotLight.castShadow = true;
+ mySpotLight.position.set(-30, 30, -100);
+ mySpotLight.target.position.x = -10;
+ mySpotLight.target.position.z = -10;
+ mySpotLight.intensity = 0.6;
+ mySpotLight.shadowMapWidth = 4096;
+ mySpotLight.shadowMapHeight = 4096;
+ mySpotLight.shadowCameraFov = 120;
+ mySpotLight.shadowCameraNear = 1;
+ mySpotLight.shadowCameraFar = 200;
+ myScene.add(mySpotLight);
+ var myPlaneGeometry = new THREE.BoxGeometry(1600, 1600, 0.1, 40, 40);
+ var myPlaneMesh = new THREE.Mesh(myPlaneGeometry,
+     new THREE.MeshPhongMaterial( {color: 0xffffff,
+      //map: THREE.ImageUtils.loadTexture("images/img090.jpg"),
+     }));
+ // myPlaneMesh.material.map.wrapS = THREE.RepeatWrapping;
+ // myPlaneMesh.material.map.wrapT = THREE.RepeatWrapping;
+ // myPlaneMesh.material.map.repeat.set(80, 80);
+ myPlaneMesh.rotation.x = Math.PI / 2;
+ myPlaneMesh.receiveShadow = true;
+ myPlaneMesh.position.z = -180;
+ myPlaneMesh.position.x = -150;
+ myScene.add(myPlaneMesh);
+ var range = 3;
+ var stepX = 8;
+ var stepZ = 8;
+ for (var i = -6; i < 9; i++) {
+  for (var j = -6; j < 9; j++) {
+   var myCubeMesh = new THREE.Mesh(new THREE.BoxGeometry(3, 6, 3),
+       new THREE.MeshPhongMaterial({opacity: 0.8, transparent: true,
+        color: parseInt(Math.random()*0xffffff), }));
+   myCubeMesh.position.x = i * stepX + (Math.random() - 0.5) * range;
+   myCubeMesh.position.z = j * stepZ + (Math.random() - 0.5) * range;
+   myCubeMesh.position.y = (Math.random() - 0.5) * 2;
+   myCubeMesh.castShadow = true;
+   myScene.add(myCubeMesh)
+  }
+ }
+ //在场景中实现后期特效(模糊立方体)
+ var myHorizontalBlurShader = new THREE.ShaderPass(THREE.HorizontalBlurShader);
+ myHorizontalBlurShader.enabled = false;
+ myHorizontalBlurShader.uniforms.h.value = 1 /(window.innerHeight*0.8) ;
+ var myVerticalBlurShader = new THREE.ShaderPass(THREE.VerticalBlurShader);
+ myVerticalBlurShader.enabled = false;
+ myVerticalBlurShader.uniforms.v.value = 1 /( window.innerWidth*0.3);
+ var myRenderPass = new THREE.RenderPass(myScene, myCamera);
+ var myEffectComposer = new THREE.EffectComposer(myRenderer);
+ myEffectComposer.addPass(myRenderPass);
+ myEffectComposer.addPass(myHorizontalBlurShader);
+ myEffectComposer.addPass(myVerticalBlurShader);
+ //渲染模糊之后的立方体
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myEffectComposer.render();
+ }
+ //响应单击“在水平方向模糊图形”按钮
+ $("#myButton1").click(function () {
+  myHorizontalBlurShader.enabled = true;
+ });
+ //响应单击“在垂直方向模糊图形”按钮
+ $("#myButton2").click(function () {
+  myVerticalBlurShader.enabled = true;
+ });
+</script></body></html>

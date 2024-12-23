@@ -1,0 +1,61 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><script>
+ var myRenderer,myCamera,myScene,myPoints;
+ //创建渲染器
+ function initRender(){
+  myRenderer=new THREE.WebGLRenderer({antialias:true});
+  myRenderer.setClearColor(new THREE.Color(0xffffff));
+  myRenderer.setSize(window.innerWidth,window.innerHeight);
+  document.body.appendChild(myRenderer.domElement);
+  myCamera=new THREE.PerspectiveCamera(45,
+      window.innerWidth/window.innerHeight,1,200);
+  myCamera.position.set(0,20,100);
+  myCamera.lookAt(new THREE.Vector3(0,30,0));
+  myScene=new THREE.Scene();
+ }
+ //创建粒子(雨滴)
+ function createParticles(size,transparent,opacity,
+                          vertexColors,sizeAttenuation,color){
+  var myTexture=new THREE.TextureLoader().load("images/img057.png");
+  var myGeometry=new THREE.Geometry();
+  var myMaterial=new THREE.PointsMaterial({
+   size:size,transparent:transparent,opacity:opacity,
+   vertexColors:vertexColors,sizeAttenuation:sizeAttenuation,
+   color:color,map:myTexture,depthTest:false});
+  var myRange=120*3;
+  for(var i=0;i<9500;i++){
+   var myPoint=new THREE.Vector3(Math.random()*myRange-myRange/2,
+       Math.random()*myRange-myRange/2,Math.random()*myRange-myRange/2);
+   myPoint.velocityY=0.1+Math.random()/5;
+   myPoint.velocityX=(Math.random()-0.5)/3;
+   myGeometry.vertices.push(myPoint);
+   var myColor=new THREE.Color(0xffffff);
+   myGeometry.colors.push(myColor);
+  }
+  myPoints=new THREE.Points(myGeometry, myMaterial);
+  myScene.add(myPoints);
+ }
+ //渲染粒子(雨滴)
+ function animate(){
+  var myVertices=myPoints.geometry.vertices;
+  //实现雨滴下落动画
+  myVertices.forEach(function(v){
+   v.y=v.y-(v.velocityY)*3;
+   v.x=v.x-(v.velocityX)*.5;
+   if(v.y<=-60) v.y=60;
+   if(v.x<=-120||v.x>=120)v.velocityX=v.velocityX*-1;
+  });
+  //实时更新雨滴位置信息
+  myPoints.geometry.verticesNeedUpdate=true;
+  myRenderer.render(myScene,myCamera);
+  requestAnimationFrame(animate);
+ }
+ initRender();
+ createParticles(6,true,0.8,true,true,0xffffff);
+ animate();
+</script></body>
+</html>
+

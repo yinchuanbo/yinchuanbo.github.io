@@ -1,0 +1,83 @@
+<!DOCTYPE html><html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/TrackballControls.js"></script>
+ <script src="ThreeJS/TessellateModifier.js"></script>
+ <script type="x-shader/x-vertex" id="myVertexShader">
+   attribute vec3 color;
+   varying vec3 myNormal;
+   varying vec3 myColor;
+   void main(){
+    myNormal=normal;
+    myColor=color;
+    vec3 myPosition=position;
+    gl_Position=projectionMatrix*modelViewMatrix*vec4(myPosition,1.0);
+  }
+ </script>
+ <script type="x-shader/x-fragment" id="myFragmentShader">
+   varying vec3 myNormal;
+   varying vec3 myColor;
+   void main(){
+    float myAmbient=0.2;
+    vec3 myLight=vec3(1.0);
+    myLight=normalize(myLight);
+    float myNewLight=max(dot(myNormal,myLight),0.0);
+    gl_FragColor=vec4((myNewLight+myAmbient)*myColor,1.0);
+  }
+ </script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ //创建渲染器
+ var myRenderer = new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setPixelRatio(window.devicePixelRatio);
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera = new THREE.PerspectiveCamera(40,
+     window.innerWidth / window.innerHeight, 1, 10000);
+ myCamera.position.set(0, 0, 300);
+ var myScene = new THREE.Scene();
+ myScene.background = new THREE.Color(0xffffff);
+ var myTrackballControls =
+     new THREE.TrackballControls(myCamera, myRenderer.domElement);
+ //创建线条呈现多种颜色的字母
+ var myFontLoader = new THREE.FontLoader();
+ myFontLoader.load('Data/MyFontX.json', function (font) {
+  var myTextGeometry = new THREE.TextGeometry("luoshuai",
+      {font: font, size: 60, height: 5});
+  myTextGeometry.center();
+  var myTessellateModifier = new THREE.TessellateModifier(6);
+  for (var i = 0; i < 6; i++) {
+   myTessellateModifier.modify(myTextGeometry);
+  }
+  var myGeometry = new THREE.BufferGeometry().fromGeometry(myTextGeometry);
+  var myCount = myGeometry.attributes.position.count / 3;
+  var myColors = new Float32Array(myCount * 3 * 3);
+  var myColor = new THREE.Color();
+  for (var f = 0; f < myCount; f++) {
+   var myH = 0.2 * Math.random();
+   var myS = 0.5 + 0.5 * Math.random();
+   var myL = 0.5 + 0.5 * Math.random();
+   myColor.setHSL(myH, myS, myL);
+   //myColor.setHSL(0.5,0.5,0.5);//纯色
+   for (var i = 0; i < 3; i++) {
+    myColors[9 * f + (3 * i)] = myColor.r;
+    myColors[9 * f + (3 * i) + 1] = myColor.g;
+    myColors[9 * f + (3 * i) + 2] = myColor.b;
+   }
+  }
+  myGeometry.setAttribute('color', new THREE.BufferAttribute(myColors, 3));
+  var myShaderMaterial = new THREE.ShaderMaterial({
+   vertexShader: $("#myVertexShader")[0].text,
+   fragmentShader: $("#myFragmentShader")[0].text });
+  var myMesh = new THREE.Mesh(myGeometry, myShaderMaterial);
+  myScene.add(myMesh);
+ });
+ //渲染线条呈现多种颜色的字母
+ animate();
+ function animate() {
+  requestAnimationFrame(animate);
+  myTrackballControls.update();
+  myRenderer.render(myScene, myCamera);
+ }
+</script></body></html>

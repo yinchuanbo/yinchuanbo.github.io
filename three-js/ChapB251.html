@@ -1,0 +1,76 @@
+<html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/GLTFLoader.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ myRenderer.outputEncoding=THREE.sRGBEncoding;
+ //允许生成(模型动画)阴影
+ myRenderer.shadowMap.enabled=true;
+ $("#myContainer").append(myRenderer.domElement);
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color().setHSL(0.6,0,1);
+ //允许生成雾
+ myScene.fog=new THREE.Fog(myScene.background,1,5000);
+ myScene.fog.color=new THREE.Color(0xffffff);
+ var myCamera=new THREE.PerspectiveCamera(30,
+     window.innerWidth/window.innerHeight,1,5000);
+ myCamera.position.set(0,0,250);
+ var myLight1=new THREE.HemisphereLight(0xffffff,0xffffff,0.6);
+ myLight1.color.setHSL(0.6,1,0.6);
+ myLight1.groundColor.setHSL(0.095,1,0.75);
+ myLight1.position.set(0,50,0);
+ myScene.add(myLight1);
+ var myLight2=new THREE.DirectionalLight(0xffffff,1);
+ myLight2.color.setHSL(0.1,1,0.95);
+ myLight2.position.set(-1,1.75,1);
+ myLight2.position.multiplyScalar(30);
+ myLight2.castShadow=true;
+ myLight2.shadow.mapSize.width=2048;
+ myLight2.shadow.mapSize.height=2048;
+ myLight2.shadow.camera.left=-50;
+ myLight2.shadow.camera.right=50;
+ myLight2.shadow.camera.top=50;
+ myLight2.shadow.camera.bottom=-50;
+ myLight2.shadow.camera.far=3500;
+ myLight2.shadow.bias=-0.0001;
+ myScene.add(myLight2);
+ //创建(海)平面
+ var myGeometry=new THREE.PlaneBufferGeometry(10000,10000);
+ var myTextureLoader=new THREE.TextureLoader();
+ var myTexture=myTextureLoader.load('images/img130.jpg');
+ var myMaterial=new THREE.MeshLambertMaterial({map:myTexture});
+ var myPlaneMesh=new THREE.Mesh(myGeometry,myMaterial);
+ myPlaneMesh.position.y=-33;
+ myPlaneMesh.rotation.x=-Math.PI/2;
+ //允许生成阴影
+ myPlaneMesh.receiveShadow=true;
+ myScene.add(myPlaneMesh);
+ //加载并播放GLB模型动画
+ var myMixer;
+ var myGLTFLoader=new THREE.GLTFLoader();
+ myGLTFLoader.load('Data/MyFlamingo.glb',function(glb){
+  var myGLBMesh=glb.scene.children[0];
+  myGLBMesh.scale.set(0.35,0.35,0.35);
+  myGLBMesh.position.y=15;
+  myGLBMesh.rotation.y=-1;
+  myGLBMesh.castShadow=true;
+  myGLBMesh.receiveShadow=true;
+  myScene.add(myGLBMesh);
+  myMixer=new THREE.AnimationMixer(myGLBMesh);
+  myMixer.clipAction(glb.animations[0]).setDuration(1).play();
+ });
+ //渲染GLB模型动画
+ var myClock=new THREE.Clock();
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  var myDelta=myClock.getDelta();
+  myMixer.update(myDelta);
+  myRenderer.render(myScene,myCamera);
+ }
+</script></body></html>

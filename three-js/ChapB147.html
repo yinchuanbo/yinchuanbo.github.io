@@ -1,0 +1,49 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/Ammo.js"></script>
+ <script src="ThreeJS/MMDParser.js"></script>
+ <script src="ThreeJS/MMDLoader.js"></script>
+ <script src="ThreeJS/CCDIKSolver.js"></script>
+ <script src="ThreeJS/MMDPhysics.js"></script>
+ <script src="ThreeJS/MMDAnimationHelper.js"></script>
+</head>
+<body>
+<script>
+ Ammo().then(function(){
+  var myClock=new THREE.Clock();
+  //创建渲染器
+  var myRenderer=new THREE.WebGLRenderer({antialias:true});
+  myRenderer.setPixelRatio(window.devicePixelRatio);
+  myRenderer.setSize(window.innerWidth,window.innerHeight);
+  document.body.appendChild(myRenderer.domElement);
+  var myCamera=new THREE.PerspectiveCamera(45,
+      window.innerWidth/window.innerHeight,1,2000);
+  var myScene=new THREE.Scene();
+  myScene.background=new THREE.Color(0xffffff);
+  myScene.add(myCamera);
+  myScene.add(new THREE.AmbientLight(0x666666));
+  var myDirectionalLight=new THREE.DirectionalLight(0x887766);
+  myDirectionalLight.position.set(-1,1,1).normalize();
+  myScene.add(myDirectionalLight);
+  var myHelper=new THREE.MMDAnimationHelper();
+  var myLoader=new THREE.MMDLoader();
+  //加载MMD模型(pmd和vmd)
+  myLoader.loadWithAnimation('Data/MyMiku.pmd','Data/MyWave.vmd',
+      function(mmd){
+       myMesh=mmd.mesh;
+       myHelper.add(myMesh,{animation:mmd.animation,physics:true});
+       myLoader.loadAnimation('Data/MyWaveCamera.vmd',myCamera,
+           function(cameraAnimation){
+            myHelper.add(myCamera,{animation:cameraAnimation});
+            myScene.add(myMesh);
+           });
+      });
+  //渲染(播放)MMD模型动画
+  animate();
+  function animate(){
+   requestAnimationFrame(animate);
+   myHelper.update(myClock.getDelta());
+   myRenderer.render(myScene,myCamera);
+  }
+ });
+</script></body></html>

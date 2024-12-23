@@ -1,0 +1,72 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/inflate.min.js"></script>
+ <script src="ThreeJS/ColladaLoader.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script>
+</head>
+<body ><script>
+ var myAnimationMixer;
+ var myClock=new THREE.Clock();
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer({antialias:true});
+ myRenderer.setPixelRatio(window.devicePixelRatio);
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ myRenderer.setClearColor(0xeeeeee);
+ myRenderer.shadowMap.enabled=true;
+ document.body.appendChild(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(45,
+     window.innerWidth/window.innerHeight,0.1,200);
+ myCamera.position.set(5,12,5);
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xa0a0a0);
+ myScene.fog=new THREE.Fog(0xa0a0a0,20,100);
+ myScene.add(new THREE.AmbientLight(0x444444));
+ var myLight=new THREE.DirectionalLight(0xffffff);
+ myLight.position.set(0,20,10);
+ myLight.castShadow=true;
+ myScene.add(myLight);
+ var myOrbitControls=new THREE.OrbitControls(myCamera);
+ //创建(地)平面
+ var myPlaneMesh=new THREE.Mesh(new THREE.PlaneBufferGeometry(200,200),
+     new THREE.MeshPhongMaterial({color: 0xffffff, depthWrite: false}));
+ myPlaneMesh.rotation.x=- Math.PI / 2;
+ myPlaneMesh.receiveShadow=true;
+ myScene.add(myPlaneMesh);
+ var myGridHelper=new THREE.GridHelper(200,50,0x000000,0x000000);
+ myGridHelper.material.opacity=0.2;
+ myGridHelper.material.transparent=true;
+ myScene.add(myGridHelper);
+ //加载DAE模型并播放动画
+ var myColladaLoader=new THREE.ColladaLoader();
+ myColladaLoader.load("Data/stormtrooper.dae",function(mydae){
+  var obj=mydae.scene;
+  //添加骨骼辅助线
+  //mySkeletonHelper=new THREE.SkeletonHelper(obj);
+  //myScene.add(mySkeletonHelper);
+  obj.traverse(function(child){
+   if(child.isMesh){
+    child.castShadow=true;
+    child.receiveShadow=true;
+    //设置模型皮肤材质
+    child.material=new THREE.MeshLambertMaterial({
+     color:0xf4b397,skinning: true});
+   }});
+  //AnimationMixer是场景特定对象的动画播放器，
+  //当场景多个对象有独立动画时，可以为每个对象使用一个AnimationMixer
+  myAnimationMixer=obj.mixer=new THREE.AnimationMixer(obj);
+  //clipAction返回一个可以控制动画的AnimationAction对象
+  myAnimationMixer.clipAction(mydae.animations[0]).play();
+  obj.rotation.z+=Math.PI;
+  myScene.add(obj);
+ });
+ //渲染DAE模型动画
+ animate();
+ function animate(){
+  var myDelta=myClock.getDelta();
+  if (myAnimationMixer){
+   myAnimationMixer.update(myDelta);
+  }
+  myRenderer.render(myScene, myCamera);
+  requestAnimationFrame(animate);
+ }
+</script></body></html>

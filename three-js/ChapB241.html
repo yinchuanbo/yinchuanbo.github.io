@@ -1,0 +1,197 @@
+<html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script>
+ <script src="ThreeJS/OBJLoader.js"></script>
+</head>
+<body><p><button id="myButton1">高亮显示凸面</button>
+ <button id="myButton2">高亮显示凹面</button>
+ <button id="myButton3">高亮显示凹凸面</button></p>
+<center id="myContainer" ></center>
+<script id="myVertexShader" type="x-shader/x-vertex">
+attribute float curvature;
+varying float myCurvature;
+void main(){
+vec4 myModelViewPosition=modelViewMatrix*vec4(position,1.0);
+gl_Position=projectionMatrix*myModelViewPosition;
+myCurvature=curvature;
+}
+</script>
+<script id="myFragmentShader" type="x-shader/x-fragment">
+varying float myCurvature;
+void main(){
+//高亮颜色为绿色
+gl_FragColor=vec4(0.0,myCurvature*2.0,0.0,0.0);
+//高亮颜色为红色
+//gl_FragColor=vec4(myCurvature*2.0,0.0,0.0,0.0);
+}
+</script>
+<script>
+ function average(dictionary){
+  var mySum=0;
+  var myLength=0;
+  Object.keys(dictionary).forEach(function(key){
+   mySum+=dictionary[key];
+   myLength++;
+  });
+  return mySum/myLength;
+ }
+ //过滤(选择)凹面
+ function filterConcave(curvature){
+  for(var i=0;i<curvature.length;i++){
+   curvature[i]=Math.abs(Math.max(-1,Math.min(curvature[i],0)));
+  }
+  return curvature;
+ }
+ //过滤(选择)凸面
+ function filterConvex(curvature){
+  for(var i=0;i<curvature.length; i ++ ) {
+   curvature[i]=Math.max(0,Math.min(curvature[i],1));
+  }
+  return curvature;
+ }
+ //过滤(选择)凹面和凸面
+ function filterBoth(curvature){
+  for(var i=0;i<curvature.length;i++){
+   curvature[i]=Math.abs(curvature[i]);
+  }
+  return curvature;
+ }
+ //创建渲染器
+ var myRenderer = new THREE.WebGLRenderer({antialias: true,});
+ myRenderer.setSize( window.innerWidth,window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ var myCamera=new THREE.PerspectiveCamera(75,
+     window.innerWidth/window.innerHeight,  0.1,1000);
+ myCamera.position.x=-47.16;
+ myCamera.position.y=4.1;
+ myCamera.position.z=49.21;
+ var myOrbitControls=new THREE.OrbitControls(myCamera);
+ //加载obj头像模型
+ var myLoader=new THREE.OBJLoader();
+ myLoader.load("Data/MyWaltHead.obj",function(object){
+  object.traverse(function(child){
+   if(child.isMesh){
+    myGeometry=child.geometry;
+    myGeometry.center();
+    var myDictionary={};
+    for(var i=0;i<myGeometry.attributes.position.count;i+=3){
+     var myPositions=myGeometry.attributes.position.array;
+     var myNormals=myGeometry.attributes.normal.array;
+     var myPositionA=new THREE.Vector3(myPositions[3*i],
+         myPositions[3*i+1],myPositions[3*i+2]);
+     var myPositionB=new THREE.Vector3(myPositions[3*(i+1)],
+         myPositions[3*(i+1)+1],myPositions[3*(i+1)+2]);
+     var myPositionC=new THREE.Vector3(myPositions[3*(i+2)],
+         myPositions[3*(i+2)+1],myPositions[3*(i+2)+2]);
+     var myNormalA=new THREE.Vector3(myNormals[3*i],
+         myNormals[3*i+1],myNormals[3*i+2]).normalize();
+     var myNormalB=new THREE.Vector3(myNormals[3*(i+1)],
+         myNormals[3*(i+1)+1],myNormals[3*(i+1)+2]).normalize();
+     var myNormalC=new THREE.Vector3(myNormals[3*(i+2)],
+         myNormals[3*(i+2)+1],myNormals[3*(i+2)+2]).normalize();
+     var myStringA=myPositionA.toArray().toString();
+     var myStringB=myPositionB.toArray().toString();
+     var myStringC=myPositionC.toArray().toString();
+     var myPositionB2A=new THREE.Vector3().subVectors(myPositionB,myPositionA);
+     var myPositionB2C=new THREE.Vector3().subVectors(myPositionB,myPositionC);
+     var myPositionC2A=new THREE.Vector3().subVectors(myPositionC,myPositionA);
+     var myDotB2A=myNormalB.dot(myPositionB2A.normalize());
+     var myDotB2C=myNormalB.dot(myPositionB2C.normalize());
+     var myDotC2A=myNormalC.dot(myPositionC2A.normalize());
+     var myDotA2B=-myNormalA.dot(myPositionB2A.normalize());
+     var myDotC2B=-myNormalC.dot(myPositionB2C.normalize());
+     var myDotA2C=-myNormalA.dot(myPositionC2A.normalize());
+     if(!myDictionary[myStringA]) myDictionary[myStringA]={};
+     if(!myDictionary[myStringB]) myDictionary[myStringB]={};
+     if(!myDictionary[myStringC]) myDictionary[myStringC]={};
+     myDictionary[myStringA][myStringB]=myDotA2B;
+     myDictionary[myStringA][myStringC]=myDotA2C;
+     myDictionary[myStringB][myStringA]=myDotB2A;
+     myDictionary[myStringB][myStringC]=myDotB2C;
+     myDictionary[myStringC][myStringA]=myDotC2A;
+     myDictionary[myStringC][myStringB]=myDotC2B;
+    }
+    var myCurvatureDictionary={};
+    Object.keys(myDictionary).forEach(function(key){
+     myCurvatureDictionary[key]=average(myDictionary[key]);
+    });
+    var mySmoothCurvatureDictionary=Object.create(myCurvatureDictionary);
+    Object.keys(myDictionary).forEach(function(key1){
+     var myCount=0;
+     var mySum=0;
+     Object.keys(myDictionary[key1]).forEach(function(key2){
+      mySum+=mySmoothCurvatureDictionary[key2];
+      myCount++;
+     });
+     mySmoothCurvatureDictionary[key1]=mySum/myCount;
+    });
+    myCurvatureDictionary=mySmoothCurvatureDictionary;
+    var myMin=10,myMax=0;
+    Object.keys(myCurvatureDictionary).forEach(function(key){
+     var myValue=Math.abs(myCurvatureDictionary[key]);
+     if(myValue<myMin) myMin=myValue;
+     if(myValue>myMax) myMax=myValue;
+    });
+    var myRange=(myMax-myMin);
+    Object.keys(myCurvatureDictionary).forEach(function(key){
+     var myValue=Math.abs(myCurvatureDictionary[key]);
+     if(myCurvatureDictionary[key]<0){
+      myCurvatureDictionary[key]=(myMin-myValue)/myRange;
+     }else{
+      myCurvatureDictionary[key]=(myValue-myMin)/myRange;
+     }
+    });
+    myCurvatureAttribute=
+        new Float32Array(myGeometry.attributes.position.count);
+    for(var i=0;i<myGeometry.attributes.position.count;i++){
+     myPositions=myGeometry.attributes.position.array;
+     var myPosition=new THREE.Vector3(myPositions[3*i],myPositions[3*i+1],
+         myPositions[3*i+2]);
+     var myString=myPosition.toArray().toString();
+     myCurvatureAttribute[i]=myCurvatureDictionary[myString];
+    }
+    myGeometry.setAttribute('curvature',
+        new THREE.BufferAttribute(myCurvatureAttribute,1));
+    filterBoth(new Float32Array(myCurvatureAttribute));
+    var myMaterial=new THREE.ShaderMaterial({
+     vertexShader: $("#myVertexShader")[0].text,
+     fragmentShader:$("#myFragmentShader")[0].text
+     // vertexShader: $("#myVertexShader")[0].textContent,
+     // fragmentShader:$("#myFragmentShader")[0].textContent
+     // vertexShader:document.getElementById('myVertexShader').textContent,
+     // fragmentShader:document.getElementById('myFragmentShader').textContent
+    });
+    myMaterial.side=THREE.DoubleSide;
+    myMesh=new THREE.Mesh(myGeometry, myMaterial);
+   }
+  });
+  myScene.add(myMesh);
+ });
+ //渲染obj头像模型
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myRenderer.render(myScene,myCamera);
+ }
+ //响应单击“高亮显示凸面”按钮
+ $("#myButton1").click(function(){
+  var myFiltedCurvature=filterConvex(new Float32Array(myCurvatureAttribute));
+  myGeometry.attributes.curvature.array = myFiltedCurvature;
+  myGeometry.attributes.curvature.needsUpdate = true;
+ });
+ //响应单击“高亮显示凹面”按钮
+ $("#myButton2").click(function(){
+  var myFiltedCurvature=filterConcave(new Float32Array(myCurvatureAttribute));
+  myGeometry.attributes.curvature.array = myFiltedCurvature;
+  myGeometry.attributes.curvature.needsUpdate = true;
+ });
+ //响应单击“高亮显示凹凸面”按钮
+ $("#myButton3").click(function(){
+  var myFiltedCurvature=filterBoth(new Float32Array(myCurvatureAttribute));
+  myGeometry.attributes.curvature.array=myFiltedCurvature;
+  myGeometry.attributes.curvature.needsUpdate=true;
+ });
+</script></body></html>

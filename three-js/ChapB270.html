@@ -1,0 +1,105 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script id="myVertexShader" type="x-shader/x-vertex">
+  precision highp float;
+  uniform float mySinTime;
+  uniform mat4 modelViewMatrix;
+  uniform mat4 projectionMatrix;
+  attribute vec3 position;
+  attribute vec3 offset;
+  attribute vec4 color;
+  attribute vec4 myStart;
+  attribute vec4 myEnd;
+  varying vec3 myPosition;
+  varying vec4 myColor;
+  void main(){
+    myPosition=offset*max(abs(mySinTime*2.0+1.0),0.5)+position;
+    vec4 myOrientation=normalize(mix(myStart,myEnd,mySinTime));
+    vec3 myCross=cross(myOrientation.xyz,myPosition);
+    myPosition=myCross*(2.0*myOrientation.w)
+                 +(cross(myOrientation.xyz, myCross)*2.0+myPosition);
+    myColor=color;
+    gl_Position=projectionMatrix*modelViewMatrix*vec4(myPosition,1.0);
+  }
+</script>
+<script id="myFragmentShader" type="x-shader/x-fragment">
+   precision highp float;
+   varying vec3 myPosition;
+   varying vec4 myColor;
+   void main(){
+      vec4 myNewColor=vec4(myColor);
+      myNewColor.r+=sin(myPosition.x*10.0)*0.5;
+      gl_FragColor=myNewColor;
+   }
+</script>
+<script>
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer({antialias:true});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(50,
+     window.innerWidth/window.innerHeight,1,10);
+ myCamera.position.z=2;
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ //实例化多个几何体
+ var myVector=new THREE.Vector4();
+ var myPositions=[];
+ var myOffsets=[];
+ var myColors=[];
+ var myStarts=[];
+ var myEnds=[];
+ myPositions.push(0.025,-0.025,0);
+ myPositions.push(-0.025,0.025,0);
+ myPositions.push(0,0,0.025);
+ for(var i=0;i<5000;i++){
+  myOffsets.push(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5);
+  myColors.push(Math.random(),Math.random(),Math.random(),Math.random());
+  myVector.set(Math.random()*2-1,Math.random()*2-1,
+      Math.random()*2-1, Math.random()*2-1);
+  myVector.normalize();
+  myStarts.push(myVector.x,myVector.y,myVector.z,myVector.w);
+  myVector.set(Math.random()*2-1,Math.random()*2-1,
+      Math.random()*2-1,Math.random()*2-1);
+  myVector.normalize();
+  myEnds.push(myVector.x,myVector.y,myVector.z,myVector.w);
+ }
+ var myGeometry=new THREE.InstancedBufferGeometry({instanceCount:5000});
+ myGeometry.setAttribute('position',
+     new THREE.Float32BufferAttribute(myPositions,3));
+ myGeometry.setAttribute('offset',
+     new THREE.InstancedBufferAttribute(new Float32Array( myOffsets ),3));
+ myGeometry.setAttribute('color',
+     new THREE.InstancedBufferAttribute(new Float32Array(myColors),4));
+ myGeometry.setAttribute('myStart',
+     new THREE.InstancedBufferAttribute(new Float32Array(myStarts),4));
+ myGeometry.setAttribute('myEnd',
+     new THREE.InstancedBufferAttribute(new Float32Array(myEnds),4));
+ var myMaterial=new THREE.RawShaderMaterial({
+  uniforms:{"mySinTime":{value:1.0}},
+  vertexShader: $("#myVertexShader")[0].text,
+  fragmentShader: $("#myFragmentShader")[0].text,
+  side:THREE.DoubleSide
+ });
+ var myMesh=new THREE.Mesh(myGeometry,myMaterial);
+ myScene.add(myMesh);
+ //渲染多个几何体
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  var myTime=performance.now();
+  var myObject=myScene.children[0];
+  myObject.rotation.y=myTime*0.0005;
+  myObject.material.uniforms["mySinTime"].value=
+      Math.sin(myTime*0.005*0.05);
+  myRenderer.render(myScene,myCamera);
+ }
+</script></body>
+</html>
+
+
+
+

@@ -1,0 +1,122 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/CSS2DRenderer.js"></script>
+ <script src="ThreeJS/PDBLoader.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script></head>
+<body ><script>
+ var myRenderer,myLabelRenderer,myCamera,myOrbitControls;
+ //创建渲染器
+ function initRender(){
+  myRenderer=new THREE.WebGLRenderer({antialias:true});
+  myRenderer.setSize(window.innerWidth, window.innerHeight);
+  myRenderer.setClearColor(0xffffff);
+  document.body.appendChild(myRenderer.domElement);
+  //实例化css2dRenderer
+  myLabelRenderer=new THREE.CSS2DRenderer();
+  myLabelRenderer.setSize(window.innerWidth, window.innerHeight);
+  myLabelRenderer.domElement.style.position='absolute';
+  myLabelRenderer.domElement.style.top='0';
+  myLabelRenderer.domElement.style.pointerEvents='none';
+  document.body.appendChild(myLabelRenderer.domElement);
+  myCamera=new THREE.PerspectiveCamera(45,
+      window.innerWidth/window.innerHeight, 0.1,1000);
+  myCamera.position.set(0,40,50);
+  myCamera.lookAt(new THREE.Vector3(0,0,0));
+  myScene=new THREE.Scene();
+  myScene.add(new THREE.AmbientLight(0x666666));
+  var myLight=new THREE.DirectionalLight(0x00ff00);
+  myLight.position.set(200,200,100);
+  myScene.add(myLight);
+ }
+ //加载并创建PDB模型
+ function initModel(){
+  var myPDBLoader=new THREE.PDBLoader();
+  myPDBLoader.load("Data/caffeine.pdb",function(pdb){
+   //创建一个模型组
+   var myGroup=new THREE.Group();
+   var myOffset=new THREE.Vector3();
+   //获取与原子相关的数据
+   var myGeometryAtoms=pdb.geometryAtoms;
+   //获取在原子间的键数据
+   var myGeometryBonds=pdb.geometryBonds;
+   //获取原子标签
+   var myJSON=pdb.json;
+   var myBoxGeometry=new THREE.BoxBufferGeometry(1,1,1);
+   var mySphereGeometry=new THREE.IcosahedronBufferGeometry(1,2);
+   //让模型居中
+   myGeometryAtoms.computeBoundingBox();
+   myGeometryAtoms.boundingBox.getCenter(myOffset).negate();
+   myGeometryAtoms.translate(myOffset.x,myOffset.y,myOffset.z);
+   myGeometryBonds.translate(myOffset.x,myOffset.y,myOffset.z);
+   //将原子和原子的标签添加到模型组
+   var myPositions=myGeometryAtoms.getAttribute('position');
+   var myColors=myGeometryAtoms.getAttribute('color');
+   var myPosition=new THREE.Vector3();
+   var myColor=new THREE.Color();
+   for ( var i=0; i<myPositions.count; i++ ){
+    myPosition.x=myPositions.getX(i);
+    myPosition.y=myPositions.getY(i);
+    myPosition.z=myPositions.getZ(i);
+    myColor.r=myColors.getX(i);
+    myColor.g=myColors.getY(i);
+    myColor.b=myColors.getZ(i);
+    var myMaterial=new THREE.MeshPhongMaterial({color: myColor});
+    var myMesh=new THREE.Mesh(mySphereGeometry,myMaterial);
+    myMesh.position.copy(myPosition);
+    myMesh.position.multiplyScalar(75);
+    myMesh.scale.multiplyScalar(25);
+    myGroup.add(myMesh);
+    var myAtom=myJSON.atoms[i];
+    var myText=document.createElement('div');
+    myText.className='label';
+    myText.style.color='rgb('+myAtom[3][0]+','
+        +myAtom[3][1]+','+myAtom[3][2]+')';
+    myText.style.textShadow="1px 1px 1px #000";
+    myText.textContent=myAtom[ 4 ];
+    myText.style.fontSize='12px';
+    var myLabel=new THREE.CSS2DObject(myText);
+    myLabel.position.copy(myMesh.position);
+    myGroup.add(myLabel);
+   }
+   //将原子之间的键添加到模型组
+   myPositions=myGeometryBonds.getAttribute('position');
+   var myStart=new THREE.Vector3();
+   var myEnd=new THREE.Vector3();
+   for(var i=0;i<myPositions.count;i+=2){
+    myStart.x=myPositions.getX(i);
+    myStart.y=myPositions.getY(i);
+    myStart.z=myPositions.getZ(i);
+    myEnd.x=myPositions.getX(i+1);
+    myEnd.y=myPositions.getY(i+1);
+    myEnd.z=myPositions.getZ(i+1);
+    myStart.multiplyScalar(75);
+    myEnd.multiplyScalar(75);
+    var myObject=new THREE.Mesh(myBoxGeometry,new THREE.MeshPhongMaterial());
+    myObject.position.copy(myStart);
+    myObject.position.lerp(myEnd,0.5);
+    myObject.scale.set(5,5,myStart.distanceTo(myEnd));
+    myObject.lookAt(myEnd);
+    myGroup.add(myObject);
+   }
+   //缩放并将模型组添加到场景中
+   myGroup.scale.set(0.1,0.1,0.1);
+   myScene.add(myGroup);
+  });
+ }
+ function initControls() {
+  myOrbitControls=new THREE.OrbitControls(myCamera);
+  myOrbitControls.autoRotate=true;
+  myOrbitControls.autoRotateSpeed=1.5;
+ }
+ //渲染PDB模型
+ function animate(){
+  myRenderer.render(myScene, myCamera);
+  myLabelRenderer.render(myScene,myCamera);
+  myOrbitControls.update();
+  requestAnimationFrame(animate);
+ }
+ initRender();
+ initControls();
+ initModel();
+ animate();
+</script></body></html>

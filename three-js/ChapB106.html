@@ -1,0 +1,74 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <!-- <script src="http://threejs.org/build/three.js"></script>-->
+ <!-- <script src="http://cdn.bootcss.com/jquery/3.4.1/jquery.js"></script>-->
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><div id="myContainer" ></div>
+<script>
+ //创建渲染器
+ var myRenderer =new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ myRenderer.shadowMap.enabled = true;
+ $("#myContainer").append(myRenderer.domElement);
+ var myScene = new THREE.Scene();
+ var myCamera = new THREE.PerspectiveCamera(45,
+     window.innerWidth/window.innerHeight, 0.1, 100);
+ myCamera.position.x = -30;
+ myCamera.position.y = 40;
+ myCamera.position.z = 40;
+ myCamera.lookAt(myScene.position);
+ myScene.add(myCamera);
+ //创建THREE.PointLight光源
+ var myPointLight = new THREE.PointLight(0xffffff);
+ myPointLight.castShadow = true;
+ myPointLight.shadow.mapSize.set(2048, 2048);
+ myPointLight.decay = 0.1
+ myScene.add(myPointLight);
+ //添加光源图形(被圆球代替)
+ var myPointLightHelper = new THREE.PointLightHelper(myPointLight);
+ //var myPointLightHelper=new THREE.PointLightHelper(myPointLight,5,'green');
+ myScene.add(myPointLightHelper);
+ //绘制(拍摄)光线阴影
+ var myCameraHelper = new THREE.CameraHelper(myPointLight.shadow.camera)
+ myScene.add(myCameraHelper)
+ myScene.add(new THREE.AmbientLight(0x353535, 1));
+ //创建圆球模拟光源
+ var mySphereLight = new THREE.SphereGeometry(3,40,40);
+ var mySphereLightMaterial = new THREE.MeshBasicMaterial({color: 0xffff00});
+ var mySphereLightMesh = new THREE.Mesh(mySphereLight, mySphereLightMaterial);
+ mySphereLightMesh.position.set(0, 8, 2);
+ myScene.add(mySphereLightMesh);
+ //创建接收阴影的平面
+ var myPlaneGeomerty = new THREE.PlaneGeometry(60,40,1, 1);
+ var myPlaneMaterial = new THREE.MeshLambertMaterial({color: 0xffffff});
+ var myPlaneMesh = new THREE.Mesh(myPlaneGeomerty, myPlaneMaterial);
+ myPlaneMesh.rotation.x = -0.5 * Math.PI;
+ myPlaneMesh.receiveShadow = true;
+ myScene.add(myPlaneMesh);
+ //创建立方体
+ var myBoxGeometry = new THREE.BoxGeometry(6,6,6);
+ var myBoxMaterial = new THREE.MeshLambertMaterial({ color: 0x00ffff });
+ var myBoxMesh = new THREE.Mesh(myBoxGeometry, myBoxMaterial);
+ myBoxMesh.castShadow = true;
+ myBoxMesh.position.x = 2;
+ myBoxMesh.position.y = 2;
+ myBoxMesh.position.z = 2;
+ myScene.add(myBoxMesh);
+ //渲染所有图形
+ var step = 0;
+ animate();
+ function animate(){
+  myPointLightHelper.update();
+  myCameraHelper.update();
+  step += 0.01;
+  mySphereLightMesh.position.x = 20 + (10 * Math.cos(step));
+  mySphereLightMesh.position.y = 12 + (10* Math.abs(Math.sin(step)));
+  mySphereLightMesh.translateX(-22);
+  //使用圆球的位置作为光源位置
+  myPointLight.position.copy(mySphereLightMesh.position);
+  requestAnimationFrame(animate);
+  myRenderer.render(myScene, myCamera);
+ }
+</script></body>
+</html>

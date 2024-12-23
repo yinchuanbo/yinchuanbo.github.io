@@ -1,0 +1,68 @@
+<html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ var myRadius=450;
+ //创建渲染器
+ var myRenderer = new THREE.WebGLRenderer({antialias: true,});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ var myCamera=new THREE.PerspectiveCamera(80,
+     window.innerWidth/window.innerHeight,1, 3000);
+ myCamera.position.z=1000;
+ //绘制多条线段
+ var myParams=[[0.25,0xff7700,1],[0.5,0xff9900,1],[0.75,0xffaa00,0.75],
+  [1,0xffaa00,0.5],[1.25,0x000833,0.8],[3.0,0xaaaaaa,0.75],
+  [3.5,0xffffff,0.5],[4.5,0xffffff,0.25],[5.5,0xffffff,0.125]];
+ var myGeometry=new THREE.BufferGeometry();
+ var myVertices=[];
+ var myVertex=new THREE.Vector3();
+ for(var j=0;j<1500;j++){
+  myVertex.x=Math.random()*2-1;
+  myVertex.y=Math.random()*2-1;
+  myVertex.z=Math.random()*2-1;
+  myVertex.normalize();
+  myVertex.multiplyScalar(myRadius);
+  myVertices.push(myVertex.x,myVertex.y,myVertex.z);
+  myVertex.multiplyScalar(Math.random()*0.09+1);
+  myVertices.push(myVertex.x,myVertex.y,myVertex.z);
+ }
+ myGeometry.setAttribute('position',
+     new THREE.Float32BufferAttribute(myVertices,3));
+ for(i=0;i<myParams.length;++i){
+  myParam=myParams[i];
+  myMaterial=
+      new THREE.LineBasicMaterial({color:myParam[1],opacity:myParam[2]});
+  myLine=new THREE.LineSegments(myGeometry,myMaterial);
+  myLine.scale.x=myLine.scale.y=myLine.scale.z=myParam[0];
+  myLine.userData.originalScale=myParam[0];
+  myLine.rotation.y=Math.random()*Math.PI;
+  myLine.updateMatrix();
+  myScene.add(myLine);
+ }
+ //渲染多条线段
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myCamera.position.y+=(200-myCamera.position.y)*.05;
+  myCamera.lookAt(myScene.position);
+  myRenderer.render(myScene,myCamera);
+  var myTime=Date.now()*0.0001;
+  for(var i=0;i<myScene.children.length;i++){
+   var myObject=myScene.children[i];
+   if(myObject.isLine){
+    myObject.rotation.y=myTime*(i<4?(i+1):-(i+1));
+    if(i<5){
+     var myScale=myObject.userData.
+         originalScale*(i/5+1)*(1+0.5*Math.sin(7*myTime));
+     myObject.scale.x=myObject.scale.y=myObject.scale.z=myScale;
+    }
+   }
+  }
+ }
+</script></body>
+</html>

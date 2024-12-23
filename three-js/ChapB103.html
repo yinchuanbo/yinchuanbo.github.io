@@ -1,0 +1,88 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script>
+ <script src="ThreeJS/Tween.min.js"></script>
+ <script src="ThreeJS/LegacyJSONLoader.js"></script>
+ <script src="ThreeJS/SkinnedMesh.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ var myRenderer, myCamera, myScene, myPointLight,
+     myOrbitControls, mySkinnedMesh, myTween;
+ //初始化场景
+ function initRender(){
+  myRenderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  myRenderer.setSize(window.innerWidth,window.innerHeight);
+  myRenderer.setClearColor('white',1.0);
+  $("#myContainer").append(myRenderer.domElement);
+  myCamera=new THREE.PerspectiveCamera(45,
+      window.innerWidth / window.innerHeight, 0.1, 1000);
+  myCamera.position.set(-3.32,26.54,33.17);
+  myScene=new THREE.Scene();
+  myScene.add(new THREE.AmbientLight(0xff0000));
+  myPointLight=new THREE.PointLight(0xffffff);
+  myPointLight.position.set(0,50,0);
+  myScene.add(myPointLight);
+ }
+ //初始化模型
+ function initModel(){
+  var myLoader=new LegacyJSONLoader();
+  myLoader.load("ThreeJS/hand-1.js", function(geometry){
+   mySkinnedMesh=new SkinnedMesh(geometry,
+       new THREE.MeshLambertMaterial({color:0xf4b397,skinning: true}));
+   mySkinnedMesh.rotation.x=0.5 * Math.PI;
+   mySkinnedMesh.rotation.z=0.7 * Math.PI;
+   mySkinnedMesh.scale.set(12,12,12);
+   mySkinnedMesh.translateZ(-4);
+   mySkinnedMesh.translateY(-2);
+   myScene.add(mySkinnedMesh);
+   myTween.start();
+  });
+ }
+ //初始化动画
+ function initTween(){
+  myTween=new TWEEN.Tween({pos:-1})
+      .to({pos: 0},1000)
+      .easing(TWEEN.Easing.Cubic.InOut)
+      .yoyo(true)
+      .repeat(Infinity); //一直循环
+  myTween.onUpdate(function(){
+   var myPos=this.pos;
+   //旋转手指
+   mySkinnedMesh.skeleton.bones[5].rotation.set(0, 0, myPos);
+   mySkinnedMesh.skeleton.bones[6].rotation.set(0, 0, myPos);
+   mySkinnedMesh.skeleton.bones[10].rotation.set(0, 0, myPos);
+   mySkinnedMesh.skeleton.bones[11].rotation.set(0, 0, myPos);
+   mySkinnedMesh.skeleton.bones[15].rotation.set(0, 0, myPos);
+   mySkinnedMesh.skeleton.bones[16].rotation.set(0, 0, myPos);
+   mySkinnedMesh.skeleton.bones[20].rotation.set(0, 0, myPos);
+   mySkinnedMesh.skeleton.bones[21].rotation.set(0, 0, myPos);
+   //旋转手腕
+   mySkinnedMesh.skeleton.bones[1].rotation.set(myPos, 0, 0);
+  });
+ }
+ //初始化轨道控制器
+ function initOrbitControls(){
+  myOrbitControls = new THREE.OrbitControls(myCamera);
+  myOrbitControls.enableDamping=true;
+  myOrbitControls.enableZoom=true;
+  myOrbitControls.autoRotate=false;
+  myOrbitControls.autoRotateSpeed=0.5;
+  myOrbitControls.minDistance=1;
+  myOrbitControls.maxDistance=2000;
+  myOrbitControls.enablePan=true;
+ }
+ //渲染图形
+ function animate(){
+  TWEEN.update();
+  myOrbitControls.update();
+  myRenderer.render(myScene, myCamera);
+  requestAnimationFrame(animate);
+ }
+ initRender();
+ initModel();
+ initOrbitControls();
+ initTween();
+ animate();
+</script></body></html>

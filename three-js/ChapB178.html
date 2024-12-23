@@ -1,0 +1,59 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/SceneUtils.js"></script>
+ <script src="ThreeJS/ConvexGeometry.js"></script>
+</head>
+<body><div id="myContainer"></div>
+<script type="text/javascript">
+ //创建渲染器
+ var myRenderer= new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myScene = new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ var myCamera = new THREE.PerspectiveCamera(45,
+     window.innerWidth / window.innerHeight, 0.1, 1000);
+ myCamera.position.x = -30;
+ myCamera.position.y = 40;
+ myCamera.position.z = 30;
+ myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+ //随机设置创建凸面体的顶点
+ var myPoints = [];
+ for (var i = 0; i < 20; i++) {
+  var randomX = -15 + Math.round(Math.random() * 30);
+  var randomY = -15 + Math.round(Math.random() * 30);
+  var randomZ = -15 + Math.round(Math.random() * 30);
+  myPoints.push(new THREE.Vector3(randomX, randomY, randomZ));
+ }
+ //根据所有顶点创建组(即所有顶点作为一个整体)
+ var myGroup = new THREE.Object3D();
+ var myPointMaterial = new THREE.MeshBasicMaterial({
+  color: 0xff0000, transparent: false});
+ myPoints.forEach(function (point) {
+  var myPointGeometry = new THREE.SphereGeometry(0.4);
+  var myPointMesh = new THREE.Mesh(myPointGeometry, myPointMaterial);
+  myPointMesh.position.copy(point);
+  myGroup.add(myPointMesh);
+ });
+ myScene.add(myGroup);
+ //根据顶点创建凸面体
+ var myConvexGeometry= new THREE.ConvexGeometry(myPoints);
+ var myConvexMaterial = new THREE.MeshBasicMaterial({
+  color: 0x00ff00, transparent: true, opacity: 0.2});
+ myConvexMaterial.side = THREE.DoubleSide;
+ var myWireFrameMaterial = new THREE.MeshBasicMaterial();
+ myWireFrameMaterial.wireframe = true;
+ var myConvexMesh = THREE.SceneUtils.createMultiMaterialObject(
+     myConvexGeometry, [myConvexMaterial, myWireFrameMaterial]);
+ myScene.add(myConvexMesh);
+ //渲染凸面体
+ animate();
+ var myStep = 0;
+ function animate() {
+  myGroup.rotation.y = myStep+= 0.01;
+  myConvexMesh.rotation.y = myStep += 0.01;
+  requestAnimationFrame(animate);
+  myRenderer.render(myScene, myCamera);
+ }
+</script></body></html>

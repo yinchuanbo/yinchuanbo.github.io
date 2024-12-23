@@ -1,0 +1,74 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/PLYLoader.js"></script>
+ <script src="ThreeJS/tween.min.js"></script></head>
+<body><script>
+ var myRenderer=new THREE.WebGLRenderer({antialias:true});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ myRenderer.setClearColor(0xffffff);
+ document.body.appendChild(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(45,
+     window.innerWidth/window.innerHeight,0.1,1000);
+ myCamera.position.set(0,0,50);
+ myCamera.lookAt(new THREE.Vector3(0,0,0));
+ var myScene=new THREE.Scene();
+ myScene.add(new THREE.AmbientLight(0x444444));
+ var myLight=new THREE.PointLight(0xffffff);
+ myLight.position.set(0,50,50);
+ myLight.castShadow=true;
+ myScene.add(myLight);
+ function initModel(){
+  var myPLYLoader=new THREE.PLYLoader();
+  myPLYLoader.load("Data/Lucy100k.ply",function(geometry){
+   geometry.computeVertexNormals();
+   //创建绿色材质
+   var myMaterial=new THREE.MeshStandardMaterial({color:0x00ff00});
+   var myMesh=new THREE.Mesh(geometry,myMaterial);
+   myMesh.position.y -=14;
+   myMesh.rotation.y=Math.PI;
+   myMesh.scale.set(0.02,0.02,0.02);
+   myScene.add(myMesh);
+   //保存默认的位置信息
+   var position=geometry.getAttribute("position").array;
+   geometry.localPosition=[];
+   for (var i=0;i<position.length;i++){
+    geometry.localPosition.push(position[i]);
+   }
+   //根据几何图形创建Tween动画
+   initTween(geometry);
+  });
+ }
+ function initTween(geometry){
+  var myPosition={y: 1};
+  var myTween=new TWEEN.Tween(myPosition).to({y: 0},5000);
+  myTween.easing(TWEEN.Easing.Sinusoidal.InOut);
+  var myTweenBack=new TWEEN.Tween(myPosition).to({y:1},5000);
+  myTweenBack.easing(TWEEN.Easing.Sinusoidal.InOut);
+  myTween.chain(myTweenBack);
+  myTweenBack.chain(myTween);
+  var myCount=geometry.getAttribute("position").count;
+  geometry.computeBoundingBox();
+  var minY=geometry.boundingBox.min.y;
+  var onUpdate=function(){
+   var y=this.y;
+   var arr=[];
+   for (var i=0; i<myCount;i++) {
+    arr.push(geometry.localPosition[i*3]);
+    arr.push((geometry.localPosition[i*3+1]-minY)*y);
+    arr.push(geometry.localPosition[i*3+2]);
+   }
+   geometry.getAttribute("position").array=new Float32Array(arr);
+   geometry.getAttribute("position").needsUpdate=true;
+  };
+  myTween.onUpdate(onUpdate);
+  myTweenBack.onUpdate(onUpdate);
+  myTween.start();
+ }
+ function animate(){
+  TWEEN.update();
+  myRenderer.render(myScene,myCamera);
+  requestAnimationFrame(animate);
+ }
+ initModel();
+ animate();
+</script></body></html>

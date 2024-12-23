@@ -1,0 +1,99 @@
+<!DOCTYPE html><html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/SubdivisionModifier.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script>
+</head>
+<body><p><button id="myButton1">0级细化模型</button>
+ <button id="myButton2">2级细化模型</button></p>
+<center id="myContainer"></center>
+<script>
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer({antialias:true});
+ myRenderer.setPixelRatio(window.devicePixelRatio);
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(70,
+     window.innerWidth/window.innerHeight,1,500);
+ myCamera.position.z=70;
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ var myLight=new THREE.PointLight(0xffffff,1.5);
+ myLight.position.set(1000,1000,2000);
+ myScene.add(myLight);
+ var myOrbitControl=new THREE.OrbitControls(myCamera);
+ var mySmoothMesh,myWireframe;
+ //渲染头像模型
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myRenderer.render(myScene,myCamera);
+ }
+ //响应单击“0级细化模型”按钮
+ $("#myButton1").click(function(){
+  myScene.remove(mySmoothMesh);
+  myScene.remove(myWireframe);
+  var myIndices=['a','b','c'];
+  var mySmoothMaterial=new THREE.MeshPhongMaterial({
+   color:0xffffff,vertexColors:true});
+  var myWireframeMaterial=new THREE.MeshBasicMaterial({
+   color:0x000000,wireframe:true,opacity:0.15,transparent:true});
+  var myLoader=new THREE.BufferGeometryLoader();
+  myLoader.load('Data/MyWaltHead.json',function(bufferGeometry){
+   var myGeometry=new THREE.Geometry().fromBufferGeometry(bufferGeometry);
+   // var myMaterial=new THREE.MeshBasicMaterial({color:0xff0000,wireframe:true});
+   // var myMesh=new THREE.Mesh(bufferGeometry,myMaterial);
+   // myScene.add(myMesh);
+   var myModifier=new THREE.SubdivisionModifier(0);
+   var mySmoothGeometry=myModifier.modify(myGeometry);
+   for(var i=0;i<mySmoothGeometry.faces.length;i++){
+    var myFace=mySmoothGeometry.faces[i];
+    for(var j=0;j<3;j++){
+     var myIndex=myFace[myIndices[j]];
+     var myVertex=mySmoothGeometry.vertices[myIndex];
+     var myHue=(myVertex.y/200)+0.5;
+     var myColor=new THREE.Color().setHSL(myHue,1,0.5);
+     myFace.vertexColors[j]=myColor;
+    }
+   }
+   mySmoothMesh.geometry=
+       new THREE.BufferGeometry().fromGeometry(mySmoothGeometry);
+   myWireframe.geometry=mySmoothMesh.geometry;
+  });
+  mySmoothMesh=new THREE.Mesh(undefined,mySmoothMaterial);
+  myWireframe=new THREE.Mesh(undefined,myWireframeMaterial);
+  myScene.add(mySmoothMesh,myWireframe);
+ });
+ //响应单击“2级细化模型”按钮
+ $("#myButton2").click(function () {
+  myScene.remove(mySmoothMesh);
+  myScene.remove(myWireframe);
+  var myIndices=['a','b','c'];
+  var mySmoothMaterial=new THREE.MeshPhongMaterial({
+   color:0xffffff,vertexColors:true});
+  var myWireframeMaterial=new THREE.MeshBasicMaterial({
+   color:0x000000,wireframe:true,opacity:0.15,transparent:true});
+  var myLoader=new THREE.BufferGeometryLoader();
+  myLoader.load('Data/MyWaltHead.json',function(bufferGeometry){
+   var myGeometry=new THREE.Geometry().fromBufferGeometry(bufferGeometry);
+   var myModifier=new THREE.SubdivisionModifier(2);
+   var mySmoothGeometry=myModifier.modify(myGeometry);
+   for(var i=0;i<mySmoothGeometry.faces.length;i++){
+    var myFace=mySmoothGeometry.faces[i];
+    for(var j=0;j<3;j++){
+     var myIndex=myFace[myIndices[j]];
+     var myVertex=mySmoothGeometry.vertices[myIndex];
+     var myHue=(myVertex.y/200)+0.5;
+     var myColor=new THREE.Color().setHSL(myHue,1,0.5);
+     myFace.vertexColors[j]=myColor;
+    }
+   }
+   mySmoothMesh.geometry=
+       new THREE.BufferGeometry().fromGeometry(mySmoothGeometry);
+   myWireframe.geometry=mySmoothMesh.geometry;
+  });
+  mySmoothMesh=new THREE.Mesh(undefined,mySmoothMaterial);
+  myWireframe=new THREE.Mesh(undefined,myWireframeMaterial);
+  myScene.add(mySmoothMesh,myWireframe);
+ });
+</script></body></html>

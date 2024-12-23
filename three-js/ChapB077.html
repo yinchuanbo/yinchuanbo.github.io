@@ -1,0 +1,51 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><div id="myContainer"></div>
+<script>
+ var myCamera, myScene, myRenderer,myCubeCamera;
+ var lon = 0, lat = 0,phi = 0, theta = 0;
+ var myTextureLoader = new THREE.TextureLoader();
+ myTextureLoader.load( 'images/img051.jpg', function (myTexture ) {
+  init(myTexture );
+  animate();
+ });
+ function init(myTexture) {
+  myRenderer= new THREE.WebGLRenderer({antialias: true, alpha: true});
+  myRenderer.setSize(window.innerWidth, window.innerHeight);
+  $("#myContainer").append(myRenderer.domElement);
+  myCamera = new THREE.PerspectiveCamera(60,
+      window.innerWidth/window.innerHeight, 1, 1000 );
+  myScene = new THREE.Scene();
+  //使用全景图设置场景背景
+  myScene.background = new THREE.WebGLCubeRenderTarget(1024)
+      .fromEquirectangularTexture(myRenderer, myTexture );
+  //创建THREE.CubeCamera相机
+  var myCubeRenderTarget = new THREE.WebGLCubeRenderTarget( 256,
+      { format: THREE.RGBFormat, generateMipmaps: true,
+       minFilter: THREE.LinearMipmapLinearFilter } );
+  myCubeCamera = new THREE.CubeCamera(1,1000,myCubeRenderTarget);
+  //使用环境贴图创建MeshBasicMaterial
+  var myMeshBasicMaterial= new THREE.MeshBasicMaterial(
+      {envMap: myCubeRenderTarget.texture });
+  var myMesh = new THREE.Mesh(
+      new THREE.IcosahedronBufferGeometry(40,3), myMeshBasicMaterial);
+  myScene.add( myMesh );
+ }
+ function animate() {
+  requestAnimationFrame(animate);
+  //更新环境贴图(全景照相机不停地拍照)
+  myCubeCamera.update( myRenderer, myScene );
+  lon +=0.15;
+  lat = Math.max( - 85, Math.min( 85, lat ) );
+  phi = THREE.MathUtils.degToRad( 90 - lat );
+  theta = THREE.MathUtils.degToRad( lon );
+  myCamera.position.x = 100 * Math.sin( phi ) * Math.cos( theta );
+  myCamera.position.y = 100 * Math.cos( phi );
+  myCamera.position.z = 100 * Math.sin( phi ) * Math.sin( theta );
+  myCamera.lookAt( myScene.position );
+  myRenderer.render( myScene, myCamera );
+ }
+</script></body>
+</html>

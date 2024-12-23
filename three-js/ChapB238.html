@@ -1,0 +1,59 @@
+<html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script>
+ <script src="ThreeJS/RoomEnvironment.js"></script>
+ <script src="ThreeJS/GLTFLoader.js"></script>
+ <script src="ThreeJS/DRACOLoader.js"></script>
+</head>
+<body><div id="myContainer"></div>
+<script>
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer({antialias:true});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ myRenderer.outputEncoding=THREE.sRGBEncoding;
+ myRenderer.toneMapping=THREE.ACESFilmicToneMapping;
+ myRenderer.toneMappingExposure=0.85;
+ var myCamera=new THREE.PerspectiveCamera(40,
+     window.innerWidth/window.innerHeight,0.1,1000);
+ myCamera.position.set(4.25,1.4,-4.5);
+ var myEnvironment=new RoomEnvironment();
+ var myGenerator=new THREE.PMREMGenerator(myRenderer);
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ myScene.environment=myGenerator.fromScene(myEnvironment).texture;
+ //根据透视相机创建轨道控制器，并设置其目标所在位置
+ var  myOrbitControls=new THREE.OrbitControls(myCamera);
+ myOrbitControls.target.set(0,0.5,0);
+ myOrbitControls.update();
+ //初始化汽车车身、玻璃、轮胎等部位对应的材质
+ var myBodyMaterial=new THREE.MeshPhysicalMaterial({
+  color:0x00ff00, metalness:0.6, roughness:0.4,
+  clearcoat:0.05, clearcoatRoughness:0.05 });
+ var myDetailsMaterial=new THREE.MeshStandardMaterial({
+  color:0x0000ff, metalness:1.0, roughness:0.5 });
+ var myGlassMaterial=new THREE.MeshPhysicalMaterial({
+  color:0xff0000,  metalness:0,  roughness:0.1,
+  transmission:0.9,  transparent:true });
+ //创建DRACOLoader，并设置其解码目录
+ //即draco_wasm_wrapper.js和draco_decoder.wasm文件所在位置
+ var myDRACOLoader=new THREE.DRACOLoader();
+ myDRACOLoader.setDecoderPath('Data/');
+ var myGLTFLoader=new THREE.GLTFLoader();
+ myGLTFLoader.setDRACOLoader(myDRACOLoader);
+ //加载GLB汽车模型文件，并为汽车各部位设置自定义材质
+ myGLTFLoader.load('Data/MyFerrari.glb',function(glb){
+  var myCar=glb.scene.children[0];
+  myCar.scale.set(1.5,1.5,1.5);
+  myCar.getObjectByName('body').material=myBodyMaterial;
+  myCar.getObjectByName('rim_fr').material=myDetailsMaterial;
+  myCar.getObjectByName('glass').material=myGlassMaterial;
+  myScene.add(myCar);
+ });
+ //渲染GLB汽车模型
+ myRenderer.setAnimationLoop(render);
+ function render(){
+  myRenderer.render(myScene,myCamera);
+ }
+</script></body></html>

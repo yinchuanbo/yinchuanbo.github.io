@@ -1,0 +1,63 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ var myCubeCamera,myCamera, myScene, myRenderer;
+ var lon = 0, lat = 0,phi = 0, theta = 0;
+ var myTextureLoader = new THREE.TextureLoader();
+ myTextureLoader.load( 'images/img054.jpg', function (myTexture ) {
+  init(myTexture );
+  animate();
+ });
+ function init(myTexture) {
+  //创建渲染器
+  myRenderer= new THREE.WebGLRenderer({antialias: true});
+  myRenderer.setSize(window.innerWidth, window.innerHeight);
+  $("#myContainer").append(myRenderer.domElement);
+  myCamera = new THREE.PerspectiveCamera(60,
+      window.innerWidth/window.innerHeight, 1, 1000 );
+  myScene = new THREE.Scene();
+  //使用全景图设置场景背景
+  myScene.background = new THREE.WebGLCubeRenderTarget(1024)
+      .fromEquirectangularTexture(myRenderer, myTexture );
+  //创建环境光
+  var myAmbientLight = new THREE.AmbientLight('white');
+  myScene.add(myAmbientLight);
+  //创建两个聚光灯光源
+  var mySpotLight1 = new THREE.SpotLight('white');
+  mySpotLight1.position.set(600, 600, 600);
+  myScene.add(mySpotLight1);
+  var mySpotLight2 = new THREE.SpotLight('white');
+  mySpotLight2.position.set(-600, -600, -600);
+  myScene.add(mySpotLight2);
+  var myCubeRenderTarget = new THREE.WebGLCubeRenderTarget( 256,
+      { format: THREE.RGBFormat, generateMipmaps: true,
+       minFilter: THREE.LinearMipmapLinearFilter } );
+//创建THREE.CubeCamera全景照相机
+  myCubeCamera = new THREE.CubeCamera(1,400,myCubeRenderTarget);
+  //使用全景照相机拍摄的环境贴图创建MeshLambertMaterial
+  var myMeshLambertMaterial= new THREE.MeshLambertMaterial(
+      {envMap: myCubeRenderTarget.texture });
+  var myMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(34, 100, 100), myMeshLambertMaterial);
+  myScene.add(myMesh );
+ }
+ function animate() {
+  requestAnimationFrame(animate);
+  //更新环境贴图(全景照相机不停地拍照)
+  myCubeCamera.update( myRenderer, myScene );
+  lon +=0.35;
+  lat = Math.max( - 85, Math.min( 85, lat ) );
+  phi = THREE.MathUtils.degToRad( 90 - lat );
+  theta = THREE.MathUtils.degToRad( lon );
+  myCamera.position.x = 100 * Math.sin( phi ) * Math.cos( theta );
+  myCamera.position.y = 100 * Math.cos( phi );
+  myCamera.position.z = 100 * Math.sin( phi ) * Math.sin( theta );
+  myCamera.lookAt( myScene.position );
+  myRenderer.render( myScene, myCamera );
+ }
+</script></body>
+</html>
+

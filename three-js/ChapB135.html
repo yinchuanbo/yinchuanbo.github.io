@@ -1,0 +1,90 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer({antialias:true});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ myRenderer.setClearColor('white',1.0);
+ $("#myContainer").append(myRenderer.domElement);
+ var myScene=new THREE.Scene();
+ var myCamera= new THREE.PerspectiveCamera(45,
+     window.innerWidth/window.innerHeight,0.1,1000);
+ myCamera.position.set(0,50,100);
+ myCamera.lookAt(new THREE.Vector3(0,0,0));
+ //绘制高斯帕曲线
+ var myPoints=gosper(2,80); //获取高斯帕曲线的多个顶点
+ var myGeometry=new THREE.Geometry();
+ var myColors=[];
+ for(var i=0,len=myPoints.length; i<len; i++){
+  var myPoint=myPoints[i];
+  //获取所有顶点的位置
+  myGeometry.vertices.push(new THREE.Vector3(myPoint.x,myPoint.z,myPoint.y));
+  //根据顶点位置生成相应的颜色
+  myColors[i]=new THREE.Color(0xffffff);
+  myColors[i].setHSL(myPoint.x/100+0.5,(myPoint.y*20)/300,0.8);
+ }
+ //设置几何图形每个顶点的颜色
+ myGeometry.colors=myColors;
+ var myLineDashedMaterial=new THREE.LineDashedMaterial({vertexColors:true});
+ var myLine=new THREE.Line(myGeometry,myLineDashedMaterial);
+ myLine.position.set(0,0,-60);
+ myScene.add(myLine);
+ //渲染高斯帕曲线
+ animate();
+ function animate(){
+  myLine.rotation.z+=0.01;
+  myLine.rotation.y+=0.01;
+  myRenderer.render(myScene,myCamera);
+  requestAnimationFrame(animate);
+ }
+ //高斯帕曲线生成函数gosper，它是一种空间填充曲线，
+ //是一个与龙曲线和希尔伯特曲线相似的分形物体
+ function gosper(a,b){
+  var turtle= [0,0,0];
+  var points=[];
+  var count=0;
+  rg(a,b,turtle);
+  return points;
+  function rt(x){turtle[2]+=x;}
+  function lt(x){turtle[2]-=x;}
+  function fd(dist){
+   points.push({x:turtle[0],y:turtle[1],z:Math.sin(count)*5});
+   var dir=turtle[2]*(Math.PI/180);
+   turtle[0]+=Math.cos(dir)*dist;
+   turtle[1]+=Math.sin(dir)*dist;
+   points.push({x:turtle[0],y:turtle[1],z:Math.sin(count)*5});
+  }
+  function rg(st,ln,turtle){
+   st--;
+   ln=ln/2.6457;
+   if(st>0){
+    rg(st,ln,turtle);rt(60); gl(st,ln,turtle);
+    rt(120);gl(st,ln,turtle);lt(60);
+    rg(st,ln,turtle);lt(120);rg(st,ln,turtle);rg(st,ln,turtle);
+    lt(60);gl(st,ln,turtle); rt(60);
+   }
+   if(st==0){
+    fd(ln);rt(60);fd(ln);rt(120);fd(ln);lt(60);
+    fd(ln);lt(120);fd(ln);fd(ln);lt(60);
+    fd(ln);rt(60)
+   }
+  }
+  function gl(st,ln,turtle){
+   st--;
+   ln=ln/2.6457;
+   if(st>0){
+    lt(60);rg(st,ln,turtle);
+    rt(60);gl(st,ln,turtle);gl(st,ln,turtle);
+    rt(120);gl(st,ln,turtle);rt(60);rg(st,ln,turtle);
+    lt(120);rg(st,ln,turtle);lt(60);gl(st,ln,turtle);
+   }
+   if(st==0){
+    lt(60);fd(ln);rt(60);fd(ln);fd(ln);rt(120);fd(ln);
+    rt(60);fd(ln);lt(120);fd(ln);lt(60); fd(ln);
+   } } }
+</script></body>
+</html>
+

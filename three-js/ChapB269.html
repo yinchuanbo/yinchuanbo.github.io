@@ -1,0 +1,85 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/CSS3DRenderer.js"></script>
+ <script src="ThreeJS/Tween.js"></script>
+ <script src="ThreeJS/TrackballControls.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ var myPositions=[],myObjects=[],myIndex=0;
+ //创建渲染器THREE.CSS3DRenderer
+ var myRenderer=new THREE.CSS3DRenderer();
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(75,
+     window.innerWidth/window.innerHeight, 1,5000);
+ myCamera.position.set(600,400,1500);
+ myCamera.lookAt(0,0,0);
+ var myScene=new THREE.Scene();
+ var myTrackballControls=
+     new THREE.TrackballControls(myCamera,myRenderer.domElement);
+ //创建多个3D图形(小球)
+ var myImage=document.createElement('img');
+ myImage.onload=function(){
+  for(var i=0;i<512;i++){
+   var myObject=new THREE.CSS3DSprite( myImage.cloneNode() );
+   myObject.position.x=Math.random()*4000-2000;
+   myObject.position.y=Math.random()*4000-2000;
+   myObject.position.z=Math.random()*4000-2000;
+   myScene.add(myObject);
+   myObjects.push(myObject);
+  }
+  var myOffset=myIndex*512*3;
+  for(var i=0,j=myOffset;i<512;i++,j+=3){
+   var myObject=myObjects[i];
+   new TWEEN.Tween(myObject.position)
+       .to({
+        x:myPositions[j],
+        y:myPositions[j+1],
+        z:myPositions[j+2]
+       },Math.random()*2000+2000)
+       .easing(TWEEN.Easing.Exponential.InOut)
+       .start();
+  }
+  myIndex=(myIndex+1)%4;
+ };
+ myImage.src='images/img103.png';
+ for(var i=0;i<512;i++){
+  var x=(i%16)*150;
+  var z=Math.floor(i/16)*150;
+  var y=(Math.sin(x*0.5)+Math.sin(z*0.5))*200;
+  myPositions.push(x-1125,y,z-2325);
+ }
+ for(var i=0;i<512;i++){
+  var x=(i%8)*150;
+  var y=Math.floor((i/8)%8)*150;
+  var z=Math.floor(i/64)*150;
+  myPositions.push(x-525,y-525,z-525);
+ }
+ for(var i=0;i<512;i++){
+  myPositions.push(Math.random()*4000-2000,
+      Math.random()*4000-2000, Math.random()*4000-2000);
+ }
+ for(var i=0;i<512;i++){
+  var myPhi=Math.acos(-1+(2*i)/512);
+  var myTheta=Math.sqrt(512*Math.PI)*myPhi;
+  myPositions.push(750*Math.cos(myTheta)*Math.sin(myPhi),
+      750*Math.sin(myTheta)*Math.sin(myPhi),750*Math.cos(myPhi));
+ }
+ //渲染多个3D图形(小球)
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  TWEEN.update();
+  myTrackballControls.update();
+  var myTime=performance.now();
+  for(var i=0,l=myObjects.length;i<l;i++){
+   var myObject=myObjects[i];
+   var myScale=Math.sin((Math.floor(myObject.position.x)
+       +myTime)*0.002)*0.3+1;
+   myObject.scale.set(myScale,myScale,myScale);
+  }
+  myRenderer.render(myScene,myCamera);
+ }
+</script></body></html>

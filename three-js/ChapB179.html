@@ -1,0 +1,97 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/EffectComposer.js"></script>
+ <script src="ThreeJS/ShaderPass.js"></script>
+ <script src="ThreeJS/RenderPass.js"></script>
+ <script src="ThreeJS/TriangleBlurShader.js"></script>
+</head>
+<body><p><button id="myButton1">在图形上添加三角形模糊特效</button>
+ <button id="myButton2">取消图形的三角形模糊特效</button></p>
+<div id="myContainer"></div>
+<script>
+ //创建渲染器
+ var myRenderer = new THREE.WebGL1Renderer({antialias: true});
+ myRenderer.setClearColor(new THREE.Color(0xaaaaff, 1.0));
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ myRenderer.shadowMap.enabled = true;
+ $("#myContainer").append(myRenderer.domElement);
+ var myScale = [0xffffff,0x0000ff];
+ var myScene = new THREE.Scene();
+ var myCamera = new THREE.PerspectiveCamera(45,
+     window.innerWidth / window.innerHeight, 0.1, 1000);
+ myCamera.position.x = 30;
+ myCamera.position.y = 30;
+ myCamera.position.z = 30;
+ myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+ var myDirectionalLight = new THREE.DirectionalLight(0xffffff);
+ myDirectionalLight.position.set(30, 30, 30);
+ myDirectionalLight.intensity = 0.8;
+ myScene.add(myDirectionalLight);
+ var mySpotLight = new THREE.SpotLight(0xffffff);
+ mySpotLight.castShadow = true;
+ mySpotLight.position.set(-30, 30, -100);
+ mySpotLight.target.position.x = -10;
+ mySpotLight.target.position.z = -10;
+ mySpotLight.intensity = 0.6;
+ mySpotLight.shadow.mapSize.Width = 4096;
+ mySpotLight.shadow.mapSize.Height = 4096;
+ mySpotLight.shadow.camera.fov = 120;
+ mySpotLight.shadow.camera.near = 1;
+ mySpotLight.shadow.camera.far = 200;
+ myScene.add(mySpotLight);
+ //创建放置立方体的地板
+ var myPlaneGeometry = new THREE.BoxGeometry(1600, 1600, 0.1, 40, 40);
+ var myPlaneMaterial = new THREE.Mesh(myPlaneGeometry,
+     new THREE.MeshPhongMaterial({color: 0xffffff,
+      map: new THREE.TextureLoader().load("images/img090.jpg"),
+      normalScale: new THREE.Vector2(0.6, 0.6) }));
+ myPlaneMaterial.material.map.wrapS = THREE.RepeatWrapping;
+ myPlaneMaterial.material.map.wrapT = THREE.RepeatWrapping;
+ myPlaneMaterial.rotation.x = Math.PI / 2;
+ myPlaneMaterial.material.map.repeat.set(80, 80);
+ myPlaneMaterial.receiveShadow = true;
+ myPlaneMaterial.position.z = -150;
+ myPlaneMaterial.position.x = -150;
+ myScene.add(myPlaneMaterial);
+ //创建立方体
+ var range = 3;
+ var stepX = 8;
+ var stepZ = 8;
+ for (var i = -25; i < 5; i++) {
+  for (var j = -15; j < 15; j++) {
+   var myBoxMesh = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 3),
+       new THREE.MeshPhongMaterial({opacity: 0.8,
+        color: myScale[parseInt(Math.random()*2)],
+        transparent: true }));
+   myBoxMesh.position.x = i * stepX + (Math.random() - 0.5) * range;
+   myBoxMesh.position.z = j * stepZ + (Math.random() - 0.5) * range;
+   myBoxMesh.position.y = (Math.random() - 0.5) * 2;
+   myBoxMesh.castShadow = true;
+   myScene.add(myBoxMesh)
+  }
+ }
+ //在立方体上添加三角形模糊特效
+ var myTriangleBlurPass =
+     new THREE.ShaderPass(THREE.TriangleBlurShader, 'texture');
+ myTriangleBlurPass.enabled = false;
+ myTriangleBlurPass.uniforms.delta.value = new THREE.Vector2(0.05,0.05);
+ var myRenderPass = new THREE.RenderPass(myScene, myCamera);
+ var myEffectComposer = new THREE.EffectComposer(myRenderer);
+ myEffectComposer.addPass(myRenderPass);
+ myEffectComposer.addPass(myTriangleBlurPass);
+ //渲染在立方体上的三角形模糊特效
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myEffectComposer.render();
+ }
+ //响应单击“在图形上添加三角形模糊特效”按钮
+ $("#myButton1").click(function(){
+  myTriangleBlurPass.enabled = true;
+ });
+ //响应单击“取消图形的三角形模糊特效”按钮
+ $("#myButton2").click(function(){
+  myTriangleBlurPass.enabled = false;
+ });
+</script></body></html>

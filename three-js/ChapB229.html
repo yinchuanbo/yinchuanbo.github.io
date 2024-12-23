@@ -1,0 +1,76 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><p><button id="myButton1">显示灰度图像</button>
+ <button id="myButton2">显示彩色图像</button></p>
+<div id="myContainer"></div>
+<script type="x-shader/x-fragment" id="myFragmentShader">
+  //创建片元着色器
+  uniform sampler2D myTexture;
+  varying vec2 vUv;
+  void main(){ gl_FragColor=texture2D(myTexture,vUv); }
+</script>
+<script type="x-shader/x-vertex" id="myVertexShader">
+  //创建顶点着色器
+  varying vec2 vUv;
+  void main(){
+   vUv=uv;
+   vec4 mvPosition=modelViewMatrix*vec4(position,1.0);
+   gl_Position=projectionMatrix*mvPosition;
+  }
+</script>
+<script type="text/javascript">
+ //创建渲染器
+ var myRenderer = new THREE.WebGLRenderer( {antialias: true});
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ myRenderer.setClearColor('white', 1.0);
+ $('#myContainer')[0].appendChild(myRenderer.domElement);
+ var myScene=new THREE.Scene();
+ var myCamera=new THREE.PerspectiveCamera(45,
+     window.innerWidth/window.innerHeight,0.1,1000);
+ myCamera.position.set(100,100,400);
+ myCamera.lookAt(myScene.position);
+ var myTextureLoader=new THREE.TextureLoader();
+ var myTexture=myTextureLoader.load('images/img004.jpg');
+ //封装片元着色器所使用的参数
+ var myUniforms={myTexture:{value:myTexture}};
+ //根据着色器及其参数创建THREE.ShaderMaterial
+ var myShaderMaterial=new THREE.ShaderMaterial({ uniforms:myUniforms,
+  vertexShader:$('#myVertexShader').text(),
+  fragmentShader:$('#myFragmentShader').text()});
+ //使用THREE.ShaderMaterial创建立方体
+ var myBoxGeometry = new THREE.BoxGeometry(160,160,160);
+ var myMesh = new THREE.Mesh(myBoxGeometry, myShaderMaterial);
+ myScene.add(myMesh);
+ var myStep = 0;
+ //渲染(旋转)立方体
+ animate();
+ function animate() {
+  myMesh.rotation.y = myStep += 0.01;
+  myMesh.rotation.x = myStep;
+  myMesh.rotation.z = myStep;
+  requestAnimationFrame(animate);
+  myRenderer.render(myScene, myCamera);
+ }
+ //响应单击“显示灰度图像”按钮
+ $("#myButton1").click(function(){
+  myMesh.material.fragmentShader="uniform sampler2D myTexture;" +
+      "varying vec2 vUv;" +
+      "void main(){" +
+      " vec4 myColor=texture2D(myTexture, vUv);" +
+      "gl_FragColor.rgb=vec3(myColor.r*0.299+myColor.g*0.587+myColor.b*0.114);"+
+      "}";;
+  myMesh.material.needsUpdate=true;
+ });
+ //响应单击“显示彩色图像”按钮
+ $("#myButton2").click(function(){
+  myMesh.material.fragmentShader="uniform sampler2D myTexture;"+
+      "varying vec2 vUv;"+
+      "void main(){"+
+      " gl_FragColor=texture2D(myTexture,vUv);"+
+      "}";
+  myMesh.material.needsUpdate=true;
+ });
+</script></body>
+</html>

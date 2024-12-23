@@ -1,0 +1,65 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/Ammo.js"></script>
+ <script src="ThreeJS/AmmoPhysics.js"></script>
+ <style>*{margin:0;padding:0}</style>
+</head>
+<body>
+<center>
+ <div id="myContainer"></div>
+</center>
+<script>
+ async function init(){
+  myContainer=document.getElementById('myContainer');
+  myPhysics=await AmmoPhysics();
+  myPosition=new THREE.Vector3();
+  myCamera=new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,
+      0.1,100);
+  myCamera.position.set(-1,1.5,2);
+  myCamera.lookAt(0,0.5,0);
+  myScene=new THREE.Scene();
+  myScene.background=new THREE.Color(0x666666);
+  var myLight1=new THREE.HemisphereLight();
+  myLight1.intensity=0.35;
+  myScene.add(myLight1);
+  var myLight2=new THREE.DirectionalLight();
+  myLight2.position.set(5,5,5);
+  myLight2.castShadow=true;
+  myLight2.shadow.camera.zoom=2;
+  myScene.add(myLight2);
+  var myPlane=new THREE.Mesh(new THREE.BoxBufferGeometry(10,5,10),
+      new THREE.ShadowMaterial({color:0x111111}));
+  myPlane.position.y=-2.5;
+  myPlane.receiveShadow=true;
+  myScene.add(myPlane);
+  myPhysics.addMesh(myPlane);
+  var myMaterial=new THREE.MeshLambertMaterial();
+  var myMatrix=new THREE.Matrix4();
+  var myGeometry=new THREE.IcosahedronBufferGeometry(0.075,2);
+  mySpheres=new THREE.InstancedMesh(myGeometry,myMaterial,100);
+  mySpheres.castShadow=true;
+  mySpheres.receiveShadow=true;
+  myScene.add(mySpheres);
+  for(var i=0;i<mySpheres.count;i++){
+   myMatrix.setPosition(Math.random()-0.5,Math.random()*2,Math.random()-0.5);
+   mySpheres.setMatrixAt(i,myMatrix);
+  }
+  myPhysics.addMesh(mySpheres,1);
+  myRenderer=new THREE.WebGLRenderer();
+  myRenderer.setSize(window.innerWidth,window.innerHeight);
+  myRenderer.shadowMap.enabled=true;
+  myContainer.appendChild(myRenderer.domElement);
+  function animate(){
+   requestAnimationFrame(animate);
+   var myIndex=Math.floor(Math.random()*mySpheres.count);
+   myPosition.set(0,Math.random()+1,0);
+   myPhysics.setMeshPosition(mySpheres,myPosition,myIndex);
+   myRenderer.render(myScene,myCamera);
+  }
+  animate();
+ }
+ init();
+</script>
+</body>
+</html>

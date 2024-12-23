@@ -1,0 +1,47 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script>
+ <script src="ThreeJS/InstancedMesh.js"></script>
+ <script src="ThreeJS/VOXLoader.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ //创建渲染器
+ var myRenderer= new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(50,
+     window.innerWidth/window.innerHeight,0.01,10);
+ myCamera.position.set(0.175,0.075,0.225);
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ var myOrbitControls=new THREE.OrbitControls(myCamera);
+ //加载VOX模型
+ var myVOXLoader=new VOXLoader();
+ myVOXLoader.load('Data/MyMonu.vox',function(chunks){
+  var myGeometry=new THREE.BoxBufferGeometry(1,1,1);
+  var myMaterial=new THREE.MeshNormalMaterial();
+  var myMatrix=new THREE.Matrix4();
+  for(var i=0;i<chunks.length;i++){
+   var myChunk=chunks[i];
+   var mySize=myChunk.size;
+   var myData=myChunk.data;
+   var myMesh=new InstancedMesh(myGeometry,myMaterial,myData.length/4);
+   myMesh.scale.setScalar(0.0015);
+   myScene.add(myMesh);
+   for(var j=0,k=0;j<myData.length;j+=4,k++){
+    var x=myData[j+0]-mySize.x/2;
+    var y=myData[j+1]-mySize.y/2;
+    var z=myData[j+2]-mySize.z/2;
+    myMesh.setMatrixAt(k,myMatrix.setPosition(x,z,-y));
+   }
+  }
+ });
+ //渲染VOX模型
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myRenderer.render(myScene,myCamera);
+ }
+</script></body></html>

@@ -1,0 +1,53 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/EffectComposer.js"></script>
+ <script src="ThreeJS/RenderPass.js"></script>
+ <script src="ThreeJS/ShaderPass.js"></script>
+ <script src="ThreeJS/FocusShader.js"></script>
+</head>
+<body><p><button id="myButton1">添加聚焦特效</button>
+ <button id="myButton2">保持原状</button></p>
+<div id="myContainer"></div>
+<script>
+ //创建渲染器
+ var myRenderer= new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ myRenderer.setClearColor('white', 1.0);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera = new THREE.PerspectiveCamera(45,
+     window.innerWidth / window.innerHeight, 0.1, 1000);
+ myCamera.position.set(33.84,-76.92,120.64);
+ myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+ var myScene = new THREE.Scene();
+ //创建球体
+ var myGeometry = new THREE.SphereBufferGeometry(50,150,150);
+ var myMap = THREE.ImageUtils.loadTexture("images/img092.jpg");
+ var myMaterial = new THREE.MeshBasicMaterial({map: myMap});
+ var myMesh = new THREE.Mesh(myGeometry, myMaterial);
+ myMesh.position.y=2;
+ myScene.add(myMesh);
+ //在场景中实现后期特效(添加聚焦特效)
+ var myEffectComposer=new THREE.EffectComposer(myRenderer);
+ myEffectComposer.addPass(new THREE.RenderPass(myScene,myCamera));
+ var myShaderPass=new THREE.ShaderPass(THREE.FocusShader);
+ myShaderPass.uniforms['screenWidth'].value=window.innerWidth;
+ myShaderPass.uniforms['screenHeight'].value=window.innerHeight;
+ myShaderPass.uniforms['sampleDistance'].value=0.000094;
+ myShaderPass.uniforms['waveFactor'].value=0.00125;
+ myEffectComposer.addPass(myShaderPass);
+ //渲染添加聚焦特效之后的球体
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myEffectComposer.render();
+ }
+ //响应单击“添加聚焦特效”按钮
+ $("#myButton1").click(function () {
+  myEffectComposer.addPass(myShaderPass);
+ });
+ //响应单击“保持原状”按钮
+ $("#myButton2").click(function () {
+  myEffectComposer.addPass(new THREE.RenderPass(myScene,myCamera));
+ });
+</script></body></html>

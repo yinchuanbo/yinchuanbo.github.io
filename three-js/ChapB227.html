@@ -1,0 +1,71 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/CSS3DRenderer.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ //创建渲染器
+ var myRenderer=new THREE.CSS3DRenderer();
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ $('#myContainer')[0].appendChild(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(75,
+     window.innerWidth/window.innerHeight,1,1000);
+ var myScene=new THREE.Scene();
+ var myTarget=new THREE.Vector3();
+ var myLongitude=90, myLatitude=0;
+ var myPhi=0, myTheta=0;
+ //设置天空盒六个面(模拟真实空间)的纹理图像路径、旋转角度、所在位置
+ var myImages=[
+  {url:'images/img155.jpg',position:[-512,0,0],rotation:[0,Math.PI/2,0]},
+  {url:'images/img154.jpg',position:[512,0,0],rotation:[0,-Math.PI/2,0]},
+  {url:'images/img156.jpg',position:[0,512,0],rotation:[Math.PI/2,0,Math.PI]},
+  {url:'images/img152.jpg',position:[0,-512,0],
+   rotation:[-Math.PI/2,0,Math.PI]},
+  {url:'images/img153.jpg',position:[0,0,512],rotation:[0,Math.PI,0]},
+  {url:'images/img151.jpg',position:[0,0,-512],rotation:[0,0,0]}];
+ for(var i=0; i<myImages.length;i++){
+  var myImage=myImages[i];
+  //动态创建img元素，并设置其宽度和图像路径
+  var myElement=document.createElement('img');
+  myElement.width=1026;
+  myElement.src=myImage.url;
+  //根据位置和角度创建CSS3DObject，即天空盒
+  var myCSS3DObject=new THREE.CSS3DObject(myElement);
+  myCSS3DObject.position.fromArray(myImage.position);
+  myCSS3DObject.rotation.fromArray(myImage.rotation);
+  myScene.add(myCSS3DObject);
+ }
+ //渲染天空盒
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myLatitude=Math.max(-85,Math.min(85,myLatitude));
+  myPhi=THREE.MathUtils.degToRad(90-myLatitude);
+  myTheta=THREE.MathUtils.degToRad(myLongitude);
+  myTarget.x=Math.sin(myPhi)*Math.cos(myTheta);
+  myTarget.y=Math.cos(myPhi);
+  myTarget.z=Math.sin(myPhi)*Math.sin(myTheta);
+  myCamera.lookAt(myTarget);
+  myRenderer.render(myScene,myCamera);
+ }
+ //添加鼠标事件监听器
+ document.addEventListener('mousedown', function(e){
+  e.preventDefault();
+  document.addEventListener('mousemove',onMouseMove,false);
+  document.addEventListener('mouseup',onMouseUp,false);
+ },false);
+ document.addEventListener('wheel',function(event){
+  var myFOV=myCamera.fov+event.deltaY*0.05;
+  myCamera.fov=THREE.MathUtils.clamp(myFOV,10,75);
+  myCamera.updateProjectionMatrix();
+ },false);
+ function onMouseMove(event){
+  myLongitude-=event.movementX*0.1;
+  myLatitude+=event.movementY*0.1;
+ }
+ function onMouseUp(){
+  document.removeEventListener('mousemove',onMouseMove);
+  document.removeEventListener('mouseup',onMouseUp);
+ }
+</script></body></html>

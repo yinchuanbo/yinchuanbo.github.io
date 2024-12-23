@@ -1,0 +1,54 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/EffectComposer.js"></script>
+ <script src="ThreeJS/RenderPass.js"></script>
+ <script src="ThreeJS/ShaderPass.js"></script>
+ <script src="ThreeJS/AfterimagePass.js"></script>
+ <script src="ThreeJS/AfterimageShader.js"></script>
+</head>
+<body><p><button id="myButton1">添加拖尾特效</button>
+ <button id="myButton2">保持原状</button></p>
+<div id="myContainer"></div>
+<script>
+ //创建渲染器
+ var  myScene,myCamera ,myRenderer;
+ var  myWidth = window.innerWidth, myHeight = window.innerHeight;
+ var myAsp =  myWidth / myHeight;
+ myRenderer = new THREE.WebGLRenderer({antialias : true});
+ myRenderer.setSize(myWidth, myHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ myRenderer.setClearColor('#ffffff');
+ myScene = new THREE.Scene();
+ myCamera = new THREE.PerspectiveCamera(45, myAsp, 1, 10000);
+ myCamera.position.set(50,50,60);
+ myCamera.lookAt(0,0,0);
+ myScene.add(myCamera);
+ myScene.add(new THREE.AmbientLight('#fff',0.9));
+ //创建立方体
+ var myGeometry = new THREE.BoxBufferGeometry(40,40,40);
+ var myMap = THREE.ImageUtils.loadTexture("images/img076.jpg");
+ var myMaterial = new THREE.MeshPhongMaterial({map: myMap});
+ var myMesh = new THREE.Mesh( myGeometry, myMaterial );
+ myScene.add( myMesh);
+ //在场景中实现后期特效(在转动(动态)的立方体上添加彗星拖尾特效)
+ var myEffectComposer = new THREE.EffectComposer( myRenderer );
+ myEffectComposer.addPass( new THREE.RenderPass( myScene, myCamera ) );
+ myEffectComposer.addPass( new THREE.AfterimagePass());
+ //动态渲染旋转立方体的彗星拖尾特效
+ animate();
+ function animate() {
+  myMesh.rotation.x += 0.03;
+  myMesh.rotation.y += 0.03;
+  myEffectComposer.render();
+  requestAnimationFrame(animate);
+ }
+ //响应单击“添加拖尾特效”按钮
+ $("#myButton1").click(function () {
+  myEffectComposer.addPass( new THREE.AfterimagePass());
+ });
+ //响应单击“保持原状”按钮
+ $("#myButton2").click(function () {
+  myEffectComposer.addPass(new THREE.RenderPass(myScene,myCamera));
+ });
+</script></body></html>

@@ -1,0 +1,65 @@
+<html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script>
+ <script src="ThreeJS/SubsurfaceScatteringShader.js"></script>
+ <script src="ThreeJS/FBXLoader.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script>
+ //创建渲染器
+ var myRenderer = new THREE.WebGLRenderer({antialias: true,});
+ myRenderer.setPixelRatio(window.devicePixelRatio);
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ myRenderer.outputEncoding=THREE.sRGBEncoding;
+ $("#myContainer").append(myRenderer.domElement);
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ var myCamera=new THREE.PerspectiveCamera(40,
+     window.innerWidth/window.innerHeight, 1,5000);
+ myCamera.position.set(0,300,1000);
+ var myOrbitControls=new THREE.OrbitControls(myCamera);
+ myScene.add(new THREE.AmbientLight(0x888888));
+ var myPointLight1=new THREE.PointLight(0x888888,7,300);
+ myScene.add(myPointLight1);
+ myPointLight1.position.x=0;
+ myPointLight1.position.y=-50;
+ myPointLight1.position.z=350;
+ var myPointLight2=new THREE.PointLight(0x888800,1,500);
+ myPointLight2.position.x=-100;
+ myPointLight2.position.y=20;
+ myPointLight2.position.z=-260;
+ myScene.add(myPointLight2);
+ //加载FBX模型
+ var myTextureLoader=new THREE.TextureLoader();
+ var myThicknessTexture=myTextureLoader.load('images/img125.jpg');
+ var myUniforms=THREE.UniformsUtils.clone(
+     THREE.SubsurfaceScatteringShader.uniforms);
+ myUniforms['diffuse' ].value=new THREE.Vector3(1.0,0.2,0.2);
+ myUniforms['shininess'].value=500;
+ myUniforms['thicknessMap'].value=myThicknessTexture;
+ myUniforms['thicknessColor'].value=new THREE.Vector3(0.5,0.3,0.0);
+ myUniforms['thicknessDistortion'].value=0.1;
+ myUniforms['thicknessAmbient'].value=0.4;
+ myUniforms['thicknessAttenuation'].value=0.8;
+ myUniforms['thicknessPower'].value=2.0;
+ myUniforms['thicknessScale'].value=16.0;
+ var myShaderMaterial=new THREE.ShaderMaterial({
+  uniforms:myUniforms, lights:true,
+  vertexShader:THREE.SubsurfaceScatteringShader.vertexShader,
+  fragmentShader:THREE.SubsurfaceScatteringShader.fragmentShader});
+ var myFBXLoader=new THREE.FBXLoader();
+ myFBXLoader.load('Data/MyStanfordBunny.fbx',function(object){
+  myModel=object.children[0];
+  myModel.position.set(0,0,10);
+  myModel.scale.setScalar(1);
+  myModel.material=myShaderMaterial;
+  myScene.add(myModel);
+ });
+ //渲染FBX模型
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myRenderer.render(myScene,myCamera);
+ }
+</script></body></html>

@@ -1,0 +1,70 @@
+<html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/OBJLoader.js"></script>
+</head>
+<body><p><button id="myButton1">启用移位贴图材质</button>
+ <button id="myButton2">启用法向量贴图材质</button></p>
+<div id="myContainer"></div>
+<script>
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer({antialias:true});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ var myCamera=new THREE.PerspectiveCamera(45,
+     window.innerWidth/window.innerHeight,0.1,2000);
+ myCamera.position.z=1500;
+ myScene.add(myCamera);
+ myScene.add(new THREE.AmbientLight(0xffffff,0.1));
+ //初始化多个点光源，并设置其光线强度、颜色、所在方位等参数
+ var myPointLight1=new THREE.PointLight(0xff0000,0.5);
+ myPointLight1.position.z=2500;
+ myScene.add(myPointLight1);
+ var myPointLight2=new THREE.PointLight(0xff6666,1);
+ myCamera.add(myPointLight2);
+ var myPointLight3=new THREE.PointLight(0x0000ff,0.5);
+ myPointLight3.position.x=-1000;
+ myPointLight3.position.z=1000;
+ myScene.add(myPointLight3);
+ var myTextureLoader=new THREE.TextureLoader();
+ var myNormalMap=myTextureLoader.load("images/img121.png");
+ var myDisplacementMap=myTextureLoader.load("images/img123.jpg");
+ //创建移位贴图材质
+ var myDisplaceMaterial=new THREE.MeshStandardMaterial({
+  displacementMap:myDisplacementMap,
+  displacementScale:2.436143,displacementBias:-0.428408,
+  metalness:0.5,roughness:0.6,normalMap:myNormalMap,
+  normalScale:new THREE.Vector2(1,-1),side:THREE.DoubleSide});
+ //创建法向量贴图材质
+ var myNormalMaterial=new THREE.MeshStandardMaterial({
+  metalness:0.5,roughness:0.6,normalMap:myNormalMap,
+  normalScale:new THREE.Vector2(1,-1),side:THREE.DoubleSide});
+ //创建OBJLoader，用于加载指定obj模型
+ var myOBJLoader=new THREE.OBJLoader();
+ var myMesh;
+ myOBJLoader.load("Data/MyNinjaHead.obj",function(group){
+  var myGeometry=group.children[0].geometry;
+  myGeometry.attributes.uv2=myGeometry.attributes.uv;
+  myGeometry.center();                           //居中显示模型
+  myMesh=new THREE.Mesh(myGeometry,myNormalMaterial);
+  myMesh.scale.multiplyScalar(25);               //放大显示模型
+  myMesh.material.needsUpdate=true;
+  myScene.add(myMesh);
+ });
+ //渲染obj模型
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myRenderer.render(myScene,myCamera);
+ }
+ //响应单击“启用移位贴图材质”按钮
+ $("#myButton1").click(function(){
+  myMesh.material=myDisplaceMaterial;
+ });
+ //响应单击“启用法向量贴图材质”按钮
+ $("#myButton2").click(function(){
+  myMesh.material=myNormalMaterial;
+ });
+</script></body></html>

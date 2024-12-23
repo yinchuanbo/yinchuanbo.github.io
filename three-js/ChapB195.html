@@ -1,0 +1,58 @@
+<html><head> <meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/CopyShader.js"></script>
+ <script src="ThreeJS/EffectComposer.js"> </script>
+ <script src="ThreeJS/RenderPass.js"></script>
+ <script src="ThreeJS/ShaderPass.js"></script>
+ <script src="ThreeJS/OutlinePass.js"></script>
+</head>
+<body><p><button id="myButton1">添加轮廓边线</button>
+ <button id="myButton2">保持原状</button></p>
+<div id="myContainer"></div>
+<script>
+ //创建渲染器
+ var myRenderer= new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ myRenderer.setClearColor('black', 1.0);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera = new THREE.PerspectiveCamera(45,
+     window.innerWidth / window.innerHeight, 0.1, 1000);
+ myCamera.position.set(10,30,50);
+ myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+ var myScene = new THREE.Scene();
+ //创建球体
+ var mySphereGeometry =new THREE.SphereGeometry(14, 120, 120);
+ var mySphereMaterial =new THREE.MeshNormalMaterial();
+ var mySphereMesh = new THREE.Mesh(mySphereGeometry, mySphereMaterial);
+ mySphereMesh.position.x=-16;
+ myScene.add(mySphereMesh);
+ //创建圆环结
+ var myKnotGeometry = new THREE.TorusKnotGeometry(10,2,100, 18);
+ var myKnotMaterial = new THREE.MeshNormalMaterial();
+ var myKnotMesh = new THREE.Mesh(myKnotGeometry, myKnotMaterial);
+ myKnotMesh.position.x=16;
+ myScene.add(myKnotMesh);
+ //在场景中实现后期特效(添加轮廓边线)
+ var myEffectComposer=new THREE.EffectComposer(myRenderer);
+ myEffectComposer.addPass(new THREE.RenderPass(myScene,myCamera));
+ var myOutlinePass=new THREE.OutlinePass(new THREE.Vector2(window.innerWidth,
+     window.innerHeight),myScene,myCamera,[mySphereMesh,myKnotMesh]);
+ myEffectComposer.addPass(myOutlinePass);
+ //动态渲染在添加轮廓边线之后的图形
+ var isOutline=true;
+ function animate() {
+  requestAnimationFrame(animate);
+  if(isOutline) myEffectComposer.render();
+  else myRenderer.render(myScene,myCamera);
+ }
+ animate();
+ //响应单击“添加轮廓边线”按钮
+ $("#myButton1").click(function () {
+  isOutline=true;
+ });
+ //响应单击“保持原状”按钮
+ $("#myButton2").click(function () {
+  isOutline=false;
+ });
+</script></body></html>

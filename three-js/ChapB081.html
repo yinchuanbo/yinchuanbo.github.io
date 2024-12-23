@@ -1,0 +1,76 @@
+<html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><p><button id="myButton1">开始播放全景视频</button>
+ <button id="myButton2">暂停播放全景视频</button></p>
+<center id="myContainer"></center>
+<video id="myVideo" loop muted style="display:none"
+       source src="images/video02.mp4">
+</video>
+</center>
+<script>
+ var myMouse=false, myLongitude=0,myLatitude=0,myPhi=0,
+     myTheta=0,myDistance=50,myPointerX=0,myPointerY=0,
+     myPointerLongitude=0,myPointerLatitude=0;
+ //创建渲染器
+ var myRenderer = new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(75,
+     window.innerWidth/window.innerHeight,1,1100);
+ myCamera.target=new THREE.Vector3(0,0,0);
+ var myScene=new THREE.Scene();
+ //创建球形几何体
+ var mySphereGeometry=new THREE.SphereBufferGeometry(500,60,40);
+ mySphereGeometry.scale(-1,1,1);
+ //当视频加载完成后自动播放
+ $("#myVideo")[0].play();
+ //将指定视频作为球体纹理
+ var myTexture=new THREE.VideoTexture($("#myVideo")[0]);
+ var myMaterial=new THREE.MeshBasicMaterial({map:myTexture});
+ //创建全景视频所对应的球体
+ var myVideoMesh=new THREE.Mesh(mySphereGeometry,myMaterial);
+ myScene.add(myVideoMesh);
+ //渲染球体(全景视频)
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  myLatitude=Math.max(-85,Math.min(85,myLatitude));
+  myPhi=THREE.MathUtils.degToRad(90-myLatitude);
+  myTheta=THREE.MathUtils.degToRad(myLongitude);
+  //重置透视照相机的位置
+  myCamera.position.x=myDistance*Math.sin(myPhi)*Math.cos(myTheta);
+  myCamera.position.y=myDistance*Math.cos(myPhi);
+  myCamera.position.z=myDistance*Math.sin(myPhi)*Math.sin(myTheta);
+  //重置透视照相机的朝向
+  myCamera.lookAt(myCamera.target);
+  myRenderer.render(myScene,myCamera);
+ }
+ //添加鼠标按下、移动、抬起等事件以处理拖拽操作
+ $(document).on("mousedown",function(event){
+  event.preventDefault();
+  myMouse=true;
+  //获取鼠标的点击位置的坐标
+  myPointerX=event.clientX;
+  myPointerY=event.clientY;
+  myPointerLongitude=myLongitude;
+  myPointerLatitude=myLatitude;
+ });
+ $(document).on("mousemove",function(event){
+  if(myMouse){
+   myLongitude=(myPointerX-event.clientX)*0.1+myPointerLongitude;
+   myLatitude=(event.clientY-myPointerY)*0.1+myPointerLatitude;
+  }
+ });
+ $(document).on("mouseup",function(){myMouse=false;});
+ //响应单击“开始播放全景视频”按钮
+ $("#myButton1").click(function(){
+  $("#myVideo")[0].play();
+ });
+ //响应单击“暂停播放全景视频”按钮
+ $("#myButton2").click(function(){
+  $("#myVideo")[0].pause();
+ });
+</script></body>
+</html>

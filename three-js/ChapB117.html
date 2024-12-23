@@ -1,0 +1,86 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/FBXLoader.js"></script>
+ <script src="ThreeJS/inflate.min.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script></head>
+<body><script>
+ var myRenderer,myCamera,myScene,myLight,
+     myOrbitControls,meshHelper,myAnimationMixer,myClipAction;
+ var clock=new THREE.Clock();
+ function initRender(){
+  myRenderer=new THREE.WebGLRenderer({antialias:true});
+  myRenderer.setPixelRatio(window.devicePixelRatio);
+  myRenderer.setSize(window.innerWidth,window.innerHeight);
+  myRenderer.setClearColor(0xeeeeee);
+  myRenderer.shadowMap.enabled=true;
+  document.body.appendChild(myRenderer.domElement);
+  myCamera=new THREE.PerspectiveCamera(45,
+      window.innerWidth/window.innerHeight,0.1,2000);
+  myCamera.position.set(100,200,300);
+  myScene=new THREE.Scene();
+  myScene.background=new THREE.Color(0xa0a0a0);
+  myScene.fog=new THREE.Fog(0xa0a0a0, 200, 1000);
+  myOrbitControls=new THREE.OrbitControls(myCamera);
+ }
+ function initLight(){
+  myScene.add(new THREE.AmbientLight(0x444444));
+  myLight=new THREE.DirectionalLight(0xffffff);
+  myLight.position.set(0,200,100);
+  myLight.castShadow=true;
+  myLight.shadow.camera.top=180;
+  myLight.shadow.camera.bottom=-100;
+  myLight.shadow.camera.left=-120;
+  myLight.shadow.camera.right=120;
+  myLight.castShadow=true;
+  myScene.add(myLight);
+ }
+ function initModel(){
+  var myAxesHelper=new THREE.AxesHelper(150);
+  myScene.add(myAxesHelper);
+  var myPlaneMesh=new THREE.Mesh(new THREE.PlaneBufferGeometry(2000,2000),
+      new THREE.MeshPhongMaterial({color:0xffffff,depthWrite:false}));
+  myPlaneMesh.rotation.x=-Math.PI/2;
+  myPlaneMesh.receiveShadow=true;
+  myScene.add(myPlaneMesh);
+  var myGridHelper=new THREE.GridHelper(2000,20,0x000000,0x000000);
+  myGridHelper.material.opacity=0.2;
+  myGridHelper.material.transparent=true;
+  myScene.add(myGridHelper);
+  //加载模型
+  var myFBXLoader=new THREE.FBXLoader();
+  myFBXLoader.load("Data/SambaDancing.fbx", function(mesh){
+   //添加骨骼辅助线
+   meshHelper=new THREE.SkeletonHelper(mesh);
+   myScene.add(meshHelper);
+   //设置模型的每个部位都可以投影
+   mesh.traverse(function (child){
+    if(child.isMesh){
+     child.castShadow=true;
+     child.receiveShadow=true;
+    }
+   });
+   //AnimationMixer是场景中特定对象的动画播放器，
+   //当场景中有多个对象动画时，可以为每个对象使用一个AnimationMixer
+   myAnimationMixer=mesh.mixer=new THREE.AnimationMixer(mesh);
+   //clipAction返回一个可以控制动画的AnimationAction对象
+   myClipAction=myAnimationMixer.clipAction(mesh.animations[0]);
+   //播放模型动画
+   myClipAction.play();
+   mesh.position.y-=80;
+   myScene.add(mesh);
+  });
+ }
+ function animate(){
+  var myTime=clock.getDelta();
+  if (myAnimationMixer){
+   myAnimationMixer.update(myTime);
+  }
+  myOrbitControls.update();
+  myRenderer.render(myScene,myCamera);
+  requestAnimationFrame(animate);
+ }
+ initRender();
+ initLight();
+ initModel();
+ animate();
+</script></body></html>

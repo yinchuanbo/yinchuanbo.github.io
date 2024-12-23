@@ -1,0 +1,62 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+ <script src="ThreeJS/OrbitControls.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script id="myFragmentShader" type="x-shader/x-fragment">
+  uniform float myTime;
+  uniform sampler2D myTexture;
+  varying vec2 myUV;
+  void main(){
+    vec2 position=-1.0+2.0*myUV;
+    float a=atan(position.y,position.x);
+    float r=sqrt(dot(position,position));
+    vec2 myNewUV;
+    myNewUV.x=cos(a)/r;
+    myNewUV.y=sin(a)/r;
+    myNewUV/=10.0;
+    myNewUV+=myTime*0.05;
+    vec3 myColor=texture2D(myTexture,myNewUV).rgb;
+    gl_FragColor=vec4(myColor*r*1.5,1.0);
+  }
+</script>
+<script id="myVertexShader" type="x-shader/x-vertex">
+  varying vec2 myUV;
+  void main(){
+    myUV=uv;
+    vec4 myPosition=modelViewMatrix*vec4(position,1.0);
+    gl_Position=projectionMatrix*myPosition;
+  }
+</script>
+<script>
+ //创建渲染器
+ var myRenderer=new THREE.WebGLRenderer({antialias:true});
+ myRenderer.setSize(window.innerWidth,window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(40,
+     window.innerWidth/window.innerHeight,1,10000);
+ myCamera.position.set(170,180,150);
+ var myScene=new THREE.Scene();
+ myScene.background=new THREE.Color(0xffffff);
+ var myClock=new THREE.Clock();
+ var myOrbitControls=new THREE.OrbitControls(myCamera);
+ //创建立方体
+ var myGeometry=new THREE.BoxBufferGeometry(90,90,90);
+ var myTexture=new THREE.TextureLoader().load('images/img002.jpg');
+ myTexture.wrapS=myTexture.wrapT=THREE.RepeatWrapping;
+ myUniforms={"myTime":{value:1.0},"myTexture":{value:myTexture} };
+ var myMaterial=new THREE.ShaderMaterial({uniforms:myUniforms,
+  vertexShader:$("#myVertexShader")[0].text,
+  fragmentShader:$("#myFragmentShader")[0].text });
+ var myMesh=new THREE.Mesh(myGeometry,myMaterial);
+ myScene.add(myMesh);
+ //渲染立方体
+ animate();
+ function animate(){
+  requestAnimationFrame(animate);
+  var myDelta=myClock.getDelta();
+  myUniforms["myTime"].value=myClock.elapsedTime;
+  myRenderer.render(myScene,myCamera);
+ }
+</script></body></html>

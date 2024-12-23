@@ -1,0 +1,61 @@
+<html><head><meta charset="UTF-8">
+ <script src="ThreeJS/three.js"></script>
+ <script src="ThreeJS/jquery.js"></script>
+</head>
+<body><center id="myContainer"></center>
+<script type="x-shader/x-vertex" id="myVertexShader">
+  attribute vec3 myColor;
+  varying vec3 myNewColor;
+  void main(){
+    vec3 myPosition=position+5.0;
+    myNewColor=myColor;
+    gl_Position=projectionMatrix*modelViewMatrix*vec4(myPosition,1.0);
+  }
+</script>
+<script type="x-shader/x-fragment" id="myFragmentShader">
+  varying vec3 myNewColor;
+  void main(){
+    gl_FragColor=vec4(myNewColor,0.3);
+  }
+</script>
+<script>
+ //创建渲染器
+ var myRenderer = new THREE.WebGLRenderer({antialias: true});
+ myRenderer.setSize(window.innerWidth, window.innerHeight);
+ $("#myContainer").append(myRenderer.domElement);
+ var myCamera=new THREE.PerspectiveCamera(30,
+     window.innerWidth/window.innerHeight,1,10000);
+ myCamera.position.z=400;
+ var myScene=new THREE.Scene();
+ myScene.background = new THREE.Color('white');
+ //创建艺术字母
+ var myLoader=new THREE.FontLoader();
+ myLoader.load('Data/MyFont.json',function(font){
+  var myMaterial=new THREE.ShaderMaterial({
+   vertexShader: $("#myVertexShader")[0].text,
+   fragmentShader: $("#myFragmentShader")[0].text,});
+  var myGeometry=new THREE.TextBufferGeometry('three.js',
+      {font:font,size:50,height:10});
+  myGeometry.center();
+  var myCount=myGeometry.attributes.position.count;
+  var myColorArray=new THREE.Float32BufferAttribute(myCount*3,3);
+  myGeometry.setAttribute('myColor',myColorArray);
+  var myColor=new THREE.Color(0xffffff);
+  for(var i=0,l=myColorArray.count;i<l;i++){
+   myColor.setHSL(i/l,0.5,0.5);
+   // myColor.set(0xffffff*Math.random(),
+   //     0xffffff*Math.random(),0xffffff*Math.random());
+   myColor.toArray(myColorArray.array,i*myColorArray.itemSize);
+  }
+  var myLine=new THREE.Line(myGeometry,myMaterial);
+  myScene.add(myLine);
+  //渲染艺术字母
+  animate();
+  function animate(){
+   requestAnimationFrame(animate);
+   myLine.rotation.y+=0.01;
+   myRenderer.render(myScene,myCamera);
+  }
+ });
+</script></body>
+</html>
