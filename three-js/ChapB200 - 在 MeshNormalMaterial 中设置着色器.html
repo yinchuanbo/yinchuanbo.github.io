@@ -1,18 +1,33 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <script src="ThreeJS/three.js"></script>
-    <script src="ThreeJS/jquery.js"></script>
-    <script src="ThreeJS/OrbitControls.js"></script>
-    <script src="ThreeJS/GLTFLoader.js"></script>
+    <link rel="stylesheet" href="css/style.css" />
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
   </head>
   <body>
     <center id="myContainer"></center>
-    <script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three"; //导入three.js
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
       //创建渲染器
       var myRenderer = new THREE.WebGLRenderer({ antialias: true });
       myRenderer.setSize(window.innerWidth, window.innerHeight);
       $("#myContainer").append(myRenderer.domElement);
+
+      // 创建相机
       var myCamera = new THREE.PerspectiveCamera(
         45,
         window.innerWidth / window.innerHeight,
@@ -20,16 +35,24 @@
         1000
       );
       myCamera.position.z = 20;
+
+      // 创建场景
       var myScene = new THREE.Scene();
       myScene.background = new THREE.Color(0xffffff);
-      var myOrbitControls = new THREE.OrbitControls(myCamera);
+      var myOrbitControls = new OrbitControls(myCamera);
+
       //加载头像模型
-      var myGLTFLoader = new THREE.GLTFLoader();
+      var myGLTFLoader = new GLTFLoader();
       myGLTFLoader.load("Data/MyLeePerrySmith.glb", function (gltf) {
+        console.log("---", gltf.scene);
         var myGeometry = gltf.scene.children[0].geometry;
         var myMaterial = new THREE.MeshNormalMaterial();
+        // onBeforeCompile 是材质的一个钩子函数。它允许在材质编译 GLSL 着色器之前修改着色器的代码。
         myMaterial.onBeforeCompile = function (shader) {
+          // 添加时间 Uniform
+          // 在着色器中添加 time 作为全局变量，用于控制动态效果
           shader.uniforms.time = { value: 0 };
+          // 在顶点着色器中添加 time 的声明
           shader.vertexShader = "uniform float time;\n" + shader.vertexShader;
           shader.vertexShader = shader.vertexShader.replace(
             "#include <begin_vertex>",
