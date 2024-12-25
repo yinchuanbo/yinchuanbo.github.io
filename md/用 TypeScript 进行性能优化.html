@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>用 TypeScript 进行性能优化</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism2.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 2">
+          <div class="layout__main_left-switch"></div>
+          <ul>
+            <li class="active"><a title="用 TypeScript 进行性能优化" href="/md/用 TypeScript 进行性能优化.html">06 用 TypeScript 进行性能优化</a></li><li class=""><a title="类型声明文件" href="/md/类型声明文件.html">05 类型声明文件</a></li><li class=""><a title="学 TypeScript 必然要了解 declare" href="/md/学 TypeScript 必然要了解 declare.html">04 学 TypeScript 必然要了解 declare</a></li><li class=""><a title="TypeScript 的 5 个好用技巧" href="/md/TypeScript 的 5 个好用技巧.html">03 TypeScript 的 5 个好用技巧</a></li><li class=""><a title="重新学习 TypeScript 类型系统" href="/md/重新学习 TypeScript 类型系统.html">02 重新学习 TypeScript 类型系统</a></li><li class=""><a title="前端进阶必须会的 Zod" href="/md/前端进阶必须会的 Zod.html">01 前端进阶必须会的 Zod</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_map" style="order: 0">
+          <div class="layout__main_map_content"></div>
+          <div class="layout__main_map_swicth">
+          </div>
+        </div>
+        <div
+          style="order: 1"
+          class="layout__main_right md "
+        >
+          <div class="page-header">
+            <h1>用 TypeScript 进行性能优化</h1>
+            <p class="time">HaoTian · 2024-12-25 21:58:24</p>
+          </div>
+          <p>在 TypeScript 的领域中，性能优化并非仅仅局限于让代码执行得更快 —— 而是关乎于编写稳固、具备扩展性以及易于维护的解决方案，这些方案要能够经得起时间的检验。本文全方位深入地剖析了 TypeScript 性能优化的诸多层面，为您提供了诸多技巧、技术以及示例，旨在保证您的应用程序既具备高效性又富有成效。</p>
+<h2>1.对 TypeScript 编译的优化</h2>
+<p><strong>「增量编译」</strong></p>
+<p>TypeScript 是支持增量编译的，只有那些发生更改的文件才会被重新编译。这在极大程度上缩减了大型项目的构建时间。</p>
+<p><strong>「如何启用」</strong>：</p>
+<p>在您的<code>tsconfig.json</code>文件中添加<code>&quot;incremental&quot;: true</code></p>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;incremental&quot;: true
+  }
+}
+</code></pre>
+<ul>
+<li><strong>「好处」</strong>：能够显著加快构建速度，尤其是在 CI/CD 管道当中。</li>
+</ul>
+<p><strong>「使用<code>--skipLibCheck</code>」</strong></p>
+<p>倘若您未曾对外部库进行修改，那么可以跳过对它们的类型检查：</p>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;skipLibCheck&quot;: true
+  }
+}
+</code></pre>
+<ul>
+<li><strong>「原因」</strong>：通过规避对外部包的冗余类型检查，从而减少编译时间。</li>
+</ul>
+<h2>2. 高级类型推断</h2>
+<p>TypeScript 的类型推断既有利也有弊。过度运用显式类型，可能会拖慢编译器的速度，并且让您的代码变得杂乱无章。</p>
+<p><strong>「示例」</strong></p>
+<pre><code class="language-ts">const numbers = [1, 2, 3, 4]; // TypeScript 推断为 `number[]`
+const sum = numbers.reduce((acc, curr) =&gt; acc + curr, 0); // 推断为 `number`
+</code></pre>
+<ul>
+<li>技巧：除非确实有必要，否则相信编译器去推断类型。</li>
+</ul>
+<p><strong>「避免过度复杂的类型」</strong></p>
+<p>尽量将类型进行简化，以此来降低认知负担并提升编译性能：</p>
+<pre><code class="language-ts">// 过于复杂
+type NestedArray&lt;T&gt; = T | NestedArray&lt;T&gt;[];
+
+// 针对特定情况简化
+type NestedNumberArray = number | NestedNumberArray[];
+</code></pre>
+<h2>3. 利用实用类型</h2>
+<p>TypeScript 提供了内建的实用类型，像是<code>Pick</code>、<code>Omit</code>、<code>Partial</code> 以及<code>Required</code>。这些实用类型能够精简您的代码，同时增强可维护性。</p>
+<p><strong>「示例」</strong>：使用<code>Omit</code> 而非手动排除属性：</p>
+<pre><code class="language-ts">type User = {
+  id: number;
+  name: string;
+  email: string;
+};
+type UserWithoutEmail = Omit&lt;User, &quot;email&quot;&gt;;
+</code></pre>
+<p><strong>「性能提升」</strong>：减少冗余代码，并借助 TypeScript 的优化实用工具。</p>
+<h2>4. 使用 TypeScript 进行 Tree Shaking</h2>
+<p>Tree Shaking 在打包的过程中会去除未被使用的代码。采用 TypeScript 的 ES 模块输出（<code>&quot;module&quot;: &quot;ESNext&quot;</code>），以保证与 Webpack 或者 Rollup 等打包器的兼容性。</p>
+<p><strong>「配置：」</strong></p>
+<pre><code class="language-ts">{
+  &quot;compilerOptions&quot;: {
+    &quot;module&quot;: &quot;ESNext&quot;
+  }
+}
+</code></pre>
+<p><strong>「原因」</strong>：确保打包器能够识别并移除无用代码，减小包的大小。</p>
+<h2>5. 针对运行时性能优化</h2>
+<p>尽管 TypeScript 属于一个编译时工具，但其特性能够间接对运行时性能产生影响。</p>
+<p><strong>「避免过度使用类型断言」</strong></p>
+<p>类型断言（<code>as</code> 或<code>&lt;Type&gt;</code>）倘若过度使用或者使用不当，有可能会引发运行时错误：</p>
+<pre><code class="language-ts">// 有风险
+const someValue: any = &quot;hello&quot;;
+const stringLength = (someValue as string).length; // 不安全
+</code></pre>
+<ul>
+<li><strong>「技巧」</strong>：使用类型守卫来确保安全：</li>
+</ul>
+<pre><code class="language-ts">function isString(value: unknown): value is string {
+  return typeof value === &quot;string&quot;;
+}
+</code></pre>
+<p><strong>「优先使用 Readonly 以实现不可变性」</strong></p>
+<p>使用<code>Readonly</code> 来强制不可变性，这有助于防止意外的副作用：</p>
+<pre><code class="language-ts">const config: Readonly&lt;{ port: number; debug: boolean }&gt; = {
+  port: 3000,
+  debug: true,
+};
+
+// config.port = 4000; // 错误
+</code></pre>
+<h2>6. 内存优化</h2>
+<p>大型的 TypeScript 项目或许会面临高内存使用的难题。通过以下的实践方式来缓解这一问题：</p>
+<ul>
+<li><strong>「限制类型范围」</strong>：避免使用过于宽泛或者通用的类型，因为这类类型需要进行深度的推断。</li>
+<li><strong>「模块化」</strong>：把大型文件分割成规模更小、更具专注性的模块。</li>
+</ul>
+<h2>7. 调试和性能分析</h2>
+<p>高效的调试能够节省数小时的开发时间：</p>
+<p>运用 TypeScript 的<code>sourceMap</code> 选项，在调试的过程中清晰地映射 TS 和 JS：</p>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;sourceMap&quot;: true
+  }
+}
+</code></pre>
+<h2>8. 高级 TypeScript 特性</h2>
+<p>**「条件类型」**根据条件优化逻辑：</p>
+<pre><code class="language-ts">type Result&lt;T&gt; = T extends string ? string[] : number[];
+const example: Result&lt;string&gt; = [&quot;a&quot;, &quot;b&quot;]; // 推断为 string[]
+</code></pre>
+<p>**「模板字面量类型」**通过动态字符串模式增强类型安全性：</p>
+<pre><code class="language-ts">type EventName = `on${Capitalize&lt;string&gt;}`;
+</code></pre>
+<h2>9. 技巧和窍门</h2>
+<ul>
+<li><strong>「尽可能优先运用接口而非类型」</strong> 来对对象进行定义，原因在于接口在性能和可扩展性方面表现更为出色。</li>
+<li><strong>「使用懒加载」</strong>：将类型划分到单独的文件里，并仅仅在有需要的时候进行加载。</li>
+<li><strong>「工具」</strong>：采用 TypeScript 专属的工具，例如<code>ts-prune</code>，用以识别未被使用的导出，从而保持代码的整洁。</li>
+</ul>
+<blockquote>
+<p>原文地址：<a href="https://dev.to/shafayeat/performance-optimization-with-typescript-dcj">https://dev.to/shafayeat/performance-optimization-with-typescript-dcj</a></p>
+</blockquote>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // 滚动动画
+      document.addEventListener('DOMContentLoaded', () => {
+        // 为所有段落、标题和列表添加 fade-in 类
+        const elements = document.querySelectorAll('.md p, .md h2, .md h3, .md ul, .md ol, .md img, .code-toolbar');
+        elements.forEach(el => el.classList.add('fade-in'));
+
+        // 为左侧导航项添加动画延迟
+        const navItems = document.querySelectorAll('.layout__main_left ul li');
+        navItems.forEach((item, index) => {
+          item.style.setProperty('--i', index);
+        });
+
+        // 滚动时添加动画
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              // 一旦元素显示，就停止观察它
+              observer.unobserve(entry.target);
+            }
+          });
+        }, {
+          threshold: 0.1,
+          rootMargin: '0px 0px -20px 0px' // 调整触发距离
+        });
+
+        // 延迟添加观察者，确保页面完全加载
+        setTimeout(() => {
+          elements.forEach(el => observer.observe(el));
+        }, 100);
+
+        // 确保初始可见区域的元素立即显示
+        const checkInitialVisibility = () => {
+          elements.forEach(el => {
+            const rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight) {
+              el.classList.add('visible');
+            }
+          });
+        };
+        
+        checkInitialVisibility();
+        
+        // 平滑滚动到锚点
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+          anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+              target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+              });
+            }
+          });
+        });
+      });
+
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      const imgs = document.querySelectorAll("img");
+      imgs.forEach((img) => {
+        img.onclick = () => {
+          img.style.opacity = 0;
+          let imgHove = document.querySelector(".img-hover");
+          if (imgHove) imgHove.remove();
+          const src = img.src;
+          const html = `
+            <div class="img-hover">
+              <img src="${src}" />
+            </div>
+          `;
+          document.body.insertAdjacentHTML("beforeend", html);
+          document.body.style.overflow = "hidden";
+          imgHove = document.querySelector(".img-hover");
+          imgHove.onclick = () => {
+            imgHove.remove();
+            document.body.style.overflow = "initial";
+            img.style.opacity = 1;
+          };
+        };
+      });
+      const headings = document.querySelectorAll(".md h2, .md h3");
+      const navContainer = document.querySelector(".layout__main_map_content");
+      const layoutMainMap = document.querySelector(".layout__main_map");
+      if (!headings?.length) {
+        layoutMainMap.style.display = "none";
+      }
+      headings.forEach((heading, index) => {
+        const id = `heading-${index}`;
+        heading.id = id;
+        const link = document.createElement("a");
+        link.href = `#${id}`;
+        link.textContent =
+          heading.tagName === "H2"
+            ? `▪ ${heading.textContent}`
+            : `· ${heading.textContent}`;
+        link.title = link.textContent;
+        link.style.display = "block";
+        link.style.margin = "5px 0";
+        link.style.color = heading.tagName === "H2" ? "blue" : "darkblue";
+        link.style.cursor = "pointer";
+        link.className = heading.tagName === "H2" ? "H2" : "H3";
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+        });
+        navContainer.appendChild(link);
+      });
+      const swicthDom = document.querySelector(".layout__main_map_swicth");
+      const mapDom = document.querySelector(".layout__main_map");
+      swicthDom.onclick = () => {
+        mapDom.classList.toggle("show");
+      };
+      const swicthDom2 = document.querySelector(".layout__main_left-switch");
+      const mapDom2 = document.querySelector(".layout__main_left");
+      swicthDom2.onclick = () => {
+        mapDom2.classList.toggle("show");
+      };
+    </script>
+  </body>
+</html>
