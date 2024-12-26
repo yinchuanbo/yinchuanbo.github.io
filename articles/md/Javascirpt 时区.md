@@ -169,7 +169,8 @@ Intl 对象是随着 ECMAScript 2015（ES6）标准推出的，首次在主流�
 
 以下是主要特性和它们的兼容性：
 
-- 1. 基础 Intl 对象（DateTimeFormat, NumberFormat, Collator）：
+- 基础 Intl 对象（DateTimeFormat, NumberFormat, Collator）：
+
   - 支持情况：大部分现代浏览器，包括 Chrome、Firefox、Edge、Safari 以及 Node.js 都支持，IE11 也部分支持。
   - 最低版本：
   - Chrome 24+
@@ -177,28 +178,36 @@ Intl 对象是随着 ECMAScript 2015（ES6）标准推出的，首次在主流�
   - Safari 10+
   - IE 11+（但支持较有限）
   - Node.js 0.12+
-- 2. Intl.RelativeTimeFormat（相对时间格式）：
+
+- Intl.RelativeTimeFormat（相对时间格式）：
+
   - 支持情况：主流浏览器中较新版本支持，包括 Chrome、Firefox、Safari 和 Edge，但 IE 不支持。
   - 最低版本：
   - Chrome 71+
   - Firefox 65+
   - Safari 14+
   - Node.js 12+
-- 3. Intl.ListFormat（列表格式化）：
+
+- Intl.ListFormat（列表格式化）：
+
   - 支持情况：Chrome、Firefox、Edge 和 Safari 的较新版本支持，不支持 IE。
   - 最低版本：
   - Chrome 72+
   - Firefox 78+
   - Safari 13+
   - Node.js 12+
-- 4. Intl.PluralRules（复数规则）：
+
+- Intl.PluralRules（复数规则）：
+
   - 支持情况：主流浏览器中较新版本支持，包括 Chrome、Firefox、Safari 和 Edge，不支持 IE。
   - 最低版本：
   - Chrome 63+
   - Firefox 58+
   - Safari 11+
   - Node.js 10+
-- 5. Intl.DisplayNames（地区名称格式化）：
+
+- Intl.DisplayNames（地区名称格式化）：
+
   - 支持情况：仅在较新的 Chrome 和 Firefox 浏览器上支持，不支持 IE 和 Safari。
   - 最低版本：
   - Chrome 81+
@@ -207,8 +216,8 @@ Intl 对象是随着 ECMAScript 2015（ES6）标准推出的，首次在主流�
 
 如果需要在不支持 Intl 对象的环境中运行代码，可以考虑以下解决方案：
 
-- 1. Polyfill：使用诸如 @formatjs/intl 的 polyfill，为旧环境添加对 Intl 的支持。这个库包含了 DateTimeFormat, NumberFormat, RelativeTimeFormat 等多个 Intl 扩展。
-- 2. 后端预处理：对于不支持 Intl 的客户端环境，可以考虑将格式化操作放到后端处理，后端将格式化后的数据传输给客户端。
+1. Polyfill：使用诸如 @formatjs/intl 的 polyfill，为旧环境添加对 Intl 的支持。这个库包含了 DateTimeFormat, NumberFormat, RelativeTimeFormat 等多个 Intl 扩展。
+2. 后端预处理：对于不支持 Intl 的客户端环境，可以考虑将格式化操作放到后端处理，后端将格式化后的数据传输给客户端。
 
 ## 时区处理的注意事项
 
