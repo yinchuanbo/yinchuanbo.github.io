@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three"; //导入three.js
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      var myRenderer, myCamera, myScene, myPoints, controls;
+      //创建渲染器
+      function initRender() {
+        myRenderer = new THREE.WebGLRenderer({ antialias: true });
+        myRenderer.setClearColor(new THREE.Color(0xffffff));
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(myRenderer.domElement);
+
+        // 创建相机
+        myCamera = new THREE.PerspectiveCamera(
+          45,
+          window.innerWidth / window.innerHeight,
+          1,
+          200
+        );
+        myCamera.position.set(0, 20, 100);
+        myCamera.lookAt(new THREE.Vector3(0, 30, 0));
+
+        // 创建场景
+        myScene = new THREE.Scene();
+
+        // 添加轨道控制器
+        controls = new OrbitControls(myCamera, myRenderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+      }
+
+      //创建粒子(雨滴)
+      function createParticles(
+        size,
+        transparent,
+        opacity,
+        vertexColors,
+        sizeAttenuation,
+        color
+      ) {
+        var myTexture = new THREE.TextureLoader().load("images/img057.png");
+
+        const particleCount = 9500;
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+        const velocities = [];
+        const myRange = 120 * 3;
+
+        for (let i = 0; i < particleCount; i++) {
+          const i3 = i * 3;
+          positions[i3] = Math.random() * myRange - myRange / 2; // x
+          positions[i3 + 1] = Math.random() * myRange - myRange / 2; // y
+          positions[i3 + 2] = Math.random() * myRange - myRange / 2; // z
+
+          // Velocity
+          velocities.push({
+            x: (Math.random() - 0.5) / 3,
+            y: 0.1 + Math.random() / 5,
+          });
+
+          // Color
+          colors[i3] = 1; // r
+          colors[i3 + 1] = 1; // g
+          colors[i3 + 2] = 1; // b
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(positions, 3)
+        );
+        geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+        const material = new THREE.PointsMaterial({
+          size: size,
+          transparent: transparent,
+          opacity: opacity,
+          vertexColors: true,
+          sizeAttenuation: sizeAttenuation,
+          color: color,
+          map: myTexture,
+          depthTest: false,
+        });
+
+        myPoints = new THREE.Points(geometry, material);
+        myPoints.userData.velocities = velocities;
+        myScene.add(myPoints);
+      }
+
+      //渲染粒子(雨滴)
+      function animate() {
+        const positions = myPoints.geometry.attributes.position.array;
+        const velocities = myPoints.userData.velocities;
+
+        for (let i = 0; i < positions.length; i += 3) {
+          // Update y position (falling)
+          positions[i + 1] -= velocities[i / 3].y * 3;
+          // Update x position (swaying)
+          positions[i] -= velocities[i / 3].x * 0.5;
+
+          // Reset position if too low
+          if (positions[i + 1] <= -60) {
+            positions[i + 1] = 60;
+          }
+          // Bounce off x boundaries
+          if (positions[i] <= -120 || positions[i] >= 120) {
+            velocities[i / 3].x *= -1;
+          }
+        }
+
+        myPoints.geometry.attributes.position.needsUpdate = true;
+        controls.update();
+        myRenderer.render(myScene, myCamera);
+        requestAnimationFrame(animate);
+      }
+
+      // Handle window resize
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+      window.addEventListener("resize", onWindowResize);
+
+      // Cleanup on page unload
+      window.addEventListener("unload", () => {
+        if (myPoints) {
+          myScene.remove(myPoints);
+          myPoints.geometry.dispose();
+          myPoints.material.dispose();
+          if (myPoints.material.map) {
+            myPoints.material.map.dispose();
+          }
+        }
+        if (myRenderer) {
+          myRenderer.dispose();
+        }
+      });
+
+      initRender();
+      createParticles(6, true, 0.8, true, true, 0xffffff);
+      animate();
+    </script>
+  </body>
+</html>

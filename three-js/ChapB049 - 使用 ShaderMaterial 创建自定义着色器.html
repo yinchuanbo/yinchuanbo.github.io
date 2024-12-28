@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div id="myContainer"></div>
+    <script id="myVertexShader" type="x-shader/x-vertex">
+      //创建顶点着色器
+       varying vec2 vUv;
+       void main() {
+         vUv = uv;
+         vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+         gl_Position = projectionMatrix * mvPosition;
+       }
+    </script>
+    <script id="myFragmentShader" type="x-shader/x-fragment">
+      //创建片元着色器
+      uniform float time;
+      uniform vec2 resolution;
+      varying vec2 vUv;
+      void main( void ) {
+        vec2 position = -1.0 + 2.0 * vUv;
+        float red = abs( sin( position.x * position.y + time / 5.0 ) );
+        float green = abs( sin( position.x * position.y + time / 4.0 ) );
+        float blue = abs( sin( position.x * position.y + time / 3.0 ) );
+        gl_FragColor = vec4( red, green, blue, 1.0 );
+      }
+    </script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three"; //导入three.js
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      //创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setClearColor("white", 1.0);
+      $("#myContainer")[0].appendChild(myRenderer.domElement);
+      var myScene = new THREE.Scene();
+      var myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        10,
+        130
+      );
+      myCamera.position.x = 30;
+      myCamera.position.y = 30;
+      myCamera.position.z = 30;
+      myCamera.lookAt(new THREE.Vector3(0, 0, 0));
+      //创建THREE.ShaderMaterial
+      /**
+       * ShaderMaterial 是一个用来自定义着色器的材质，允许你精确控制物体的渲染效果。通常，ShaderMaterial 用于创建特殊的视觉效果，像是自定义的光照模型、后处理效果、粒子系统、甚至是一些动态的纹理变换。
+       */
+      var myShaderMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { type: "f", value: 1.0 },
+          resolution: { type: "v2", value: new THREE.Vector2() },
+        },
+        vertexShader: $("#myVertexShader")[0].textContent,
+        fragmentShader: $("#myFragmentShader")[0].textContent,
+      });
+      //使用THREE.ShaderMaterial创建立方体
+      var myBoxGeometry = new THREE.BoxGeometry(16, 16, 16);
+      var myMesh = new THREE.Mesh(myBoxGeometry, myShaderMaterial);
+      myScene.add(myMesh);
+      var myStep = 0;
+      //渲染(旋转)立方体
+      animate();
+      function animate() {
+        myMesh.rotation.y = myStep += 0.01;
+        myMesh.rotation.x = myStep;
+        myMesh.rotation.z = myStep;
+        myMesh.material.uniforms.time.value += 0.1;
+        requestAnimationFrame(animate);
+        myRenderer.render(myScene, myCamera);
+      }
+    </script>
+  </body>
+</html>

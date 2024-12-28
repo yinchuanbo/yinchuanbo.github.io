@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <center id="myContainer"></center>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three"; //导入three.js
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      let myRenderer,
+        myScene,
+        myCamera,
+        controls,
+        myGroup = [],
+        myTextures = [];
+
+      // 初始化场景
+      function init() {
+        // 创建渲染器
+        myRenderer = new THREE.WebGLRenderer({ antialias: true });
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+        $("#myContainer").append(myRenderer.domElement);
+
+        // 创建场景
+        myScene = new THREE.Scene();
+
+        // 创建相机
+        myCamera = new THREE.PerspectiveCamera(
+          45,
+          window.innerWidth / window.innerHeight,
+          2,
+          500
+        );
+        myCamera.position.set(0, 0, 40);
+
+        // 添加轨道控制器
+        controls = new OrbitControls(myCamera, myRenderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // 加载背景纹理
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load("images/img004.jpg", function (texture) {
+          myScene.background = texture;
+        });
+
+        createSnowflakes();
+      }
+
+      // 创建雪花
+      function createSnowflakes() {
+        // 加载雪花纹理
+        const myMap = new THREE.TextureLoader().load("images/img109.png");
+        myTextures.push(myMap);
+
+        // 创建材质
+        const myPointsMaterials = [];
+        for (let i = 0; i < 2; i++) {
+          const myPointsMaterial = new THREE.PointsMaterial({
+            size: 2,
+            map: myMap,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            depthWrite: false,
+          });
+          myPointsMaterial.map.offset = new THREE.Vector2((1 / 2) * i, 0);
+          myPointsMaterial.map.repeat = new THREE.Vector2(1 / 2, 1);
+          myPointsMaterials.push(myPointsMaterial);
+        }
+
+        // 创建几何体
+        for (let k = 0; k < 2; k++) {
+          const particleCount = 100;
+          const positions = new Float32Array(particleCount * 3);
+          const velocities = [];
+
+          for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            positions[i3] = Math.random() * 50 - 25; // x
+            positions[i3 + 1] = Math.random() * 50 - 25; // y
+            positions[i3 + 2] = Math.random() * 50 - 25; // z
+
+            velocities.push({
+              x: (Math.random() - 0.5) / 3,
+              y: 0.1 + Math.random() / 5,
+              z: (Math.random() - 0.5) / 3,
+            });
+          }
+
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute(
+            "position",
+            new THREE.BufferAttribute(positions, 3)
+          );
+
+          const points = new THREE.Points(geometry, myPointsMaterials[k]);
+          points.userData.velocities = velocities;
+
+          myGroup.push(points);
+          myScene.add(points);
+        }
+      }
+
+      // 动画更新
+      function animate() {
+        requestAnimationFrame(animate);
+
+        myGroup.forEach((points) => {
+          const positions = points.geometry.attributes.position.array;
+          const velocities = points.userData.velocities;
+
+          for (let i = 0; i < positions.length; i += 3) {
+            // Update positions
+            positions[i + 1] -= velocities[i / 3].y; // y
+            positions[i] -= velocities[i / 3].x; // x
+            positions[i + 2] -= velocities[i / 3].z; // z
+
+            // Reset position if too low
+            if (positions[i + 1] <= -25) positions[i + 1] = 25;
+
+            // Bounce off boundaries
+            if (positions[i] <= -25 || positions[i] >= 25) {
+              positions[i] = -positions[i];
+            }
+            if (positions[i + 2] <= -25 || positions[i + 2] >= 25) {
+              velocities[i / 3].z = -velocities[i / 3].z;
+            }
+          }
+
+          points.geometry.attributes.position.needsUpdate = true;
+        });
+
+        controls.update();
+        myRenderer.render(myScene, myCamera);
+      }
+
+      // 窗口大小调整处理
+      function onWindowResize() {
+        myCamera.aspect = window.innerWidth / window.innerHeight;
+        myCamera.updateProjectionMatrix();
+        myRenderer.setSize(window.innerWidth, window.innerHeight);
+      }
+      window.addEventListener("resize", onWindowResize);
+
+      // 资源清理
+      window.addEventListener("unload", () => {
+        myGroup.forEach((points) => {
+          myScene.remove(points);
+          points.geometry.dispose();
+          points.material.dispose();
+        });
+        myTextures.forEach((texture) => texture.dispose());
+        if (myScene.background) {
+          myScene.background.dispose();
+        }
+        if (myRenderer) {
+          myRenderer.dispose();
+        }
+      });
+
+      // 初始化并开始动画
+      init();
+      animate();
+    </script>
+  </body>
+</html>

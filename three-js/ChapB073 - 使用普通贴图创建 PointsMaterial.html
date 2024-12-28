@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <center id="myContainer"></center>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three"; //导入three.js
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      //创建渲染器
+      var myRenderer = new THREE.WebGLRenderer({ antialias: true });
+      myRenderer.setSize(window.innerWidth, window.innerHeight);
+      myRenderer.setClearColor("white", 1.0);
+      $("#myContainer")[0].appendChild(myRenderer.domElement);
+      var myCamera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        30,
+        1000
+      );
+      myCamera.position.z = 1000;
+
+      var myScene = new THREE.Scene();
+
+      //使用普通贴图材质创建多个粒子
+      const textureLoader = new THREE.TextureLoader();
+      textureLoader.load(
+        "images/img041.png",
+        function (myMap) {
+          // 创建几何体
+          const positions = new Float32Array(3000); // 1000 points * 3 coordinates
+          for (let i = 0; i < 1000; i++) {
+            positions[i * 3] = THREE.MathUtils.randFloatSpread(2000); // x
+            positions[i * 3 + 1] = THREE.MathUtils.randFloatSpread(2000); // y
+            positions[i * 3 + 2] = THREE.MathUtils.randFloatSpread(2000); // z
+          }
+          const myGeometry = new THREE.BufferGeometry();
+          myGeometry.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute(positions, 3)
+          );
+
+          // 创建材质和点云
+          var myPointsMaterial = new THREE.PointsMaterial({
+            size: 200,
+            alphaTest: 0.5,
+            map: myMap,
+            transparent: true,
+          });
+
+          var myPoints = new THREE.Points(myGeometry, myPointsMaterial);
+          myScene.add(myPoints);
+
+          //渲染多个粒子
+          animate();
+          function animate() {
+            requestAnimationFrame(animate);
+            myPoints.rotation.x += 0.006;
+            myPoints.rotation.y += 0.006;
+            myPoints.rotation.z += 0.006;
+            myRenderer.render(myScene, myCamera);
+          }
+        },
+        undefined,
+        function (error) {
+          console.error("An error occurred loading the texture:", error);
+        }
+      );
+
+      // 初始渲染
+      myRenderer.render(myScene, myCamera);
+    </script>
+  </body>
+</html>
