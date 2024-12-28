@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>突破 React 限制 Million.js 带来的性能新境界</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism2.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+    <style>
+      :root {
+        --bg-color: #121212;
+        --text-color: #e0e0e0;
+        --accent-color: #8a8a8a;
+        --hover-color: rgba(56, 139, 253, 0.15);
+        --border-color: #333333;
+        --header-bg: #1a1a1a;
+
+        /* Spacing System */
+        --space-xs: 0.25rem; /* 4px */
+        --space-sm: 0.5rem; /* 8px */
+        --space-md: 1rem; /* 16px */
+        --space-lg: 1.5em; /* 24px */
+        --space-xl: 2rem; /* 32px */
+        --space-2xl: 3rem; /* 48px */
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: "JetBrains Mono", monospace;
+        line-height: 1.6;
+      }
+
+      li {
+        list-style: none;
+      }
+
+      .layout__main_left {
+        background-color: var(--header-bg);
+        border-right: 1px solid var(--border-color);
+        padding: var(--space-md);
+      }
+
+      .layout__main_left ul {
+        margin: 0;
+        padding: 0;
+      }
+
+      .layout__main_left ul li {
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.3s ease;
+        padding: 0;
+        margin-bottom: 0;
+      }
+
+      .layout__main_right {
+        background-color: var(--bg-color);
+        padding: var(--space-xl);
+      }
+
+      .page-header {
+        /* border-bottom: 1px solid var(--border-color);
+        margin-bottom: var(--space-xl);
+        padding-bottom: var(--space-md); */
+      }
+
+      .page-header h1 {
+        color: var(--text-color);
+        font-size: 2rem;
+        margin: 0 0 var(--space-sm) 0;
+      }
+
+      .time {
+        color: var(--accent-color);
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .layout__main_map {
+        background-color: var(--header-bg);
+        border-left: 1px solid var(--border-color);
+        padding: var(--space-md);
+      }
+
+      .layout__main_map_content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+      }
+
+      .layout__main_map a {
+        color: var(--text-color) !important;
+        opacity: 0.8;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        padding: var(--space-xs) 0;
+      }
+
+      .layout__main_map a.H2 {
+        color: #a0a0a0 !important;
+        margin-top: var(--space-md);
+      }
+
+      .layout__main_map a.H3 {
+        color: #808080 !important;
+        padding-left: var(--space-lg);
+        margin-top: var(--space-xs);
+      }
+
+      /* Content Spacing */
+      .md h1,
+      .md h2,
+      .md h3,
+      .md h4,
+      .md h5,
+      .md h6 {
+        margin: var(--space-xl) 0 var(--space-md) 0;
+        font-weight: normal;
+      }
+
+      .md h2 {
+        font-size: 1.8rem;
+        color: #66b3ff;
+        padding-bottom: var(--space-sm);
+        border-bottom: 1px solid var(--border-color);
+        letter-spacing: 0.5px;
+      }
+
+      .md h3 {
+        font-size: 1.5rem;
+        color: #99ccff;
+        padding-left: var(--space-sm);
+        border-left: 3px solid var(--accent-color);
+        letter-spacing: 0.3px;
+      }
+
+      .md h4 {
+        font-size: 1.25rem;
+        color: #cce6ff;
+        position: relative;
+        padding-left: var(--space-md);
+        font-style: italic;
+      }
+
+      .md h4::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: var(--accent-color);
+        font-size: 1.2em;
+        font-style: normal;
+      }
+
+      .md h1:first-child,
+      .md h2:first-child,
+      .md h3:first-child {
+        margin-top: 0;
+      }
+
+      .md p {
+        margin: 0 0 var(--space-md) 0;
+      }
+
+      .md ul,
+      .md ol {
+        margin: var(--space-md) 0;
+        padding-left: 0;
+        list-style: none;
+      }
+
+      .md li {
+        position: relative;
+        padding-left: 1.5em;
+        margin-bottom: 0.5em;
+      }
+
+      /* Handle special case where li contains ol directly */
+      .md ul > li > ol {
+        margin: 0;
+        padding: 0;
+      }
+
+      .md ul > li > ol > li {
+        padding-left: 2.5em;
+      }
+
+      /* Remove bullet for li that contains ol */
+      .md ul > li:has(> ol) {
+        padding-left: 0;
+      }
+
+      .md ul > li:has(> ol)::before {
+        display: none;
+      }
+
+      /* Unordered list bullets */
+      .md ul > li:not(:has(> ol))::before {
+        content: "";
+        position: absolute;
+        left: 0.4em;
+        top: 0.7em;
+        width: 4px;
+        height: 4px;
+        background-color: var(--accent-color);
+        border-radius: 50%;
+      }
+
+      /* Ordered Lists */
+      .md ol {
+        counter-reset: list-number;
+      }
+
+      .md ol > li {
+        counter-increment: list-number;
+      }
+
+      .md ol > li::before {
+        content: counter(list-number) ".";
+        position: absolute;
+        left: 0;
+        color: var(--accent-color);
+        font-size: 1em;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* Handle start attribute */
+      .md ol[start] {
+        counter-reset: list-number attr(start) -1;
+      }
+
+      /* Nested Lists */
+      .md ul ul,
+      .md ol ul,
+      .md ul ol,
+      .md ol ol {
+        margin: 0.5em 0 0.5em 0;
+      }
+
+      .md ul ul li::before {
+        content: "";
+        width: 3px;
+        height: 3px;
+        border: 1px solid var(--accent-color);
+        background-color: transparent;
+      }
+
+      .md ul ul ul li::before {
+        content: "";
+        width: 4px;
+        height: 1px;
+        background-color: var(--accent-color);
+        border-radius: 0;
+      }
+
+      /* Layout Left Navigation */
+      .layout__main_left ul li {
+        padding: var(--space-xs) var(--space-md);
+        margin: 0;
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+      }
+
+      .layout__main_left ul li:hover {
+        background-color: var(--hover-color);
+        border-left-color: var(--accent-color);
+      }
+
+      .layout__main_left ul li.active {
+        background-color: var(--hover-color);
+        border-left-color: var(--accent-color);
+      }
+
+      .layout__main_left ul li::before {
+        display: none;
+      }
+
+      /* Code block styling */
+      .md pre[class*="language-"] {
+        padding: var(--space-md);
+        border-radius: 6px;
+        background: #212121 !important;
+      }
+
+      .md img {
+        margin: var(--space-lg) 0;
+        max-width: 60%;
+        height: auto;
+        border-radius: 4px;
+      }
+
+      .md blockquote {
+        margin-bottom: 1em;
+        padding: var(--space-md) 1.5em;
+        border-left: 4px solid var(--accent-color);
+        background: var(--header-bg);
+      }
+
+      .md blockquote > *:last-child {
+        margin-bottom: 0;
+      }
+
+      .md table {
+        margin: var(--space-lg) 0;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      .md td,
+      .md th {
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid var(--border-color);
+      }
+
+      /* Animation Refinements */
+      .fade-in {
+        opacity: 0;
+        transform: translateY(var(--space-sm));
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+
+      .fade-in.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+      }
+    </style>
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 2">
+          <div class="layout__main_left-switch"></div>
+          <ul>
+            <li class="active"><a title="突破 React 限制 Million.js 带来的性能新境界" href="/md/突破 React 限制 Million.js 带来的性能新境界.html">04 突破 React 限制 Million.js 带来的性能新境界</a></li><li class=""><a title="25 个 React 优化必备技巧" href="/md/25 个 React 优化必备技巧.html">03 25 个 React 优化必备技巧</a></li><li class=""><a title="前端屏幕适配" href="/md/前端屏幕适配.html">02 前端屏幕适配</a></li><li class=""><a title="React Hooks - 布局效果的终极解决方案" href="/md/React Hooks - 布局效果的终极解决方案.html">01 React Hooks - 布局效果的终极解决方案</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_map" style="order: 0">
+          <div class="layout__main_map_content"></div>
+          <div class="layout__main_map_swicth"></div>
+        </div>
+        <div
+          style="order: 1"
+          class="layout__main_right md "
+        >
+          <div class="page-header">
+            <h1>突破 React 限制 Million.js 带来的性能新境界</h1>
+            <p class="time">HaoTian · 2024-12-28 15:32:51</p>
+          </div>
+          <img src="../imgs/130/08.awebp" />
+
+<h2>1. million</h2>
+<p><code>Million.js</code> 是一款极其快速和轻量级的优化编译器，可以使组件速度提升高达 70%。 。它提供了一种叫做“block”虚拟 DOM 的技术，这种技术比 React 的传统虚拟 DOM 更快，因为它通过 diff 算法比对数据而不是 DOM 本身。</p>
+<p>它可以轻松集成到现有的 React 应用中，不需要学习新的框架，并且可以在几分钟内部署。</p>
+<h2>2. 诞生背景</h2>
+<p><code>Million</code> 是一个为 React 应用程序提供优化的 JS 库。它的创造是为了解决特定的性能问题，特别是在虚拟 DOM（Virtual DOM）和更新过程中。React 是一个非常受欢迎的 JavaScript 库，它允许开发者通过声明式的方式构建用户界面，并通过其虚拟 DOM 系统来高效地更新和渲染组件。然而，当处理大型或复杂的应用程序时，React 可能会遇到性能瓶颈。</p>
+<h3>2.1 对比 React 演示</h3>
+<p>要明白为什么要使用<code>Million.js</code>，我们需要了解 React 是如何更新界面的。当一个应用的状态(state)或属性(props)发生变化时，React 会经历一个分为渲染(rendering)和对比更新(reconciliation)的两部分的更新过程。</p>
+<p>以我们的 App 为例：</p>
+<pre><code class="language-jsx">function App() {
+  const [count, setCount] = useState(0);
+  const increment = () =&gt; setCount(count + 1);
+  return (
+    &lt;div&gt;
+      &lt;p&gt;Count: {count}&lt;/p&gt;
+      &lt;button onClick={increment}&gt;Increment&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+<p>在这个 App 中，当我点击按钮时，count 状态将更新，<code>&lt;p&gt;</code>标签也会更新以反映新的值。让我们分解这一过程：</p>
+<p><strong>渲染</strong></p>
+<p>第一步是渲染。渲染是生成当前组件快照的过程。你可以将其想象成简单地“调用”App 函数并将输出存储在一个变量中。这就是 App 快照可能的样子：</p>
+<pre><code class="language-jsx">const snapshot = App();
+
+// snapshot =
+&lt;div&gt;
+  &lt;p&gt;Count: 1&lt;/p&gt;
+  &lt;button onClick={increment}&gt;Increment&lt;/button&gt;
+&lt;/div&gt;;
+</code></pre>
+<p><strong>对比更新</strong></p>
+<p>为了更新界面以反映新状态，React 需要将旧快照与新快照进行比较（称为&quot;diffing&quot;）。React 的对比器会检查旧快照中的每个元素，并将其与新快照进行比较。如果元素相同，则跳过。如果元素不同，则更新。</p>
+<ul>
+<li><code>&lt;div&gt;</code>标签相同，所以不需要更新。✅</li>
+<li><code>&lt;p&gt;</code>标签相同，所以不需要更新。✅</li>
+<li><code>&lt;p&gt;</code>标签内的文本不同，所以需要更新。⚠️</li>
+<li><code>&lt;button&gt;</code>标签相同，所以不需要更新。✅</li>
+<li><code>onClick</code>属性相同，所以不需要更新。✅</li>
+<li><code>&lt;button&gt;</code>标签内的文本相同，所以不需要更新。✅</li>
+<li>（总共：6 次 diff 检查）</li>
+</ul>
+<pre><code class="language-diff">&lt;div&gt;
+-  &lt;p&gt;Count: 0&lt;/p&gt;
++  &lt;p&gt;Count: 1&lt;/p&gt;
+  &lt;button onClick={increment}&gt;Increment&lt;/button&gt;
+&lt;/div&gt;
+</code></pre>
+<p>从这里我们可以看到，<code>&lt;p&gt;</code>标签需要更新。React 随后会更新<code>&lt;p&gt;</code> DOM 节点以反映新值：</p>
+<pre><code class="language-js">&lt;p&gt;.innerHTML = `Count: ${count}`;
+</code></pre>
+<img src="../imgs/130/09.awebp" />
+
+<p>React 是慢的。</p>
+<p>React 的对比更新问题在于，当你拥有越来越多的 JSX 元素时，它会变得指数级慢。在这个简单的 App 中，它只需要对比几个元素。在一个真实世界的 React 应用中，你很容易拥有数百个元素，这会减慢界面更新。</p>
+<h3>2.2 million 诞生</h3>
+<p>具体来说，<code>Million</code> 试图解决以下几个问题：</p>
+<ol>
+<li><strong>更新效率</strong>: React 的更新过程，尤其是对比更新（Reconciliation）过程可能会因为组件树的大小和复杂性而变得缓慢。<code>Million</code> 通过优化这一过程来提高性能，尤其是在组件变化时。</li>
+<li><strong>内存占用</strong>: React 的虚拟 DOM 会创建大量的 JavaScript 对象，这些对象需要存储在内存中。对于内存受限的设备，例如老旧的手机或是低端设备，这可能导致问题。<code>Million</code> 减少了这种内存占用，通过采用更高效的数据结构和更新策略。</li>
+<li><strong>首次渲染速度</strong>: 对于需要快速加载和交互的应用，首次渲染的速度非常重要。<code>Million</code> 的优化旨在加快首次加载时间，提升用户体验。</li>
+<li><strong>CPU 使用</strong>: React 的虚拟 DOM diffing 算法可能在更新过程中进行大量的计算，这会增加 CPU 负荷。<code>Million</code> 能够减轻这种负荷。</li>
+</ol>
+<p>上面 React 的示例，<code>Million.js</code>通过完全跳过 diffing 步骤，并直接更新 DOM 节点来解决这一问题。</p>
+<p>以下是一个<code>Million.js</code>对比器工作的概念示例：</p>
+<pre><code class="language-jsx">function App() {
+  const [count, setCount] = useState(0);
+  const increment = () =&gt; setCount(count + 1);
+
+  // 由编译器生成
+  if (count !== prevCount) {
+    &lt;p&gt;.innerHTML = `Count: ${count}`;
+  }
+
+  &lt;button&gt;.onclick = increment;
+
+  // ...
+}
+</code></pre>
+<p>注意，当 count 更新时，<code>Million.js</code>将直接更新 DOM 节点。<code>Million.js</code>将 React 对比更新从 O(n^3)（立方时间）转变为 O(1)（恒定时间）。</p>
+<h2>3. 性能指标</h2>
+<p>Duration in milliseconds ± 95% confidence interval (Slowdown = Duration / Fastest)</p>
+<img src="../imgs/130/10.awebp" />
+
+<p>Startup metrics (lighthouse with mobile simulation)</p>
+<img src="../imgs/130/11.awebp" />
+
+<p>Memory allocation in MBs ± 95% confidence interval</p>
+<img src="../imgs/130/12.awebp" />
+
+<h2>4. 安装</h2>
+<p>安装</p>
+<p><code>Million.js</code> 假定您已经有一个现有的 React 项目。要了解如何创建一个 React 应用，请参阅 React 的文档。</p>
+<p>通过 CLI 安装</p>
+<p><code>Million.js</code> CLI 将自动为您安装包并配置您的项目。</p>
+<pre><code class="language-sh">npx million@latest
+</code></pre>
+<p><code>Million.js</code> 兼容 React 16 及以上版本。如果您使用的是更旧的 React 版本，您需要先升级。</p>
+<p>就是这样！您的项目现在运行在<code>Million.js</code>上了 🎉</p>
+<p>手动安装</p>
+<p>如果您在通过 CLI 安装时遇到问题，或者您有自定义设置，您可以手动安装<code>Million.js</code>。</p>
+<p>请注意，您可以选择两种模式：自动和手动：</p>
+<ul>
+<li>自动模式将为您自动配置、分析和优化项目。这是推荐的模式。</li>
+<li>手动模式将要求您编写代码来优化项目的特定部分。这种模式推荐给希望对其项目有更多控制权的高级用户。</li>
+</ul>
+<p>安装<code>Million.js</code></p>
+<pre><code class="language-sh">npm install million
+</code></pre>
+<p>将编译器添加到您的应用程序</p>
+<p><code>Million.js</code> 在<code>/app</code>（仅限&quot;使用客户端&quot;组件）和<code>/pages</code>中得到支持。</p>
+<p>vite.config.js</p>
+<pre><code class="language-js">import million from &quot;million/compiler&quot;;
+import react from &quot;@vitejs/plugin-react&quot;;
+import { defineConfig } from &quot;vite&quot;;
+
+export default defineConfig({
+  plugins: [million.vite({ auto: true }), react()],
+});
+</code></pre>
+<p>webpack.config.js</p>
+<pre><code class="language-js">const million = require(&quot;million/compiler&quot;);
+module.exports = {
+  plugins: [million.webpack({ auto: true })],
+};
+</code></pre>
+<p>rollup.config.js</p>
+<pre><code class="language-js">import million from &quot;million/compiler&quot;;
+
+export default {
+  plugins: [million.rollup({ auto: true })],
+};
+</code></pre>
+<h2>5. API 列表</h2>
+<p>以下是<code>Million</code>的主要 API 列表，以表格形式进行了组织：</p>
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>block()</code></td>
+<td>实例化一个无状态的“块”组件，返回一个虚拟节点（VNode）。</td>
+</tr>
+<tr>
+<td><code>mount()</code></td>
+<td>用于将块挂载到 DOM 元素上，类似于 React 中的 ReactDOM.render()。</td>
+</tr>
+<tr>
+<td><code>patch()</code></td>
+<td>用于使用另一个块重新渲染一个块，用于更新变化后的组件。</td>
+</tr>
+<tr>
+<td><code>mapArray()</code></td>
+<td>创建一个块列表，用于基于类数组数据渲染视图，并在数组变化时在 DOM 中更新或移动项目。</td>
+</tr>
+<tr>
+<td><code>renderToTemplate()</code></td>
+<td>将虚拟 DOM 节点渲染为字符串，用于创建块的模板。</td>
+</tr>
+<tr>
+<td><code>stringToDOM()</code></td>
+<td>将 HTML 或 SVG 字符串转换为 DOM 对象，用于从字符串创建 DOM 元素。</td>
+</tr>
+<tr>
+<td><code>&lt;For /&gt;</code></td>
+<td>组件用于高效地渲染块列表，它接受一个数组，并为数组中的每个项渲染块。</td>
+</tr>
+</tbody></table>
+<h2>6. 是否迁移到 million</h2>
+<p>决定是否将你的 React 项目迁移到使用<code>Million.js</code>的关键取决于几个因素：</p>
+<ol>
+<li><strong>性能需求</strong>：如果你的 React 应用程序面临性能瓶颈，特别是在更新和渲染过程中，并且传统的性能优化措施（如代码分割、懒加载、使用<code>PureComponent</code>等）已经达到极限，那么使用<code>Million.js</code>可能会带来所需的性能提升。</li>
+<li><strong>项目规模和复杂性</strong>：大型和复杂的 React 项目可能会从<code>Million.js</code>的优化中受益更多，因为在这些情况下，React 的虚拟 DOM 操作可能成为性能瓶颈。</li>
+<li><strong>兼容性和稳定性</strong>：评估<code>Million.js</code>与你的项目依赖、浏览器支持和设备兼容性。确保在决定迁移之前，<code>Million.js</code>能够在你的目标平台上稳定运行。</li>
+<li><strong>开发和维护成本</strong>：迁移项目可能涉及重大的重构。评估这是否值得投入时间和资源，以及对现有代码库的影响。</li>
+<li><strong>团队熟悉度</strong>：你的团队成员是否熟悉<code>Million.js</code>？他们需要多少时间来学习和适应新的工具？</li>
+<li><strong>社区和生态系统</strong>：评估<code>Million.js</code>的社区支持和生态系统成熟度。一个活跃的社区和丰富的资源可以在迁移和后续开发过程中提供帮助。</li>
+<li><strong>长期支持</strong>：考虑<code>Million.js</code>的维护和长期支持。一个持续更新和维护的库将更有可能适应未来的 Web 开发需求。</li>
+</ol>
+<p>在做出决定之前，请进行彻底的测试，以确保<code>Million.js</code>能够符合你的性能目标，并且不会引入新的问题。如果可能，以渐进的方式迁移一小部分应用程序，并监控性能和稳定性的变化，可以帮助你做出更明智的决策。如果决定迁移，请确保有适当的回滚计划以防万一。</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // 滚动动画
+      document.addEventListener("DOMContentLoaded", () => {
+        // 为所有段落、标题和列表添加 fade-in 类
+        const elements = document.querySelectorAll(
+          ".md p, .md h2, .md h3, .md ul, .md ol, .md img, .code-toolbar"
+        );
+        elements.forEach((el) => el.classList.add("fade-in"));
+
+        // 为左侧导航项添加动画延迟
+        const navItems = document.querySelectorAll(".layout__main_left ul li");
+        navItems.forEach((item, index) => {
+          item.style.setProperty("--i", index);
+        });
+
+        // 滚动时添加动画
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("visible");
+                // 一旦元素显示，就停止观察它
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          {
+            threshold: 0.1,
+            rootMargin: "0px 0px -20px 0px", // 调整触发距离
+          }
+        );
+
+        // 延迟添加观察者，确保页面完全加载
+        setTimeout(() => {
+          elements.forEach((el) => observer.observe(el));
+        }, 100);
+
+        // 确保初始可见区域的元素立即显示
+        const checkInitialVisibility = () => {
+          elements.forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight) {
+              el.classList.add("visible");
+            }
+          });
+        };
+
+        checkInitialVisibility();
+
+        // 平滑滚动到锚点
+        document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+          anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute("href"));
+            if (target) {
+              target.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+          });
+        });
+      });
+
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      const imgs = document.querySelectorAll("img");
+      imgs.forEach((img) => {
+        img.onclick = () => {
+          img.style.opacity = 0;
+          let imgHove = document.querySelector(".img-hover");
+          if (imgHove) imgHove.remove();
+          const src = img.src;
+          const html = `
+            <div class="img-hover">
+              <img src="${src}" />
+            </div>
+          `;
+          document.body.insertAdjacentHTML("beforeend", html);
+          document.body.style.overflow = "hidden";
+          imgHove = document.querySelector(".img-hover");
+          imgHove.onclick = () => {
+            imgHove.remove();
+            document.body.style.overflow = "initial";
+            img.style.opacity = 1;
+          };
+        };
+      });
+      const headings = document.querySelectorAll(".md h2, .md h3");
+      const navContainer = document.querySelector(".layout__main_map_content");
+      const layoutMainMap = document.querySelector(".layout__main_map");
+      if (!headings?.length) {
+        layoutMainMap.style.display = "none";
+      }
+      headings.forEach((heading, index) => {
+        const id = `heading-${index}`;
+        heading.id = id;
+        const link = document.createElement("a");
+        link.href = `#${id}`;
+        link.textContent =
+          heading.tagName === "H2"
+            ? `▪ ${heading.textContent}`
+            : `· ${heading.textContent}`;
+        link.title = link.textContent;
+        link.style.display = "block";
+        link.style.margin = "5px 0";
+        link.style.color = heading.tagName === "H2" ? "blue" : "darkblue";
+        link.className = heading.tagName === "H2" ? "H2" : "H3";
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+        });
+        navContainer.appendChild(link);
+      });
+      const swicthDom = document.querySelector(".layout__main_map_swicth");
+      const mapDom = document.querySelector(".layout__main_map");
+      swicthDom.onclick = () => {
+        mapDom.classList.toggle("show");
+      };
+      const swicthDom2 = document.querySelector(".layout__main_left-switch");
+      const mapDom2 = document.querySelector(".layout__main_left");
+      swicthDom2.onclick = () => {
+        mapDom2.classList.toggle("show");
+      };
+    </script>
+  </body>
+</html>
