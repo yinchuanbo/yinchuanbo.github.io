@@ -1,6 +1,6 @@
 ---
 title: "parallel-wait-run 一个并行运行多个 npm scripts 的小工具"
-tag: "NodeJS"
+tag: "运行时"
 time: 2024-11-13 21:51:36
 ---
 

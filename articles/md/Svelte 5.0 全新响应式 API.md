@@ -1,6 +1,6 @@
 ---
 title: "Svelte 5.0 全新响应式 API"
-tag: "Svelte"
+tag: "框架"
 time: 2024-11-03 14:00:49
 ---
 

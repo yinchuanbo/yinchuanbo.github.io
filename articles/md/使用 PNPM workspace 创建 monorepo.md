@@ -1,6 +1,6 @@
 ---
 title: "使用 PNPM workspace 创建 monorepo"
-tag: "Monorepo"
+tag: "单仓库"
 time: 2024-11-10 10:29:33
 ---
 

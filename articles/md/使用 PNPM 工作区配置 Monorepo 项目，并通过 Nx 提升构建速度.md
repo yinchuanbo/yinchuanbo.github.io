@@ -1,6 +1,6 @@
 ---
 title: "使用 PNPM 工作区配置 Monorepo 项目，并通过 Nx 提升构建速度"
-tag: "Monorepo"
+tag: "单仓库"
 time: 2024-11-10 19:13:06
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "应该了解的多个 Monorepo 构建工具"
-tag: "Monorepo"
+tag: "单仓库"
 time: 2024-11-09 20:17:01
 ---
 

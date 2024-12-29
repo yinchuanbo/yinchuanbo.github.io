@@ -1,6 +1,6 @@
 ---
 title: "宝塔部署 NodeJS 项目"
-tag: "NodeJS"
+tag: "运行时"
 time: 2024-10-14 21:15:08
 ---
 
