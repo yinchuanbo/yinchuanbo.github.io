@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>为什么 Bun 可能对 Node 降维打击</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism2.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+    <style>
+      :root {
+        --bg-color: #121212;
+        --text-color: #e0e0e0;
+        --accent-color: #8a8a8a;
+        --hover-color: rgba(56, 139, 253, 0.15);
+        --border-color: #333333;
+        --header-bg: #1a1a1a;
+
+        /* Spacing System */
+        --space-xs: 0.25rem; /* 4px */
+        --space-sm: 0.5rem; /* 8px */
+        --space-md: 1rem; /* 16px */
+        --space-lg: 1.5em; /* 24px */
+        --space-xl: 2rem; /* 32px */
+        --space-2xl: 3rem; /* 48px */
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: "JetBrains Mono", monospace;
+        line-height: 1.6;
+      }
+
+      li {
+        list-style: none;
+      }
+
+      .layout__main_left {
+        background-color: var(--header-bg);
+        border-right: 1px solid var(--border-color);
+        padding: var(--space-md);
+      }
+
+      .layout__main_left ul {
+        margin: 0;
+        padding: 0;
+      }
+
+      .layout__main_left ul li {
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.3s ease;
+        padding: 0;
+        margin-bottom: 0;
+      }
+
+      .layout__main_right {
+        background-color: var(--bg-color);
+        padding: var(--space-xl);
+      }
+
+      .page-header {
+        /* border-bottom: 1px solid var(--border-color);
+        margin-bottom: var(--space-xl);
+        padding-bottom: var(--space-md); */
+      }
+
+      .page-header h1 {
+        color: var(--text-color);
+        font-size: 2rem;
+        margin: 0 0 var(--space-sm) 0;
+      }
+
+      .time {
+        color: var(--accent-color);
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .layout__main_map {
+        background-color: var(--header-bg);
+        border-left: 1px solid var(--border-color);
+        padding: var(--space-md);
+      }
+
+      .layout__main_map_content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+      }
+
+      .layout__main_map a {
+        color: var(--text-color) !important;
+        opacity: 0.8;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        padding: var(--space-xs) 0;
+      }
+
+      .layout__main_map a.H2 {
+        color: #a0a0a0 !important;
+        margin-top: var(--space-md);
+      }
+
+      .layout__main_map a.H3 {
+        color: #808080 !important;
+        padding-left: var(--space-lg);
+        margin-top: var(--space-xs);
+      }
+
+      /* Content Spacing */
+      .md h1,
+      .md h2,
+      .md h3,
+      .md h4,
+      .md h5,
+      .md h6 {
+        margin: var(--space-xl) 0 var(--space-md) 0;
+        font-weight: normal;
+      }
+
+      .md h2 {
+        font-size: 1.8rem;
+        color: #66b3ff;
+        padding-bottom: var(--space-sm);
+        border-bottom: 1px solid var(--border-color);
+        letter-spacing: 0.5px;
+      }
+
+      .md h3 {
+        font-size: 1.5rem;
+        color: #99ccff;
+        padding-left: var(--space-sm);
+        border-left: 3px solid var(--accent-color);
+        letter-spacing: 0.3px;
+      }
+
+      .md h4 {
+        font-size: 1.25rem;
+        color: #cce6ff;
+        position: relative;
+        padding-left: var(--space-md);
+        font-style: italic;
+      }
+
+      .md h4::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: var(--accent-color);
+        font-size: 1.2em;
+        font-style: normal;
+      }
+
+      .md h1:first-child,
+      .md h2:first-child,
+      .md h3:first-child {
+        margin-top: 0;
+      }
+
+      .md p {
+        margin: 0 0 var(--space-md) 0;
+      }
+
+      .md ul,
+      .md ol {
+        margin: var(--space-md) 0;
+        padding-left: 0;
+        list-style: none;
+      }
+
+      .md li {
+        position: relative;
+        padding-left: 1.5em;
+        margin-bottom: 0.5em;
+      }
+
+      /* Handle special case where li contains ol directly */
+      .md ul > li > ol {
+        margin: 0;
+        padding: 0;
+      }
+
+      .md ul > li > ol > li {
+        padding-left: 2.5em;
+      }
+
+      /* Remove bullet for li that contains ol */
+      .md ul > li:has(> ol) {
+        padding-left: 0;
+      }
+
+      .md ul > li:has(> ol)::before {
+        display: none;
+      }
+
+      /* Unordered list bullets */
+      .md ul > li:not(:has(> ol))::before {
+        content: "";
+        position: absolute;
+        left: 0.4em;
+        top: 0.7em;
+        width: 4px;
+        height: 4px;
+        background-color: var(--accent-color);
+        border-radius: 50%;
+      }
+
+      /* Ordered Lists */
+      .md ol {
+        counter-reset: list-number;
+      }
+
+      .md ol > li {
+        counter-increment: list-number;
+      }
+
+      .md ol > li::before {
+        content: counter(list-number) ".";
+        position: absolute;
+        left: 0;
+        color: var(--accent-color);
+        font-size: 1em;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* Handle start attribute */
+      .md ol[start] {
+        counter-reset: list-number attr(start) -1;
+      }
+
+      /* Nested Lists */
+      .md ul ul,
+      .md ol ul,
+      .md ul ol,
+      .md ol ol {
+        margin: 0.5em 0 0.5em 0;
+      }
+
+      .md ul ul li::before {
+        content: "";
+        width: 3px;
+        height: 3px;
+        border: 1px solid var(--accent-color);
+        background-color: transparent;
+      }
+
+      .md ul ul ul li::before {
+        content: "";
+        width: 4px;
+        height: 1px;
+        background-color: var(--accent-color);
+        border-radius: 0;
+      }
+
+      /* Layout Left Navigation */
+      .layout__main_left ul li {
+        padding: var(--space-xs) var(--space-md);
+        margin: 0;
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+      }
+
+      .layout__main_left ul li:hover {
+        background-color: var(--hover-color);
+        border-left-color: var(--accent-color);
+      }
+
+      .layout__main_left ul li.active {
+        background-color: var(--hover-color);
+        border-left-color: var(--accent-color);
+      }
+
+      .layout__main_left ul li::before {
+        display: none;
+      }
+
+      /* Code block styling */
+      .md pre[class*="language-"] {
+        padding: var(--space-md);
+        border-radius: 6px;
+        background: #212121 !important;
+      }
+
+      .md img {
+        margin: var(--space-lg) auto;
+        /* max-width: 60%; */
+        height: auto;
+        border-radius: 4px;
+      }
+
+      .md blockquote {
+        margin-bottom: 1em;
+        padding: var(--space-md) 1.5em;
+        border-left: 4px solid var(--accent-color);
+        background: var(--header-bg);
+      }
+
+      .md blockquote > *:last-child {
+        margin-bottom: 0;
+      }
+
+      .md table {
+        margin: var(--space-lg) 0;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      .md td,
+      .md th {
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid var(--border-color);
+      }
+
+      /* Animation Refinements */
+      .fade-in {
+        opacity: 0;
+        transform: translateY(var(--space-sm));
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+
+      .fade-in.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+      }
+    </style>
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 2">
+          <div class="layout__main_left-switch"></div>
+          <ul>
+            <li class="active"><a title="为什么 Bun 可能对 Node 降维打击" href="/md/为什么 Bun 可能对 Node 降维打击.html">10 为什么 Bun 可能对 Node 降维打击</a></li><li class=""><a title="Node 获取整站所有 scss 文件并输出内容" href="/md/Node 获取整站所有 scss 文件并输出内容.html">09 Node 获取整站所有 scss 文件并输出内容</a></li><li class=""><a title="parallel-wait-run 一个并行运行多个 npm scripts 的小工具" href="/md/parallel-wait-run 一个并行运行多个 npm scripts 的小工具.html">08 parallel-wait-run 一个并行运行多个 npm scripts 的小工具</a></li><li class=""><a title="Deno 2.0 正式发布" href="/md/Deno 2.0 正式发布.html">07 Deno 2.0 正式发布</a></li><li class=""><a title="如果你使用的第三方库有 bug，你会怎么办" href="/md/如果你使用的第三方库有 bug，你会怎么办.html">06 如果你使用的第三方库有 bug，你会怎么办</a></li><li class=""><a title="宝塔部署 NodeJS 项目" href="/md/宝塔部署 NodeJS 项目.html">05 宝塔部署 NodeJS 项目</a></li><li class=""><a title="性能提升 5-10 倍的加强版 Express" href="/md/性能提升 5-10 倍的加强版 Express.html">04 性能提升 5-10 倍的加强版 Express</a></li><li class=""><a title="node环境变量及在项目中的使用" href="/md/node环境变量及在项目中的使用.html">03 node环境变量及在项目中的使用</a></li><li class=""><a title="统一 Node 版本" href="/md/统一 Node 版本.html">02 统一 Node 版本</a></li><li class=""><a title="NodeJS 全栈之视频通话" href="/md/NodeJS 全栈之视频通话.html">01 NodeJS 全栈之视频通话</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_map" style="order: 0">
+          <div class="layout__main_map_content"></div>
+          <div class="layout__main_map_swicth"></div>
+        </div>
+        <div
+          style="order: 1"
+          class="layout__main_right md "
+        >
+          <div class="page-header">
+            <h1>为什么 Bun 可能对 Node 降维打击</h1>
+            <p class="time">HaoTian · 2024-12-30 13:14:30</p>
+          </div>
+          <p>近年来，前端社区涌现了一大坨运行时，包括但不限于：</p>
+<ul>
+<li>稳如老狗的 Node.js</li>
+<li>不破不立的 Deno</li>
+<li>大破大立的 Bun</li>
+</ul>
+<img src="../imgs/132/01.awebp" />
+
+<p>去年，“Bun 之父”J.S. 官宣 Bun 1.0 新鲜出炉，今年 Bun 团队更是野心勃起，企图用 Bun 打败 Node。说是这样说，气势不能输，但私以为 Node 重度用户的“路径依赖”没那么容易克服，大多数用户（包括本人）大概率还是会在 Node 的舒适圈中“圈地自萌”。</p>
+<p>话虽如此，还是有一大坨道友先质疑、再质疑：</p>
+<ul>
+<li>为什么大家都拿 Bun 和人气爆棚的 Node 相提并论？</li>
+<li>Bun 只是昙花一现之过眼云烟，还是可能终结 Node 的长期垄断？</li>
+</ul>
+<h2>Bun 到底是什么鬼物？</h2>
+<p>Bun 直男翻译为“包子”，或者“小圆甜蛋糕”，我有一个大胆的想法：Bun 的含义大概是想成为像 Node 一样前端爱好者生活必需的“面包”，抑或是企图在运行时市场瓜分一块“蛋糕”。</p>
+<p>说巧不巧，初露头角的 Bun 的头像就是一大坨名副其实的包子，而成名多年的 Node 的吉祥物还在路上。</p>
+<img src="../imgs/132/02.awebp" />
+
+<p>根据 Bun 的官方公关，Bun 是一款可以和 JS/TS “梦幻联动”的 <strong>all-in-one toolkit（一体化工具人）</strong>。换而言之，Bun 是妥妥的“斜杠青年” —— Bun 是运行时/包管理器/打包器/测试运行器。Bun 主打的就是一条龙服务 —— Node 有的我都有，Node 原生没有的，不好意思我也有。</p>
+<h2>Bun 的产品定位</h2>
+<p>Node 于 2009 横空出世，这位“00 后”如今可谓人气爆棚，以至于某些道友指猫为狗 —— Node 是一门“编程语言”，这大约就是“人怕出名猫怕胖”。</p>
+<img src="../imgs/132/03.awebp" />
+
+<p>虽然但是，像 React 和 Angular 等前端技术一样，随着代码屎山与日俱增，Node 的熵值也突破天际。</p>
+<p>举个栗子，臭名昭著的“npm 依赖地狱”，爱因斯坦看完都要重新审视相对论了。</p>
+<img src="../imgs/132/04.awebp" />
+
+<p>再举个栗子，Node 默认的包管理工具 npm 差强人意，所以 Node 社区不得不“反复造轮子”，导致像我一样的“选择困难症晚期患者”初学 Node 时一脸懵逼：</p>
+<ul>
+<li>npm......</li>
+<li>yarn?</li>
+<li>pnpm~</li>
+<li>都市传说：Node 团队成员又双叒叕另起炉灶，搞了一个全新的 npm 备胎，日后再说</li>
+</ul>
+<p>“Node 之父” R.D. 后知后觉，等到它想优化 Node 的时候，Node 已经形成“劣币驱逐良币”的不可抗力，就像强人工智能吊打卷毛狒狒一样暴走失控了。于是乎，“Node 之父”为了避免在 Node 中一边开飞机一边修飞机，果断切换赛道，化身成为“Deno 之父”。</p>
+<p>作为“Node 之父”，R.D. 曾在公众场合中毫无保留地公开处刑 Node 的“七大罪”，可谓罄竹难书、“父呲子笑”。反观作为“Deno 之父”，R.D. 确实是模范爸爸。</p>
+<p>Deno 是 JS/TS 的安全运行时，原生支持 TS，无需手动配置。与 Node 不同，Node 的脚本默认具有广泛的权限，Deno 则认为“脚本千万条，安全第一条”，要求开发者显式赋予敏感操作的权限，比如文件系统的读写。这自然增加了我们的学习成本和心智负担，但 Deno 的鲁棒性确实对 Node “降维打击”。</p>
+<p>Bun 的初衷大抵也是如此，为了对 Node 基建“降维打击”，Bun 被设计为比 Node 更丝滑、更精简的现代化竞品，而不仅仅是备胎。</p>
+<h2>运行时测评</h2>
+<p>Node 主要使用 C 艹 编写，而 Bun 则使用 Zig （低阶通用编程语言）编写。本质上而言，Bun 是一个 JS/TS 的运行时。所谓运行时，顾名思义就是一个提供使用和运行程序的环境。</p>
+<p>运行时的关键组件之一是 JS 引擎，用于将 JS 代码转换为机器码。Node 使用为 Chrome 浏览器提供支持的谷歌 V8 引擎，而 Bun 则使用 JSC（JavaScriptCore），此乃苹果为 Safari 浏览器开发的开源 JS 引擎。</p>
+<p>V8 和 JSC 各有千秋，两者使用了不同的架构和优化策略。JSC 优先考虑更快的启动时间和更少的内存占用，短板在于更慢的执行时间。V8 优先考虑更快的执行和更多的运行时优化，短板在于更多的内存开销。</p>
+<img src="../imgs/132/05.awebp" />
+
+<p>如你所见，Bun 的运行性能比 Node 快 <code>4.81</code> 倍。</p>
+<p>虽然 Node 是一个给力的 JS 运行时，但 Node 原生并不支持 TS。要在 Node 中跑 TS，需要诉诸第三方包。一种常见方案是，使用诸如 <code>tsx/esbuild/babel</code> 等依赖先将 TS 转换为 JS，然后按需“优雅降级”为低版兼容性代码。</p>
+<p>相比之下，Bun 内置了 TS 转译器，原生支持 <code>.js/.ts/.jsx/.tsx</code> 文件，无需安装任何外部依赖。Bun 的内置转译器将各种乱七八糟的文件无缝转换为平平无奇的 JS，无需额外步骤就能直接跑 TS。</p>
+<p>尤其在跑 TS 文件时，这种性能跑分会被放大，因为 Node 在运行前需要足够的前戏 —— 一个多余的转译步骤。</p>
+<img src="../imgs/132/06.awebp" />
+
+<p>如你所见，Bun 跑 TS 时对 Node 生态“降维打击”。</p>
+<p>Node 生态的另一个“阿喀琉斯之踵”在于模块系统，模块系统允许我们将代码组织成可复用片段，目前人气爆棚的两个模块系统是：</p>
+<ul>
+<li>CJS（CommonJS）</li>
+<li>ESM（ES 模块）</li>
+</ul>
+<p>CJS 源自 Node，使用 <code>require/module.exports</code> 处理同步模块，适合服务端操作。ES6 强势引入 ESM 则采用 <code>import/export</code> 语法，提供静态异步模块，且可以针对 Vite 等现代构建工具优化，比如 tree-shaking（树摇优化）。</p>
+<p>Node 原生支持 CJS，渐进实验性支持 ESM。作为前端爱好者，一般初恋都是浏览器，后来和 Node 贴贴可能会很折磨，因为 CJS 和 ESM 再次让我们选择困难，最终导致决策瘫痪。</p>
+<p>在 Node 中使用 ESM 常见方案，包括但不限于：</p>
+<ul>
+<li>在 <code>package.json</code> 中添加 <code>&quot;type&quot;: &quot;module&quot;</code> 属性</li>
+<li>使用 <code>.mjs</code> 扩展名取代 <code>js</code> 扩展名</li>
+</ul>
+<p>Node 从 CJS 过渡到 ESM 走了很长的路，花了整整 <code>5</code> 年才在没有实验标志的情况下支持 ESM。不管是学习成本、开发体验还是心智模型，模块的兼容性始终是压在 Node 心头的一只胖橘。</p>
+<p>Bun 原生兼容 CJS/ESM，无需任何配置。Bun 的亮点功能是，它能够在同一文件中同时支持 <code>import/require()</code>，类似于旧版 TS 的奇葩模块语法，这在 Node 中是不可能事件：</p>
+<pre><code class="language-js">// Bun 中的混合模块语法
+import vue from &quot;vue&quot;;
+const react = require(&quot;react&quot;);
+</code></pre>
+<p>虽然但是，私以为混合模块可能是“设计失误”，或者说“在飙历史倒车”。从兼容性看，混合模块在技术上是一个自然延伸的功能，但对于用户而言，抛开学习成本和心智模型不谈，混合模块明显增加了维护的熵值。我的个人心证是，建议大家不管在浏览器还是 Node 中，都尽量拥抱标准的 ESM。</p>
+<p>举个栗子，Vite 是一个人气爆棚的现代化工具，Vite 在开发环境拥抱标准的 ESM，在生产构建则按需转译模块语法。尽管如此，还是存在一大坨 corner case（极端用例），这是 Vite 使用 rollup 构建时无法完美兼容的，尤大一度在 ViteConf 国际大会上疯狂吐槽。老粉都知道，去年我共享的 Vite 前沿资讯有提及，Vite 已经直接弃用 CJS。犹豫就会败北，私以为 ESM 只会比 CJS 越来越流行，这就是标准的魔力，就像专一的铲屎官更能被猫猫青睐。</p>
+<p>总而言之，个人建议在使用 Bun 时，尽量避免使用混合模块语法，因为一点也不符合人体工程学。</p>
+<p>Vite 等现代化工具的福利之一是热重载，在代码更改时可以自动刷新或重新加载 App，无需完全重启，真正做到一边开飞机、一边修飞机，提高开发效率和开发体验。</p>
+<p>Node 以前原生不支持热重载，常见方案包括但不限于：</p>
+<ul>
+<li>安装 <code>nodemon</code> 等第三方包来硬重启</li>
+<li>Node 18+ 实验性支持 <code>--watch</code> flag</li>
+</ul>
+<p>虽然但是，<code>nodemon</code> 可能会中断，比如断开 HTTP 和 <code>WebSocket</code> 连接，而 <code>--watch</code> 还处于实验阶段。</p>
+<p>Bun 使用 <code>--hot</code> flag 原生支持热重载，与需要重启整个进程的 Node 不同，Bun 会就地重载代码，而不会终止旧进程。这可以确保 HTTP 和 <code>WebSocket</code> 的连接不间断，并保留 App 状态，提供更丝滑的开发体验。</p>
+<p>除了 JS 的标准（比如模块），对浏览器标准的 Web API（比如 <code>WebSocket</code>），Node 的支持也不一致。</p>
+<p>举个栗子，Node 的早期版本不支持浏览器中常用的 <code>fetch</code> API，我们必须依赖 <code>node-fetch</code> 等第三方模块来“曲线救国”。虽然但是，Node 18+ 开始实验性支持 <code>fetch</code>，目测未来可期。</p>
+<p>Bun 则内置支持这些 Web 标准 API，我们可以直接使用稳定的 <code>fetch/Request/Response</code> 等 API，无需任何额外依赖。由于这些 API 是 Bun 的原生实现，所以其性能比第三方备胎更快、更可靠。</p>
+<p>使用 Web 标准 API 设置 HTTP 服务器或 <code>WebSocket</code> 服务器，它每秒处理的请求比 Node 多 <code>4</code> 倍，处理的 <code>WebSocket</code> 消息比 Node 的 <code>ws</code> 包多 5 倍。</p>
+<p>简而言之，Node 生态的大部分功能需要我们手动安装第三方包来“曲线救国”，而 Bun 不仅原生支持，而且青出于蓝。</p>
+<h2>包管理器</h2>
+<p>Bun 本身还是一个功能强大的包管理器。</p>
+<p>举一反一，CRUD 相关命令不能说是毫无关系，只能说是一毛一样：</p>
+<table>
+<thead>
+<tr>
+<th>Bun</th>
+<th>npm</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>bun install</code></td>
+<td><code>npm install</code></td>
+<td>安装 <code>package.json</code> 的所有依赖</td>
+</tr>
+<tr>
+<td><code>bun add &lt;package&gt;</code></td>
+<td><code>npm install &lt;package&gt;</code></td>
+<td>将新依赖添加到项目中</td>
+</tr>
+<tr>
+<td><code>bun add &lt;package&gt; --dev</code></td>
+<td><code>npm install &lt;package&gt; --dev</code></td>
+<td>添加新的开发依赖</td>
+</tr>
+<tr>
+<td><code>bun remove &lt;package&gt;</code></td>
+<td><code>npm uninstall &lt;package&gt;</code></td>
+<td>从项目中删除依赖</td>
+</tr>
+<tr>
+<td><code>bun update &lt;package&gt;</code></td>
+<td><code>npm update &lt;package&gt;</code></td>
+<td>将指定包更新到最新版本</td>
+</tr>
+<tr>
+<td><code>bun run &lt;script&gt;</code></td>
+<td><code>npm run &lt;script&gt;</code></td>
+<td>从 <code>package.json</code> 执行指定脚本</td>
+</tr>
+</tbody></table>
+<p>Bun 的命令似曾相识，没有压力山大的学习成本，只有无缝衔接的开发体验。而且 Bun 采用每个操作系统可用的最快系统调用，确保最佳性能，拥有比 npm 快几个数量级的安装速度，充分利用全局模块缓存，消除从 npm 注册表的冗余下载，从此告别“npm 黑洞”，爱因斯坦看完不用再重新审视相对论了。</p>
+<p>本人现在使用的是 pnpm，但还是欲求不满，但是 Bun 可以真正让我们幸福感拉满：</p>
+<img src="../imgs/132/07.awebp" />
+
+<p>天下武功，唯快不破。如你所见，Bun 啪的一下很快啊就下载完了。</p>
+<h2>打包器</h2>
+<p>所谓打包，指的是是获取多个 JS 文件，并将其合并到一个或多个优化包中的过程。此过程还可能涉及转换，比如将 TS 转换为 JS，或者压缩代码减小体积。Node 的打包通常由第三方工具而不是 Node 本身处理。Node 生态目前有一大坨人气爆棚的打包器，包括但不限于</p>
+<ul>
+<li>Webpack</li>
+<li>Rollup</li>
+<li>Vite</li>
+</ul>
+<p>它们都提供了代码分割、树摇优化和热模块替换等功能。</p>
+<p>Bun 本身也是一个打包器。它旨在打包各种平台的 JS/TS 代码，包括浏览器中的前端 App（Vue/React App）和 Node。Bun 比 esbuild 快 <code>1.75</code> 倍，并且对 Webpack 等其他打包器“降维打击”。</p>
+<p>Bun 的一个天秀功能是 JS 宏，这允许在打包期间执行 JS 函数，并将结果直接内联到最终打包中。</p>
+<p>举个栗子，在打包过程中利用 JS 宏来获取猫猫的名字，该宏不是运行时的 API 调用，而是在打包时获取数据，将结果直接内联到最终产物中：</p>
+<pre><code class="language-js">// cats.ts
+export async function getCat() {
+  const response = await fetch(&#39;https://space.bilibili.com/3493137875994964?spm_id_from=333.1245.0.0&#39;)
+  const cat = await response.json()
+  return cat.name
+}
+
+// index.ts
+// Bun 的 JS 宏
+import { getCat } from &#39;./cats.ts&#39; with { type: &#39;macro&#39; }
+const cat = await getCat()
+
+// build/index.js
+// 打包后直接内联数据，比如猫猫的名字
+var cat = await &#39;人猫神话&#39;
+console.log(cat)
+</code></pre>
+<h2>测试运行器</h2>
+<p>虽然 Node 一般依赖 Vitest/Jest 来满足 TDD（测试驱动开发），但 Bun 内置了测试运行器，它被设计为完全兼容 Jest。Jest 是一个以“expect”风格 API 闻名的测试框架，这种兼容性确保熟悉 Vitest/Jest 爱好者可以无缝衔接到 Bun，没有任何陡峭的学习曲线。</p>
+<p>Bun 的测试运行器不仅涉及兼容性；还涉及速度。举个栗子，Bun 中的 <code>expect().toEqual()</code> 比 Vitest 快 <code>10</code> 倍。</p>
+<h2>高能总结</h2>
+<p>Bun 和 Node 目前测评跑分的异同点，包括但不限于：</p>
+<table>
+<thead>
+<tr>
+<th>对照实验</th>
+<th>Node</th>
+<th>Bun</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>编程语言</td>
+<td>C 艹</td>
+<td>Zig</td>
+</tr>
+<tr>
+<td>JS 引擎</td>
+<td>谷歌 Chrome V8</td>
+<td>苹果 Safari JSC</td>
+</tr>
+<tr>
+<td>TS 转译</td>
+<td>第三方包</td>
+<td>原生支持</td>
+</tr>
+<tr>
+<td>模块系统</td>
+<td>从 CJS 过渡到 ESM</td>
+<td>原生支持混合模块</td>
+</tr>
+<tr>
+<td>fetch</td>
+<td>第三方包/实验性支持</td>
+<td>原生支持</td>
+</tr>
+<tr>
+<td>热重载</td>
+<td>第三方包/实验性标志</td>
+<td>原生支持</td>
+</tr>
+<tr>
+<td>包管理器</td>
+<td>npm/pnpm</td>
+<td>原生支持</td>
+</tr>
+<tr>
+<td>打包工具</td>
+<td>Vite</td>
+<td>原生支持</td>
+</tr>
+<tr>
+<td>TDD</td>
+<td>Vitest</td>
+<td>原生支持</td>
+</tr>
+</tbody></table>
+<p>Bun 目前的痛点（个人向）,包括但不限于：</p>
+<ul>
+<li>Windows 支持不尽如人意，不如 Linux/MacOS</li>
+<li>Node 生态兼容性差强人意，暗中观察中</li>
+<li>不像 Vite 完美拥抱 ESM，混合模块疑似“飙历史倒车”</li>
+<li>Zig 可能是世界上最好的语言，但开源不友好</li>
+</ul>
+<p>Node 凭借其成熟的生态，一直在前端运行时稳坐头等舱，强如 Deno 也难以撼动其霸主地位。虽然但是，Bun 正以一位不容小觑的挑战者身份崭露头角。虽然 Bun 还未成年，但它名噪一时毋庸置疑，目测是一只潜力股。目前，Bun 针对 MacOS 和 Linux 进行了优化，而 Windows 的支持正在进行中。不幸的是，本人日常开发使用的偏偏是 Windows 系统......</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // 滚动动画
+      document.addEventListener("DOMContentLoaded", () => {
+        // 为所有段落、标题和列表添加 fade-in 类
+        const elements = document.querySelectorAll(
+          ".md p, .md h2, .md h3, .md ul, .md ol, .md img, .code-toolbar"
+        );
+        elements.forEach((el) => el.classList.add("fade-in"));
+
+        // 为左侧导航项添加动画延迟
+        const navItems = document.querySelectorAll(".layout__main_left ul li");
+        navItems.forEach((item, index) => {
+          item.style.setProperty("--i", index);
+        });
+
+        // 滚动时添加动画
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("visible");
+                // 一旦元素显示，就停止观察它
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          {
+            threshold: 0.1,
+            rootMargin: "0px 0px -20px 0px", // 调整触发距离
+          }
+        );
+
+        // 延迟添加观察者，确保页面完全加载
+        setTimeout(() => {
+          elements.forEach((el) => observer.observe(el));
+        }, 100);
+
+        // 确保初始可见区域的元素立即显示
+        const checkInitialVisibility = () => {
+          elements.forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight) {
+              el.classList.add("visible");
+            }
+          });
+        };
+
+        checkInitialVisibility();
+
+        // 平滑滚动到锚点
+        document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+          anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute("href"));
+            if (target) {
+              target.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+          });
+        });
+      });
+
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      const imgs = document.querySelectorAll("img");
+      imgs.forEach((img) => {
+        img.onclick = () => {
+          img.style.opacity = 0;
+          let imgHove = document.querySelector(".img-hover");
+          if (imgHove) imgHove.remove();
+          const src = img.src;
+          const html = `
+            <div class="img-hover">
+              <img src="${src}" />
+            </div>
+          `;
+          document.body.insertAdjacentHTML("beforeend", html);
+          document.body.style.overflow = "hidden";
+          imgHove = document.querySelector(".img-hover");
+          imgHove.onclick = () => {
+            imgHove.remove();
+            document.body.style.overflow = "initial";
+            img.style.opacity = 1;
+          };
+        };
+      });
+      const headings = document.querySelectorAll(".md h2, .md h3");
+      const navContainer = document.querySelector(".layout__main_map_content");
+      const layoutMainMap = document.querySelector(".layout__main_map");
+      if (!headings?.length) {
+        layoutMainMap.style.display = "none";
+      }
+      headings.forEach((heading, index) => {
+        const id = `heading-${index}`;
+        heading.id = id;
+        const link = document.createElement("a");
+        link.href = `#${id}`;
+        link.textContent =
+          heading.tagName === "H2"
+            ? `▪ ${heading.textContent}`
+            : `· ${heading.textContent}`;
+        link.title = link.textContent;
+        link.style.display = "block";
+        link.style.margin = "5px 0";
+        link.style.color = heading.tagName === "H2" ? "blue" : "darkblue";
+        link.className = heading.tagName === "H2" ? "H2" : "H3";
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+        });
+        navContainer.appendChild(link);
+      });
+      const swicthDom = document.querySelector(".layout__main_map_swicth");
+      const mapDom = document.querySelector(".layout__main_map");
+      swicthDom.onclick = () => {
+        mapDom.classList.toggle("show");
+      };
+      const swicthDom2 = document.querySelector(".layout__main_left-switch");
+      const mapDom2 = document.querySelector(".layout__main_left");
+      swicthDom2.onclick = () => {
+        mapDom2.classList.toggle("show");
+      };
+    </script>
+  </body>
+</html>
