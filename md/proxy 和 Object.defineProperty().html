@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>proxy 和 Object.defineProperty()</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism2.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+    <style>
+      :root {
+        --bg-color: #121212;
+        --text-color: #e0e0e0;
+        --accent-color: #8a8a8a;
+        --hover-color: rgba(56, 139, 253, 0.15);
+        --border-color: #333333;
+        --header-bg: #1a1a1a;
+
+        /* Spacing System */
+        --space-xs: 0.25rem; /* 4px */
+        --space-sm: 0.5rem; /* 8px */
+        --space-md: 1rem; /* 16px */
+        --space-lg: 1.5em; /* 24px */
+        --space-xl: 2rem; /* 32px */
+        --space-2xl: 3rem; /* 48px */
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: "JetBrains Mono", monospace;
+        line-height: 1.6;
+      }
+
+      li {
+        list-style: none;
+      }
+
+      .layout__main_left {
+        background-color: var(--header-bg);
+        border-right: 1px solid var(--border-color);
+        padding: var(--space-md);
+      }
+
+      .layout__main_left ul {
+        margin: 0;
+        padding: 0;
+      }
+
+      .layout__main_left ul li {
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.3s ease;
+        padding: 0;
+        margin-bottom: 0;
+      }
+
+      .layout__main_right {
+        background-color: var(--bg-color);
+        padding: var(--space-xl);
+      }
+
+      .page-header {
+        /* border-bottom: 1px solid var(--border-color);
+        margin-bottom: var(--space-xl);
+        padding-bottom: var(--space-md); */
+      }
+
+      .page-header h1 {
+        color: var(--text-color);
+        font-size: 2rem;
+        margin: 0 0 var(--space-sm) 0;
+      }
+
+      .time {
+        color: var(--accent-color);
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .layout__main_map {
+        background-color: var(--header-bg);
+        border-left: 1px solid var(--border-color);
+        padding: var(--space-md);
+      }
+
+      .layout__main_map_content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+      }
+
+      .layout__main_map a {
+        color: var(--text-color) !important;
+        opacity: 0.8;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        padding: var(--space-xs) 0;
+      }
+
+      .layout__main_map a.H2 {
+        color: #a0a0a0 !important;
+        margin-top: var(--space-md);
+      }
+
+      .layout__main_map a.H3 {
+        color: #808080 !important;
+        padding-left: var(--space-lg);
+        margin-top: var(--space-xs);
+      }
+
+      /* Content Spacing */
+      .md h1,
+      .md h2,
+      .md h3,
+      .md h4,
+      .md h5,
+      .md h6 {
+        margin: var(--space-xl) 0 var(--space-md) 0;
+        font-weight: normal;
+      }
+
+      .md h2 {
+        font-size: 1.8rem;
+        color: #66b3ff;
+        padding-bottom: var(--space-sm);
+        border-bottom: 1px solid var(--border-color);
+        letter-spacing: 0.5px;
+      }
+
+      .md h3 {
+        font-size: 1.5rem;
+        color: #99ccff;
+        padding-left: var(--space-sm);
+        border-left: 3px solid var(--accent-color);
+        letter-spacing: 0.3px;
+      }
+
+      .md h4 {
+        font-size: 1.25rem;
+        color: #cce6ff;
+        position: relative;
+        padding-left: var(--space-md);
+        font-style: italic;
+      }
+
+      .md h4::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: var(--accent-color);
+        font-size: 1.2em;
+        font-style: normal;
+      }
+
+      .md h1:first-child,
+      .md h2:first-child,
+      .md h3:first-child {
+        margin-top: 0;
+      }
+
+      .md p {
+        margin: 0 0 var(--space-md) 0;
+      }
+
+      .md ul,
+      .md ol {
+        margin: var(--space-md) 0;
+        padding-left: 0;
+        list-style: none;
+      }
+
+      .md li {
+        position: relative;
+        padding-left: 1.5em;
+        margin-bottom: 0.5em;
+      }
+
+      /* Handle special case where li contains ol directly */
+      .md ul > li > ol {
+        margin: 0;
+        padding: 0;
+      }
+
+      .md ul > li > ol > li {
+        padding-left: 2.5em;
+      }
+
+      /* Remove bullet for li that contains ol */
+      .md ul > li:has(> ol) {
+        padding-left: 0;
+      }
+
+      .md ul > li:has(> ol)::before {
+        display: none;
+      }
+
+      /* Unordered list bullets */
+      .md ul > li:not(:has(> ol))::before {
+        content: "";
+        position: absolute;
+        left: 0.4em;
+        top: 0.7em;
+        width: 4px;
+        height: 4px;
+        background-color: var(--accent-color);
+        border-radius: 50%;
+      }
+
+      /* Ordered Lists */
+      .md ol {
+        counter-reset: list-number;
+      }
+
+      .md ol > li {
+        counter-increment: list-number;
+      }
+
+      .md ol > li::before {
+        content: counter(list-number) ".";
+        position: absolute;
+        left: 0;
+        color: var(--accent-color);
+        font-size: 1em;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* Handle start attribute */
+      .md ol[start] {
+        counter-reset: list-number attr(start) -1;
+      }
+
+      /* Nested Lists */
+      .md ul ul,
+      .md ol ul,
+      .md ul ol,
+      .md ol ol {
+        margin: 0.5em 0 0.5em 0;
+      }
+
+      .md ul ul li::before {
+        content: "";
+        width: 3px;
+        height: 3px;
+        border: 1px solid var(--accent-color);
+        background-color: transparent;
+      }
+
+      .md ul ul ul li::before {
+        content: "";
+        width: 4px;
+        height: 1px;
+        background-color: var(--accent-color);
+        border-radius: 0;
+      }
+
+      /* Layout Left Navigation */
+      .layout__main_left ul li {
+        padding: var(--space-xs) var(--space-md);
+        margin: 0;
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+      }
+
+      .layout__main_left ul li:hover {
+        background-color: var(--hover-color);
+        border-left-color: var(--accent-color);
+      }
+
+      .layout__main_left ul li.active {
+        background-color: var(--hover-color);
+        border-left-color: var(--accent-color);
+      }
+
+      .layout__main_left ul li::before {
+        display: none;
+      }
+
+      /* Code block styling */
+      .md pre[class*="language-"] {
+        padding: var(--space-md);
+        border-radius: 6px;
+        background: #212121 !important;
+      }
+
+      .md img {
+        margin: var(--space-lg) auto;
+        /* max-width: 60%; */
+        height: auto;
+        border-radius: 4px;
+      }
+
+      .md blockquote {
+        margin-bottom: 1em;
+        padding: var(--space-md) 1.5em;
+        border-left: 4px solid var(--accent-color);
+        background: var(--header-bg);
+      }
+
+      .md blockquote > *:last-child {
+        margin-bottom: 0;
+      }
+
+      .md table {
+        margin: var(--space-lg) 0;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      .md td,
+      .md th {
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid var(--border-color);
+      }
+
+      /* Animation Refinements */
+      .fade-in {
+        opacity: 0;
+        transform: translateY(var(--space-sm));
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+
+      .fade-in.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+      }
+    </style>
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 2">
+          <div class="layout__main_left-switch"></div>
+          <ul>
+            <li class="active"><a title="proxy 和 Object.defineProperty()" href="/md/proxy 和 Object.defineProperty().html">53 proxy 和 Object.defineProperty()</a></li><li class=""><a title="为何说 AbortController 是前端一把利剑" href="/md/为何说 AbortController 是前端一把利剑.html">52 为何说 AbortController 是前端一把利剑</a></li><li class=""><a title="前端 Money 类" href="/md/前端 Money 类.html">51 前端 Money 类</a></li><li class=""><a title="理解JS里的WeakMap" href="/md/理解JS里的WeakMap.html">50 理解JS里的WeakMap</a></li><li class=""><a title="token无感刷新的基本实现" href="/md/token无感刷新的基本实现.html">49 token无感刷新的基本实现</a></li><li class=""><a title="前端中的 File 和 Blob两个对象到底有什么不同" href="/md/前端中的 File 和 Blob两个对象到底有什么不同.html">48 前端中的 File 和 Blob两个对象到底有什么不同</a></li><li class=""><a title="js 检测网页空闲状态(一定时间内无操作)" href="/md/js 检测网页空闲状态(一定时间内无操作).html">47 js 检测网页空闲状态(一定时间内无操作)</a></li><li class=""><a title="Javascirpt 时区" href="/md/Javascirpt 时区.html">46 Javascirpt 时区</a></li><li class=""><a title="实用的 Javascript 小功能" href="/md/实用的 Javascript 小功能.html">45 实用的 Javascript 小功能</a></li><li class=""><a title="前端实现直接粘贴图片到 html 页面" href="/md/前端实现直接粘贴图片到 html 页面.html">44 前端实现直接粘贴图片到 html 页面</a></li><li class=""><a title="前端如何静悄悄录制用户的操作过程，静悄悄上传到服务器" href="/md/前端如何静悄悄录制用户的操作过程，静悄悄上传到服务器.html">43 前端如何静悄悄录制用户的操作过程，静悄悄上传到服务器</a></li><li class=""><a title="JS 中数组的 map 鲜为人知但绝妙的使用方法" href="/md/JS 中数组的 map 鲜为人知但绝妙的使用方法.html">42 JS 中数组的 map 鲜为人知但绝妙的使用方法</a></li><li class=""><a title="在 Web 中判断页面是不是刷新" href="/md/在 Web 中判断页面是不是刷新.html">41 在 Web 中判断页面是不是刷新</a></li><li class=""><a title="Js 小技巧" href="/md/Js 小技巧.html">40 Js 小技巧</a></li><li class=""><a title="split 方法我算是白学了" href="/md/split 方法我算是白学了.html">39 split 方法我算是白学了</a></li><li class=""><a title="拼接 URL" href="/md/拼接 URL.html">38 拼接 URL</a></li><li class=""><a title="ES14 中 5 个最具变革性的 JavaScript 特性" href="/md/ES14 中 5 个最具变革性的 JavaScript 特性.html">37 ES14 中 5 个最具变革性的 JavaScript 特性</a></li><li class=""><a title="JavaScript 中设置器和获取器" href="/md/JavaScript 中设置器和获取器.html">36 JavaScript 中设置器和获取器</a></li><li class=""><a title="非常强大的标准 JavaScript API - AbortController" href="/md/非常强大的标准 JavaScript API - AbortController.html">35 非常强大的标准 JavaScript API - AbortController</a></li><li class=""><a title="掌握 JavaScript 中的 Call 和 Apply" href="/md/掌握 JavaScript 中的 Call 和 Apply.html">34 掌握 JavaScript 中的 Call 和 Apply</a></li><li class=""><a title="一文整懂事件对象 event 的常用方法" href="/md/一文整懂事件对象 event 的常用方法.html">33 一文整懂事件对象 event 的常用方法</a></li><li class=""><a title="7 种开发人员都应该知道的高级 JavaScript 技术" href="/md/7 种开发人员都应该知道的高级 JavaScript 技术.html">32 7 种开发人员都应该知道的高级 JavaScript 技术</a></li><li class=""><a title="实现基于用户操作系统偏好的明暗主题切换" href="/md/实现基于用户操作系统偏好的明暗主题切换.html">31 实现基于用户操作系统偏好的明暗主题切换</a></li><li class=""><a title="JavaScript 原生实现图片复制与粘贴" href="/md/JavaScript 原生实现图片复制与粘贴.html">30 JavaScript 原生实现图片复制与粘贴</a></li><li class=""><a title="高精度实现定时器" href="/md/高精度实现定时器.html">29 高精度实现定时器</a></li><li class=""><a title="获取上传进度的几种方式" href="/md/获取上传进度的几种方式.html">28 获取上传进度的几种方式</a></li><li class=""><a title="聊聊禁止页面滚动的几种方法" href="/md/聊聊禁止页面滚动的几种方法.html">27 聊聊禁止页面滚动的几种方法</a></li><li class=""><a title="缓存 http 错误，避免多次报错提示" href="/md/缓存 http 错误，避免多次报错提示.html">26 缓存 http 错误，避免多次报错提示</a></li><li class=""><a title="文件操作" href="/md/文件操作.html">25 文件操作</a></li><li class=""><a title="数据类型判断方法" href="/md/数据类型判断方法.html">24 数据类型判断方法</a></li><li class=""><a title="宏任务和微任务" href="/md/宏任务和微任务.html">23 宏任务和微任务</a></li><li class=""><a title="十个超级好用的 Js 技巧" href="/md/十个超级好用的 Js 技巧.html">22 十个超级好用的 Js 技巧</a></li><li class=""><a title="前端的网络状态" href="/md/前端的网络状态.html">21 前端的网络状态</a></li><li class=""><a title="使用 JavaScript 加载字体" href="/md/使用 JavaScript 加载字体.html">20 使用 JavaScript 加载字体</a></li><li class=""><a title="你需要知道的 Symbols" href="/md/你需要知道的 Symbols.html">19 你需要知道的 Symbols</a></li><li class=""><a title="Set 和 WeakSet 的用法和区别" href="/md/Set 和 WeakSet 的用法和区别.html">18 Set 和 WeakSet 的用法和区别</a></li><li class=""><a title="sessionStorage 能在多个标签页之间共享数据吗" href="/md/sessionStorage 能在多个标签页之间共享数据吗.html">17 sessionStorage 能在多个标签页之间共享数据吗</a></li><li class=""><a title="scrollIntoview" href="/md/scrollIntoview.html">16 scrollIntoview</a></li><li class=""><a title="reduce 的高级用法" href="/md/reduce 的高级用法.html">15 reduce 的高级用法</a></li><li class=""><a title="js 小众且好用的技巧" href="/md/js 小众且好用的技巧.html">14 js 小众且好用的技巧</a></li><li class=""><a title="js 如何监听一个变量改变" href="/md/js 如何监听一个变量改变.html">13 js 如何监听一个变量改变</a></li><li class=""><a title="javascript 奇葩行为大赏" href="/md/javascript 奇葩行为大赏.html">12 javascript 奇葩行为大赏</a></li><li class=""><a title="FileReader" href="/md/FileReader.html">11 FileReader</a></li><li class=""><a title="EventSource" href="/md/EventSource.html">10 EventSource</a></li><li class=""><a title="document.referrer 拦截问题" href="/md/document.referrer 拦截问题.html">09 document.referrer 拦截问题</a></li><li class=""><a title="7 个 Promise 静态方法" href="/md/7 个 Promise 静态方法.html">08 7 个 Promise 静态方法</a></li><li class=""><a title="谈谈前端路由的实现原理 hash ＆ history" href="/md/谈谈前端路由的实现原理 hash ＆ history.html">07 谈谈前端路由的实现原理 hash ＆ history</a></li><li class=""><a title="属性的 getter 和 setter" href="/md/属性的 getter 和 setter.html">06 属性的 getter 和 setter</a></li><li class=""><a title="高效检查 JS 对象中的键是否存在" href="/md/高效检查 JS 对象中的键是否存在.html">05 高效检查 JS 对象中的键是否存在</a></li><li class=""><a title="实现鼠标滚轮缩放 SVG 内容" href="/md/实现鼠标滚轮缩放 SVG 内容.html">04 实现鼠标滚轮缩放 SVG 内容</a></li><li class=""><a title="使用 JS 向现有 SVG 中添加元素" href="/md/使用 JS 向现有 SVG 中添加元素.html">03 使用 JS 向现有 SVG 中添加元素</a></li><li class=""><a title="JS 单行代码集" href="/md/JS 单行代码集.html">02 JS 单行代码集</a></li><li class=""><a title="7 种位运算符的神奇用法" href="/md/7 种位运算符的神奇用法.html">01 7 种位运算符的神奇用法</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_map" style="order: 0">
+          <div class="layout__main_map_content"></div>
+          <div class="layout__main_map_swicth"></div>
+        </div>
+        <div
+          style="order: 1"
+          class="layout__main_right md "
+        >
+          <div class="page-header">
+            <h1>proxy 和 Object.defineProperty()</h1>
+            <p class="time">HaoTian · 2025-01-05 16:01:01</p>
+          </div>
+          <h2>前言</h2>
+<p>在 JavaScript 的世界里，数据的流动和交互是至关重要的。然而，直接操作数据可能会带来一系列的问题，例如数据污染、安全隐患等。于是，JavaScript 中的&quot;绑匪&quot;——Proxy 出场了。Proxy，顾名思义，就是一个代理人，它可以站在目标对象的前面，拦截和修改对该对象的访问和操作。通过 Proxy，我们可以实现数据绑定、权限控制、性能优化等一系列的功能。那么，Proxy 究竟是如何工作的？它又能带来什么样的便利和安全性？现在让我们抓住这个劫匪来对他严刑逼供一下。</p>
+<h3>1. 数据劫持</h3>
+<p>在我们对 proxy 进行审讯之前，先来了解一下它犯了什么事以及它的前身是什么。接下来我们先来看看它的前身，我们看到文章的题目就知道 proxy 的作用呢就是进行数据劫持，在 proxy 出现之前就有一个函数可以进行数据劫持，它就是<code>Object.defineProperty()</code>。在了解它之前我们先来看看什么是数据劫持？</p>
+<p><strong>数据劫持</strong>：</p>
+<ol>
+<li>劫持对象中的某一个属性，可以控制该属性是否可读可写可枚举可配置， 还可以指定该属性的值，以及当该属性值被读取时会触发 get 方法，当该 属性值被修改时会触发 set 方法。</li>
+<li>只能接收对象，不能劫持数组</li>
+</ol>
+<p><strong>1.1 Object.defineProperty()</strong></p>
+<p>在了解了数据劫持的一些基本概念之后，我们来看看如何使用<code>Object.defineProperty()</code>来实现数据劫持。</p>
+<p>首先我们先定义一个对象<code>obj</code>，其中有个属性<code>a</code>并且将其赋值成 1，接下来我们要对 obj 中的 a 进行数据劫持，这时候就要使用<code>Object.defineProperty()</code>了，这个函数的参数我们可以传入三个分别是<strong>想要劫持的对象</strong>、<strong>劫持对象的属性</strong>和一个<strong>对象</strong>，下面我们来看代码展示：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+};
+
+// 数据劫持
+Object.defineProperty(obj, &quot;a&quot;, {
+  value: 100, // 让a的值变成100
+});
+
+obj.a = 2;
+console.log(obj.a);
+
+// 输出：
+// 2
+</code></pre>
+<p>这时候的输出结果是 2，这里可能就有同学疑惑了，这明明还能给 a 修改数值，劫持又算怎么一回事呢？先别急，在<code>Object.defineProperty()</code>中的第三个参数对象中我们可以为其配置属性，而其中的<code>writable</code>就可以控制被劫持的属性是否可写，接下来我们在其中加入<code>writable: false</code>来看看效果：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+};
+
+// 数据劫持
+Object.defineProperty(obj, &quot;a&quot;, {
+  value: 100, // 让 a 的值变成 100
+  writable: false, // obj 中的 a 是否可写
+});
+
+obj.a = 2;
+console.log(obj.a);
+
+// 输出：
+// 100
+</code></pre>
+<p>当我们添加了这个属性时候我们可以发现被劫持的 obj 中的 a 属性不能进行修改，只能由 Object.defineProperty()中的<code>value</code>属性来修改劫持的数据，这就是我们所说的数据劫持。</p>
+<p>简单理解呢就是我们可以使用<code>Object.defineProperty()</code>来绑架某一个数据，这时候只能由我们绑匪说了算，别人想被劫持的数据干啥也没用，因为人在我们手里，想撕票就撕票。</p>
+<p>除了这两个属性之外，还有很多属性可以让我们对这个人质上点手段，比如<code>configurable</code>，这个属性可以让对象上面的属性不被移除，下面我们来看看代码展示：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+};
+
+// 数据劫持
+Object.defineProperty(obj, &quot;a&quot;, {
+  configurable: true, // 是否可配置 === 是否可移除
+});
+
+delete obj.a;
+console.log(obj.a);
+
+// 输出：
+// undefined
+</code></pre>
+<p>当我们将<code>configurable</code>设置成 true 时就代表该属性可以被移除，但是设置成 false 的话就代表这个属性不可以被移除，接下来我们将其设置成 false 看看效果：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+};
+
+// 数据劫持
+Object.defineProperty(obj, &quot;a&quot;, {
+  configurable: false, // 是否可配置 === 是否可移除
+});
+
+delete obj.a;
+console.log(obj.a);
+
+// 输出：
+// 1
+</code></pre>
+<p>我们可以看到此时 obj 中的 a 并没有被移除，那么它身上的第三个参数只能这样配置属性了吗？作为一名合格的绑匪应该有很多种对待人质的方法来充分展现它的价值，它身上除了能配置属性之外，还能配置两个方法分别是<code>get</code>和<code>set</code></p>
+<p>1.1.1 <code>get()</code></p>
+<p><strong>get()</strong>: 一个给属性提供 getter 的方法，如果没有 getter 则为 undefined。当访问该属性时，该方法会被执行，方法执行时没有参数传入，但是会传入 this 对象（由于继承关系，这里的 this 并不一定是定义该属性的对象）。默认为 undefined。</p>
+<p>接下来呢我们先来聊聊 <code>Object.defineProperty()</code> 中的 <code>get()</code>，当我们使用这个方法的时候得注意一点：</p>
+<p><code>Object.defineProperty(object, propertyName, descriptor) </code>定义新属性时，descriptor 中不能同时有 访问器(<code>getter/setter</code>) 与 <code>value/writable</code> 属性。</p>
+<p>这时候有同学就会疑惑了，既然不能跟 value 和 writable 同时使用，那这个方法有什么用呢？这个方法不同于我们平常的方法需要我们手动进行调用，当我们想要访问它劫持的那个属性时，这个方法会自动调用并且返回你想要获取的那个属性，接下来我们来看看代码展示：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+};
+
+// 数据劫持
+Object.defineProperty(obj, &quot;a&quot;, {
+  get() {
+    return obj.a;
+  },
+});
+
+console.log(obj.a);
+</code></pre>
+<img src="../imgs/133/12.webp" />
+
+<p>当我们运行的时候会发现，怎么爆栈了呢？我们前面明明说了获取 a 的时候会自动调用<code>get()</code>然后 return 一个我们想要拿到的<code>obj.a</code>，咋就爆了呢？</p>
+<p>这里有一个小坑得注意一下，我们思路是没错的，但是当我们返回<code>obj.a</code>时，是不是又要去获取被劫持的<code>a</code>属性，然后就又要调用一次<code>get()</code>，当调用它的时候，然后又要重新获取<code>obj.a</code>。这样的话不就进入了无限套娃死循环吗，这时候就会出现爆栈这个问题了。</p>
+<p>那么我们如何才能从绑匪手中拿到 obj.a 呢？这时候我们可以在绑匪绑架之前先来个偷梁换柱，设置一个变量<code>value</code>用来储存 obj.a 的值，然后在调用 get 方法的时候<code>return value</code>，接下来我们修改一下代码来试试效果：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+};
+let value = obj.a;
+
+// 数据劫持
+Object.defineProperty(obj, &quot;a&quot;, {
+  get() {
+    return value;
+  },
+});
+
+console.log(obj.a);
+
+// 输出：
+// 1
+</code></pre>
+<p>这时候我们发现可以正常输出了，但是有没有想过一个问题，我们如果在外面修改 obj.a 的话，那打印出来的 obj.a 是修改后的还是原来的值呢？下面我们来看看结果：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+};
+let value = obj.a;
+
+// 数据劫持
+Object.defineProperty(obj, &quot;a&quot;, {
+  get() {
+    return value;
+  },
+});
+
+obj.a = 2;
+console.log(obj.a);
+
+// 输出：
+// 1
+</code></pre>
+<p>这时候我们发现输出结果还是 1，因为我们返回的还是那个 value 并没有改变过 value 的值，那这时候我们就会发现好像修改不了 obj.a 的值了，那咋办呢？这时候就需要 set 登场了。</p>
+<p>1.1.2 <code>set()</code></p>
+<p><strong>set()</strong>：一个给属性提供 setter 的方法，如果没有 setter 则为 undefined。当属性值修改时，触发执行该方法。该方法将接受唯一参数，即该属性新的参数值。默认为 undefined。</p>
+<p><code>set()</code>这个函数可以传入一个参数 val，用来接收我们对劫持的数据修改后的数据，接下来我们来用一段代码展示一下：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+};
+let value = obj.a;
+
+// 数据劫持
+Object.defineProperty(obj, &quot;a&quot;, {
+  get() {
+    return value;
+  },
+  set(val) {
+    console.log(&quot;获取到了val&quot;, val);
+  },
+});
+
+obj.a = 2;
+console.log(obj.a);
+</code></pre>
+<img src="../imgs/133/13.webp" />
+
+<p>我们根据控制台的打印结果可以得知，当我们对劫持的数据进行修改的时候，<code>set()</code>就会被触发，并且传入其中的参数就是修改后的那个值。但是此时我们发现 obj.a 的值并没有随之修改，这个时候我们可以根据<strong>set 每次修改被劫持数据就会自动触发一次时的特性从而修改 value 的值</strong>，进而改变我们想要拿到的 obj.a 的值，接下来我们来看代码：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+};
+let value = obj.a;
+
+// 数据劫持
+Object.defineProperty(obj, &quot;a&quot;, {
+  get() {
+    return value;
+  },
+  set(val) {
+    value = val;
+    console.log(&quot;获取到了val&quot;, val);
+  },
+});
+
+obj.a = 2;
+console.log(obj.a);
+</code></pre>
+<img src="../imgs/133/14.webp" />
+
+<p>这时候我们可以看到已经成功修改了 obj.a 的属性并且能够获取到。</p>
+<p>在了解完了<code>get</code>和<code>set</code>这两个函数的作用和用法之后，下面我们来实现一个小功能：现在我有一个对象 obj，里面有三个属性分别是 a、b、c 并且都是 Number 类型，每次我对里面的任何一条数据进行修改时，都要给我打印修改后这三个属性的和，接下来我们来实现一下这个功能。</p>
+<p>首先我们如果想要每次修改之后都计算一下总和，那么肯定要一个计算总和的函数，并且在每次修改之后都会执行一次，这里就得用到我们的<code>set</code>了，它就相当于一个监听器一样，每次修改劫持的数据时都会触发，有了这个思路之后，下面我们来看一下代码实现：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+  b: 2,
+  c: 3,
+};
+
+for (let key in obj) {
+  let value = obj[key];
+  Object.defineProperty(obj, key, {
+    get() {
+      return value;
+    },
+    set(val) {
+      value = val;
+      log();
+    },
+  });
+}
+
+obj.a = 10;
+obj.b = 20;
+obj.c = 30;
+
+function log() {
+  console.log(obj.a + obj.b + obj.c);
+}
+</code></pre>
+<img src="../imgs/133/15.webp" />
+
+<p>在上面代码中我们使用了一个<code>for in</code>来对 obj 中每个属性都进行数据劫持，并且各自都有一个 value 所以不会爆栈，根据<code>set()</code>的特性，我们只需要将每次修改的属性对应 key 然后将 value 赋值成新的值即可。这样每次进行修改的时候，obj 中的对应属性值会被更新，并且函数<code>log()</code>也会执行一次。</p>
+<p>1.1.3 手写 watch</p>
+<p>我们都知道 vue 中有几个可以进行监听的函数，常用的就有 computed 和 watch，这类函数可以监听我们页面的数据变化，当数据变换的时候可以执行相应的操作。这里大家有没有联想到我们前面所讲的<code>set()</code>，它同样也有这个特性，每当劫持的数据发生变更时，就自动执行一次，利用这个特性我们可以手写一个 watch，接下来我们来实现一下。</p>
+<p>官方定义的 watch 是能传入几个参数的，在这里我们就按照<code>Object.defineProperty()</code>的特性给我们自定义的 wwatch 传入三个参数，分别是<strong>对象</strong>、<strong>想要劫持的数据</strong>、<strong>回调函数</strong>，然后我们对传入的数据进行劫持，并且在 watch 中设置一个 value 用来储存这个数据防止爆栈，接下来我们来看 html 和 js 代码以及页面展示：</p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;title&gt;Document&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id=&quot;app&quot;&gt;
+      &lt;h1 id=&quot;count&quot;&gt;1&lt;/h1&gt;
+      &lt;button id=&quot;btn&quot;&gt;add&lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+      const btn = document.getElementById(&quot;btn&quot;);
+      const h1 = document.getElementById(&quot;count&quot;);
+
+      let obj = {
+        count: 1,
+      };
+
+      watch(obj, &quot;count&quot;, (newVal, oldVal) =&gt; {
+        console.log(newVal);
+      });
+
+      // 手写 watch
+      function watch(obj, key, cb) {
+        let value = obj[key];
+        Object.defineProperty(obj, key, {
+          get() {
+            return value;
+          },
+          set(newValue) {
+            cb(newValue, value);
+            value = newValue;
+          },
+        });
+      }
+
+      btn.addEventListener(&quot;click&quot;, () =&gt; {
+        obj.count++;
+      });
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<img src="../imgs/133/16.webp" />
+
+<h3>2. proxy</h3>
+<p>在我们了解完了 Object.defineProperty()也就是 proxy 的前身之后，会不会觉得这个东西写起来有点复杂还得注意 value 爆栈的问题，官方呢为了方便我们在新版本的 es6 中推出了 proxy 这个方法，毕竟时代变了咱得文明一点不能老是劫匪劫匪的，现在改名叫代理了。</p>
+<p><strong>proxy</strong>：</p>
+<ol>
+<li>直接代理整个对象，对象上的读取值、修改值、添加属性、删除属性等 13 个操作， 都会被代理到某个函数上</li>
+<li>可以代理数组</li>
+</ol>
+<p>接下来我们来看看 proxy 的使用方法，其实跟它的前身是差不多的，一样有 get 和 set，就是把它们变成了属性，后面接收一个函数，下面我们来看代码示例：</p>
+<pre><code class="language-js">let obj = {
+  a: 1,
+  b: 2,
+  c: 3,
+};
+
+// 代理是整个对象都被绑架，简单来说就是对象上的种种行为都有一个代理函数
+let proxy = new Proxy(obj, {
+  get: function (target, key) {
+    return target[key];
+  },
+  set: function (target, key, value) {
+    target[key] = value;
+  },
+  // xxx 包括set get 一共13个函数
+});
+
+proxy.a = 10; // 会触发 set
+console.log(proxy.a); // 会走proxy中的get方法
+
+// 输出：
+// 10
+</code></pre>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // 滚动动画
+      document.addEventListener("DOMContentLoaded", () => {
+        // 为所有段落、标题和列表添加 fade-in 类
+        const elements = document.querySelectorAll(
+          ".md p, .md h2, .md h3, .md ul, .md ol, .md img, .code-toolbar"
+        );
+        elements.forEach((el) => el.classList.add("fade-in"));
+
+        // 为左侧导航项添加动画延迟
+        const navItems = document.querySelectorAll(".layout__main_left ul li");
+        navItems.forEach((item, index) => {
+          item.style.setProperty("--i", index);
+        });
+
+        // 滚动时添加动画
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("visible");
+                // 一旦元素显示，就停止观察它
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          {
+            threshold: 0.1,
+            rootMargin: "0px 0px -20px 0px", // 调整触发距离
+          }
+        );
+
+        // 延迟添加观察者，确保页面完全加载
+        setTimeout(() => {
+          elements.forEach((el) => observer.observe(el));
+        }, 100);
+
+        // 确保初始可见区域的元素立即显示
+        const checkInitialVisibility = () => {
+          elements.forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight) {
+              el.classList.add("visible");
+            }
+          });
+        };
+
+        checkInitialVisibility();
+
+        // 平滑滚动到锚点
+        document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+          anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute("href"));
+            if (target) {
+              target.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+          });
+        });
+      });
+
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      const imgs = document.querySelectorAll("img");
+      imgs.forEach((img) => {
+        img.onclick = () => {
+          img.style.opacity = 0;
+          let imgHove = document.querySelector(".img-hover");
+          if (imgHove) imgHove.remove();
+          const src = img.src;
+          const html = `
+            <div class="img-hover">
+              <img src="${src}" />
+            </div>
+          `;
+          document.body.insertAdjacentHTML("beforeend", html);
+          document.body.style.overflow = "hidden";
+          imgHove = document.querySelector(".img-hover");
+          imgHove.onclick = () => {
+            imgHove.remove();
+            document.body.style.overflow = "initial";
+            img.style.opacity = 1;
+          };
+        };
+      });
+      const headings = document.querySelectorAll(".md h2, .md h3");
+      const navContainer = document.querySelector(".layout__main_map_content");
+      const layoutMainMap = document.querySelector(".layout__main_map");
+      if (!headings?.length) {
+        layoutMainMap.style.display = "none";
+      }
+      headings.forEach((heading, index) => {
+        const id = `heading-${index}`;
+        heading.id = id;
+        const link = document.createElement("a");
+        link.href = `#${id}`;
+        link.textContent =
+          heading.tagName === "H2"
+            ? `▪ ${heading.textContent}`
+            : `· ${heading.textContent}`;
+        link.title = link.textContent;
+        link.style.display = "block";
+        link.style.margin = "5px 0";
+        link.style.color = heading.tagName === "H2" ? "blue" : "darkblue";
+        link.className = heading.tagName === "H2" ? "H2" : "H3";
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+        });
+        navContainer.appendChild(link);
+      });
+      const swicthDom = document.querySelector(".layout__main_map_swicth");
+      const mapDom = document.querySelector(".layout__main_map");
+      swicthDom.onclick = () => {
+        mapDom.classList.toggle("show");
+      };
+      const swicthDom2 = document.querySelector(".layout__main_left-switch");
+      const mapDom2 = document.querySelector(".layout__main_left");
+      swicthDom2.onclick = () => {
+        mapDom2.classList.toggle("show");
+      };
+    </script>
+  </body>
+</html>
