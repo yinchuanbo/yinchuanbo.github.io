@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>Rust vs JavaScript 使用 WebAssembly 提升 66% 的性能</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism2.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+    <style>
+      :root {
+        --bg-color: #121212;
+        --text-color: #e0e0e0;
+        --accent-color: #8a8a8a;
+        --hover-color: rgba(56, 139, 253, 0.15);
+        --border-color: #333333;
+        --header-bg: #1a1a1a;
+
+        /* Spacing System */
+        --space-xs: 0.25rem; /* 4px */
+        --space-sm: 0.5rem; /* 8px */
+        --space-md: 1rem; /* 16px */
+        --space-lg: 1.5em; /* 24px */
+        --space-xl: 2rem; /* 32px */
+        --space-2xl: 3rem; /* 48px */
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: "JetBrains Mono", monospace;
+        line-height: 1.6;
+      }
+
+      li {
+        list-style: none;
+      }
+
+      .layout__main_left {
+        background-color: var(--header-bg);
+        border-right: 1px solid var(--border-color);
+        padding: var(--space-md);
+      }
+
+      .layout__main_left ul {
+        margin: 0;
+        padding: 0;
+      }
+
+      .layout__main_left ul li {
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.3s ease;
+        padding: 0;
+        margin-bottom: 0;
+      }
+
+      .layout__main_right {
+        background-color: var(--bg-color);
+        padding: var(--space-xl);
+      }
+
+      .page-header {
+        /* border-bottom: 1px solid var(--border-color);
+        margin-bottom: var(--space-xl);
+        padding-bottom: var(--space-md); */
+      }
+
+      .page-header h1 {
+        color: var(--text-color);
+        font-size: 2rem;
+        margin: 0 0 var(--space-sm) 0;
+      }
+
+      .time {
+        color: var(--accent-color);
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .layout__main_map {
+        background-color: var(--header-bg);
+        border-left: 1px solid var(--border-color);
+        padding: var(--space-md);
+      }
+
+      .layout__main_map_content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+      }
+
+      .layout__main_map a {
+        color: var(--text-color) !important;
+        opacity: 0.8;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        padding: var(--space-xs) 0;
+      }
+
+      .layout__main_map a.H2 {
+        color: #a0a0a0 !important;
+        margin-top: var(--space-md);
+      }
+
+      .layout__main_map a.H3 {
+        color: #808080 !important;
+        padding-left: var(--space-lg);
+        margin-top: var(--space-xs);
+      }
+
+      /* Content Spacing */
+      .md h1,
+      .md h2,
+      .md h3,
+      .md h4,
+      .md h5,
+      .md h6 {
+        margin: var(--space-xl) 0 var(--space-md) 0;
+        font-weight: normal;
+      }
+
+      .md h2 {
+        font-size: 1.8rem;
+        color: #66b3ff;
+        padding-bottom: var(--space-sm);
+        border-bottom: 1px solid var(--border-color);
+        letter-spacing: 0.5px;
+      }
+
+      .md h3 {
+        font-size: 1.5rem;
+        color: #99ccff;
+        padding-left: var(--space-sm);
+        border-left: 3px solid var(--accent-color);
+        letter-spacing: 0.3px;
+      }
+
+      .md h4 {
+        font-size: 1.25rem;
+        color: #cce6ff;
+        position: relative;
+        padding-left: var(--space-md);
+        font-style: italic;
+      }
+
+      .md h4::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: var(--accent-color);
+        font-size: 1.2em;
+        font-style: normal;
+      }
+
+      .md h1:first-child,
+      .md h2:first-child,
+      .md h3:first-child {
+        margin-top: 0;
+      }
+
+      .md p {
+        margin: 0 0 var(--space-md) 0;
+      }
+
+      .md ul,
+      .md ol {
+        margin: var(--space-md) 0;
+        padding-left: 0;
+        list-style: none;
+      }
+
+      .md li {
+        position: relative;
+        padding-left: 1.5em;
+        margin-bottom: 0.5em;
+      }
+
+      /* Handle special case where li contains ol directly */
+      .md ul > li > ol {
+        margin: 0;
+        padding: 0;
+      }
+
+      .md ul > li > ol > li {
+        padding-left: 2.5em;
+      }
+
+      /* Remove bullet for li that contains ol */
+      .md ul > li:has(> ol) {
+        padding-left: 0;
+      }
+
+      .md ul > li:has(> ol)::before {
+        display: none;
+      }
+
+      /* Unordered list bullets */
+      .md ul > li:not(:has(> ol))::before {
+        content: "";
+        position: absolute;
+        left: 0.4em;
+        top: 0.7em;
+        width: 4px;
+        height: 4px;
+        background-color: var(--accent-color);
+        border-radius: 50%;
+      }
+
+      /* Ordered Lists */
+      .md ol {
+        counter-reset: list-number;
+      }
+
+      .md ol > li {
+        counter-increment: list-number;
+      }
+
+      .md ol > li::before {
+        content: counter(list-number) ".";
+        position: absolute;
+        left: 0;
+        color: var(--accent-color);
+        font-size: 1em;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* Handle start attribute */
+      .md ol[start] {
+        counter-reset: list-number attr(start) -1;
+      }
+
+      /* Nested Lists */
+      .md ul ul,
+      .md ol ul,
+      .md ul ol,
+      .md ol ol {
+        margin: 0.5em 0 0.5em 0;
+      }
+
+      .md ul ul li::before {
+        content: "";
+        width: 3px;
+        height: 3px;
+        border: 1px solid var(--accent-color);
+        background-color: transparent;
+      }
+
+      .md ul ul ul li::before {
+        content: "";
+        width: 4px;
+        height: 1px;
+        background-color: var(--accent-color);
+        border-radius: 0;
+      }
+
+      /* Layout Left Navigation */
+      .layout__main_left ul li {
+        padding: var(--space-xs) var(--space-md);
+        margin: 0;
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+      }
+
+      .layout__main_left ul li:hover {
+        background-color: var(--hover-color);
+        border-left-color: var(--accent-color);
+      }
+
+      .layout__main_left ul li.active {
+        background-color: var(--hover-color);
+        border-left-color: var(--accent-color);
+      }
+
+      .layout__main_left ul li::before {
+        display: none;
+      }
+
+      /* Code block styling */
+      .md pre[class*="language-"] {
+        padding: var(--space-md);
+        border-radius: 6px;
+        background: #212121 !important;
+      }
+
+      .md img {
+        margin: var(--space-lg) auto;
+        /* max-width: 60%; */
+        height: auto;
+        border-radius: 4px;
+      }
+
+      .md blockquote {
+        margin-bottom: 1em;
+        padding: var(--space-md) 1.5em;
+        border-left: 4px solid var(--accent-color);
+        background: var(--header-bg);
+      }
+
+      .md blockquote > *:last-child {
+        margin-bottom: 0;
+      }
+
+      .md table {
+        margin: var(--space-lg) 0;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      .md td,
+      .md th {
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid var(--border-color);
+      }
+
+      /* Animation Refinements */
+      .fade-in {
+        opacity: 0;
+        transform: translateY(var(--space-sm));
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+
+      .fade-in.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+      }
+    </style>
+  </head>
+  <body class="line-numbers">
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 2">
+          <div class="layout__main_left-switch"></div>
+          <ul>
+            <li class="active"><a title="Rust vs JavaScript 使用 WebAssembly 提升百分 66 的性能" href="/md/Rust vs JavaScript 使用 WebAssembly 提升百分 66 的性能.html">30 Rust vs JavaScript 使用 WebAssembly 提升百分 66 的性能</a></li><li class=""><a title="避免巨大网络负载的 10 个方法" href="/md/避免巨大网络负载的 10 个方法.html">29 避免巨大网络负载的 10 个方法</a></li><li class=""><a title="利用fetchpriority优化资源加载，提升网页性能" href="/md/利用fetchpriority优化资源加载，提升网页性能.html">28 利用fetchpriority优化资源加载，提升网页性能</a></li><li class=""><a title="一文读懂 JS 内存管理，掌握面试中 7 大内存泄漏场景" href="/md/一文读懂 JS 内存管理，掌握面试中 7 大内存泄漏场景.html">27 一文读懂 JS 内存管理，掌握面试中 7 大内存泄漏场景</a></li><li class=""><a title="首页加载速度优化" href="/md/首页加载速度优化.html">26 首页加载速度优化</a></li><li class=""><a title="前端如何实现 gzip 打包压缩" href="/md/前端如何实现 gzip 打包压缩.html">25 前端如何实现 gzip 打包压缩</a></li><li class=""><a title="性能优化思路之网络层优化" href="/md/性能优化思路之网络层优化.html">24 性能优化思路之网络层优化</a></li><li class=""><a title="你实现的前端图片预加载真的够优雅吗" href="/md/你实现的前端图片预加载真的够优雅吗.html">23 你实现的前端图片预加载真的够优雅吗</a></li><li class=""><a title="前端如何避免重排 reflow 和重绘 repaint" href="/md/前端如何避免重排 reflow 和重绘 repaint.html">22 前端如何避免重排 reflow 和重绘 repaint</a></li><li class=""><a title="页面加载流程分析技巧" href="/md/页面加载流程分析技巧.html">21 页面加载流程分析技巧</a></li><li class=""><a title="资源优先级" href="/md/资源优先级.html">20 资源优先级</a></li><li class=""><a title="聊聊图片预加载" href="/md/聊聊图片预加载.html">19 聊聊图片预加载</a></li><li class=""><a title="网站优化之静态资源优化" href="/md/网站优化之静态资源优化.html">18 网站优化之静态资源优化</a></li><li class=""><a title="看《浏览器基本原理与实践》后，36点总结" href="/md/看《浏览器基本原理与实践》后，36点总结.html">17 看《浏览器基本原理与实践》后，36点总结</a></li><li class=""><a title="渲染优化" href="/md/渲染优化.html">16 渲染优化</a></li><li class=""><a title="浏览器渲染性能分析技巧" href="/md/浏览器渲染性能分析技巧.html">15 浏览器渲染性能分析技巧</a></li><li class=""><a title="构建优化" href="/md/构建优化.html">14 构建优化</a></li><li class=""><a title="性能优化全家桶：6 个方面 9 点建议" href="/md/性能优化全家桶：6 个方面 9 点建议.html">13 性能优化全家桶：6 个方面 9 点建议</a></li><li class=""><a title="性能优化-时间分片渲染简单做法" href="/md/性能优化-时间分片渲染简单做法.html">12 性能优化-时间分片渲染简单做法</a></li><li class=""><a title="加载注意事项" href="/md/加载注意事项.html">11 加载注意事项</a></li><li class=""><a title="利用 Performance API 分析网站性能" href="/md/利用 Performance API 分析网站性能.html">10 利用 Performance API 分析网站性能</a></li><li class=""><a title="内存泄漏排查" href="/md/内存泄漏排查.html">09 内存泄漏排查</a></li><li class=""><a title="了解透彻浏览器缓存" href="/md/了解透彻浏览器缓存.html">08 了解透彻浏览器缓存</a></li><li class=""><a title="书写高性能的代码" href="/md/书写高性能的代码.html">07 书写高性能的代码</a></li><li class=""><a title="Performance 面板分析性能瓶颈全流程" href="/md/Performance 面板分析性能瓶颈全流程.html">06 Performance 面板分析性能瓶颈全流程</a></li><li class=""><a title="API 技巧" href="/md/API 技巧.html">05 API 技巧</a></li><li class=""><a title="速通 JS 性能优化" href="/md/速通 JS 性能优化.html">04 速通 JS 性能优化</a></li><li class=""><a title="网页太慢了怎么排查" href="/md/网页太慢了怎么排查.html">03 网页太慢了怎么排查</a></li><li class=""><a title="浅谈前端性能优化之评估工具" href="/md/浅谈前端性能优化之评估工具.html">02 浅谈前端性能优化之评估工具</a></li><li class=""><a title="前端如何优化资源加载" href="/md/前端如何优化资源加载.html">01 前端如何优化资源加载</a></li>
+          </ul>
+        </div>
+        <div class="layout__main_map" style="order: 0">
+          <div class="layout__main_map_content"></div>
+          <div class="layout__main_map_swicth"></div>
+        </div>
+        <div
+          style="order: 1"
+          class="layout__main_right md "
+        >
+          <div class="page-header">
+            <h1>Rust vs JavaScript 使用 WebAssembly 提升 66% 的性能</h1>
+            <p class="time">HaoTian · 2025-01-04 18:23:17</p>
+          </div>
+          <p>在现代 Web 开发中，性能优化始终是开发者关注的重点。你是否曾经在浏览器中体验过页面卡顿，甚至 UI 元素的“死机”现象？尤其是在进行复杂计算时，JavaScript 通常会将所有工作集中在单线程上，导致页面的响应延迟，影响用户体验。有没有可能既保持计算的高效，又避免界面冻结？答案是肯定的——WebWorkers 和 WebAssembly，特别是 Rust，提供了非常有效的解决方案。</p>
+<h2>问题：JavaScript 阻塞主线程</h2>
+<p>JavaScript 默认运行在浏览器的单线程环境中，这意味着它一次只能做一件事。当执行一个复杂的计算（比如计算斐波那契数列）时，它会占用所有的 CPU 资源，直到任务完成。这时，用户界面的渲染、交互，甚至页面的动画，都将被阻塞，造成明显的卡顿。你可能已经遇到过这种情况，当你点击一个按钮执行计算时，UI 上的其他元素（如加载动画）无法正常显示，页面变得“死板”。</p>
+<p>为了展示这种问题的严重性，我们使用经典的斐波那契算法，时间复杂度为 O(2^n)，用来模拟这种阻塞情况：</p>
+<pre><code class="language-js">const calculateFibonacci = (n) =&gt; {
+  if (n &lt;= 1) return n;
+  return calculateFibonacci(n - 1) + calculateFibonacci(n - 2);
+};
+</code></pre>
+<p>在单线程模式下，我们直接在主线程中执行斐波那契算法。当点击“计算斐波那契”按钮时，计算开始进行。然而，由于计算量大，主线程被完全占用，导致 UI 无法更新。你会发现加载动画（spinner）根本没有显示出来，而是等计算完成后才显示结果。通过 Chrome DevTools 的性能工具，我们可以看到，主线程在进行斐波那契计算时被阻塞了约 2.06 秒，整个界面无法响应，影响了用户体验。</p>
+<pre><code class="language-js">&quot;use client&quot;;
+import { useState } from &quot;react&quot;;
+
+/**
+ * simulate loading animation
+ */
+function Spinner() {
+  return (
+    &lt;div className=&quot;flex justify-center items-center&quot;&gt;
+      &lt;div className=&quot;animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  );
+}
+
+export default function Home() {
+  const [result, setResult] = (useState &lt; number) | (null &gt; null);
+  const [isLoading, setIsLoading] = useState &lt; boolean &gt; false;
+
+  const calculateFibonacci = (n: number): number =&gt; {
+    if (n &lt;= 1) return n;
+    return calculateFibonacci(n - 1) + calculateFibonacci(n - 2);
+  };
+
+  const handleCalculate = () =&gt; {
+    setIsLoading(true);
+    /**
+     * simulate a long-running calculation
+     */
+    const result = calculateFibonacci(42);
+    setResult(result);
+    setIsLoading(false);
+  };
+
+  return (
+    &lt;div className=&quot;flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white&quot;&gt;
+      &lt;button
+        onClick={handleCalculate}
+        className=&quot;mb-8 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition&quot;
+      &gt;
+        Calculate Fibonacci
+      &lt;/button&gt;
+      {isLoading ? &lt;Spinner /&gt; : &lt;p className=&quot;text-xl&quot;&gt;Result: {result}&lt;/p&gt;}
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+<h2>第一种优化：Web Workers</h2>
+<p>为了避免主线程阻塞，可以通过 Web Workers 将计算任务移到一个单独的线程执行。Web Worker 能够在后台线程中运行代码，这样主线程可以继续处理 UI 更新和用户交互，确保页面不会冻结。使用 Web Worker，我们可以把斐波那契计算放到一个单独的线程中，不再阻塞主线程。</p>
+<pre><code class="language-js">self.addEventListener(&quot;message&quot;, function (e) {
+  const n = e.data;
+
+  const fibonacci = (n) =&gt; {
+    if (n &lt;= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+  };
+
+  const result = fibonacci(n);
+  self.postMessage(result);
+});
+</code></pre>
+<p>通过这种方式，计算仍然需要大约 2 秒钟，但由于计算已经移到 Web Worker 线程，主线程得以继续运行，UI 更新不再被阻塞，用户能够看到加载动画。虽然 UI 变得流畅，但性能提升有限。</p>
+<h2>第二种优化：WebAssembly — AssemblyScript</h2>
+<p>WebAssembly（Wasm）是一种在浏览器中运行的二进制格式，它能够将 C、C++、Rust 等语言编译成浏览器能理解的代码，并在浏览器中以接近原生的速度运行。对于大多数前端开发者来说，AssemblyScript（一个类似 TypeScript 的 WebAssembly 语言）是一个理想的选择。它的开发体验与 TypeScript 非常相似，容易上手。</p>
+<pre><code class="language-js">export function fibonacci(n: i32): i32 {
+  if (n &lt;= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+</code></pre>
+<p>通过 WebAssembly，尽管计算仍然是在主线程中执行，但性能大幅提升。斐波那契计算的时间减少到大约 950ms，比纯 JavaScript 快了 53%。</p>
+<h2>第三种优化：WebAssembly — Rust</h2>
+<p>如果你对性能有更高的要求，Rust 是目前在 WebAssembly 中最受欢迎的语言之一。Rust 的设计目标是高性能，并且它提供了强大的内存安全保障。我们将斐波那契算法用 Rust 编写，并通过 WebAssembly 编译成 .wasm 文件：</p>
+<pre><code class="language-bash">use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn fibonacci(n: u32) -&gt; u32 {
+    match n {
+        0 =&gt; 0,
+        1 =&gt; 1,
+        _ =&gt; fibonacci(n - 1) + fibonacci(n - 2),
+    }
+}
+</code></pre>
+<p>通过这种方式，尽管计算依然是在主线程中进行，但斐波那契算法的执行时间缩短到了 684ms，比 JavaScript 快了 66%。</p>
+<h2>总结：性能大提升</h2>
+<p>JavaScript 的单线程特性在处理复杂计算时显得力不从心，容易导致页面卡顿。Web Workers 通过将计算任务移到后台线程缓解了这个问题，但性能提升有限。而 WebAssembly，尤其是 Rust 编写的 WebAssembly，能够提供极为显著的性能提升，极大改善了计算效率和用户体验。如果你希望你的 Web 应用更快、更流畅，WebAssembly 和 Rust 无疑是值得尝试的技术方案！</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // 滚动动画
+      document.addEventListener("DOMContentLoaded", () => {
+        // 为所有段落、标题和列表添加 fade-in 类
+        const elements = document.querySelectorAll(
+          ".md p, .md h2, .md h3, .md ul, .md ol, .md img, .code-toolbar"
+        );
+        elements.forEach((el) => el.classList.add("fade-in"));
+
+        // 为左侧导航项添加动画延迟
+        const navItems = document.querySelectorAll(".layout__main_left ul li");
+        navItems.forEach((item, index) => {
+          item.style.setProperty("--i", index);
+        });
+
+        // 滚动时添加动画
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("visible");
+                // 一旦元素显示，就停止观察它
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          {
+            threshold: 0.1,
+            rootMargin: "0px 0px -20px 0px", // 调整触发距离
+          }
+        );
+
+        // 延迟添加观察者，确保页面完全加载
+        setTimeout(() => {
+          elements.forEach((el) => observer.observe(el));
+        }, 100);
+
+        // 确保初始可见区域的元素立即显示
+        const checkInitialVisibility = () => {
+          elements.forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight) {
+              el.classList.add("visible");
+            }
+          });
+        };
+
+        checkInitialVisibility();
+
+        // 平滑滚动到锚点
+        document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+          anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute("href"));
+            if (target) {
+              target.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+          });
+        });
+      });
+
+      const liActive = document.querySelector(".layout__main_left li.active");
+      liActive.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      const imgs = document.querySelectorAll("img");
+      imgs.forEach((img) => {
+        img.onclick = () => {
+          img.style.opacity = 0;
+          let imgHove = document.querySelector(".img-hover");
+          if (imgHove) imgHove.remove();
+          const src = img.src;
+          const html = `
+            <div class="img-hover">
+              <img src="${src}" />
+            </div>
+          `;
+          document.body.insertAdjacentHTML("beforeend", html);
+          document.body.style.overflow = "hidden";
+          imgHove = document.querySelector(".img-hover");
+          imgHove.onclick = () => {
+            imgHove.remove();
+            document.body.style.overflow = "initial";
+            img.style.opacity = 1;
+          };
+        };
+      });
+      const headings = document.querySelectorAll(".md h2, .md h3");
+      const navContainer = document.querySelector(".layout__main_map_content");
+      const layoutMainMap = document.querySelector(".layout__main_map");
+      if (!headings?.length) {
+        layoutMainMap.style.display = "none";
+      }
+      headings.forEach((heading, index) => {
+        const id = `heading-${index}`;
+        heading.id = id;
+        const link = document.createElement("a");
+        link.href = `#${id}`;
+        link.textContent =
+          heading.tagName === "H2"
+            ? `▪ ${heading.textContent}`
+            : `· ${heading.textContent}`;
+        link.title = link.textContent;
+        link.style.display = "block";
+        link.style.margin = "5px 0";
+        link.style.color = heading.tagName === "H2" ? "blue" : "darkblue";
+        link.className = heading.tagName === "H2" ? "H2" : "H3";
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+        });
+        navContainer.appendChild(link);
+      });
+      const swicthDom = document.querySelector(".layout__main_map_swicth");
+      const mapDom = document.querySelector(".layout__main_map");
+      swicthDom.onclick = () => {
+        mapDom.classList.toggle("show");
+      };
+      const swicthDom2 = document.querySelector(".layout__main_left-switch");
+      const mapDom2 = document.querySelector(".layout__main_left");
+      swicthDom2.onclick = () => {
+        mapDom2.classList.toggle("show");
+      };
+    </script>
+  </body>
+</html>
