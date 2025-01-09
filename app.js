@@ -123,7 +123,10 @@ function renderNavList(navList = [], filename = "") {
     }"><a title="${item.replace(".md", "")}" href="/md/${item.replace(
       ".md",
       ".html"
-    )}">${ idx + 1 < 10 ? '0' + (idx + 1) : idx + 1 } ${item.replace(".md", "")}</a></li>`;
+    )}">${idx + 1 < 10 ? "0" + (idx + 1) : idx + 1} ${item.replace(
+      ".md",
+      ""
+    )}</a></li>`;
   });
   allList = allList.reverse();
   return allList.join("");
@@ -159,10 +162,12 @@ function renderHome() {
     "utf-8"
   );
   const homeOutputFilePath = path.join(__dirname, `./md/index.html`);
-  const sortedEntries = Object.entries(tagsNav).sort((a, b) => b[1].length - a[1].length);  
+  const sortedEntries = Object.entries(tagsNav).sort(
+    (a, b) => b[1].length - a[1].length
+  );
 
-// 转换回对象  
-tagsNav = Object.fromEntries(sortedEntries);  
+  // 转换回对象
+  tagsNav = Object.fromEntries(sortedEntries);
   const keys = Object.keys(tagsNav);
   let homeHTML = `<ul>`;
   for (let i = 0; i < keys.length; i++) {
