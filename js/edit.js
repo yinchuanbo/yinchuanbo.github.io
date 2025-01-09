@@ -2,12 +2,10 @@ const liElementsWithDataPath = document.querySelectorAll("li[data-path]");
 const preDom = document.querySelector("#pre");
 const html = preDom.innerHTML;
 const data = JSON.parse(html);
-const wrapperContent = document.querySelector(".layout__main_right");
-let isEx = false;
-
-let imgArr = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"];
-
+const editorContainer = document.querySelector("#editor");
 let editor = null;
+
+const imgArr = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"];
 
 function getDataByPath(data, path) {
   const keys = path.split("/");
@@ -32,35 +30,41 @@ function decodeHtmlEntities(encodedString) {
 
 function init(obj, extension) {
   obj = decodeHtmlEntities(obj);
-  if (editor) editor.dispose();
-  wrapperContent.innerHTML = "";
+  if (editor) {
+    editor.dispose();
+  }
+
   require.config({
     paths: {
-      vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.1/min/vs",
+      vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs",
     },
   });
+
   require(["vs/editor/editor.main"], function () {
-    let lan = extension;
-    if (extension === "js") lan = "javascript";
-    if (extension === "ejs") lan = "html";
-    if (extension === "babelrc") lan = "json";
-    editor = monaco.editor.create(wrapperContent, {
+    let language = extension;
+    if (extension === "js") language = "javascript";
+    if (extension === "ejs") language = "html";
+    if (extension === "babelrc") language = "json";
+
+    editor = monaco.editor.create(editorContainer, {
       value: obj,
-      language: lan,
-      automaticLayout: true,
+      language: language,
       theme: "vs-dark",
       fontSize: 16,
       fontFamily: "JetBrains Mono",
+      automaticLayout: true,
+      scrollBeyondLastLine: false,
+      minimap: { enabled: false },
       scrollbar: {
-        vertical: "hidden",
-        horizontal: "hidden",
+        vertical: "visible",
+        horizontal: "visible",
+        verticalScrollbarSize: 10,
+        horizontalScrollbarSize: 10,
       },
-      wordWrap: "on",
       lineNumbers: true,
-      lineHeight: 40,
-      minimap: {
-        enabled: false,
-      },
+      lineHeight: 24,
+      wordWrap: "on",
+      padding: { top: 10, bottom: 10 },
     });
   });
 }
@@ -75,39 +79,25 @@ window.onload = () => {
       if (!imgArr.includes(extension)) {
         init(obj, extension);
       } else {
-        wrapperContent.innerHTML = "";
-        wrapperContent.insertAdjacentHTML(
-          "beforeend",
-          `<img src="${obj}" style="margin-bottom: 0!important" />`
-        );
+        editorContainer.innerHTML = `<img src="${obj}" style="max-width: 100%; height: auto; margin: 0;" />`;
       }
     }
   }
+
   liElementsWithDataPath.forEach((item) => {
     item.onclick = () => {
       const path = item.dataset.path;
       const curActive = document.querySelector("li[data-path].active");
       if (path) {
-        curActive.classList.remove("active");
+        curActive?.classList.remove("active");
+        item.classList.add("active");
         const { data: obj, extension } = getDataByPath(data, path);
         if (!imgArr.includes(extension)) {
           init(obj, extension);
         } else {
-          wrapperContent.innerHTML = "";
-          wrapperContent.insertAdjacentHTML(
-            "beforeend",
-            `<img src="${obj}" style="margin-bottom: 0!important" />`
-          );
+          editorContainer.innerHTML = `<img src="${obj}" style="max-width: 100%; height: auto; margin: 0;" />`;
         }
-        item.classList.add("active");
       }
-    };
-  });
-
-  const h3s = document.querySelectorAll(".layout__main_left h3");
-  h3s.forEach((item) => {
-    item.onclick = () => {
-      item.classList.toggle("isshow");
     };
   });
 };
