@@ -198,7 +198,7 @@ for (const key in structure) {
   });
 }
 
-const homeTemplateContent = fs.readFileSync("./templates/index.html", "utf-8");
+const homeTemplateContent = fs.readFileSync("./templates/index-html.html", "utf-8");
 const homeOutputFilePath = path.join(__dirname, `html/index.html`);
 
 let homeHTML = `<ul>`;
@@ -209,19 +209,18 @@ urls.sort((a, b) => {
     const match = str.match(/^(\d+)/);
     return match ? parseInt(match[1]) : 0;
   };
-  
+
   const numA = getNumber(a.htmlName);
   const numB = getNumber(b.htmlName);
-  
-  return numB - numA;  // 降序排序
+
+  return numB - numA; // 降序排序
 });
 
 for (let i = 0; i < urls.length; i++) {
   const url = urls[i];
-  homeHTML += `<li class="card"><a href="/html/${url.htmlName.replace(
-    "_-_download",
-    ""
-  )}">${url.key.replace(" - download", "")}</a></li>`;
+  const htmlUrl = `/articles/html/${url.key}/`;
+  const skipUrl = `/html/${url.htmlName.replace("_-_download", "")}`;
+  homeHTML += `<li class="card"><iframe loading="lazy" src="${htmlUrl}" width="100%" height="100%" frameborder="0" scrolling="no" allowfullscreen></iframe><button onclick="window.location.href='${skipUrl}'">Get Code</button></li>`;
 }
 
 homeHTML += `</ul>`;
