@@ -161,6 +161,29 @@
       </div>
     </div>
     <div class="body_bg"></div>
+    <div class="zoom-overlay"></div>
+    <style>
+      .zoom-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        z-index: 1000;
+        cursor: zoom-out;
+      }
+      .zoomed-image {
+        position: fixed;
+        z-index: 1001;
+        will-change: transform;
+        cursor: zoom-out;
+        max-width: 90vw;
+        max-height: 90vh;
+        object-fit: contain;
+      }
+    </style>
     <script defer src="../js/prism.min.js"></script>
     <script>
       const switchBtn = document.querySelector(".layout__main_left-switch");
@@ -168,6 +191,101 @@
       switchBtn.addEventListener("click", () => {
         left.classList.toggle("show");
       });
+
+      // Image zoom with FLIP animation
+      const overlay = document.querySelector('.zoom-overlay');
+      let activeImage = null;
+
+      document.querySelectorAll('img').forEach(img => {
+        if (img.closest('a')) return; // Skip images that are inside links
+        img.style.cursor = 'zoom-in';
+        img.addEventListener('click', handleImageClick);
+      });
+
+      function handleImageClick(event) {
+        const img = event.target;
+        
+        if (activeImage) {
+          // If an image is already zoomed, unzoom it
+          unzoomImage();
+          return;
+        }
+
+        // Get the initial position and size
+        const rect = img.getBoundingClientRect();
+        const first = {
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height
+        };
+
+        // Create a clone of the image
+        const clone = img.cloneNode();
+        clone.classList.add('zoomed-image');
+        document.body.appendChild(clone);
+
+        // Position the clone exactly over the original
+        clone.style.position = 'fixed';
+        clone.style.left = `${first.x}px`;
+        clone.style.top = `${first.y}px`;
+        clone.style.width = `${first.width}px`;
+        clone.style.height = `${first.height}px`;
+        clone.style.margin = '0';
+        clone.style.transformOrigin = 'top left';
+
+        // Show the overlay
+        overlay.style.display = 'block';
+
+        // Calculate the final position and scale
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const targetWidth = Math.min(img.naturalWidth, viewportWidth * 0.9);
+        const targetHeight = Math.min(img.naturalHeight, viewportHeight * 0.9);
+        const scaleX = targetWidth / first.width;
+        const scaleY = targetHeight / first.height;
+        const scale = Math.min(scaleX, scaleY);
+
+        const last = {
+          width: first.width * scale,
+          height: first.height * scale
+        };
+        last.x = (viewportWidth - last.width) / 2;
+        last.y = (viewportHeight - last.height) / 2;
+
+        // Calculate and apply the transform
+        const dx = last.x - first.x;
+        const dy = last.y - first.y;
+        
+        requestAnimationFrame(() => {
+          clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+          clone.style.transition = 'transform 0.3s ease-out';
+        });
+
+        activeImage = { original: img, clone: clone };
+
+        // Add click handlers for closing
+        clone.addEventListener('click', unzoomImage);
+        overlay.addEventListener('click', unzoomImage);
+      }
+
+      function unzoomImage() {
+        if (!activeImage) return;
+
+        const { original, clone } = activeImage;
+        const rect = original.getBoundingClientRect();
+
+        // Animate back to the original position
+        clone.style.transform = `translate(0, 0) scale(1)`;
+        
+        // Clean up after the animation
+        clone.addEventListener('transitionend', () => {
+          clone.remove();
+          overlay.style.display = 'none';
+        }, { once: true });
+
+        activeImage = null;
+      }
     </script>
   </body>
 </html>
