@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>组件化基础详解</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=fallback"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+
+  <body>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 0">
+          <div class="layout__main_left-switch"></div>
+          <ul>
+            <li class="active"><a title="组件化基础详解" href="/md/组件化基础详解.html">09 组件化基础详解</a></li><li class=""><a title="组件化开发" href="/md/组件化开发.html">08 组件化开发</a></li><li class=""><a title="v-model和表单输入" href="/md/v-model和表单输入.html">07 v-model和表单输入</a></li><li class=""><a title="vue3 的 Options API" href="/md/vue3 的 Options API.html">06 vue3 的 Options API</a></li><li class=""><a title="模板语法和内置命令" href="/md/模板语法和内置命令.html">05 模板语法和内置命令</a></li><li class=""><a title="前端 vue 项目使用 ffmpeg 处理视频" href="/md/前端 vue 项目使用 ffmpeg 处理视频.html">04 前端 vue 项目使用 ffmpeg 处理视频</a></li><li class=""><a title="Vue Router 4 的 scrollBehavior 方法" href="/md/Vue Router 4 的 scrollBehavior 方法.html">03 Vue Router 4 的 scrollBehavior 方法</a></li><li class=""><a title="浅浅聊一下 vue 中的 nextTick 的实现原理" href="/md/浅浅聊一下 vue 中的 nextTick 的实现原理.html">02 浅浅聊一下 vue 中的 nextTick 的实现原理</a></li><li class=""><a title="Vue3.x 生态最能打的组合" href="/md/Vue3.x 生态最能打的组合.html">01 Vue3.x 生态最能打的组合</a></li>
+          </ul>
+        </div>
+        <div
+          style="order: 1"
+          class="layout__main_right md "
+        >
+          <div class="page-header">
+            
+            <a href="/md/" class="back-button">Back to MD</a>
+            
+            <h1>组件化基础详解</h1>
+            <p class="time">HaoTian · 2025-01-12 12:22:44</p>
+          </div>
+          <h2>组件样式的特性</h2>
+<p>在 Vue3 官网中，有三种方式可以用于编写文件组件的样式，分别是 <code>&lt;style scoped&gt;</code>、<code>&lt;style module&gt;</code> 和使用 v-bind 动态绑定 CSS。</p>
+<h3>Scoped CSS</h3>
+<p><code>&lt;style scoped&gt;</code> 是 Vue3 中一个样式作用域标记，在一个带有 scoped 标记的 <code>&lt;style&gt;</code> 标签中定义的样式仅在当前组件中生效，并且 Vue3 会自动将选择器编译为带有唯一属性的选择器，以免与其他组件中的样式冲突。通常，我们将其称为组件的局部样式。</p>
+<ol>
+<li>组件的局部样式</li>
+</ol>
+<p>当单文件的 style 标签带有 scoped 属性时，表示在该标签中编写的样式都是局部样式，它的 CSS 只会应用到当前组件的元素上，这些 CSS 最终会被 PostCSS 转换，例如：</p>
+<pre><code class="language-html">&lt;style scoped&gt;
+  .example {
+    color: red;
+  }
+&lt;/style&gt;
+</code></pre>
+<blockquote>
+<p>style 标签上带有 scoped 属性则为局部样式，没有则为全部样式，同时，一个组件支持包含多个 style 标签。</p>
+</blockquote>
+<p>上面的组件样式将被 PostCSS 工具转换：</p>
+<pre><code class="language-html">&lt;style&gt;
+  .example[data-v-f3f3eg9] {
+    color: red;
+  }
+&lt;/style&gt;
+</code></pre>
+<ol start="2">
+<li>局部样式的泄露</li>
+</ol>
+<p>通常情况下，当组件带有 scoped 时，父组件的样式将不会泄露到子组件中去，不过子组件的根节点会同时受到父组件的作用域样式和子组件的作用域样式的影响。这是有意设计的，因为父组件可以设置子组件根节点的样式，以达到调整布局的目的，例子：</p>
+<pre><code class="language-html">&lt;!-- App.vue 作为根组件 --&gt;
+&lt;template&gt;
+  &lt;h4&gt;App Title&lt;/h4&gt;
+  &lt;hello-world&gt;&lt;/hello-world&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import HelloWorld from &quot;./HelloWorld.vue&quot;;
+  export default {
+    components: {
+      HelloWorld,
+    },
+  };
+&lt;/script&gt;
+&lt;style scoped&gt;
+  h4 {
+    text-decoration: underline;
+  }
+&lt;/style&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- HelloWorld.vue 作为根组件 --&gt;
+&lt;template&gt;
+  &lt;h4&gt;Hello World&lt;/h4&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {};
+&lt;/script&gt;
+&lt;style scoped&gt;&lt;/style&gt;
+</code></pre>
+<p>可以看到两个，两个 vue 组件的 style 标签都带有 scoped 属性，但是子组件的根节点 <code>&lt;h4&gt;</code> 元素会同时被父组件的作用域样式和子组件的作用域样式影响。这就是样式泄露问题。</p>
+<p><strong>为了避免在开发过程中出现局部样式泄露的问题，可以采取一下措施：</strong></p>
+<p>(1) 尽量减少标签选择器的使用，多使用 class 选择器</p>
+<p>(2) 在每个子组件的根元素中添加唯一的 class 选择器</p>
+<p>(3) 在子组件中使用多个根元素，也可以在 template 中添加多个根元素，vue3 已经支持这种方式</p>
+<ol start="3">
+<li>深度选择器</li>
+</ol>
+<p>有时确实需要在父组件的局部样式中修改子组件中某个元素的样式，这时候可以使用深度选择器 <code>:deep()</code> 这个伪类来实现，</p>
+<pre><code class="language-html">&lt;!-- App.vue 作为根组件 --&gt;
+&lt;template&gt;
+  &lt;h4&gt;App Title&lt;/h4&gt;
+  &lt;hello-world&gt;&lt;/hello-world&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import HelloWorld from &quot;./HelloWorld.vue&quot;;
+  export default {
+    components: {
+      HelloWorld,
+    },
+  };
+&lt;/script&gt;
+&lt;style scoped&gt;
+  h4 {
+    text-decoration: underline;
+  }
+  :deep (.msg) {
+    text-decoration: underline;
+  }
+&lt;/style&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- HelloWorld.vue 作为根组件 --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;hello-world&quot;&gt;
+    &lt;h4&gt;Hello World1&lt;/h4&gt;
+    &lt;h4 class=&quot;msg&quot;&gt;Hello World2&lt;/h4&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {};
+&lt;/script&gt;
+&lt;style scoped&gt;&lt;/style&gt;
+</code></pre>
+<h3>CSS Modules</h3>
+<p>当组件的 <code>&lt;style&gt;</code> 标签中带有 module 属性时，标签会被编译为 CSS Modules，并将生成的 CSS 类作为 <code>$style</code> 对象的键暴露给组件。</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;p :class=&quot;$style.red&quot;&gt;This should be red&lt;/p&gt;
+&lt;/template&gt;
+&lt;style module&gt;
+  .red {
+    color: red;
+  }
+&lt;/style&gt;
+</code></pre>
+<h3>在 CSS 中使用 v-bind</h3>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;example&quot;&gt;
+    &lt;h4 class=&quot;red&quot;&gt;hello should be red&lt;/h4&gt;
+    &lt;h4 class=&quot;green&quot;&gt;hello should be green&lt;/h4&gt;
+    &lt;h4 class=&quot;yellow&quot;&gt;hello should be yellow&lt;/h4&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        color1: &quot;red&quot;,
+        color2: &quot;green&quot;,
+      };
+    },
+    computed: {
+      color3() {
+        return &quot;yellow&quot;;
+      },
+    },
+  };
+&lt;/script&gt;
+&lt;style module&gt;
+  .red {
+    color: v-bind(color1);
+  }
+  .green {
+    color: v-bind(color2);
+  }
+  .yellow {
+    color: v-bind(color3);
+  }
+&lt;/style&gt;
+</code></pre>
+<h2>父子组件的相互通信</h2>
+<h3>父组件数组传递给子组件</h3>
+<p>可以使用 props 属性完成父子组件之间的通信，当父组件为自定义属性赋值后，子组件可以通过属性名称获取对应的值。</p>
+<ol>
+<li>Props 为字符串类型的数组</li>
+</ol>
+<pre><code class="language-html">&lt;!-- 子组件：ShowMessage.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;show-message&quot;&gt;
+    &lt;h4&gt;{{ title }}&lt;/h4&gt;
+    &lt;div&gt;{{ content }}&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    props: [&quot;title&quot;, &quot;content&quot;],
+  };
+&lt;/script&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- 父组件：App.vue --&gt;
+&lt;div class=&quot;app&quot;&gt;
+  &lt;!-- 直接传递字符串 --&gt;
+  &lt;show-message title=&quot;我是标题&quot; content=&quot;我是内容&quot;&gt;&lt;/show-message&gt;
+  &lt;!-- 绑定字符串类型的变量 --&gt;
+  &lt;show-message :title=&quot;title&quot; :content=&quot;content&quot;&gt;&lt;/show-message&gt;
+  &lt;!-- 绑定对象中字符串类型的属性， --&gt;
+  &lt;show-message
+    :title=&quot;message.title&quot;
+    :content=&quot;message.content&quot;
+  &gt;&lt;/show-message&gt;
+  &lt;!-- 直接绑定一个对象，会自动将对象的每个属性拆出来逐一绑定 --&gt;
+  &lt;show-message v-bind=&quot;message&quot;&gt;&lt;/show-message&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  import ShowMessage from &quot;./ShowMessage.vue&quot;;
+  export default {
+    components: {
+      ShowMessage,
+    },
+    data() {
+      return {
+        title: &quot;我是标题 title&quot;,
+        content: &quot;我是内容 content&quot;,
+        message: {
+          title: &quot;我是标题 message.title&quot;,
+          content: &quot;我是内容 message.content&quot;,
+        },
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<ol start="2">
+<li>Props 为对象类型</li>
+</ol>
+<p>在数组用法中，我们只能声明传入属性的名称，并不能对其施加任何形式的限制，为了完善上述案例，我们可以通过编写对象类型的 Props 实现限制。</p>
+<pre><code class="language-html">&lt;!-- 子组件：ShowMessage.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;show-message&quot;&gt;
+    &lt;h4&gt;{{ title }}&lt;/h4&gt;
+    &lt;div&gt;{{ content }}&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    // 1. props 是数组
+    // props: [&quot;title&quot;, &quot;content&quot;],
+
+    // 2. props 是对象
+    props: {
+      title: String,
+      content: {
+        type: String,
+        requires: true,
+        default: &quot;我的内容是默认值&quot;,
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p><strong>下面介绍 props 对象语法的一些细节</strong></p>
+<p><strong>(1)</strong> type 支持的类型：String、Number、Boolean、Array、Object、Date、Function、Symbol</p>
+<p><strong>(2)</strong> 对象类型的其他写法如下：</p>
+<ul>
+<li>type 属性的类型</li>
+<li>required 是否必传</li>
+<li>default 默认值</li>
+<li>validator 自定义验证函数</li>
+</ul>
+<pre><code class="language-html">&lt;script&gt;
+  export defautl {
+    props: {
+      propA: Number,
+      propB: [String, Number],
+      propC: {
+        type: String,
+        required: true
+      },
+      propD: {
+        type: Number,
+        default: 100
+      },
+      propE: {
+        type: Object,
+        default() { // 对象或数组 default 的默认值必须从一个工厂函数获取，保证每个组件实例的默认值来自不用的引用
+          return {
+            message: &quot;hello&quot;
+          }
+        }
+      },
+      propF: {
+        validator(value){
+          return [&#39;success&#39;, &#39;warning&#39;, &#39;danger&#39;].includes(value)
+        }
+      },
+      propG: {
+        type: Function,
+        default() { // 与对象或数组默认值不同，这里不是一个工厂函数，而是一个用作默认值的函数
+          return &#39;Default Funciton&#39;
+        }
+      }
+    }
+  }
+&lt;/script&gt;
+</code></pre>
+<p><strong>下面介绍非 Props 属性和属性继承</strong></p>
+<p>当我们为一个组件传递某个属性，但是改属性并没有定义为对应的 props 或 emits 时，就称之为非 Props 属性。</p>
+<p>常见的有: <code>class</code>、<code>id</code>、<code>style</code> 属性等。</p>
+<p>当组件只有单个根节点时，这些非 props 的 Attribute 将被自动添加到根节点的属性中，这被称为<code>属性继承</code>。</p>
+<pre><code class="language-html">&lt;!-- NoPropAttribute.vue 作为子组件 --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;no-prop-attribute&quot;&gt;该组件没有定义任何的 props 属性&lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- App.vue 作为父组件 --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;!-- .... --&gt;
+    &lt;no-prop-attribute
+      id=&quot;coder&quot;
+      class=&quot;why&quot;
+      name=&quot;coderwhy&quot;
+    &gt;&lt;/no-prop-attribute&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import NoPropAttribute from &quot;./NoPropAttribute.vue&quot;;
+  export default {
+    components: {
+      NoPropAttribute,
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>最终结果：</p>
+<pre><code class="language-html">&lt;div class=&quot;no-prop-attribute why&quot; id=&quot;coder&quot; name=&quot;coderwhy&quot;&gt;
+  该组件没有定义任何的 props 属性
+&lt;/div&gt;
+</code></pre>
+<p><strong>下面介绍禁用非 Props 的属性继承</strong></p>
+<p>如果不希望组件的根元素继承属性，那么在组件中设置 <code>inheritAttrs: false</code> 即可，</p>
+<p>禁用属性继承的常见情况是将属于应用于根元素之前的其他元素，例如，可以通过 <code>$attrs</code> 访问所有的非 Props 的属性，并应用于根元素之外的元素。</p>
+<pre><code class="language-html">&lt;!-- NoPropAttribute.vue 作为子组件 --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;no-prop-attribute&quot;&gt;
+    该组件没有定义任何的 props 属性
+    &lt;h4 :class=&quot;$attrs.class&quot;&gt;{{ $attrs.id }} - {{ $attrs.name }}&lt;/h4&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    inheritAttrs: false,
+  };
+&lt;/script&gt;
+</code></pre>
+<blockquote>
+<p>对于多根节点，需要手动绑定非 Props 的属性</p>
+</blockquote>
+<p>当子组件存在多个根节点，如果没有显示绑定非 Props 的属性，那么会出现警告。</p>
+<p>因此，需要手动指定，将任意的非 Props 属性绑定到任意一个元素的属性上。</p>
+<pre><code class="language-html">&lt;!-- NoPropAttribute.vue 作为子组件 --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;no-prop-attribute&quot;&gt;该组件没有定义任何的 props 属性&lt;/div&gt;
+  &lt;div class=&quot;no-prop-attribute&quot;&gt;该组件没有定义任何的 props 属性&lt;/div&gt;
+  &lt;div class=&quot;no-prop-attribute&quot; :class=&quot;$attrs.class&quot;&gt;
+    该组件没有定义任何的 props 属性
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    inheritAttrs: false,
+  };
+&lt;/script&gt;
+</code></pre>
+<h3>子组件传递数据给父组件</h3>
+<p>具体步骤如下:</p>
+<p>(1) 在子组件中定义触发事件的名称，如 <code>emits[&#39;add&#39;]</code>
+(2) 在父组件中，以 <code>v-on</code> 的方式传入要监听的事件名称，并绑定到对应的方法中，如 <code>@add=&quot;addOne&quot;</code>
+(3) 在子组件中发生事件时，根据事件名称，使用 <code>$emit</code> 函数触发对应的事件，如 <code>this.$emit(&quot;add&quot;, 参数)</code></p>
+<p><strong>1. 自定义事件流程</strong></p>
+<pre><code class="language-html">&lt;!-- CounterOperation.vue --&gt;
+&lt;template&gt;
+  &lt;div&gt;
+    &lt;button @click=&quot;increment&quot;&gt;+1&lt;/button&gt;
+    &lt;button @click=&quot;decrement&quot;&gt;-1&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    emits: [&quot;add&quot;, &quot;sub&quot;], // 定义该组件可以向父组件触发的 add 和 sub 事件
+    methods: {
+      increment() {
+        this.emit(&quot;add&quot;);
+      },
+      decrement() {
+        this.emit(&quot;sub&quot;);
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div&gt;
+    &lt;h4&gt;当前计数：{{ counter }}&lt;/h4&gt;
+    &lt;counter-operation @add=&quot;addOne&quot; @sub=&quot;subOne&quot;&gt;&lt;/counter-operation&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import CounterOperation from &quot;./CounterOperation.vue&quot;;
+  export default {
+    components: {
+      CounterOperation,
+    },
+    data() {
+      return {
+        counter: 0,
+      };
+    },
+    methods: {
+      addOne() {
+        this.counter++;
+      },
+      subOne() {
+        this.counter--;
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p><strong>2. 自定义事件参数</strong></p>
+<p>事实上，在触发自定义事件时，还可以向父组件传递一些参数</p>
+<pre><code class="language-html">&lt;!-- CounterOperation.vue --&gt;
+&lt;template&gt;
+  &lt;div&gt;
+    &lt;!-- ... --&gt;
+    &lt;input type=&quot;text&quot; v-model.number=&quot;num&quot; /&gt;
+    &lt;button @click=&quot;incrementN&quot;&gt;+n&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    emits: [&quot;add&quot;, &quot;sub&quot;, &quot;addN&quot;],
+    data() {
+      return {
+        num: 0,
+      };
+    },
+    methods: {
+      // ...
+      incrementN() {
+        this.$emit(&quot;addN&quot;, this.num, &quot;why&quot;, 18);
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div&gt;
+    &lt;h4&gt;当前计数：{{ counter }}&lt;/h4&gt;
+    &lt;counter-operation
+      @add=&quot;addOne&quot;
+      @sub=&quot;subOne&quot;
+      @addN=&quot;addNNum&quot;
+    &gt;&lt;/counter-operation&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import CounterOperation from &quot;./CounterOperation.vue&quot;;
+  export default {
+    components: {
+      CounterOperation,
+    },
+    data() {
+      return {
+        counter: 0,
+      };
+    },
+    methods: {
+      // ...
+      addNNum(num, name, age) {
+        console.log(num, name, age);
+        this.counter += num;
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p><strong>3. 自定义事件验证</strong></p>
+<p>不仅可以使用自定义事件 <code>$emit</code>，还可以对传递的参数进行验证。</p>
+<pre><code class="language-html">&lt;!-- CounterOperation.vue --&gt;
+&lt;template&gt;
+  &lt;div&gt;
+    &lt;!-- ... --&gt;
+    &lt;input type=&quot;text&quot; v-model.number=&quot;num&quot; /&gt;
+    &lt;button @click=&quot;incrementN&quot;&gt;+n&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    // 1. 数组写法
+    // emits: [&quot;add&quot;, &quot;sub&quot;, &quot;addN&quot;],
+
+    // 2. 对象写法，目的是为了参数的验证
+    emits: {
+      add: null,
+      sub: null,
+      addN: (num, name, age) =&gt; { // 验证不通过：控制台会出现警告
+        if(num &gt; 10) {
+          return true
+        } else {
+          return false
+        }
+      }
+    }
+    data() {
+      return {
+        num: 0,
+      };
+    },
+    methods: {
+      // ...
+      incrementN() {
+        this.$emit(&quot;addN&quot;, this.num, &quot;why&quot;, 18);
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<h2>非父子组件的相互通信</h2>
+<p>最常用的有以下两种方式：</p>
+<p>(1) Provide/Inject: 主要用于非父子组件（如祖孙）之间共享数据，也支持父子组件，但不支持兄弟组件</p>
+<p>(2) Mitt 全局事件总线：允许在任意组件之间共享数据，例如父子、非父子、兄弟组件等</p>
+<h3>Provide/Inject 依赖注入</h3>
+<ol>
+<li>Provide 和 Inject 的基本使用</li>
+</ol>
+<pre><code class="language-html">&lt;!-- HomeContent.vue 作为孙子组件 --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;home-content&quot;&gt;
+    HomeContent
+    &lt;p&gt;{{ name }} - {{ age }} - {{ friends }}&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    inject: [&quot;name&quot;, &quot;age&quot;, &quot;friends&quot;],
+  };
+&lt;/script&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- Home.vue 作为子组件 --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;home&quot;&gt;
+    Home
+    &lt;home-content&gt;&lt;/home-content&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import HomeContent from &quot;./HomeContent.vue&quot;;
+  export default {
+    components: {
+      HomeContent,
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- App.vue 作为根组件 --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    App
+    &lt;home&gt;&lt;/home&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import Home from &quot;./Home.vue&quot;;
+  export default {
+    components: {
+      Home,
+    },
+  };
+  provide: {
+    name: &quot;why&quot;,
+    age: 18,
+    friends: [&#39;jack&#39;, &#39;rose&#39;]
+  }
+&lt;/script&gt;
+</code></pre>
+<ol start="2">
+<li>Provide 函数的写法</li>
+</ol>
+<p>上例中 provide 提供的都是静态数据，如果想在 provide 中提供 data 中定义的<strong>响应式数据</strong>，</p>
+<p>[未完待续][154]</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <div class="zoom-overlay"></div>
+    <style>
+      .zoom-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        z-index: 1000;
+        cursor: zoom-out;
+      }
+      .zoomed-image {
+        position: fixed;
+        z-index: 1001;
+        will-change: transform;
+        cursor: zoom-out;
+        max-width: 90vw;
+        max-height: 90vh;
+        object-fit: contain;
+      }
+      .back-button {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        background: #f0f0f0;
+        border: none;
+        border-radius: 4px;
+        color: #333;
+        text-decoration: none;
+        font-size: 14px;
+        margin-bottom: 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .back-button:hover {
+        background: #e0e0e0;
+      }
+      .back-button::before {
+        content: "←";
+        margin-right: 8px;
+      }
+    </style>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      const switchBtn = document.querySelector(".layout__main_left-switch");
+      const left = document.querySelector(".layout__main_left");
+
+      // li active 滚动到中间位置
+      const liA = document.querySelector(".layout__main_left li.active");
+      if (liA) {
+        liA.scrollIntoView({
+          behavior: "smooth", // 平滑滚动
+          block: "center", // 垂直方向滚动到视口中间
+        });
+      }
+
+      switchBtn.addEventListener("click", () => {
+        left.classList.toggle("show");
+      });
+
+      // Image zoom with FLIP animation
+      const overlay = document.querySelector(".zoom-overlay");
+      let activeImage = null;
+
+      document.querySelectorAll("img").forEach((img) => {
+        if (img.closest("a")) return; // Skip images that are inside links
+        img.style.cursor = "zoom-in";
+        img.addEventListener("click", handleImageClick);
+      });
+
+      function handleImageClick(event) {
+        const img = event.target;
+
+        if (activeImage) {
+          // If an image is already zoomed, unzoom it
+          unzoomImage();
+          return;
+        }
+
+        // Get the initial position and size
+        const rect = img.getBoundingClientRect();
+        const first = {
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height,
+        };
+
+        // Create a clone of the image
+        const clone = img.cloneNode();
+        clone.classList.add("zoomed-image");
+        document.body.appendChild(clone);
+
+        // Position the clone exactly over the original
+        clone.style.position = "fixed";
+        clone.style.left = `${first.x}px`;
+        clone.style.top = `${first.y}px`;
+        clone.style.width = `${first.width}px`;
+        clone.style.height = `${first.height}px`;
+        clone.style.margin = "0";
+        clone.style.transformOrigin = "top left";
+
+        // Show the overlay
+        overlay.style.display = "block";
+
+        // Calculate the final position and scale
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const targetWidth = Math.min(img.naturalWidth, viewportWidth * 0.9);
+        const targetHeight = Math.min(img.naturalHeight, viewportHeight * 0.9);
+        const scaleX = targetWidth / first.width;
+        const scaleY = targetHeight / first.height;
+        const scale = Math.min(scaleX, scaleY);
+
+        const last = {
+          width: first.width * scale,
+          height: first.height * scale,
+        };
+        last.x = (viewportWidth - last.width) / 2;
+        last.y = (viewportHeight - last.height) / 2;
+
+        // Calculate and apply the transform
+        const dx = last.x - first.x;
+        const dy = last.y - first.y;
+
+        requestAnimationFrame(() => {
+          clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+          clone.style.transition = "transform 0.3s ease-out";
+        });
+
+        activeImage = { original: img, clone: clone };
+
+        // Add click handlers for closing
+        clone.addEventListener("click", unzoomImage);
+        overlay.addEventListener("click", unzoomImage);
+      }
+
+      function unzoomImage() {
+        if (!activeImage) return;
+
+        const { original, clone } = activeImage;
+        const rect = original.getBoundingClientRect();
+
+        // Animate back to the original position
+        clone.style.transform = `translate(0, 0) scale(1)`;
+
+        // Clean up after the animation
+        clone.addEventListener(
+          "transitionend",
+          () => {
+            clone.remove();
+            overlay.style.display = "none";
+          },
+          { once: true }
+        );
+
+        activeImage = null;
+      }
+    </script>
+  </body>
+</html>
