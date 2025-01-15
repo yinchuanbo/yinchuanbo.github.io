@@ -584,19 +584,184 @@
     components: {
       Home,
     },
+    provide: {
+      name: &quot;why&quot;,
+      age: 18,
+      friends: [&quot;jack&quot;, &quot;rose&quot;],
+    },
   };
-  provide: {
-    name: &quot;why&quot;,
-    age: 18,
-    friends: [&#39;jack&#39;, &#39;rose&#39;]
-  }
 &lt;/script&gt;
 </code></pre>
 <ol start="2">
 <li>Provide 函数的写法</li>
 </ol>
-<p>上例中 provide 提供的都是静态数据，如果想在 provide 中提供 data 中定义的<strong>响应式数据</strong>，</p>
-<p>[未完待续][154]</p>
+<p>上例中 provide 提供的都是静态数据，如果想在 provide 中提供 data 中定义的<strong>响应式数据</strong>，那我们可以通过 this 获取数据，</p>
+<pre><code class="language-html">&lt;script&gt;
+  export default {
+    provide: {
+      // ...
+      friends: this.friends,
+    },
+    data() {
+      return {
+        friends: [&quot;jack&quot;, &quot;rose&quot;],
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>上述代码运行会报错：<code>在 provide 中使用 this 是 undefined</code></p>
+<p>这是因为获取的是模块顶层的 this，在 ES6 模块中，顶层 this 指向 undefined，如果要访问 data 中的定义的属性，则需要将 provide 改为函数形式，并在函数中返回对象</p>
+<pre><code class="language-html">&lt;script&gt;
+  export default {
+    // 改为函数形式，返回对象
+    provide() {
+      return {
+        // ...
+        friends: this.friends,
+      };
+    },
+    data() {
+      return {
+        friends: [&quot;jack&quot;, &quot;rose&quot;],
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>下面新增一个需求：孙子组件想直接获取朋友的个数 “friendLength”，这时候，App.vue 组件的 provide 中需要增加 <code>friendLength: this.friends.length</code> 数据，接下来，我们需要验证，如果修改了 <code>this.friends</code> 的内容，孙子组件中注入的 friendLength 数据是否会跟着改变。</p>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;script&gt;
+  export default {
+    // ...
+    provide() {
+      return {
+        // ...
+        friendLength: this.friends.length,
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- HomeContent.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;home-content&quot;&gt;
+    HomeContent
+    &lt;p&gt;{{ name }} - {{ age }} - {{ friendLength }}&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    inject: [&quot;name&quot;, &quot;age&quot;, &quot;friends&quot;, &quot;friendLength&quot;], // 增加 friendLength 注入
+  };
+&lt;/script&gt;
+</code></pre>
+<blockquote>
+<p>当 App.vue 中的 friends 改变之后，孙子组件中的 friendLength 并未随之改变</p>
+</blockquote>
+<p>如果想要数据变成响应式的，可以使用<code>计算属性</code></p>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;script&gt;
+  export default {
+    // ...
+    provide() {
+      return {
+        // ...
+        friendLength: computed(() =&gt; this.friends.length),
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<h3>全局事件总线</h3>
+<p>事件总线（mitt）是对<code>发布/订阅</code>的一种实现。</p>
+<p>它是一种集中式事件处理机制，允许 Vue3 不同组件相互通信，无需依赖，就可以达到解耦的目的。</p>
+<ol>
+<li>Vue3 中全局事件总线</li>
+</ol>
+<p>Vue3 移除了实例中的 <code>on</code>、<code>off</code>、<code>$once</code> 方法，如果要继续使用全局事件总线，则官方推荐使用第三方库来实现。</p>
+<p><strong>mitt / tiny-emitter</strong></p>
+<p>(1) 安装 mitt</p>
+<pre><code class="language-sh">npm i mitt --save
+</code></pre>
+<p>(2) 其次，封装一个工具 eventbus.js，用于统一导出 emitter 对象，</p>
+<pre><code class="language-js">// eventbus.js
+import mitt from &quot;mitt&quot;;
+const emitter = mitt();
+export default emitter;
+</code></pre>
+<p><strong>以下是 emitter 对象常用的 API</strong></p>
+<ol>
+<li>发送或触发事件 API</li>
+</ol>
+<pre><code class="language-js">/**
+ * 参数：事件名称 发送事件时传递的数据
+ */
+emitter.emit(&quot;why&quot;, { name: &quot;why&quot;, age: 18 });
+</code></pre>
+<ol start="2">
+<li>监听事件 API</li>
+</ol>
+<pre><code class="language-js">/**
+ * 参数：事件名称 监听事件的回调函数
+ */
+emitter.on(&quot;why&quot;, (info) =&gt; {
+  console.log(&quot;why&quot;, info);
+});
+</code></pre>
+<ol start="3">
+<li>事件取消 API</li>
+</ol>
+<pre><code class="language-js">// 取消 emitter 中所有监听
+emitter.clear();
+
+// 取消某一个事件，但需要先定义一个函数
+function onFoo() {}
+emitter.on(&quot;foo&quot;, onFoo); // 监听 foo 事件
+emitter.off(&quot;foo&quot;, onFoo); // 取消监听 foo 事件
+</code></pre>
+<ol start="4">
+<li>使用案例</li>
+</ol>
+<pre><code class="language-html">&lt;!-- About.vue --&gt;
+&lt;script&gt;
+  import emitter from &quot;./utils/eventbus.js&quot;;
+  export default {
+    methods: {
+      btnClick() {
+        emitter.emit(&quot;why&quot;, {
+          name: &quot;why&quot;,
+          age: 18,
+        });
+        emitter.emit(&quot;kobe&quot;, {
+          name: &quot;kobe&quot;,
+          age: 30,
+        });
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- HomeContent.vue --&gt;
+&lt;script&gt;
+  import emitter from &quot;./utils/eventbus.js&quot;;
+  export default {
+    created() {
+      emitter.on(&quot;why&quot;, (info) =&gt; {
+        console.log(info);
+      });
+      emitter.on(&quot;kobe&quot;, (info) =&gt; {
+        console.log(info);
+      });
+      // 监听所有事件
+      emitter.on(&quot;*&quot;, (type, info) =&gt; {
+        console.log(type, info);
+      });
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>【161】</p>
 
         </div>
       </div>
