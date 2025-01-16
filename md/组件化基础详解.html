@@ -803,7 +803,218 @@ emitter.off(&quot;foo&quot;, onFoo); // 取消监听 foo 事件
   &lt;/div&gt;
 &lt;/template&gt;
 </code></pre>
-<p>[165]</p>
+<ol start="2">
+<li>插槽的默认内容</li>
+</ol>
+<p>当没有提供插槽的内容时，如果希望显示默认的内容，那么这个默认的内容只有在没有提供插入内容的情况下才会显示。</p>
+<pre><code class="language-html">&lt;!-- MySlotCpn.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;my-slot-cpn&quot;&gt;
+    &lt;div class=&quot;header&quot;&gt;&lt;/div&gt;
+    &lt;!-- 插槽 --&gt;
+    &lt;slot&gt; 插槽的默认内容，只有在没有提供插入内容的时候才会展示 &lt;/slot&gt;
+    &lt;div class=&quot;footer&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<ol start="3">
+<li>具名插槽</li>
+</ol>
+<p>为每个插槽起一个名字，<code>&lt;slot&gt;</code> 元素有一个特殊的 name 属性，而不带 name 属性的插槽也会带有隐式的 <code>name=&quot;default&quot;</code></p>
+<pre><code class="language-html">&lt;!-- NavBar.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;nav-bar&quot;&gt;
+    &lt;div class=&quot;left&quot;&gt;
+      &lt;slot name=&quot;left&quot;&gt;&lt;/slot&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;center&quot;&gt;
+      &lt;slot name=&quot;center&quot;&gt;&lt;/slot&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;right&quot;&gt;
+      &lt;slot name=&quot;right&quot;&gt;&lt;/slot&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;nav-bar&gt;
+      &lt;template v-slot:left&gt;
+        &lt;button&gt;这是左边的按钮&lt;/button&gt;
+      &lt;/template&gt;
+      &lt;template v-slot:center&gt;
+        &lt;h4&gt;我是标题&lt;/h4&gt;
+      &lt;/template&gt;
+      &lt;template v-slot:right&gt;
+        &lt;button&gt;这是右边的按钮&lt;/button&gt;
+      &lt;/template&gt;
+    &lt;/nav-bar&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<blockquote>
+<p><code>v-slot</code> 的简写为 <code>#</code>，因此 <code>&lt;template v-slot:header&gt;&lt;/template&gt;</code> 可简写为 <code>&lt;template #header&gt;</code></p>
+</blockquote>
+<ol start="4">
+<li>动态插槽名的使用</li>
+</ol>
+<p>我们还可以通过 <code>v-slot:[dynamicSlotName]</code> 方式动态绑定一个插槽的名称</p>
+<pre><code class="language-html">&lt;!-- NavBar.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;nav-bar&quot;&gt;
+    &lt;div class=&quot;left&quot;&gt;
+      &lt;!-- 动态添加插槽的名称，由外部使用者决定 --&gt;
+      &lt;slot :name=&quot;name&quot;&gt;&lt;/slot&gt;
+    &lt;/div&gt;
+    &lt;!-- ... --&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    props: {
+      name: String, // 接收插槽名称
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;!-- 传递插槽名给 NavBar.vue 组件 --&gt;
+    &lt;nav-bar :name=&quot;name&quot;&gt;
+      &lt;template v-slot:[name]&gt;
+        &lt;button&gt;这是左边的按钮&lt;/button&gt;
+      &lt;/template&gt;
+    &lt;/nav-bar&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        name: &quot;coderwhy&quot;, // 定义插槽名称
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<ol start="5">
+<li>具名插槽的缩写</li>
+</ol>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;nav-bar :name=&quot;name&quot;&gt;
+      &lt;template #[name]&gt;
+        &lt;button&gt;这是左边的按钮&lt;/button&gt;
+      &lt;/template&gt;
+      &lt;template #center&gt;
+        &lt;h4&gt;我是标题&lt;/h4&gt;
+      &lt;/template&gt;
+      &lt;template #right&gt;
+        &lt;button&gt;这是右边的按钮&lt;/button&gt;
+      &lt;/template&gt;
+    &lt;/nav-bar&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<h2>组件的作用域插槽</h2>
+<h3>认识渲染作用域</h3>
+<p>父级模板中的所有内容都在父级作用域中进行编译，而子模板中的所有内容都在子作用域中进行编译。</p>
+<p>父级模板无法访问子模板中的内容，因为涉及跨作用域访问。</p>
+<h3>作用域插槽</h3>
+<p>由于组件渲染存在作用域，每个组件只能访问自己作用域中的内容，但有时我们希望插槽可以访问子组件中的内容，这种情况在实际开发中使用的非常多，也非常重要。</p>
+<p>下面看一个案例，其实现的功能如下：</p>
+<ol>
+<li><p>在 App.vue 中定义变量 names，并将其传递给 ShowNames.vue 组件</p>
+</li>
+<li><p>ShowNames.vue 组件遍历 names，并为插槽添加 item 和 index 属性，如 <code>&lt;slot :item=&quot;item&quot;&gt;&lt;/slot&gt;</code></p>
+</li>
+<li><p>在 App.vue 中，通过 <code>v-slot:default</code> 的方式获取插槽的属性，如 slotProps</p>
+</li>
+<li><p>在 App.vue 中，可以通过 slotProps 对象访问插槽的 item 和 index 属性</p>
+</li>
+</ol>
+<pre><code class="language-html">&lt;!-- ShowNames.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;show-names&quot;&gt;
+    &lt;template v-for=&quot;(item, index) in names&quot; :key=&quot;item&quot;&gt;
+      &lt;!-- 为插槽添加 item 和 index 属性，并绑定 item 和 index 数据，item 和 index 称为 slot prop --&gt;
+      &lt;slot :item=&quot;item&quot; :index=&quot;index&quot;&gt;&lt;/slot&gt;
+    &lt;/template&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    props: {
+      names: {
+        type: Array,
+        default: () =&gt; [],
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>可以看到，首先改组件接收 names 属性，接着在 template 中使用 v-for 指令遍历 names 数组，数组中每项显示的内容使用插槽占位，让使用者决定显示的内容。然后将遍历数组的 item 和 index 绑定到插槽的属性上。目的是让使用该插槽的人可以通过带值的 v-slot 指令获取插槽提供的属性，如 item 和 index</p>
+<blockquote>
+<p>注意：我们可以为插槽添加任意数量的属性，另外，在插槽中定义的属性称为插槽的属性（slot prop）</p>
+</blockquote>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;show-names :names=&quot;name&quot;&gt;
+      &lt;!-- v-slot:default 后面的值 slotProps 是插槽属性的集合，其中 slotProps 可任意取名 --&gt;
+      &lt;template v-slot:default=&quot;slotProps&quot;&gt;
+        &lt;span&gt;{{ slotProps.item }} - {{ slotProps.index }}&lt;/span&gt;
+      &lt;/template&gt;
+    &lt;/show-names&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import ShowNames from &quot;./ShowNames.vue&quot;;
+  export default {
+    components: {
+      ShowNames,
+    },
+    data() {
+      return {
+        names: [&quot;why&quot;, &quot;kobe&quot;, &quot;james&quot;, &quot;curry&quot;],
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<h3>独占默认插槽</h3>
+<p>对于默认插槽（即 name=&quot;default&quot;），在使用时可以将 <code>v-slot:default=&quot;slotProps&quot;</code> 简写为 <code>v-slot=&quot;slotProps&quot;</code></p>
+<p>在只有默认插槽时，组件的标签可以被当做插槽的模板（template）使用，这样就可以将 v-slot 直接用在组件上，即省略 template 元素。</p>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;show-names :names=&quot;name&quot; v-slot=&quot;slotProps&quot;&gt;
+      &lt;span&gt;{{ slotProps.item }} - {{ slotProps.index }}&lt;/span&gt;
+    &lt;/show-names&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<p>但是，如果 ShowName.vue 组件同时具备默认插槽和具名插槽，那么就必须按照 template 的语法来编写</p>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;show-names :names=&quot;name&quot;&gt;
+      &lt;template v-slot=&quot;slotProps&quot;&gt;
+        &lt;span&gt;{{ slotProps.item }} - {{ slotProps.index }}&lt;/span&gt;
+      &lt;/template&gt;
+    &lt;/show-names&gt;
+    &lt;!-- 具名插槽 --&gt;
+    &lt;show-names :names=&quot;name&quot;&gt;
+      &lt;template v-slot:xxx=&quot;slotProps&quot;&gt;
+        &lt;span&gt;{{ slotProps.item }} - {{ slotProps.index }}&lt;/span&gt;
+      &lt;/template&gt;
+    &lt;/show-names&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
 
         </div>
       </div>
