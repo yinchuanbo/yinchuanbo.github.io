@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>组件化进阶详解</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=fallback"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+  </head>
+
+  <body>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="layout__main_left" style="order: 0">
+          <div class="layout__main_left-switch"></div>
+          <ul>
+            <li class="active"><a title="组件化进阶详解" href="/md/组件化进阶详解.html">10 组件化进阶详解</a></li><li class=""><a title="组件化基础详解" href="/md/组件化基础详解.html">09 组件化基础详解</a></li><li class=""><a title="组件化开发" href="/md/组件化开发.html">08 组件化开发</a></li><li class=""><a title="v-model和表单输入" href="/md/v-model和表单输入.html">07 v-model和表单输入</a></li><li class=""><a title="vue3 的 Options API" href="/md/vue3 的 Options API.html">06 vue3 的 Options API</a></li><li class=""><a title="模板语法和内置命令" href="/md/模板语法和内置命令.html">05 模板语法和内置命令</a></li><li class=""><a title="前端 vue 项目使用 ffmpeg 处理视频" href="/md/前端 vue 项目使用 ffmpeg 处理视频.html">04 前端 vue 项目使用 ffmpeg 处理视频</a></li><li class=""><a title="Vue Router 4 的 scrollBehavior 方法" href="/md/Vue Router 4 的 scrollBehavior 方法.html">03 Vue Router 4 的 scrollBehavior 方法</a></li><li class=""><a title="浅浅聊一下 vue 中的 nextTick 的实现原理" href="/md/浅浅聊一下 vue 中的 nextTick 的实现原理.html">02 浅浅聊一下 vue 中的 nextTick 的实现原理</a></li><li class=""><a title="Vue3.x 生态最能打的组合" href="/md/Vue3.x 生态最能打的组合.html">01 Vue3.x 生态最能打的组合</a></li>
+          </ul>
+        </div>
+        <div
+          style="order: 1"
+          class="layout__main_right md "
+        >
+          <div class="page-header">
+            
+            <a href="/md/" class="back-button">Back to MD</a>
+            
+            <h1>组件化进阶详解</h1>
+            <p class="time">HaoTian · 2025-01-16 10:21:59</p>
+          </div>
+          <h2>动态组件</h2>
+<p>先看案例需求：单击按钮实现切换显示不同的组件</p>
+<p>该案例可以通过下面两种不用的思路实现：</p>
+<ol>
+<li><p>v-if 指令，</p>
+</li>
+<li><p>动态组件</p>
+</li>
+</ol>
+<p><strong>1. v-if 指令的实现</strong></p>
+<ul>
+<li>Home.vue</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;Home 组件&lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    name: &quot;home&quot;,
+  };
+&lt;/script&gt;
+</code></pre>
+<ul>
+<li>About.vue</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;About 组件&lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    name: &quot;about&quot;,
+  };
+&lt;/script&gt;
+</code></pre>
+<ul>
+<li>Category.vue</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;Category 组件&lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    name: &quot;category&quot;,
+  };
+&lt;/script&gt;
+</code></pre>
+<ul>
+<li>App.vue</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;button
+      v-for=&quot;item in tabs&quot;
+      :key=&quot;item&quot;
+      @click=&quot;itemClick(item)&quot;
+      :class=&quot;{ active: currentTab === item }&quot;
+    &gt;
+      {{ item }}
+    &lt;/button&gt;
+    &lt;template v-if=&quot;currentTab === &#39;home&#39;&quot;&gt;
+      &lt;home&gt;&lt;/home&gt;
+    &lt;/template&gt;
+    &lt;template v-if=&quot;currentTab === &#39;about&#39;&quot;&gt;
+      &lt;about&gt;&lt;/about&gt;
+    &lt;/template&gt;
+    &lt;template v-if=&quot;currentTab === &#39;category&#39;&quot;&gt;
+      &lt;category&gt;&lt;/category&gt;
+    &lt;/template&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import Home from &quot;./Home.vue&quot;;
+  import About from &quot;./About.vue&quot;;
+  import Category from &quot;./Category.vue&quot;;
+  export default {
+    components: {
+      Home,
+      About,
+      Category,
+    },
+    data() {
+      return {
+        tabs: [&quot;home&quot;, &quot;about&quot;, &quot;category&quot;],
+        currentTab: &quot;home&quot;,
+      };
+    },
+    methods: {
+      itemClick(item) {
+        this.currentTab = item;
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p><strong>2. 动态组件的实现</strong></p>
+<ul>
+<li>App.vue</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;button
+      v-for=&quot;item in tabs&quot;
+      :key=&quot;item&quot;
+      @click=&quot;itemClick(item)&quot;
+      :class=&quot;{ active: currentTab === item }&quot;
+    &gt;
+      {{ item }}
+    &lt;/button&gt;
+    &lt;!-- 动态组件的用法 --&gt;
+    &lt;component :is=&quot;currentTab&quot;&gt;&lt;/component&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<h3>动态组件的传参</h3>
+<ul>
+<li>App.vue</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;button
+      v-for=&quot;item in tabs&quot;
+      :key=&quot;item&quot;
+      @click=&quot;itemClick(item)&quot;
+      :class=&quot;{ active: currentTab === item }&quot;
+    &gt;
+      {{ item }}
+    &lt;/button&gt;
+    &lt;!-- 动态组件的用法 --&gt;
+    &lt;component
+      :is=&quot;currentTab&quot;
+      name=&quot;coderwhy&quot;
+      :age=&quot;18&quot;
+      @pageClick=&quot;pageClick&quot;
+    &gt;&lt;/component&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    //...
+    methods: {
+      //...
+      pageClick(value) {
+        console.log(value);
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<ul>
+<li>Home.vue</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div @click=&quot;divClick&quot;&gt;Home 组件: {{ name }} - {{ age }}&lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    name: &quot;home&quot;,
+    emits: [&quot;pageClick&quot;],
+    props: {
+      name: {
+        type: String,
+        default: &quot;&quot;,
+      },
+      age: {
+        type: Number,
+        default: 0,
+      },
+    },
+    methods: {
+      divClick() {
+        this.$emit(&quot;pageClick&quot;, &quot;Home 组件触发的单击&quot;);
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<h3>keep-alive 的使用</h3>
+<p>作用：保留组件状态，不会被销毁</p>
+<ol>
+<li>keep-alive 的使用</li>
+</ol>
+<ul>
+<li>App.vue</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;!-- ... --&gt;
+    &lt;!-- keep-alive 保留动态组件的状态，同时会保留其对应的子孙组件的状态 --&gt;
+    &lt;keep-alive&gt;
+      &lt;component
+        :is=&quot;currentTab&quot;
+        name=&quot;coderwhy&quot;
+        :age=&quot;18&quot;
+        @pageClick=&quot;pageClick&quot;
+      &gt;&lt;/component&gt;
+    &lt;/keep-alive&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<ol start="2">
+<li>keep-alive 的属性</li>
+</ol>
+<ul>
+<li><p>include: 支持 <code>string</code>、<code>RegExp</code>、<code>Array</code> 类型，只有名称匹配的组件会被缓存。</p>
+</li>
+<li><p>exclude: 支持 <code>string</code>、<code>RegExp</code>、<code>Array</code> 类型，任何名称匹配的组件都不会被缓存。</p>
+</li>
+<li><p>max: 支持 <code>number</code>、<code>string</code> 类型，最多可以缓存多少个组件实例，一旦达到这个数字，那么缓存组件中最近没有被访问的组件会被销毁。</p>
+</li>
+</ul>
+<blockquote>
+<p>其中 include 和 exclude 属性允许组件有条件的缓存，二者都可以表示为用逗号分隔的字符串、正则表达式或一个数组。匹配时会首先检查组件自身的 name 选项，如果 name 选项不可用，则匹配它的局部注册的名称。</p>
+</blockquote>
+<p>如果仅想缓存 Home.vue 和 About.vue 组件的状态，那么有三种写法：</p>
+<pre><code class="language-html">&lt;!-- 1. 逗号分隔字符串 --&gt;
+&lt;template&gt;
+  &lt;keep-alive include=&quot;home, about&quot;&gt;
+    &lt;component
+      :is=&quot;currentTab&quot;
+      name=&quot;coderwhy&quot;
+      :age=&quot;18&quot;
+      @pageClick=&quot;pageClick&quot;
+    &gt;&lt;/component&gt;
+  &lt;/keep-alive&gt;
+&lt;/template&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- 2. RegExp --&gt;
+&lt;template&gt;
+  &lt;keep-alive :include=&quot;/home|about/&quot;&gt;
+    &lt;component
+      :is=&quot;currentTab&quot;
+      name=&quot;coderwhy&quot;
+      :age=&quot;18&quot;
+      @pageClick=&quot;pageClick&quot;
+    &gt;&lt;/component&gt;
+  &lt;/keep-alive&gt;
+&lt;/template&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- 3. Array --&gt;
+&lt;template&gt;
+  &lt;keep-alive :include=&quot;[&#39;home&#39;, &#39;about&#39;]&quot;&gt;
+    &lt;component
+      :is=&quot;currentTab&quot;
+      name=&quot;coderwhy&quot;
+      :age=&quot;18&quot;
+      @pageClick=&quot;pageClick&quot;
+    &gt;&lt;/component&gt;
+  &lt;/keep-alive&gt;
+&lt;/template&gt;
+</code></pre>
+<ol start="3">
+<li>缓存组件实例的生命周期</li>
+</ol>
+<p>对于缓存组件来说，再次进入时不会再次执行 <code>created</code> 或 <code>mounted</code> 等生命周期函数，但在有些情况下，我们需要监听组件的重新进入和离开的时机，这时候可以使用 <code>activated</code> 和 <code>deactivated</code> 这两个生命周期钩子。</p>
+<p>修改 About.vue 组件，添加 <code>activated</code> 和 <code>deactivated</code> 这两个生命周期钩子</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    About 组件
+    &lt;button @click=&quot;counter++&quot;&gt;单击递增：{{ counter }}&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    name: &quot;about&quot;,
+    data() {
+      return {
+        counter: 0,
+      };
+    },
+    created() {
+      console.log(&quot;about created&quot;);
+    },
+    unmounted() {
+      console.log(&quot;about unmounted&quot;);
+    },
+    activated() {
+      // 组件显示时回调
+      console.log(&quot;about activated&quot;);
+    },
+    deactivated() {
+      // 组件隐藏时回调
+      console.log(&quot;about deactivated&quot;);
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<h2>异步组件</h2>
+<p>有时候，我们可能异步加载某组件，这种异步加载的组件称为异步组件，在加载异步组件时，webpack 会对其进行分包处理。</p>
+<h3>webpack 对代码分包</h3>
+<p>异步加载组件的好处是：当 webpack 加载异步组件时，为了更好的理解分包技术，先来看看 webpack 的打包过程，</p>
+<p>(1) 默认情况下，在构建整个组件树的过程中，组件和组件之间是通过模块化直接依赖的</p>
+<p>(2) webpack 在打包的时候会将组件模块打包到一起，比如打包到一个 app.js 文件中</p>
+<p>(3) 随着项目不断增大，打包生成的 app.js 文件也会过大，从而导致首屏渲染速度过慢</p>
+<p>为了解决打包生成的 app.js 文件过大的问题，我们可以在 webpack 打包时对代码进行分包，比如，对于一些不需要立即使用的组件，可以单独进行拆分，将他们拆分成一些小的代码块（如 chunk.js），这些 chunk.js 会在需要的时候从服务器中被加载下来，并执行代码，显示其对应的内容。</p>
+<p>这种方式可以极大的提升 web 应用程序的性能。</p>
+<p>举例：</p>
+<pre><code class="language-js">// utils/math.js
+export function sum(num1, num2) {
+  return num1 + num2;
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;App 组件&lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  // 可以省略扩展名
+  import(&quot;./utils/math&quot;).then((res) =&gt; {
+    console.log(res.num(10, 20));
+  });
+&lt;/script&gt;
+</code></pre>
+<p>可以看到，使用 import 函数导入 math.js 模块时，会进行分包处理，math.js 模块已经被单独分到 chunk-2d0cfcbf.7b9b1398.js 文件中，其实，<strong>webpack 底层就是通过 import 函数对代码进行分包的。</strong></p>
+<h3>在 Vue3 中实现异步组件</h3>
+<p>webpack 可以通过 import 函数对 math.js 模块进行分包处理，</p>
+<p>如果想对 vue3 组件进行分包处理，那么可以使用 Vue3 提供的 <code>defineAsyncComponent</code> 函数实现异步加载组件，该函数支持两种类型的参数，</p>
+<p>(1) 工厂函数：该工厂函数需要返回一个 Promise 对象。</p>
+<p>(2) 对象类型：对异步函数进行配置。</p>
+<p><strong>1. 工厂函数</strong></p>
+<pre><code class="language-html">&lt;!-- Home.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;home&quot;&gt;Home 组件&lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<blockquote>
+<p>AsyncCategory.vue 组件，将作为异步组件使用，打包时会进行分包处理，</p>
+</blockquote>
+<pre><code class="language-html">&lt;!-- AsyncCategory.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;async-category&quot;&gt;
+    &lt;h4&gt;{{ message }}&lt;/h4&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        message: &quot;AsyncCategory 异步组件&quot;,
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>修改 App.vue 根组件：</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    App 组件
+    &lt;home&gt;&lt;/home&gt;
+    &lt;async-category&gt;&lt;/async-category&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import { defineAsyncComponent } from &quot;vue&quot;;
+  import Home from &quot;./Home.vue&quot;;
+  // 使用 defineAsyncComponent 函数异步加载 AsyncCategory.vue 组件，会进行分包处理
+  const AsyncCategory = defineAsyncComponent(() =&gt;
+    import(&quot;./AsyncCategory.vue&quot;)
+  );
+  export default {
+    components: {
+      Home,
+      AsyncCategory,
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>[183]</p>
+
+        </div>
+      </div>
+    </div>
+    <div class="body_bg"></div>
+    <div class="zoom-overlay"></div>
+    <style>
+      .zoom-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        z-index: 1000;
+        cursor: zoom-out;
+      }
+      .zoomed-image {
+        position: fixed;
+        z-index: 1001;
+        will-change: transform;
+        cursor: zoom-out;
+        max-width: 90vw;
+        max-height: 90vh;
+        object-fit: contain;
+      }
+      .back-button {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        background: #f0f0f0;
+        border: none;
+        border-radius: 4px;
+        color: #333;
+        text-decoration: none;
+        font-size: 14px;
+        margin-bottom: 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .back-button:hover {
+        background: #e0e0e0;
+      }
+      .back-button::before {
+        content: "←";
+        margin-right: 8px;
+      }
+    </style>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      const switchBtn = document.querySelector(".layout__main_left-switch");
+      const left = document.querySelector(".layout__main_left");
+
+      // li active 滚动到中间位置
+      const liA = document.querySelector(".layout__main_left li.active");
+      if (liA) {
+        liA.scrollIntoView({
+          behavior: "smooth", // 平滑滚动
+          block: "center", // 垂直方向滚动到视口中间
+        });
+      }
+
+      switchBtn.addEventListener("click", () => {
+        left.classList.toggle("show");
+      });
+
+      // Image zoom with FLIP animation
+      const overlay = document.querySelector(".zoom-overlay");
+      let activeImage = null;
+
+      document.querySelectorAll("img").forEach((img) => {
+        if (img.closest("a")) return; // Skip images that are inside links
+        img.style.cursor = "zoom-in";
+        img.addEventListener("click", handleImageClick);
+      });
+
+      function handleImageClick(event) {
+        const img = event.target;
+
+        if (activeImage) {
+          // If an image is already zoomed, unzoom it
+          unzoomImage();
+          return;
+        }
+
+        // Get the initial position and size
+        const rect = img.getBoundingClientRect();
+        const first = {
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height,
+        };
+
+        // Create a clone of the image
+        const clone = img.cloneNode();
+        clone.classList.add("zoomed-image");
+        document.body.appendChild(clone);
+
+        // Position the clone exactly over the original
+        clone.style.position = "fixed";
+        clone.style.left = `${first.x}px`;
+        clone.style.top = `${first.y}px`;
+        clone.style.width = `${first.width}px`;
+        clone.style.height = `${first.height}px`;
+        clone.style.margin = "0";
+        clone.style.transformOrigin = "top left";
+
+        // Show the overlay
+        overlay.style.display = "block";
+
+        // Calculate the final position and scale
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const targetWidth = Math.min(img.naturalWidth, viewportWidth * 0.9);
+        const targetHeight = Math.min(img.naturalHeight, viewportHeight * 0.9);
+        const scaleX = targetWidth / first.width;
+        const scaleY = targetHeight / first.height;
+        const scale = Math.min(scaleX, scaleY);
+
+        const last = {
+          width: first.width * scale,
+          height: first.height * scale,
+        };
+        last.x = (viewportWidth - last.width) / 2;
+        last.y = (viewportHeight - last.height) / 2;
+
+        // Calculate and apply the transform
+        const dx = last.x - first.x;
+        const dy = last.y - first.y;
+
+        requestAnimationFrame(() => {
+          clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+          clone.style.transition = "transform 0.3s ease-out";
+        });
+
+        activeImage = { original: img, clone: clone };
+
+        // Add click handlers for closing
+        clone.addEventListener("click", unzoomImage);
+        overlay.addEventListener("click", unzoomImage);
+      }
+
+      function unzoomImage() {
+        if (!activeImage) return;
+
+        const { original, clone } = activeImage;
+        const rect = original.getBoundingClientRect();
+
+        // Animate back to the original position
+        clone.style.transform = `translate(0, 0) scale(1)`;
+
+        // Clean up after the animation
+        clone.addEventListener(
+          "transitionend",
+          () => {
+            clone.remove();
+            overlay.style.display = "none";
+          },
+          { once: true }
+        );
+
+        activeImage = null;
+      }
+    </script>
+  </body>
+</html>
