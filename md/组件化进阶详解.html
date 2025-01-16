@@ -406,7 +406,149 @@ export function sum(num1, num2) {
   };
 &lt;/script&gt;
 </code></pre>
-<p>[183]</p>
+<p><strong>2. 对象类型</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    App 组件
+    &lt;home&gt;&lt;/home&gt;
+    &lt;async-category&gt;&lt;/async-category&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import { defineAsyncComponent } from &quot;vue&quot;;
+  import Home from &quot;./Home.vue&quot;;
+  // 1. 使用工行函数形式
+  // const AsyncCategory = defineAsyncComponent(() =&gt;
+  //   import(&quot;./AsyncCategory.vue&quot;)
+  // );
+
+  // 2. 对象类型语法
+  const AsyncCategory = defineAsyncComponent({
+    // 需要异步加载的组件
+    loader: () =&gt; import(&quot;./AsyncCategory.vue&quot;),
+    // 加载时显示 loading 组件
+    loadingComponent: Loading,
+    // 加载失败时显示 Error 组件
+    errorComponent: Error,
+    // 在显示 loadingComponent 之前的延迟，默认值是：200ms
+    delay: 200,
+    // 加载组件的时间超过设定值，将显示错误组件，默认值为: Infinity (永不超时，单位 ms)
+    timeout: 3000,
+    // 定义组件是否可挂起，默认 true
+    suspensible: false, // false，代表异步组件可以退出 Suspense 控制，并始终控制自己的加载状态
+    /**
+     * 组件加载失败回调
+     * @param {*} error 错误信息对象
+     * @param {*} retry 一个函数，用于指定当 promise 加载器 reject 时，加载器是否应该重新
+     * @param {*} fail 一个函数，指示加载程序结束并退出
+     * @param {*} attempts 允许最大重试次数
+     */
+    onError: function (error, retry, fail, attempts) {
+      if (error.message.match(/fetch/) &amp;&amp; attempts &lt;= 3) {
+        // 请求发生错误时重试，最多可尝试 3 次
+        retry();
+      } else {
+        fail();
+      }
+    },
+  });
+  export default {
+    components: {
+      Home,
+      AsyncCategory,
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<h3>异步组件和 Suspense</h3>
+<p>在一个组件树中，如果存在多个异步组件，那么每个异步组件都需要处理自己的加载、报错和完成状态。</p>
+<p>为了统一这些异步组件，Vue3 提供了一个内置组件 Suspense，用于在组件树中协调对异步依赖的处理。</p>
+<p>Suspense 可以让我们在组件树的上层等待下层的多个嵌套异步依赖项解析完成，并可以在等待时渲染一个加载状态，防止在最坏情况下看到多个 Loading 加载状态，并在不同时间内显示内容。</p>
+<p>如果异步组件的父组件链中存在一个 Suspense 组件，那么该异步组件将被视为该 Suspense 组件的异步依赖项。<code>在这种情况下，异步组件的加载状态由 Suspense 控制，异步组件自身的加载、错误、延迟和超时选项都会被忽略。</code></p>
+<p>如果想要异步组件退出 Suspense 控制，并始终控制自己的加载状态，那么可以在选项中指定 <code>suspensible: false</code></p>
+<p><strong>Suspense 组件包含两个插槽：</strong></p>
+<p>(1) default: 如果 default 插槽可以显示，则会显示 default 插槽的内容</p>
+<p>(2) fallback: 如果 default 插槽无法显示，则会显示 fallback 插槽的内容</p>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    App 组件
+    &lt;home&gt;&lt;/home&gt;
+    &lt;suspense&gt;
+      &lt;template #default&gt;
+        &lt;async-category&gt;&lt;/async-category&gt;
+      &lt;/template&gt;
+      &lt;template #fallback&gt;
+        &lt;loading&gt;&lt;/loading&gt;
+      &lt;/template&gt;
+    &lt;/suspense&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import { defineAsyncComponent } from &quot;vue&quot;;
+  import Home from &quot;./Home.vue&quot;;
+  import Loading from &quot;./Loading.vue&quot;;
+  const AsyncCategory = defineAsyncComponent(() =&gt;
+    import(&quot;./AsyncCategory.vue&quot;)
+  );
+  export default {
+    components: {
+      Home,
+      Loading,
+      AsyncCategory,
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>当正在加载异步组件时，显示 <code>&lt;loading&gt;</code> 组件，在异步组件加载完成后，显示 <code>&lt;async-category /&gt;</code> 组件内容。</p>
+<h2>获取元素或组件的实例</h2>
+<h3>$refs</h3>
+<p>在某些情况下，我们需要在 Vue3 组件中获取元素对象或子组件实例，Vue3 不推荐直接进行 DOM 操作，相反，我们可以为元素或组件绑定一个 ref 属性。</p>
+<p>ref 属性用于注册元素或子组件的引用，该引用最终会被注册在组件的 <code>this.$refs</code> 对象中，该对象包含所有注册了 ref 属性的 DOM 元素和组件实例的引用。</p>
+<pre><code class="language-html">&lt;!-- NavBar.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;navbar&quot;&gt;
+    &lt;h4&gt;NavBar&lt;/h4&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        message: &quot;我是 NavBar 中的 message 变量&quot;,
+      };
+    },
+    methods: {
+      sayHello() {
+        console.log(&quot;sayHello: Hello NavBar&quot;);
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;h4 ref=&quot;title&quot;&gt;App 中的 H4 元素&lt;/h4&gt;
+    &lt;nav-bar ref=&quot;navBar&quot;&gt;&lt;/nav-bar&gt;
+    &lt;button @click=&quot;btnClick&quot;&gt;获取 h4 元素对象和 NavBar 组件实例&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import NavBar from &quot;./NavBar.vue&quot;;
+  export default {
+    components: {
+      NavBar,
+    },
+    data() {
+      return {
+        names: [&quot;coder&quot;, &quot;why&quot;],
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>[188]</p>
 
         </div>
       </div>
