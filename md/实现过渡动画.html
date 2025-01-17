@@ -103,7 +103,508 @@
   }
 &lt;/style&gt;
 </code></pre>
-<p>[203]</p>
+<h3>过渡动画特有的类</h3>
+<p>在前面的案例中，我们在 <code>&lt;style&gt;</code> 标签中编写了很多类（class），例如 why-enter-from、why-enter-to 等，实际上，vue3 过渡动画的实现原理是：在适当的时机，会自动在这些 class 之间来回切换，以应用不同的样式。</p>
+<p>(1) v-enter-from: 定义进入过渡的开始状态，在元素被插入之前生效，在元素被插入之后的下一帧移除。</p>
+<p>(2) v-enter-active: 定义进入过的生效时的状态，在整体进入过渡的阶段中应用。在元素被插入之前生效，在过渡/动画完成之后移除。<strong>这个类可以被定义进入过渡的过程时间、延迟和曲线函数等</strong></p>
+<p>(3) v-enter-to: 定义进入过渡的结束状态，在元素被插入之后下一帧生效（与此同时 v-enter-from 被移除)),在过渡/动画完成之后移除。</p>
+<p>(4) v-leave-from: 定义离开过渡的开始状态，在离开过渡被触发时立刻生效，下一帧被移除。</p>
+<p>(5) v-leave-active: 定义离开过渡生效时的状态，在整个离开过渡的阶段中应用，在离开过渡被触发时立刻生效，在过渡/动画完成之后移除。<strong>这个类可以被定义离开过渡的过程时间、延迟和曲线函数等</strong></p>
+<p>(6) v-leave-to: 定义离开过渡的结束状态，在离开过渡被触发之后下一帧生效（与此同时 v-leave-from 被删除）,在过渡/动画完成之后移除。</p>
+<p><strong>过渡动画的生命周期如下：</strong></p>
+<img src="../imgs/136/01.png" />
+
+<blockquote>
+<p>需要注意的是：如果 <code>&lt;transition&gt; 组件的 name 属性未指定，则默认动画类名前缀为 v-</code></p>
+</blockquote>
+<h3>CSS 的 Animation 动画</h3>
+<p>animation 属性也可以实现过渡动画效果</p>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;button @click=&quot;show = !show&quot;&gt;显示/隐藏&lt;/button&gt;
+    &lt;transition name=&quot;why&quot;&gt;
+      &lt;h4 v-if=&quot;show&quot; style=&quot;border: 1px solid #ddd; width: 100px&quot;&gt;
+        你好，Vue3
+      &lt;/h4&gt;
+    &lt;/transition&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        show: true,
+      };
+    },
+  };
+&lt;/script&gt;
+&lt;style scoped&gt;
+  .why-enter-active {
+    animation: bounce 1s ease;
+  }
+  .why-leave-active {
+    /* 离开的时候，反向执行动画，有一个缩小的效果 */
+    animation: bounce 1s ease reverse;
+  }
+  @keyframes bounce {
+    0% {
+      transform: scale(0);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+&lt;/style&gt;
+</code></pre>
+<h3>Transition 组件的常见属性</h3>
+<ul>
+<li><p>name: 过渡动画的名称，默认值为 v-</p>
+</li>
+<li><p>type: 指定过渡类型，可选值为 transition（默认） 或 animation</p>
+</li>
+<li><p>mode: 指定过渡模式，可选值为 in-out、out-in，默认为空</p>
+</li>
+<li><p>appear: 指定是否在初始渲染时应用过渡效果，默认为 false</p>
+</li>
+</ul>
+<p><strong>1. type 属性：实现同时使用过渡和动画</strong></p>
+<p>为了监听动画的完成，Vue3 内部会监听 transitionend 或 animationend 事件，最终监听哪一个事件取决于元素应用的 CSS 规则，</p>
+<p>例如，如果仅使用了 transition 或 animation 中的某一个，Vue3 能够自动识别事件类型，并设置相应的监听器。</p>
+<p>但是如果同时使用了 transition 和 animation，就需要在 <code>&lt;transition&gt;</code> 组件上设置 type 属性为 animation 或 transition，明确告诉 Vue3 监听事件的类型，如果未设置 type 属性，那么 Vue3 将自动检测持续时间较长的动画对应的事件类型。</p>
+<p>例如，如果 transition 的持续时间比 animation 长，则自动监听 transitionend 事件，否则监听 animationend 事件。</p>
+<pre><code class="language-html">&lt;!-- App.vue 同时演示使用 transition 和 animation --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;button @click=&quot;isShow = !isShow&quot;&gt;显示/隐藏&lt;/button&gt;
+    &lt;transition name=&quot;why&quot; type=&quot;transition&quot;&gt;
+      &lt;h4 v-if=&quot;isShow&quot; style=&quot;border: 1px solid #ddd; width: 100px&quot;&gt;
+        你好，Vue3
+      &lt;/h4&gt;
+    &lt;/transition&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        isShow: true,
+      };
+    },
+  };
+&lt;/script&gt;
+&lt;style scoped&gt;
+  /* transition 动画 */
+  .why-enter-from,
+  .why-leave-to {
+    opacity: 0;
+  }
+  .why-enter-active,
+  .why-leave-active {
+    transition: opacity 1s ease;
+  }
+  /* animation 动画 */
+  .why-enter-active {
+    animation: bounce 1s ease;
+  }
+  .why-leave-active {
+    animation: bounce 1s ease reverse;
+  }
+&lt;/style&gt;
+</code></pre>
+<p>点击 “显示/隐藏” 按钮，<code>&lt;h4&gt;</code> 元素会发生透明度和缩放的变化。</p>
+<p><strong>2. mode 属性：指定过渡模式</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;button @click=&quot;isShow = !isShow&quot;&gt;显示/隐藏&lt;/button&gt;
+    &lt;transition name=&quot;why&quot;&gt;
+      &lt;h4 v-if=&quot;isShow&quot; style=&quot;border: 1px solid #ddd; width: 100px&quot;&gt;Hello&lt;/h4&gt;
+      &lt;h4 v-else style=&quot;border: 1px solid #ddd; width: 100px&quot;&gt;World&lt;/h4&gt;
+    &lt;/transition&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        isShow: true,
+      };
+    },
+  };
+&lt;/script&gt;
+&lt;style scoped&gt;
+  .why-enter-from,
+  .why-leave-to {
+    opacity: 0;
+  }
+  .why-enter-active,
+  .why-leave-active {
+    transition: opacity 1s ease;
+  }
+&lt;/style&gt;
+</code></pre>
+<p>点击 “显示/隐藏” 按钮，当第一个 <code>&lt;h4&gt;</code> 元素在隐藏时，第二个 <code>&lt;h4&gt;</code> 元素会立即显示出来，没有过渡效果。</p>
+<p>如果希望两个元素都有过渡效果，需要为 <code>&lt;transition&gt;</code> 组件添加 mode 属性，指定过渡模式</p>
+<ul>
+<li><p><code>mode=&quot;in-out&quot;</code>: 新元素先进行过渡，完成之后当前元素过渡离开。</p>
+</li>
+<li><p><code>mode=&quot;out-in&quot;</code>: 当前元素先进行过渡，完成之后新元素过渡进入。</p>
+</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;!-- ... --&gt;
+    &lt;transition name=&quot;why&quot; mode=&quot;out-in&quot;&gt;
+      &lt;!-- ... --&gt;
+    &lt;/transition&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;!-- ... --&gt;
+</code></pre>
+<p>上述案例同样适用<strong>动态组件</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;button @click=&quot;isShow =!isShow&quot;&gt;显示/隐藏&lt;/button&gt;
+    &lt;!-- 切换显示和隐藏动态组件 --&gt;
+    &lt;transition name=&quot;why&quot; mode=&quot;out-in&quot;&gt;
+      &lt;component :is=&quot;isShow ? &#39;home&#39; : &#39;about&#39;&quot;&gt;&lt;/component&gt;
+    &lt;/transition&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;!-- ... --&gt;
+</code></pre>
+<p><strong>3. appear 属性：指定初次渲染的过渡动画</strong></p>
+<p>默认情况下，上述案例在首次渲染时均没有过渡动画效果，如果希望在首次渲染时也有过渡动画效果，可以为 <code>&lt;transition&gt;</code> 组件添加 appear 属性，指定是否在初始渲染时应用过渡效果。</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;!-- ... --&gt;
+    &lt;!-- appear 是 :appear=&quot;true&quot; 的缩写 --&gt;
+    &lt;transition name=&quot;why&quot; mode=&quot;out-in&quot; appear&gt;
+      &lt;component :is=&quot;isShow ? &#39;home&#39; : &#39;about&#39;&quot;&gt;&lt;/component&gt;
+    &lt;/transition&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;!-- ... --&gt;
+</code></pre>
+<h2>第三方库动画库</h2>
+<h3>Animate.css 动画库</h3>
+<p><strong>1. Animate.css 动画库的基本使用</strong></p>
+<p>安装：</p>
+<pre><code class="language-sh">npm i animate.css
+</code></pre>
+<p>main.js 中引入：</p>
+<pre><code class="language-js">import &quot;animate.css&quot;;
+createApp(App).mount(&quot;#app&quot;);
+</code></pre>
+<p>使用：</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;button @click=&quot;isShow = !isShow&quot;&gt;显示/隐藏&lt;/button&gt;
+    &lt;transition name=&quot;why&quot; appear&gt;
+      &lt;h4 v-if=&quot;isShow&quot; style=&quot;border: 1px solid #ddd; width: 100px&quot;&gt;
+        Hello World
+      &lt;/h4&gt;
+    &lt;/transition&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        isShow: true,
+      };
+    },
+  };
+&lt;/script&gt;
+&lt;style scoped&gt;
+  .why-enter-active {
+    /* backInLeft 从左边进入的动画 */
+    animation: backInLeft 1s ease-in;
+  }
+  .why-leave-active {
+    /* backOutRight 从右边离开的动画 */
+    animation: backOutRight 1s ease-in;
+  }
+&lt;/style&gt;
+</code></pre>
+<p>最终效果：在浏览器中首次渲染时就会有 backInLeft 动画效果。单击“显示/隐藏”按钮时,也会出现 backInLeft 和 backOutRight 的动画效果，</p>
+<p><strong>2. 自定义过渡类名</strong></p>
+<p>在 Vue3 中，可以使用 <code>&lt;transition&gt;</code> 组件的 name 属性指定动画类名的前缀，除此之外，还可以通过以下属性来自定义过渡类名：</p>
+<ul>
+<li><p><code>enter-from-class</code>: 自定义进入过渡的开始状态的类名</p>
+</li>
+<li><p><code>enter-active-class</code>: 自定义进入过渡生效时的状态的类名</p>
+</li>
+<li><p><code>enter-to-class</code>: 自定义进入过渡的结束状态的类名</p>
+</li>
+<li><p><code>leave-from-class</code>: 自定义离开过渡的开始状态的类名</p>
+</li>
+<li><p><code>leave-active-class</code>: 自定义离开过渡生效时的状态的类名</p>
+</li>
+<li><p><code>leave-to-class</code>: 自定义离开过渡的结束状态的类名</p>
+</li>
+</ul>
+<p>它们的优先级高于普通的类名，这在 Vue3 的过渡系统和其他第三方 CSS 动画库结合使用时十分有用。</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;button @click=&quot;isShow = !isShow&quot;&gt;显示/隐藏&lt;/button&gt;
+    &lt;transition
+      enter-active-class=&quot;animate__animated animate__backInLeft&quot;
+      leave-active-class=&quot;animate__animated animate__backOutRight&quot;
+    &gt;
+      &lt;h4 v-if=&quot;isShow&quot; style=&quot;border: 1px solid #ddd; width: 100px&quot;&gt;
+        Hello World
+      &lt;/h4&gt;
+    &lt;/transition&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        isShow: true,
+      };
+    },
+  };
+&lt;/script&gt;
+&lt;style scoped&gt;
+  /* 不需要再编写样式了 */
+&lt;/style&gt;
+</code></pre>
+<h3>GSAP 动画库</h3>
+<p>GSAP 是一个 JavaScript 动画库，它提供了一系列的动画效果，可以轻松地实现过渡动画效果</p>
+<p>安装：</p>
+<pre><code class="language-sh">npm i gsap
+</code></pre>
+<p><strong>1. <code>&lt;transition&gt;</code> 组件的事件和 JavaScript 钩子</strong></p>
+<p>在使用 gasp 之前，需要先了解一下 <code>&lt;transition&gt;</code> 组件的事件和 JavaScript 钩子，</p>
+<p>这些钩子可以帮助我们监听动画执行到什么阶段，从而在钩子函数中使用 gsap 实现动画效果。</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;button @click=&quot;isShow =!isShow&quot;&gt;显示/隐藏&lt;/button&gt;
+    &lt;transition
+      :appear=&quot;true&quot;
+      @before-enter=&quot;beforeEnter&quot;
+      @enter=&quot;enter&quot;
+      @after-enter=&quot;afterEnter&quot;
+      @before-leave=&quot;beforeLeave&quot;
+      @leave=&quot;leave&quot;
+      @after-leave=&quot;afterLeave&quot;
+    &gt;
+      &lt;h4 v-if=&quot;isShow&quot; style=&quot;border: 1px solid #ddd; width: 100px&quot;&gt;
+        Hello World
+      &lt;/h4&gt;
+    &lt;/transition&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        isShow: true,
+      };
+    },
+    methods: {
+      beforeEnter(el) {
+        // 1. 在元素被插入 DOM 之前被调用
+        console.log(&quot;beforeEnter&quot;, el);
+      },
+      // el 表示当前 DOM 对象，done 表示动画结束的回调函数
+      enter(el, done) {
+        // 2. 在元素被插入 DOM 之后的下一帧被调用
+        console.log(&quot;enter&quot;, el);
+        done();
+      },
+      afterEnter(el) {
+        //3. 当进入过渡完成时调用
+        console.log(&quot;afterEnter&quot;, el);
+      },
+      beforeLeave(el) {
+        // 4. 在 leave 钩子之前调用
+        console.log(&quot;beforeLeave&quot;, el);
+      },
+      leave(el, done) {
+        // 5. 在离开过渡开始时调用
+        console.log(&quot;leave&quot;, el);
+        done();
+      },
+      // 6. 在离开过渡完成，且元素已从 DOM 中移除时调用
+      afterLeave(el) {
+        console.log(&quot;afterLeave&quot;, el);
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p><strong>2. gsap 动画库的使用</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;button @click=&quot;isShow =!isShow&quot;&gt;显示/隐藏&lt;/button&gt;
+    &lt;!--
+      :css=&quot;false&quot; 表示 Js 全权负责控制动画的过渡，在这种情况下，对 @enter 和 @leave 钩子来说，调用回调函数 done 就是必需的。
+    --&gt;
+    &lt;transition @enter=&quot;enter&quot; @leave=&quot;leave&quot; :css=&quot;false&quot;&gt;
+      &lt;h4 v-if=&quot;isShow&quot; style=&quot;border: 1px solid #ddd; width: 100px&quot;&gt;
+        Hello World
+      &lt;/h4&gt;
+    &lt;/transition&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import gsap from &quot;gsap&quot;;
+  export default {
+    data() {
+      return {
+        isShow: true,
+      };
+    },
+    methods: {
+      enter(el, done) {
+        gsap.from(el, {
+          scale: 0,
+          x: 200,
+          onComplete: done, // 调用回调函数 done 表示过渡结束
+        });
+      },
+      leave(el, done) {
+        gsap.to(el, {
+          scale: 0,
+          x: 200,
+          onComplete: done,
+        });
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p><strong>3. gsap 实现数字变化效果</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;input type=&quot;number&quot; v-model=&quot;counter&quot; /&gt;
+    &lt;h2&gt;当前计数：{{ showNumber.toFixed(0) }}&lt;/h2&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import gsap from &quot;gsap&quot;;
+  export default {
+    data() {
+      return {
+        counter: 1,
+        showNumber: 0,
+      };
+    },
+    watch: {
+      counter(newValue) {
+        // this 为目标对象，这里是 Vue 实例
+        gasp.to(this, {
+          showNumber: newValue,
+          duration: 1,
+          ease: &quot;power1.out&quot;,
+        });
+      },
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<h2>列表中的过渡动画</h2>
+<p>如果我们需要为一个列表添加过渡动画，或者希望在该列表中添加、删除数据时也有动画，就需要使用内置组件 <code>&lt;transition-group&gt;</code>。</p>
+<p>与 <code>&lt;transition&gt;</code> 基本相同，<code>&lt;transition-group&gt;</code> 也支持 props、Css 过渡类和 JavaScript 钩子监听器，但是二者有以下几点区别：</p>
+<p>(1) 默认情况下，<code>&lt;transition-group&gt;</code> 不会渲染一个容器元素，但可通过传入 tag 属性指定一个元素作为容器元素进行渲染。</p>
+<p>(2) 过渡模式在这里不可用，因为不再是在互斥的元素之间进行切换</p>
+<p>(3) 列表中的每个元素都必须有一个唯一的 key 属性，用于标识每个元素的唯一性。</p>
+<p>(4) CSS 过渡类会背应用到列表内的元素上，而不是容器元素上。</p>
+<h3>TransitionGroup 的基本使用</h3>
+<p>下面通过一个案例学习：</p>
+<p>(1) 有两个按钮，“添加数字” 和 “删除数字”，还要显示一列数字</p>
+<p>(2) 当单击 “添加数字” 按钮时，会在列表中添加一个数字，当单击 “删除数字” 按钮时，会删除列表中的某个数字</p>
+<p>(3) 在添加和删除数字的过程中，为添加和删除的数字添加过渡效果</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;button @click=&quot;addNum&quot;&gt;添加数字&lt;/button&gt;
+    &lt;button @click=&quot;removeNum&quot;&gt;删除数字&lt;/button&gt;
+    &lt;!-- tag=&quot;p&quot; 指定 p 元素作为容器元素来渲染  --&gt;
+    &lt;!--
+      所有的 span 元素都会被包裹在 p 元素中，
+    --&gt;
+    &lt;transition-group name=&quot;why&quot; tag=&quot;p&quot;&gt;
+      &lt;span v-for=&quot;item in numbers&quot; :key=&quot;item&quot; :class=&quot;item&quot;&gt;{{item}}&lt;/span&gt;
+    &lt;/transition-group&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        numbers: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        numberCounter: 10,
+      };
+    },
+    methods: {
+      addNum() {
+        // 1. 在随机位置上添加一个数字
+        this.numbers.splice(this.randomIndex(), 0, this.numberCounter++);
+      },
+      removeNum() {
+        // 2. 在随机位置上删除一个数字
+        this.numbers.splice(this.randomIndex(), 1);
+      },
+      randomIndex() {
+        return Math.floor(Math.random() * this.numbers.length);
+      },
+    },
+  };
+&lt;/script&gt;
+&lt;style scoped&gt;
+  .item {
+    margin-right: 10px;
+  }
+  .why-enter-from,
+  .why-leave-to {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  .why-enter-active,
+  .why-leave-active {
+    transition: all 1s ease;
+  }
+&lt;/style&gt;
+</code></pre>
+<p>当点击 “添加数字” 按钮时，会在 <code>&lt;p&gt;</code> 元素中被插入一个新的 <code>&lt;span&gt;</code> 元素，同时会应用 <code>why-enter-from</code> 定义的动画，</p>
+<p>当点击 “删除数字” 按钮时，会在 <code>&lt;p&gt;</code> 元素中被删除一个 <code>&lt;span&gt;</code> 元素，同时会应用 <code>why-leave-to</code> 定义的动画。</p>
+<p>效果：</p>
+<p>当点击 “添加数字” 和 “删除数字” 按钮时，<code>&lt;span&gt;</code> 元素会有透明度变化效果，但是使用 transform 移动 <code>&lt;span&gt;</code> 元素的动画并没有这种效果，因为 <code>&lt;span&gt;</code> 这种 inline 元素不支持 transform。如果要让 <code>&lt;span&gt;</code> 元素可以移动，可以将其修改为 inline-block 类型。</p>
+<pre><code class="language-css">.item {
+  margin-right: 10px;
+  display: inline-block;
+}
+</code></pre>
+<h3>列表元素过渡动画</h3>
+<p>在上述案例中，尽管新增或删除的节点都具有动画效果，但其他需要左右移动的节点并没有动画效果。针对这种情况，我们可以使用新增的 v-move 类。当然，也可以像之前一样，使用 <code>name=&quot;xxx&quot;</code> 自定义前缀，例如 <code>xxx-move</code>。v-move 类会在<span>元素改变位置的过程中被应用，从而实现动画效果。</p>
+<p>修改 App.wue 组件中的样式，添加 why-move 类和对应的过渡样式，代码如下所示:</p>
+<pre><code class="language-html">&lt;style scoped&gt;
+  /* .... */
+  .why-move {
+    /* 为需要移动的 span 元素添加过渡效果 */
+    transition: transform 1s ease;
+  }
+&lt;/style&gt;
+</code></pre>
+<p>保存代码，在浏览器中单击 “添加数字” 按钮，其他需要向右移动的元素都会有过渡动画。</p>
+<p>但是，当单击 “删除数字” 按钮时，其他需要向左移动的元素没有过渡动画。这是因为在删除 <code>&lt;span&gt;</code> 元素时,该元素在未移出列表时仍会占据宽度，导致其他 <code>&lt;span&gt;</code> 元素无法向左移动。如果想要为向左移动的元素添加动画，可以将被删除的 <code>&lt;span&gt;</code> 元素脱离标准文档流，这样它的宽度就不会占据列表位置。</p>
+<p>修改 App.vue 组件中的样式,添加 why-leave-active 类和 position 属性，以使将要删除的 span 元素脱离标准文档流，代码如下所示:</p>
+<pre><code class="language-html">&lt;style scoped&gt;
+  .why-move {
+    transition: transform 1s ease;
+  }
+  .why-leave-active {
+    position: absolute;
+  }
+&lt;/style&gt;
+</code></pre>
+<p>保存代码，在浏览器中单击 “添加数字” 或 “删除数字” 按钮，可以发现其他需要向右或向左移动的节点都有过渡动画了。</p>
 
         </div>
       </div>
