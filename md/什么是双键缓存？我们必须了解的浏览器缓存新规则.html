@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>什么是双键缓存？我们必须了解的浏览器缓存新规则</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=fallback"
+      rel="stylesheet"
+    />
+    
+    <link rel="stylesheet" href="../css/prism.css" />
+    
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+    <style>
+      /* Animation Styles */
+      .fade-in {
+        animation: fadeIn 0.5s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      .slide-in {
+        animation: slideIn 0.5s ease;
+      }
+
+      @keyframes slideIn {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      .button {
+        transition: background-color 0.3s, transform 0.3s;
+      }
+
+      .button:hover {
+        background-color: #3700B3;
+        transform: scale(1.05);
+      }
+
+      /* Tooltip Styles */
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 5px;
+        padding: 5px 0;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      /* Page Title Styles */
+      .page-title {
+        font-size: 2.2rem;
+        font-weight: 600;
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+        line-height: 1.3;
+        position: relative;
+        padding-bottom: 0.5rem;
+        transition: all 0.3s ease;
+      }
+
+      .page-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, #3498db, #2980b9);
+        border-radius: 3px;
+        transform: scaleX(0);
+        transform-origin: left;
+        animation: titleUnderline 0.6s ease forwards;
+      }
+
+      /* Dark mode specific styles */
+      .dark .page-title {
+        background: linear-gradient(120deg, #e1e1e1, #60a5fa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: none;
+      }
+
+      .dark .page-title::after {
+        background: linear-gradient(90deg, #60a5fa, #3b82f6);
+      }
+
+      .page-title:hover {
+        transform: translateX(5px);
+      }
+    </style>
+</head>
+
+<body class="fade-in">
+    <button class="toggle-sidebar" id="toggleSidebar" aria-label="Toggle Sidebar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+    
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <button class="toggle-sidebar" id="toggleSidebar">
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <div class="nav-section">
+                    <li class="active"><a title="什么是双键缓存？我们必须了解的浏览器缓存新规则" href="/md/什么是双键缓存？我们必须了解的浏览器缓存新规则.html">32 什么是双键缓存？我们必须了解的浏览器缓存新规则</a></li><li class=""><a title="分析组件的渲染时间" href="/md/分析组件的渲染时间.html">31 分析组件的渲染时间</a></li><li class=""><a title="Rust vs JavaScript 使用 WebAssembly 提升百分 66 的性能" href="/md/Rust vs JavaScript 使用 WebAssembly 提升百分 66 的性能.html">30 Rust vs JavaScript 使用 WebAssembly 提升百分 66 的性能</a></li><li class=""><a title="避免巨大网络负载的 10 个方法" href="/md/避免巨大网络负载的 10 个方法.html">29 避免巨大网络负载的 10 个方法</a></li><li class=""><a title="利用fetchpriority优化资源加载，提升网页性能" href="/md/利用fetchpriority优化资源加载，提升网页性能.html">28 利用fetchpriority优化资源加载，提升网页性能</a></li><li class=""><a title="一文读懂 JS 内存管理，掌握面试中 7 大内存泄漏场景" href="/md/一文读懂 JS 内存管理，掌握面试中 7 大内存泄漏场景.html">27 一文读懂 JS 内存管理，掌握面试中 7 大内存泄漏场景</a></li><li class=""><a title="首页加载速度优化" href="/md/首页加载速度优化.html">26 首页加载速度优化</a></li><li class=""><a title="前端如何实现 gzip 打包压缩" href="/md/前端如何实现 gzip 打包压缩.html">25 前端如何实现 gzip 打包压缩</a></li><li class=""><a title="性能优化思路之网络层优化" href="/md/性能优化思路之网络层优化.html">24 性能优化思路之网络层优化</a></li><li class=""><a title="你实现的前端图片预加载真的够优雅吗" href="/md/你实现的前端图片预加载真的够优雅吗.html">23 你实现的前端图片预加载真的够优雅吗</a></li><li class=""><a title="前端如何避免重排 reflow 和重绘 repaint" href="/md/前端如何避免重排 reflow 和重绘 repaint.html">22 前端如何避免重排 reflow 和重绘 repaint</a></li><li class=""><a title="页面加载流程分析技巧" href="/md/页面加载流程分析技巧.html">21 页面加载流程分析技巧</a></li><li class=""><a title="资源优先级" href="/md/资源优先级.html">20 资源优先级</a></li><li class=""><a title="聊聊图片预加载" href="/md/聊聊图片预加载.html">19 聊聊图片预加载</a></li><li class=""><a title="网站优化之静态资源优化" href="/md/网站优化之静态资源优化.html">18 网站优化之静态资源优化</a></li><li class=""><a title="看《浏览器基本原理与实践》后，36点总结" href="/md/看《浏览器基本原理与实践》后，36点总结.html">17 看《浏览器基本原理与实践》后，36点总结</a></li><li class=""><a title="渲染优化" href="/md/渲染优化.html">16 渲染优化</a></li><li class=""><a title="浏览器渲染性能分析技巧" href="/md/浏览器渲染性能分析技巧.html">15 浏览器渲染性能分析技巧</a></li><li class=""><a title="构建优化" href="/md/构建优化.html">14 构建优化</a></li><li class=""><a title="性能优化全家桶：6 个方面 9 点建议" href="/md/性能优化全家桶：6 个方面 9 点建议.html">13 性能优化全家桶：6 个方面 9 点建议</a></li><li class=""><a title="性能优化-时间分片渲染简单做法" href="/md/性能优化-时间分片渲染简单做法.html">12 性能优化-时间分片渲染简单做法</a></li><li class=""><a title="加载注意事项" href="/md/加载注意事项.html">11 加载注意事项</a></li><li class=""><a title="利用 Performance API 分析网站性能" href="/md/利用 Performance API 分析网站性能.html">10 利用 Performance API 分析网站性能</a></li><li class=""><a title="内存泄漏排查" href="/md/内存泄漏排查.html">09 内存泄漏排查</a></li><li class=""><a title="了解透彻浏览器缓存" href="/md/了解透彻浏览器缓存.html">08 了解透彻浏览器缓存</a></li><li class=""><a title="书写高性能的代码" href="/md/书写高性能的代码.html">07 书写高性能的代码</a></li><li class=""><a title="Performance 面板分析性能瓶颈全流程" href="/md/Performance 面板分析性能瓶颈全流程.html">06 Performance 面板分析性能瓶颈全流程</a></li><li class=""><a title="API 技巧" href="/md/API 技巧.html">05 API 技巧</a></li><li class=""><a title="速通 JS 性能优化" href="/md/速通 JS 性能优化.html">04 速通 JS 性能优化</a></li><li class=""><a title="网页太慢了怎么排查" href="/md/网页太慢了怎么排查.html">03 网页太慢了怎么排查</a></li><li class=""><a title="浅谈前端性能优化之评估工具" href="/md/浅谈前端性能优化之评估工具.html">02 浅谈前端性能优化之评估工具</a></li><li class=""><a title="前端如何优化资源加载" href="/md/前端如何优化资源加载.html">01 前端如何优化资源加载</a></li>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-left">
+                    <h1 class="page-title">什么是双键缓存？我们必须了解的浏览器缓存新规则</h1>
+                    <p class="time">HaoTian · 2025-01-19 15:57:17</p>
+                </div>
+                <div class="header-right">
+                    <div class="tag-container">
+                        <span class="tag">性能优化</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Article Content -->
+            <article class="content-body md md ">
+                <p>昨天有位同学问我：“Sunday 老师，为什么我的静态资源明明缓存了，但换个站点访问，又得重新下载？”</p>
+<p>这个本质上就是因为 <code>双键缓存（Double-keyed Caching）</code> 导致的。</p>
+<p>所以，咱们今天就来聊聊 <strong>双键缓存是什么，它是如何工作的，以及我们应该如何优化？</strong></p>
+<h2>什么是双键缓存？</h2>
+<p>在 <strong>传统的浏览器缓存</strong> 中，资源的缓存通常是 <strong>基于 URL 进行存储的</strong>。</p>
+<p>比如，当我们访问 <code>https://cdn.sunday.com/script.js</code> 时，那么浏览器会缓存这个 <code>script.js</code>，当其他站点也引用这个 URL 时，浏览器直接复用缓存，<strong>不需要重新下载</strong>。</p>
+<blockquote>
+<p>这种传统的缓存方式，就是开始同学所说的：资源一旦缓存，任何站点都可以访问</p>
+</blockquote>
+<p>但这样做有一个巨大的安全隐患——<strong>跨站点追踪（Cross-site Tracking）</strong> 和 <strong>数据泄露风险</strong>。</p>
+<p>例如：</p>
+<ul>
+<li>某些网站可以通过检查公共 CDN 资源的缓存状态，来推测用户是否访问过某些网站（比如：广告追踪）。</li>
+<li>黑客可以利用缓存投毒（Cache Poisoning）攻击，让用户加载被污染的资源。</li>
+</ul>
+<p>为了避免这些安全问题，很多浏览器（比如：Chrome、Firefox）引入了双键缓存机制。</p>
+<p>双键缓存的核心规则是：缓存资源时，不仅考虑 URL，还要考虑 资源是在哪个站点加载的（Origin），<code>也就是 “站点 + URL” 作为缓存的唯一标识</code>。</p>
+<p>换句话说：</p>
+<ul>
+<li>以前 <strong>A 站</strong> 缓存的资源，<strong>B 站</strong> 可以直接复用 ✅</li>
+<li>现在 <strong>A 站</strong> 缓存的资源，<strong>B 站</strong> 需要重新下载 ❌</li>
+</ul>
+<h2>双键缓存是如何工作的？</h2>
+<blockquote>
+<p><strong>双键缓存 = 站点（Origin）+ 资源 URL</strong></p>
+</blockquote>
+<p>让我们用一个例子来理解：</p>
+<p><strong>假设你访问了 <code>网页 A</code> 和 <code>网页 B</code>，它们都使用相同的 CDN 资源 <code>https://cdn.sunday.com/script.js</code>：</strong></p>
+<p><strong>传统缓存（单键缓存）</strong></p>
+<ul>
+<li>你在 <strong>网页 A</strong> 加载 <code>script.js</code>，浏览器缓存该文件。</li>
+<li>你访问 <strong>网页 B</strong>，浏览器发现它请求相同的 <code>script.js</code>，于是直接从缓存中加载 <strong>（减少了网络请求，提高了加载速度）</strong>。</li>
+</ul>
+<p><strong>双键缓存</strong></p>
+<ul>
+<li>你在 <strong>网页 A</strong> 加载 <code>script.js</code>，浏览器缓存它，并标记为 <strong>“仅供 网页 A 使用”</strong>。</li>
+<li>你访问 <strong>网页 B</strong>，即使请求相同的 <code>script.js</code>，浏览器也会认为它是 <strong>一个全新的资源，需要重新下载</strong>。</li>
+</ul>
+<p><strong>不同的站点，即使请求相同的资源，仍然需要分别缓存！</strong></p>
+<p>这种方式提升了安全性，但是也会带来最初那位同学的疑惑，就是：资源无法跨站点共享，必须要重复下载了。</p>
+<p>所以说：双键缓存虽然带来的“一定的”安全性，但是也带来了不少的问题，比如：</p>
+<ul>
+<li><strong>缓存复用率降低</strong>：即使是相同的资源，不同站点仍然需要<strong>重新下载</strong></li>
+<li><strong>公共 CDN 失去部分优势</strong>：以往我们使用 CDN（如 jsDelivr、UNPKG）是为了让多个站点共用缓存，现在效果大大降低。</li>
+<li><strong>首次访问成本上升</strong>：用户访问某个站点时，即使本地已经缓存了相同的资源，仍然需要重新下载，导致页面首次加载变慢。</li>
+</ul>
+<h2>如何优化双键缓存影响？</h2>
+<p>在上面，咱们已经大致了解了双键缓存的原理以及可能会带来的一些影响了，所以最后咱们就来看看如何尽可能的优化这些问题：</p>
+<h3>1. 利用 Service Worker</h3>
+<p>Service Worker 可以在客户端拦截请求，并利用 <strong>本地缓存</strong> 来减少对网络请求的依赖。</p>
+<p>例如，我们可以使用 <strong>Cache API</strong> 将某些资源手动缓存下来，而不受双键缓存的限制：</p>
+<pre><code class="language-js">self.addEventListener(&quot;fetch&quot;, (event) =&gt; {
+  event.respondWith(
+    caches.match(event.request).then((response) =&gt; {
+      return response || fetch(event.request);
+    })
+  );
+});
+</code></pre>
+<p>Service Worker 的缓存存储 <strong>不受双键缓存的影响</strong>，因此对于高频使用的静态资源，可以考虑让 Service Worker 进行管理，而不是完全依赖 HTTP 缓存。</p>
+<h3>2. 使用 HTTP/3，减少重复请求开销</h3>
+<p>由于双键缓存的影响，即使同一个用户访问不同网站，公共 CDN 资源也可能 <strong>多次下载</strong>。</p>
+<p>但是，如果通过 <code>HTTP/3（QUIC）协议</code> 通过 <strong>多路复用</strong> 和 <strong>0-RTT</strong> 连接，可以优化对应的性能问题。</p>
+<blockquote>
+<p>PS：<strong>如何检查你的 CDN 是否支持 HTTP/3？</strong></p>
+<p>可以在 <code>Chrome DevTools</code> 的 <code>Network</code> 面板中，查看 <code>Protocol</code> 列，如果显示 <code>h3</code>，说明该资源使用了 <code>HTTP/3</code> 进行传输。</p>
+</blockquote>
+<h3>3. 预加载关键资源</h3>
+<p>既然不能完全依赖浏览器缓存，我们可以主动 <strong>预加载关键资源</strong>。</p>
+<p>例如，使用 <code>&lt;link rel=&quot;preload&quot;&gt;</code> 来预加载字体、脚本或 CSS：</p>
+<pre><code class="language-html">&lt;link rel=&quot;preload&quot; href=&quot;https://你的 cdn 地址/fonts/Roboto.woff2&quot; as=&quot;font&quot; type=&quot;font/woff2&quot; crossorigin=&quot;anonymous&quot;&gt;
+</code></pre>
+<p>这样可以确保关键资源即使因为双键缓存机制需要重新下载，也能更快地完成加载。</p>
+
+            </article>
+        </main>
+
+        <!-- Table of Contents Sidebar -->
+        <aside class="toc-sidebar">
+            <div class="toc-header">
+                <h3>Table of Contents</h3>
+            </div>
+            <div class="toc-content" id="tocContent">
+                <!-- TOC will be generated dynamically -->
+            </div>
+        </aside>
+    </div>
+
+    <div class="body_bg"></div>
+    <div class="zoom-overlay"></div>
+    <style>
+      .zoom-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        z-index: 1000;
+        cursor: zoom-out;
+      }
+      .zoomed-image {
+        position: fixed;
+        z-index: 1001;
+        will-change: transform;
+        cursor: zoom-out;
+        max-width: 90vw;
+        max-height: 90vh;
+        object-fit: contain;
+      }
+      .back-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        border-radius: 100%;
+        background-color: #07a;
+        border: none;
+        color: #333;
+        text-decoration: none;
+        font-size: 14px;
+        margin-bottom: 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        position: fixed !important;
+        top: 30px;
+        right: 30px;
+        z-index: 10;
+        display: none;
+      }
+      .back-button svg {
+        width: 50%;
+        height: 50%;
+      }
+      .back-button:hover {
+        opacity: 0.8;
+      }
+      .layout {
+        position: relative;
+        z-index: 1;
+      }
+    </style>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+        // Sidebar Toggle
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+        
+        function toggleSidebar() {
+            sidebar.classList.toggle('hidden');
+            // Store sidebar state in localStorage
+            localStorage.setItem('sidebarHidden', sidebar.classList.contains('hidden'));
+        }
+        
+        toggleBtn.addEventListener('click', toggleSidebar);
+
+        // Keyboard shortcut (Ctrl + B)
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'b') {
+                e.preventDefault(); // Prevent browser's default behavior
+                toggleSidebar();
+            }
+        });
+
+        // Restore sidebar state from localStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebarHidden = localStorage.getItem('sidebarHidden') === 'true';
+            if (sidebarHidden) {
+                sidebar.classList.add('hidden');
+            }
+        });
+
+        // Generate Table of Contents
+        function generateTOC() {
+            const article = document.querySelector('.content-body');
+            const headings = article.querySelectorAll('h1, h2, h3, h4');
+            const tocContent = document.getElementById('tocContent');
+            const toc = document.createElement('ul');
+
+            headings.forEach((heading, index) => {
+                const id = `heading-${index}`;
+                heading.id = id;
+                
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = `#${id}`;
+                a.textContent = heading.textContent;
+                a.className = `toc-level-${heading.tagName.toLowerCase()}`;
+                
+                li.appendChild(a);
+                toc.appendChild(li);
+            });
+
+            tocContent.appendChild(toc);
+        }
+
+        // Initialize TOC
+        document.addEventListener('DOMContentLoaded', generateTOC);
+
+        // Image zoom with FLIP animation
+        const overlay = document.querySelector(".zoom-overlay");
+        let activeImage = null;
+
+        document.querySelectorAll("img").forEach((img) => {
+            if (img.closest("a")) return; // Skip images that are inside links
+            img.style.cursor = "zoom-in";
+            img.addEventListener("click", handleImageClick);
+        });
+
+        function handleImageClick(event) {
+            const img = event.target;
+
+            if (activeImage) {
+                // If an image is already zoomed, unzoom it
+                unzoomImage();
+                return;
+            }
+
+            // Get the initial position and size
+            const rect = img.getBoundingClientRect();
+            const first = {
+                x: rect.left,
+                y: rect.top,
+                width: rect.width,
+                height: rect.height,
+            };
+
+            // Create a clone of the image
+            const clone = img.cloneNode();
+            clone.classList.add("zoomed-image");
+            document.body.appendChild(clone);
+
+            // Position the clone exactly over the original
+            clone.style.position = "fixed";
+            clone.style.left = `${first.x}px`;
+            clone.style.top = `${first.y}px`;
+            clone.style.width = `${first.width}px`;
+            clone.style.height = `${first.height}px`;
+            clone.style.margin = "0";
+            clone.style.transformOrigin = "top left";
+
+            // Show the overlay
+            overlay.style.display = "block";
+
+            // Calculate the final position and scale
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const targetWidth = Math.min(img.naturalWidth, viewportWidth * 0.9);
+            const targetHeight = Math.min(img.naturalHeight, viewportHeight * 0.9);
+            const scaleX = targetWidth / first.width;
+            const scaleY = targetHeight / first.height;
+            const scale = Math.min(scaleX, scaleY);
+
+            const last = {
+                width: first.width * scale,
+                height: first.height * scale,
+            };
+            last.x = (viewportWidth - last.width) / 2;
+            last.y = (viewportHeight - last.height) / 2;
+
+            // Calculate and apply the transform
+            const dx = last.x - first.x;
+            const dy = last.y - first.y;
+
+            requestAnimationFrame(() => {
+                clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+                clone.style.transition = "transform 0.3s ease-out";
+            });
+
+            activeImage = { original: img, clone: clone };
+
+            // Add click handlers for closing
+            clone.addEventListener("click", unzoomImage);
+            overlay.addEventListener("click", unzoomImage);
+        }
+
+        function unzoomImage() {
+            if (!activeImage) return;
+
+            const { original, clone } = activeImage;
+            const rect = original.getBoundingClientRect();
+
+            // Animate back to the original position
+            clone.style.transform = `translate(0, 0) scale(1)`;
+
+            // Clean up after the animation
+            clone.addEventListener(
+                "transitionend",
+                () => {
+                    clone.remove();
+                    overlay.style.display = "none";
+                },
+                { once: true }
+            );
+
+            activeImage = null;
+        }
+
+        // 监听 ctrl + b
+        window.addEventListener("keydown", (e) => {
+            const leftDom = document.querySelector(".sidebar");
+            if (e.ctrlKey && e.key === "b") {
+                leftDom.classList.toggle("hidden");
+            }
+        });
+
+        // Modal
+        const modal = document.getElementById("myModal");
+        const modalContent = modal.querySelector(".modal-content");
+        const openModal = document.getElementById("openModal");
+        const close = modal.querySelector(".close");
+
+        openModal.addEventListener("click", () => {
+            modal.style.display = "block";
+        });
+
+        close.addEventListener("click", () => {
+            modal.style.display = "none";
+        });
+
+        window.addEventListener("click", (e) => {
+            if (e.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>WebWorker、SharedWorker 和 ServiceWorker 还在傻傻分不清</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=fallback"
+      rel="stylesheet"
+    />
+    
+    <link rel="stylesheet" href="../css/prism.css" />
+    
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+    <style>
+      /* Animation Styles */
+      .fade-in {
+        animation: fadeIn 0.5s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      .slide-in {
+        animation: slideIn 0.5s ease;
+      }
+
+      @keyframes slideIn {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      .button {
+        transition: background-color 0.3s, transform 0.3s;
+      }
+
+      .button:hover {
+        background-color: #3700B3;
+        transform: scale(1.05);
+      }
+
+      /* Tooltip Styles */
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 5px;
+        padding: 5px 0;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      /* Page Title Styles */
+      .page-title {
+        font-size: 2.2rem;
+        font-weight: 600;
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+        line-height: 1.3;
+        position: relative;
+        padding-bottom: 0.5rem;
+        transition: all 0.3s ease;
+      }
+
+      .page-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, #3498db, #2980b9);
+        border-radius: 3px;
+        transform: scaleX(0);
+        transform-origin: left;
+        animation: titleUnderline 0.6s ease forwards;
+      }
+
+      /* Dark mode specific styles */
+      .dark .page-title {
+        background: linear-gradient(120deg, #e1e1e1, #60a5fa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: none;
+      }
+
+      .dark .page-title::after {
+        background: linear-gradient(90deg, #60a5fa, #3b82f6);
+      }
+
+      .page-title:hover {
+        transform: translateX(5px);
+      }
+    </style>
+</head>
+
+<body class="fade-in">
+    <button class="toggle-sidebar" id="toggleSidebar" aria-label="Toggle Sidebar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+    
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <button class="toggle-sidebar" id="toggleSidebar">
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <div class="nav-section">
+                    <li class=""><a title="8个 JavaScript 错误处理技巧 Bug 减少百分之 75" href="/md/8个 JavaScript 错误处理技巧 Bug 减少百分之 75.html">59 8个 JavaScript 错误处理技巧 Bug 减少百分之 75</a></li><li class="active"><a title="WebWorker、SharedWorker 和 ServiceWorker 还在傻傻分不清" href="/md/WebWorker、SharedWorker 和 ServiceWorker 还在傻傻分不清.html">58 WebWorker、SharedWorker 和 ServiceWorker 还在傻傻分不清</a></li><li class=""><a title="用 JavaScript 实现 Live2D 虚拟人口型同步" href="/md/用 JavaScript 实现 Live2D 虚拟人口型同步.html">57 用 JavaScript 实现 Live2D 虚拟人口型同步</a></li><li class=""><a title="ES6 中引入的 new.target 你知道吗" href="/md/ES6 中引入的 new.target 你知道吗.html">56 ES6 中引入的 new.target 你知道吗</a></li><li class=""><a title="ES 新特性全解密" href="/md/ES 新特性全解密.html">55 ES 新特性全解密</a></li><li class=""><a title="前端 reduce 函数100 种使用方法整理" href="/md/前端 reduce 函数100 种使用方法整理.html">54 前端 reduce 函数100 种使用方法整理</a></li><li class=""><a title="proxy 和 Object.defineProperty()" href="/md/proxy 和 Object.defineProperty().html">53 proxy 和 Object.defineProperty()</a></li><li class=""><a title="为何说 AbortController 是前端一把利剑" href="/md/为何说 AbortController 是前端一把利剑.html">52 为何说 AbortController 是前端一把利剑</a></li><li class=""><a title="前端 Money 类" href="/md/前端 Money 类.html">51 前端 Money 类</a></li><li class=""><a title="理解JS里的WeakMap" href="/md/理解JS里的WeakMap.html">50 理解JS里的WeakMap</a></li><li class=""><a title="token无感刷新的基本实现" href="/md/token无感刷新的基本实现.html">49 token无感刷新的基本实现</a></li><li class=""><a title="前端中的 File 和 Blob两个对象到底有什么不同" href="/md/前端中的 File 和 Blob两个对象到底有什么不同.html">48 前端中的 File 和 Blob两个对象到底有什么不同</a></li><li class=""><a title="js 检测网页空闲状态(一定时间内无操作)" href="/md/js 检测网页空闲状态(一定时间内无操作).html">47 js 检测网页空闲状态(一定时间内无操作)</a></li><li class=""><a title="Javascirpt 时区" href="/md/Javascirpt 时区.html">46 Javascirpt 时区</a></li><li class=""><a title="实用的 Javascript 小功能" href="/md/实用的 Javascript 小功能.html">45 实用的 Javascript 小功能</a></li><li class=""><a title="前端实现直接粘贴图片到 html 页面" href="/md/前端实现直接粘贴图片到 html 页面.html">44 前端实现直接粘贴图片到 html 页面</a></li><li class=""><a title="前端如何静悄悄录制用户的操作过程，静悄悄上传到服务器" href="/md/前端如何静悄悄录制用户的操作过程，静悄悄上传到服务器.html">43 前端如何静悄悄录制用户的操作过程，静悄悄上传到服务器</a></li><li class=""><a title="JS 中数组的 map 鲜为人知但绝妙的使用方法" href="/md/JS 中数组的 map 鲜为人知但绝妙的使用方法.html">42 JS 中数组的 map 鲜为人知但绝妙的使用方法</a></li><li class=""><a title="在 Web 中判断页面是不是刷新" href="/md/在 Web 中判断页面是不是刷新.html">41 在 Web 中判断页面是不是刷新</a></li><li class=""><a title="Js 小技巧" href="/md/Js 小技巧.html">40 Js 小技巧</a></li><li class=""><a title="split 方法我算是白学了" href="/md/split 方法我算是白学了.html">39 split 方法我算是白学了</a></li><li class=""><a title="拼接 URL" href="/md/拼接 URL.html">38 拼接 URL</a></li><li class=""><a title="ES14 中 5 个最具变革性的 JavaScript 特性" href="/md/ES14 中 5 个最具变革性的 JavaScript 特性.html">37 ES14 中 5 个最具变革性的 JavaScript 特性</a></li><li class=""><a title="JavaScript 中设置器和获取器" href="/md/JavaScript 中设置器和获取器.html">36 JavaScript 中设置器和获取器</a></li><li class=""><a title="非常强大的标准 JavaScript API - AbortController" href="/md/非常强大的标准 JavaScript API - AbortController.html">35 非常强大的标准 JavaScript API - AbortController</a></li><li class=""><a title="掌握 JavaScript 中的 Call 和 Apply" href="/md/掌握 JavaScript 中的 Call 和 Apply.html">34 掌握 JavaScript 中的 Call 和 Apply</a></li><li class=""><a title="一文整懂事件对象 event 的常用方法" href="/md/一文整懂事件对象 event 的常用方法.html">33 一文整懂事件对象 event 的常用方法</a></li><li class=""><a title="7 种开发人员都应该知道的高级 JavaScript 技术" href="/md/7 种开发人员都应该知道的高级 JavaScript 技术.html">32 7 种开发人员都应该知道的高级 JavaScript 技术</a></li><li class=""><a title="实现基于用户操作系统偏好的明暗主题切换" href="/md/实现基于用户操作系统偏好的明暗主题切换.html">31 实现基于用户操作系统偏好的明暗主题切换</a></li><li class=""><a title="JavaScript 原生实现图片复制与粘贴" href="/md/JavaScript 原生实现图片复制与粘贴.html">30 JavaScript 原生实现图片复制与粘贴</a></li><li class=""><a title="高精度实现定时器" href="/md/高精度实现定时器.html">29 高精度实现定时器</a></li><li class=""><a title="获取上传进度的几种方式" href="/md/获取上传进度的几种方式.html">28 获取上传进度的几种方式</a></li><li class=""><a title="聊聊禁止页面滚动的几种方法" href="/md/聊聊禁止页面滚动的几种方法.html">27 聊聊禁止页面滚动的几种方法</a></li><li class=""><a title="缓存 http 错误，避免多次报错提示" href="/md/缓存 http 错误，避免多次报错提示.html">26 缓存 http 错误，避免多次报错提示</a></li><li class=""><a title="文件操作" href="/md/文件操作.html">25 文件操作</a></li><li class=""><a title="数据类型判断方法" href="/md/数据类型判断方法.html">24 数据类型判断方法</a></li><li class=""><a title="宏任务和微任务" href="/md/宏任务和微任务.html">23 宏任务和微任务</a></li><li class=""><a title="十个超级好用的 Js 技巧" href="/md/十个超级好用的 Js 技巧.html">22 十个超级好用的 Js 技巧</a></li><li class=""><a title="前端的网络状态" href="/md/前端的网络状态.html">21 前端的网络状态</a></li><li class=""><a title="使用 JavaScript 加载字体" href="/md/使用 JavaScript 加载字体.html">20 使用 JavaScript 加载字体</a></li><li class=""><a title="你需要知道的 Symbols" href="/md/你需要知道的 Symbols.html">19 你需要知道的 Symbols</a></li><li class=""><a title="Set 和 WeakSet 的用法和区别" href="/md/Set 和 WeakSet 的用法和区别.html">18 Set 和 WeakSet 的用法和区别</a></li><li class=""><a title="sessionStorage 能在多个标签页之间共享数据吗" href="/md/sessionStorage 能在多个标签页之间共享数据吗.html">17 sessionStorage 能在多个标签页之间共享数据吗</a></li><li class=""><a title="scrollIntoview" href="/md/scrollIntoview.html">16 scrollIntoview</a></li><li class=""><a title="reduce 的高级用法" href="/md/reduce 的高级用法.html">15 reduce 的高级用法</a></li><li class=""><a title="js 小众且好用的技巧" href="/md/js 小众且好用的技巧.html">14 js 小众且好用的技巧</a></li><li class=""><a title="js 如何监听一个变量改变" href="/md/js 如何监听一个变量改变.html">13 js 如何监听一个变量改变</a></li><li class=""><a title="javascript 奇葩行为大赏" href="/md/javascript 奇葩行为大赏.html">12 javascript 奇葩行为大赏</a></li><li class=""><a title="FileReader" href="/md/FileReader.html">11 FileReader</a></li><li class=""><a title="EventSource" href="/md/EventSource.html">10 EventSource</a></li><li class=""><a title="document.referrer 拦截问题" href="/md/document.referrer 拦截问题.html">09 document.referrer 拦截问题</a></li><li class=""><a title="7 个 Promise 静态方法" href="/md/7 个 Promise 静态方法.html">08 7 个 Promise 静态方法</a></li><li class=""><a title="谈谈前端路由的实现原理 hash ＆ history" href="/md/谈谈前端路由的实现原理 hash ＆ history.html">07 谈谈前端路由的实现原理 hash ＆ history</a></li><li class=""><a title="属性的 getter 和 setter" href="/md/属性的 getter 和 setter.html">06 属性的 getter 和 setter</a></li><li class=""><a title="高效检查 JS 对象中的键是否存在" href="/md/高效检查 JS 对象中的键是否存在.html">05 高效检查 JS 对象中的键是否存在</a></li><li class=""><a title="实现鼠标滚轮缩放 SVG 内容" href="/md/实现鼠标滚轮缩放 SVG 内容.html">04 实现鼠标滚轮缩放 SVG 内容</a></li><li class=""><a title="使用 JS 向现有 SVG 中添加元素" href="/md/使用 JS 向现有 SVG 中添加元素.html">03 使用 JS 向现有 SVG 中添加元素</a></li><li class=""><a title="JS 单行代码集" href="/md/JS 单行代码集.html">02 JS 单行代码集</a></li><li class=""><a title="7 种位运算符的神奇用法" href="/md/7 种位运算符的神奇用法.html">01 7 种位运算符的神奇用法</a></li>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-left">
+                    <h1 class="page-title">WebWorker、SharedWorker 和 ServiceWorker 还在傻傻分不清</h1>
+                    <p class="time">HaoTian · 2025-01-19 13:19:17</p>
+                </div>
+                <div class="header-right">
+                    <div class="tag-container">
+                        <span class="tag">JavaScript</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Article Content -->
+            <article class="content-body md md ">
+                <p>在现代 Web 开发中，多线程处理能力对于提升应用性能和用户体验至关重要。WebWorker、SharedWorker 和 ServiceWorker 是三种不同的技术，它们各自有不同的应用场景和特性。</p>
+<p>本文将详细介绍这三种技术的区别，帮助你更好地选择和使用它们。</p>
+<h2>1. WebWorker</h2>
+<p><strong>定义</strong>：WebWorker 允许在浏览器后台线程中执行计算密集型任务，避免阻塞主线程（UI 线程），从而提高页面的响应性。</p>
+<p><strong>主要特点</strong>：</p>
+<ul>
+<li><strong>后台处理</strong>：适用于执行复杂的计算任务，如数据排序、图形渲染等。</li>
+<li><strong>通信方式</strong>：与主线程之间通过  <code>postMessage()</code>  和  <code>onmessage</code>  进行通信。</li>
+<li><strong>生命周期</strong>：由浏览器控制，当页面关闭时 WebWorker 会被终止。</li>
+<li><strong>使用场景</strong>：适合需要在后台进行大量计算但不阻塞 UI 的任务。</li>
+</ul>
+<p><strong>示例代码</strong>：</p>
+<pre><code class="language-js">// 创建 WebWorker
+const worker = new Worker(&quot;worker.js&quot;);
+
+// 向 Worker 发送消息
+worker.postMessage(&quot;Hello, Worker!&quot;);
+
+// 接收 Worker 的消息
+worker.onmessage = (event) =&gt; {
+  console.log(&quot;Message from Worker:&quot;, event.data);
+};
+
+// worker.js
+self.onmessage = (event) =&gt; {
+  const result = process(event.data); // 处理数据
+  self.postMessage(result); // 回传结果
+};
+
+function process(data) {
+  // 处理逻辑
+  return data.toUpperCase();
+}
+</code></pre>
+<h2>2. SharedWorker</h2>
+<p><strong>定义</strong>：SharedWorker 是一种可以被多个页面共享的 Worker，允许多个浏览器标签页或窗口共享同一个 Worker 实例，实现多页面之间的数据共享和协同计算。</p>
+<p><strong>主要特点</strong>：</p>
+<ul>
+<li><strong>多页面共享</strong>：多个页面可以共享同一个 Worker 实例，实现数据共享。</li>
+<li><strong>通信方式</strong>：与主线程之间通过  <code>postMessage()</code>  和  <code>onmessage</code>  进行通信，但需要通过  <code>SharedWorkerGlobalScope</code>  和  <code>MessagePort</code>  来管理通信。</li>
+<li><strong>生命周期</strong>：与创建它的页面的生命周期独立，即使创建它的页面关闭，SharedWorker 仍然可以继续运行。</li>
+<li><strong>使用场景</strong>：适合需要在多个页面之间共享数据和协同计算的场景。</li>
+</ul>
+<p><strong>示例代码</strong>：</p>
+<pre><code class="language-js">// 创建 SharedWorker
+const sharedWorker = new SharedWorker(&quot;shared-worker.js&quot;);
+
+// 向 SharedWorker 发送消息
+sharedWorker.port.postMessage(&quot;Hello, SharedWorker!&quot;);
+
+// 接收 SharedWorker 的消息
+sharedWorker.port.onmessage = (event) =&gt; {
+  console.log(&quot;Message from SharedWorker:&quot;, event.data);
+};
+
+// shared-worker.js
+self.onconnect = (event) =&gt; {
+  const port = event.ports[0];
+  port.onmessage = (event) =&gt; {
+    const result = process(event.data); // 处理数据
+    port.postMessage(result); // 回传结果
+  };
+};
+
+function process(data) {
+  // 处理逻辑
+  return data.toUpperCase();
+}
+</code></pre>
+<h2>3. ServiceWorker</h2>
+<p><strong>定义</strong>：ServiceWorker 是一种特殊的 Worker，主要用于拦截和处理网络请求，实现离线缓存、消息推送等功能。</p>
+<p><strong>主要特点</strong>：</p>
+<ul>
+<li><strong>网络代理</strong>：可以拦截和处理网络请求，实现离线缓存、消息推送等功能。</li>
+<li><strong>通信方式</strong>：不直接与主线程通信，而是通过拦截网络请求来实现与主线程的交互。</li>
+<li><strong>生命周期</strong>：独立于页面，即使页面关闭，ServiceWorker 也可以继续运行。</li>
+<li><strong>使用场景</strong>：适合需要实现离线缓存、消息推送和网络请求优化的场景。</li>
+</ul>
+<p><strong>示例代码</strong>：</p>
+<pre><code class="language-js">// service-worker.js
+self.addEventListener(&quot;install&quot;, (event) =&gt; {
+  event.waitUntil(
+    caches.open(&quot;my-cache-v1&quot;).then((cache) =&gt; {
+      cache.addAll([
+        &quot;/index.html&quot;,
+        &quot;/styles.css&quot;,
+        &quot;/script.js&quot;,
+        // 添加其他要缓存的资源
+      ]);
+    })
+  );
+});
+
+self.addEventListener(&quot;fetch&quot;, (event) =&gt; {
+  event.respondWith(
+    caches.match(event.request).then((response) =&gt; {
+      if (response) {
+        return response;
+      }
+      return fetch(event.request);
+    })
+  );
+});
+</code></pre>
+<h2>4. 总结</h2>
+<ul>
+<li><strong>WebWorker</strong>：适用于在后台执行计算密集型任务，避免阻塞 UI 线程。</li>
+<li><strong>SharedWorker</strong>：适用于多个页面之间共享数据和协同计算。</li>
+<li><strong>ServiceWorker</strong>：适用于拦截和处理网络请求，实现离线缓存和消息推送。</li>
+</ul>
+<p>通过合理选择和使用这些技术，你可以构建更加健壮、响应迅速且用户体验良好的 Web 应用。希望本文能帮助你更好地理解和应用这些技术。</p>
+
+            </article>
+        </main>
+
+        <!-- Table of Contents Sidebar -->
+        <aside class="toc-sidebar">
+            <div class="toc-header">
+                <h3>Table of Contents</h3>
+            </div>
+            <div class="toc-content" id="tocContent">
+                <!-- TOC will be generated dynamically -->
+            </div>
+        </aside>
+    </div>
+
+    <div class="body_bg"></div>
+    <div class="zoom-overlay"></div>
+    <style>
+      .zoom-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        z-index: 1000;
+        cursor: zoom-out;
+      }
+      .zoomed-image {
+        position: fixed;
+        z-index: 1001;
+        will-change: transform;
+        cursor: zoom-out;
+        max-width: 90vw;
+        max-height: 90vh;
+        object-fit: contain;
+      }
+      .back-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        border-radius: 100%;
+        background-color: #07a;
+        border: none;
+        color: #333;
+        text-decoration: none;
+        font-size: 14px;
+        margin-bottom: 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        position: fixed !important;
+        top: 30px;
+        right: 30px;
+        z-index: 10;
+        display: none;
+      }
+      .back-button svg {
+        width: 50%;
+        height: 50%;
+      }
+      .back-button:hover {
+        opacity: 0.8;
+      }
+      .layout {
+        position: relative;
+        z-index: 1;
+      }
+    </style>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+        // Sidebar Toggle
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+        
+        function toggleSidebar() {
+            sidebar.classList.toggle('hidden');
+            // Store sidebar state in localStorage
+            localStorage.setItem('sidebarHidden', sidebar.classList.contains('hidden'));
+        }
+        
+        toggleBtn.addEventListener('click', toggleSidebar);
+
+        // Keyboard shortcut (Ctrl + B)
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'b') {
+                e.preventDefault(); // Prevent browser's default behavior
+                toggleSidebar();
+            }
+        });
+
+        // Restore sidebar state from localStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebarHidden = localStorage.getItem('sidebarHidden') === 'true';
+            if (sidebarHidden) {
+                sidebar.classList.add('hidden');
+            }
+        });
+
+        // Generate Table of Contents
+        function generateTOC() {
+            const article = document.querySelector('.content-body');
+            const headings = article.querySelectorAll('h1, h2, h3, h4');
+            const tocContent = document.getElementById('tocContent');
+            const toc = document.createElement('ul');
+
+            headings.forEach((heading, index) => {
+                const id = `heading-${index}`;
+                heading.id = id;
+                
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = `#${id}`;
+                a.textContent = heading.textContent;
+                a.className = `toc-level-${heading.tagName.toLowerCase()}`;
+                
+                li.appendChild(a);
+                toc.appendChild(li);
+            });
+
+            tocContent.appendChild(toc);
+        }
+
+        // Initialize TOC
+        document.addEventListener('DOMContentLoaded', generateTOC);
+
+        // Image zoom with FLIP animation
+        const overlay = document.querySelector(".zoom-overlay");
+        let activeImage = null;
+
+        document.querySelectorAll("img").forEach((img) => {
+            if (img.closest("a")) return; // Skip images that are inside links
+            img.style.cursor = "zoom-in";
+            img.addEventListener("click", handleImageClick);
+        });
+
+        function handleImageClick(event) {
+            const img = event.target;
+
+            if (activeImage) {
+                // If an image is already zoomed, unzoom it
+                unzoomImage();
+                return;
+            }
+
+            // Get the initial position and size
+            const rect = img.getBoundingClientRect();
+            const first = {
+                x: rect.left,
+                y: rect.top,
+                width: rect.width,
+                height: rect.height,
+            };
+
+            // Create a clone of the image
+            const clone = img.cloneNode();
+            clone.classList.add("zoomed-image");
+            document.body.appendChild(clone);
+
+            // Position the clone exactly over the original
+            clone.style.position = "fixed";
+            clone.style.left = `${first.x}px`;
+            clone.style.top = `${first.y}px`;
+            clone.style.width = `${first.width}px`;
+            clone.style.height = `${first.height}px`;
+            clone.style.margin = "0";
+            clone.style.transformOrigin = "top left";
+
+            // Show the overlay
+            overlay.style.display = "block";
+
+            // Calculate the final position and scale
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const targetWidth = Math.min(img.naturalWidth, viewportWidth * 0.9);
+            const targetHeight = Math.min(img.naturalHeight, viewportHeight * 0.9);
+            const scaleX = targetWidth / first.width;
+            const scaleY = targetHeight / first.height;
+            const scale = Math.min(scaleX, scaleY);
+
+            const last = {
+                width: first.width * scale,
+                height: first.height * scale,
+            };
+            last.x = (viewportWidth - last.width) / 2;
+            last.y = (viewportHeight - last.height) / 2;
+
+            // Calculate and apply the transform
+            const dx = last.x - first.x;
+            const dy = last.y - first.y;
+
+            requestAnimationFrame(() => {
+                clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+                clone.style.transition = "transform 0.3s ease-out";
+            });
+
+            activeImage = { original: img, clone: clone };
+
+            // Add click handlers for closing
+            clone.addEventListener("click", unzoomImage);
+            overlay.addEventListener("click", unzoomImage);
+        }
+
+        function unzoomImage() {
+            if (!activeImage) return;
+
+            const { original, clone } = activeImage;
+            const rect = original.getBoundingClientRect();
+
+            // Animate back to the original position
+            clone.style.transform = `translate(0, 0) scale(1)`;
+
+            // Clean up after the animation
+            clone.addEventListener(
+                "transitionend",
+                () => {
+                    clone.remove();
+                    overlay.style.display = "none";
+                },
+                { once: true }
+            );
+
+            activeImage = null;
+        }
+
+        // 监听 ctrl + b
+        window.addEventListener("keydown", (e) => {
+            const leftDom = document.querySelector(".sidebar");
+            if (e.ctrlKey && e.key === "b") {
+                leftDom.classList.toggle("hidden");
+            }
+        });
+
+        // Modal
+        const modal = document.getElementById("myModal");
+        const modalContent = modal.querySelector(".modal-content");
+        const openModal = document.getElementById("openModal");
+        const close = modal.querySelector(".close");
+
+        openModal.addEventListener("click", () => {
+            modal.style.display = "block";
+        });
+
+        close.addEventListener("click", () => {
+            modal.style.display = "none";
+        });
+
+        window.addEventListener("click", (e) => {
+            if (e.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
