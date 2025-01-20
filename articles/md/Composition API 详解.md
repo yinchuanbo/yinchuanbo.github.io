@@ -1052,4 +1052,549 @@ const changeInfo = () => {
 
 ### watch 监听
 
-【254】
+watchEffect 函数会自动收集响应式数据的依赖，而 watch 函数则需要手动指定监听数据源，并且完全等同于第 3 章中的 watch 选项。
+
+**watch 函数的特点如下：**
+
+- 在默认情况下，watch 函数是惰性的，只有当被监听的源发生变化时，才会执行回调函数(副作用函数)。
+
+- watch 函数需要手动指定监听的数据源，而 watchEfect 函数会自动收集响应式数据的依赖。
+
+- watch 函数在副作用函数中可以接收到新值和旧值，而 watchEffect 函数接收不到
+
+### 监听单个数据源
+
+watch 函数可以监听两种类型的数据源：
+
+1. getter 函数: 该函数必须引用响应式对象，如 reactive 或 ref 函数返回的响应式对象
+
+2. 响应式对象: 直接接收一个响应式对象，如 reactive 或 ref 函数返回的响应式对象。
+
+**案例一: watch 函数监听的数据源为一个 getter 函数。**
+
+```html
+<template>
+  <div>
+    <h4>{{ info.name }}</h4>
+    <button @click="changeData">修改数据</button>
+  </div>
+</template>
+<script>
+  import { reactive, watch } from "vue";
+  export default {
+    setup() {
+      const info = reactive({
+        name: "why",
+        age: 18,
+      });
+      watch(
+        // 1. 第一个参数：getter 函数，该函数必须引用响应式对象
+        () => info.name,
+        // 2. 第二个参数：回调函数，该函数会接收到新值和旧值
+        (newValue, oldValue) => {
+          console.log("info.name 变化了");
+        }
+      );
+      const changeData = () => {
+        info.name = "kobe";
+      };
+      return {
+        info,
+        changeData,
+      };
+    },
+  };
+</script>
+```
+
+**案例二: watch 函数监听的数据源为 reactive 函数返回的响应式对象**
+
+```html
+<script>
+  import { reactive, watch } from "vue";
+  export default {
+    setup() {
+      const info = reactive({
+        name: "why",
+        age: 18,
+      });
+      /*
+        watch(
+          () => info.name,
+          (newValue, oldValue) => {
+            console.log("info.name 变化了");
+          }
+        );
+      */
+      // newValue 和 oldValue 都是响应式对象
+      watch(info, (newValue, oldValue) => {
+        console.log("info 变化了");
+      });
+      const changeData = () => {
+        info.name = "kobe";
+      };
+      return {
+        info,
+        changeData,
+      };
+    },
+  };
+</script>
+```
+
+这时，如果我们希望 newValue 和 oldValue 是一个普通对象，那么可以这样监听
+
+```html
+<script>
+  import { reactive, watch } from "vue";
+  export default {
+    setup() {
+      const info = reactive({
+        name: "why",
+        age: 18,
+      });
+      watch(
+        () => {
+          return { ...info };
+        },
+        // 此时 newValue 和 oldValue 都是普通对象
+        (newValue, oldValue) => {
+          console.log("info 变化了");
+        }
+      );
+      const changeData = () => {
+        info.name = "kobe";
+      };
+      return {
+        info,
+        changeData,
+      };
+    },
+  };
+</script>
+```
+
+**案例三: watch 函数监听的数据源为 ref 函数返回的响应式对象**
+
+```html
+<script>
+  import { reactive, watch } from "vue";
+  export default {
+    setup() {
+      const name = ref("codeywhy");
+      // newValue 和 oldValue 都是 value 值本身
+      watch(name, (newValue, oldValue) => {
+        console.log("name 变化了");
+      });
+      const changeData = () => {
+        name.value = "kobe";
+      };
+      return {
+        name,
+        changeData,
+      };
+    },
+  };
+</script>
+```
+
+### 监听多个数据源
+
+watch 不仅可以监听单个数据源，还可以通过接收数组实现同时监听多个数据源。
+
+```html
+<script>
+  import { ref, reactive, watch } from "vue";
+  export default {
+    setup() {
+      const info = reactive({
+        name: "coder",
+        age: 18,
+      });
+      const name = ref("why");
+      const age = ref(20);
+      watch(
+        // 1. 第一个参数：数组，数组中可以存放多个数据源
+        [() => ({ ...info }), name, age],
+        // 2. 第二个参数：回调函数
+        ([newInfo, newName, newAge], [oldInfo, oldName, oldAge]) => {
+          console.log(newInfo, newName, newAge);
+          console.log(oldInfo, oldName, oldAge);
+        }
+      );
+      const changeData = () => {
+        info.name = "kobe";
+        name.value = "jack";
+      };
+      return {
+        info,
+        name,
+        changeData,
+      };
+    },
+  };
+</script>
+```
+
+### 监听响应式对象
+
+如果我们希望监听一个数组或对象，可以使用一个 getter 函数，并对可响应式对象进行解构。
+
+```js
+const names = reactive(["abc", "cba", "nba"]);
+
+// 监听响应式数组
+watch(
+  () => [...names],
+  (newValue, oldValue) => {
+    console.log(newValue, oldValue);
+  }
+);
+const changeName = () => {
+  names.push("why");
+};
+```
+
+如果需要对一个对象进行深度监听，可以将 deep 属性设置为 true，也可以传入 immediate 参数立即执行监听函数。
+
+```js
+import { reactive, watch, ref } from "vue";
+export default {
+  setup() {
+    const info = reactive({
+      name: "why",
+      age: 18,
+      friend: {
+        name: "kobe",
+        age: 40,
+      },
+    });
+    // 监听响应式对象
+    watch(
+      () => ({ ...info }),
+      (newInfo, oldInfo) => {
+        console.log(newInfo, oldInfo);
+      },
+      {
+        deep: true, // 深度监听
+        immediate: true, // 立即执行监听函数
+      }
+    );
+    const changeData = () => (info.friend.name = "james");
+    return {
+      info,
+      changeData,
+    };
+  },
+};
+```
+
+## 组件的生命周期
+
+setup 函数不但可以替代 data、methods、computed、watch 等选项，还可以替代生命周期函数(钩子)。如果想在 setup 函数中使用组件生命周期函数，那么可以通过直接导入 onXxx 函数来注册生命周期函数。
+
+```js
+import { onMounted, onUnmounted, onUpdated } from "vue";
+export default {
+  setup() {
+    const counter = ref(0);
+    const increment = () => {
+      counter.value++;
+    };
+    onMounted(() => {
+      console.log("组件挂载完成");
+    });
+    // 生命周期函数(同一个生命周期函数可以存在多次)
+    onMounted(() => {
+      console.log("组件挂载完成");
+    });
+    onUpdated(() => {
+      console.log("组件更新完成");
+    });
+    onUnmounted(() => {
+      console.log("组件卸载完成");
+    });
+    return {
+      counter,
+      increment,
+    };
+  },
+};
+```
+
+Composition API 和 Options API(选项式 API) 的生命周期函数的对应关系:
+
+<img src="../imgs/138/01.awebp" />
+
+> 可以看到，Composition API 没有提供 beforeCreate 和 created 生命周期函数，而是直接使用 setup 函数代替。需要注意的是，setup 函数会在 beforeCreate 之前被调用，
+
+## Provide / Inject 依赖注入
+
+在 Vue3 的 Composition API 中，我们可以使用 provide 和 inject 函数实现非父子组件之间的通信。
+
+相比于 Options API 中的 provide 和 inject 选项，provide 和 inject 函数更加灵活和方便。
+
+### 提供数据
+
+provide 函数可以向子组件或孙子组件提供数据。它接收以下两个参数：
+
+- key: 要提供的键，可以是字符串或符号 (symbol)
+
+- value: 要提供的值
+
+```html
+<!-- App.vue -->
+<script>
+  import { provide, ref } from "vue";
+  export default {
+    setup() {
+      const name = "coderwhy";
+      const age = 18;
+      let counter = ref(100);
+
+      // 向所有后代组件提供数据
+      /**
+       * 其中，提供的普通数据是只读的，不可修改；提供的响应式数据默认是可读可修改的。
+       */
+      provide("name", name);
+      provide("age", age);
+      provide("counter", counter);
+
+      return {
+        name,
+        age,
+        counter,
+      };
+    },
+  };
+</script>
+```
+
+### 注入数据
+
+inject 函数接收以下两个参数：
+
+1. key: 需要注入的数据的名称。
+
+2. defaultValue(可选): 在没有匹配到 key 时使用的默认值。
+
+```html
+<script>
+  import { inject } from "vue";
+  export default {
+    setup() {
+      // 获取父组件提供 provide 提供的数据
+      const name = inject("name"); // 普通数据，只读
+      const age = inject("age"); // 普通数据，只读
+      const counter = inject("counter"); // 响应式数据，可读可写
+      const homeIncrement = () => counter.value++;
+      return {
+        name,
+        age,
+        counter,
+        homeIncrement,
+      };
+    },
+  };
+</script>
+```
+
+### 提供和注入响应式数据
+
+provide 函数不仅可以向子组件或孙子组件提供只读的普通数据，还支持提供响应式数据,例如，支持提供 ref 和 reactive 函数定义的响应式数据。
+
+- 父组件
+
+```js
+let counter = ref(100);
+let info = reactive({
+  name: "why",
+  age: 18,
+});
+
+provide("counter", counter);
+provide("info", info);
+```
+
+- 子组件
+
+```js
+const info = inject("info");
+const counter = inject("counter");
+```
+
+> 注意: provide 函数提供的响应式数据既可以在父组件中被修改，又可以在子组件中被修改这会导致难以追踪数据的修改。为了保证单向数据流，以及避免子组件修改父组件提供的数据我们可以借助 readonly 函数
+
+- 父组件
+
+```js
+provide("info", readonly(info));
+provide("counter", readonly(counter));
+```
+
+## `<script setup>` 语法
+
+### 基本使用
+
+- 在启用该语法时，需要将 setup 属性添加到 `<script>` 标签上。`<script>` 标签中的代码会被编译成组件 setup 函数的内容。
+
+- `<script>` 中的代码只在组件被首次引入时执行一次，而 `<script setup>` 中的代码会在每次组件实例被创建时执行。
+
+- 任何在`<script setup>` 中声明的顶层的绑定 (包括变量、函数声明，以及 import 引入的内容) 都能在模板中直接使用。
+
+```html
+<template>
+  <div>
+    <h4>{{ counter }}</h4>
+    <button @click="increment">+1</button>
+  </div>
+</template>
+<script setup>
+  import { ref } from "vue";
+  const counter = ref(0);
+  const increment = () => {
+    counter.value++;
+  };
+</script>
+```
+
+需要注意的是，任何在 `<script setup>` 中声明的顶层的绑定内容都能在模板中直接使用。例如，声明的普通变量、响应式变量、函数、impont 引入的内容，包含对象、组件、动态组件、指令等，
+
+```html
+<template>
+  <MyComponent />
+  <component :is="Foo" />
+  <h4 v-my-directive>This is a Heading</h4>
+  <div>{{ capitalize("hello") }}</div>
+  <button @click="count++">{{ count }}</button>
+  <div @click="log">{{ msg}}</div>
+</template>
+<script setup>
+  import MyComponent from "./components/MyComponent.vue";
+  import Foo from "./components/Foo.vue";
+  import { myDirective as vMyDirective } from "./MyDirectives.js";
+  import { capitalize } from "./helpers";
+  import { ref } from "vue";
+  const count = ref(0);
+  const msg = "Hello World";
+
+  function log() {
+    console.log(msg);
+  }
+</script>
+```
+
+### defineProps 和 defineEmits
+
+而在 `<script setup>` 语法中，必须用 `defineProps` 和 `defineEmits` 函数来声明 props 和 emit。
+
+- `defneprps` 和 `defneEmits` 函数都是只在 `<script setup>` 中才能使用的编译器宏，它不需要导入且会随着 `<script setup>` 处理过程一同被编译。
+
+- defineProps 接收与 props 选项相同的值，defneEmits 接收与 emits 选项相同的值。
+
+- 在选项传入后，defineProps 和 defineEmits 会提供恰当的类型推断。
+
+- 传入 defineProps 和 defineEmits 的选项会从 setup 中提升到模块的范围内。因此，传入的选项不能引用在 setup 范围中声明的局部变量，这样做会引起编译错误。但是它可以引用导入的绑定，因为导入的绑定也在模块范围内。
+
+```html
+<!-- DefinePropsEmitAPI.vue -->
+<template>
+  <div style="border: 1px solid #ddd; margin: 10px">
+    <p>{{ message }}</p>
+    <button @click="emitEvent">发射 emit 事件</button>
+  </div>
+</template>
+
+<script setup>
+  // 接收 props
+  const props = defineProps({
+    message: String,
+    default: "默认的 message",
+  });
+
+  // 注册需要的触发的 emit 事件
+  const emit = defineEmits(["increment"]);
+
+  const emitEvent = () => {
+    emit("increment", 1); // 触发 increment 事件，并传递参数 1
+  };
+</script>
+```
+
+```html
+<!-- App.vue -->
+<template>
+  <div class="app" style="border: 1px solid #ddd; margin: 10px">
+    <DefinePropsEmitAPI
+      message="App 传递过来的 message"
+      @increment="getCounter"
+    />
+  </div>
+</template>
+<script setup>
+  import DefinePropsEmitAPI from "./components/DefinePropsEmitAPI.vue";
+  const getCounter = (counter) => {
+    console.log("子组件传递过来的 counter 值：", counter);
+  };
+```
+
+### defineExpose
+
+组件在使用 `<script setup>` 语法时默认是关闭的，即通过模板 ref 或 $parent 获取到组件的实例不会暴露任何在 `<script setup>` 中声明的属性。这时，如果要将组件的某些属性暴露出去，可以通过 defneExpose 编译器宏来实现
+
+```html
+<script setup>
+  import { ref } from "vue";
+  const age = 18;
+  const name = ref("coderwhy");
+  const showMessage = () => {
+    console.log("hello world");
+  }
+  defineExpose({
+    age,
+    name,
+    showMessage
+  })
+```
+
+```html
+<!-- App.vue -->
+<template>
+  <DefineExposeAPI ref="defineExposeAPI" />
+</template>
+<script setup>
+  import { ref, wacthEffect } from "vue";
+  import DefineExposeAPI from "./components/DefineExposeAPI.vue";
+  // 1. 获取 DefineExposeAPI.vue 组件的实例和该组件暴露的属性
+  const defineExposeAPI = ref(null);
+  watchEffect(
+    () => {
+      console.log(defineExposeAPI.value);
+      console.log(defineExposeAPI.value.age);
+      console.log(defineExposeAPI.value.name);
+      defineExposeAPI.value.showMessage();
+    },
+    {
+      flush: "post",
+    }
+  );
+</script>
+```
+
+### useSlots 和 useAttrs
+
+setup 函数主要有两个参数: props 和 context。其中，context 包含 slots、attrs 和 emit 三个属性。而在 `<script setup>` 中，可以分别使用 useSlots 和 useAttrs 两个辅助函数，代码如下所示:
+
+```html
+<script setup>
+  import { useSlots, useAttrs } from "vue";
+  const slots = useSlots(); // 1. 获取该组件的插槽，相当于 setup 函数中的 context.slots
+  const attrs = useAttrs(); // 2. 获取该组件的属性，相当于 setup 函数中的 context.attrs
+  console.log(slots);
+  console.log(attrs);
+</script>
+```
+
+注意: useSlots 和 useAttrs 是真实的运行时函数，需要导入后使用。它会返回与 setupContext.slots 和 setupContext.attrs 等价的值，也能在普通的 Composition API 中使用。
+
+提示: 在 `<script setup>` 中使用 slots 和 attrs 是很罕见的，因为在模板中可以直接使用 $slos 和$ attrs。
