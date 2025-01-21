@@ -587,7 +587,210 @@ app.mount(&quot;#app&quot;);
 </code></pre>
 <h2>Vue3 插件开发</h2>
 <h3>认识 Vue3 插件</h3>
-<p>插件（Plugin）是一种为 Vue3 添加全局功能的工具代码。</p>
+<p>插件（Plugin）是一种为 Vue3 添加全局功能的工具代码。Vue3 插件没有严格定义他用范围，但是插件的应用场景主要包括以下 4 种:</p>
+<ol>
+<li><p>通过 app.component 和 app.directive 注册一个或多个全局组件或自定义指令</p>
+</li>
+<li><p>通过 app.provide 将一个资源注入整个应用</p>
+</li>
+<li><p>向 app.config.globalProperties 中添加一些全局实例属性或方法</p>
+</li>
+<li><p>一个可能包含上述三种功能的功能库，例如 Vue Router。</p>
+</li>
+</ol>
+<p>在编写 Vue3 插件时，通常有以下两种编写方式:</p>
+<ol>
+<li><p>对象类型: 一个对象，必须包含一个 install 函数，该函数会在安装插件时执行</p>
+</li>
+<li><p>函数类型: 一个 function 函数，该函数会在安装插件时自动执行</p>
+</li>
+</ol>
+<h3>对象类型的插件</h3>
+<p>新建目录</p>
+<pre><code class="language-sh">|-- src
+	|-- plugins
+		|-- plugins_object.js
+		|-- plugins_function.js
+</code></pre>
+<pre><code class="language-js">// plugins_object.js
+export default {
+  // 必须包含一个 install 函数
+  install(app) {
+    // 插件的作用是为App 实例添加一个全局属性$name
+    app.config.globalProperties.$name = &quot;coderwhy&quot;;
+  },
+};
+</code></pre>
+<p>可以看到，该对象类型插件首先导出一个必须包含一个 install 函数的对象，该函数会在 app.use 安装插件时执行。</p>
+<p>修改 main.js 文件，安装该插件:</p>
+<pre><code class="language-js">// main.js
+import pluginObject from &quot;./plugins/plugins_object&quot;; // 导入插件 object
+import App from &quot;./App.vue&quot;;
+let app = createApp(App);
+app.use(pluginObject); // 安装插件时，会执行插件的 install 函数
+app.mount(&quot;#app&quot;);
+</code></pre>
+<p>下面使用该插件：</p>
+<pre><code class="language-html">&lt;!-- App.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;App 组件&lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+   import { getCurrentInstance } from &quot;vue&quot;;
+   export default {
+     setup() {
+       const instance = getCurrentInstance(); // 获取组件实例，相当于 this
+       // 通过组件实例访问全局属性 $name
+       console.log(instance.appContext.config.globalProperties.$name);
+     },
+   mounted() {
+   	console.log(this.$name); // 通过 this 访问全局属性 $name
+   };
+  }
+&lt;/script&gt;
+</code></pre>
+<p>可以看到，首先在 setup 函数中，通过调用 getCurrentInstance API 访问内部组件实例。<strong>因为在 setup 函数中不能使用 this 获取组件实例</strong>。</p>
+<h3>函数类型的插件</h3>
+<pre><code class="language-js">// plugins_function.js
+export default function (app) {
+  // 插件的作用是为App 实例添加一个全局属性$name
+  app.config.globalProperties.$name = &quot;coderwhy&quot;;
+  // 可以继续为 App 实例添加全局属性、方法、指令、组件、mixin 等
+}
+</code></pre>
+<h2>nextTick 函数的原理</h2>
+<p>nextTick 函数用于等待下一次 DOM 更新刷新，它可以将回调推迟到下一个 DOM 更新周期之后执行。</p>
+<p>因为在 vue3 中更改响应式状态时，最终的 DOM 更新并不是同步生效的，是由 vue3 将它们缓存在一个队列中，直到下一个 tick 才一起执行。</p>
+<p>nextTick 的作用是确每个组件无论发生多少状态改变，都仅执行一次更新。</p>
+<p><strong>下面通过一个案例来讲解 nextTick 的使用和原理，该案例的功能如下：</strong></p>
+<ol>
+<li><p>页面上有一个<code>&lt;h4&gt;</code>元素和一个<code>&lt;button&gt;</code>元素。</p>
+</li>
+<li><p>单击<code>&lt;button&gt;</code>按钮，修改<code>&lt;h4&gt;</code>元素显示的 message，并重新获取<code>&lt;h4&gt;</code>元素的高度，</p>
+</li>
+</ol>
+<p>我们将使用三种方式渐进式地实现上述案例：</p>
+<ol>
+<li><p>在单击按钮后立即获取<code>&lt;h4&gt;</code>元素的高度(错误)。</p>
+</li>
+<li><p>在 onUpdated 生命周期函数中获取<code>&lt;h4&gt;</code>的高度，但是如果其他数据被更新，也会执行该操作(不推荐)。</p>
+</li>
+<li><p>使用 nextTick 函数(正确)。</p>
+</li>
+</ol>
+<p><strong>1. 在单击按钮后立即获取 h4 元素的高度</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;h4 style=&quot;width: 80px&quot; ref=&quot;titleRef&quot;&gt;{{ message }}&lt;/h4&gt;
+    &lt;button @click=&quot;addMessageContent&quot;&gt;添加内容&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import { ref, onUpdated } from &quot;vue&quot;;
+  export default {
+    setup() {
+      const titleRef = ref(null);
+      const message = ref(&quot;&quot;);
+      const addMessageContent = () =&gt; {
+        message.value += &quot;更新 DOM&quot;;
+        // 1. 单击按钮修改 h4 元素内容后，立即获取高度
+        console.log(&quot;获取到h4元素的高度:&quot;, titleRef.value.offsetHeight);
+      };
+      return {
+        titleRef,
+        message,
+        addMessageContent,
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>最终结果：获取 h4 高度为 0，说明在 DOM 更新之前就执行了打印语句，所以这种方式获取不到高度数据。</p>
+<p><strong>2. 在 onUpdated 生命周期函数中获取 h4 元素的高度</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div class=&quot;app&quot;&gt;
+    &lt;div&gt;计数器: {{ counter }}&lt;/div&gt;
+    &lt;button @click=&quot;increment&quot;&gt;+1&lt;/button&gt;
+    &lt;h4 style=&quot;width: 80px&quot; ref=&quot;titleRef&quot;&gt;{{ message }}&lt;/h4&gt;
+    &lt;button @click=&quot;addMessageContent&quot;&gt;添加内容&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import { ref, onUpdated } from &quot;vue&quot;;
+  export default {
+    setup() {
+      const titleRef = ref(null);
+      const message = ref(&quot;&quot;);
+      const counter = ref(0);
+      const addMessageContent = () =&gt; {
+        message.value += &quot;更新 DOM&quot;;
+      };
+      const increment = () =&gt; {
+        counter.value++;
+      };
+
+      onUpdated(() =&gt; {
+        console.log(&quot;onUpdated 生命周期函数中获取 h4 元素的高度&quot;);
+        console.log(&quot;获取到h4元素的高度:&quot;, titleRef.value.offsetHeight);
+      });
+
+      return {
+        titleRef,
+        message,
+        counter,
+        addMessageContent,
+        increment,
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>可以看到，单击 “添加内容” 按钮后获取<code>&lt;h4&gt;</code>元素的高度为 22，但是当单击 “+1” 按钮时，发现<code>&lt;div&gt;</code>更新了，这又会触发一次打印。这次打印并不是我们所期望的，</p>
+<p>为了实现仅当<code>&lt;h4&gt;</code>元素 DOM 发生更新时，才获取该元素的高度，需要使用第三种方式</p>
+<pre><code class="language-js">import { ref, nextTick } from &quot;vue&quot;;
+export default {
+  setup() {
+    const titleRef = ref(null);
+    const message = ref(&quot;&quot;);
+    const counter = ref(0);
+    const addMessageContent = () =&gt; {
+      message.value += &quot;更新 DOM&quot;;
+      // 引入nextTick API，在 DOM 更新之后回调该函数
+      nextTick(() =&gt; {
+        console.log(&quot;获取到h4元素的高度:&quot;, titleRef.value.offsetHeight);
+      });
+    };
+    const increment = () =&gt; {
+      counter.value++;
+    };
+
+    return {
+      titleRef,
+      message,
+      counter,
+      addMessageContent,
+      increment,
+    };
+  },
+};
+</code></pre>
+<p><strong>下面分析 nextTick 函数的实现原理:</strong></p>
+<p>首先介绍浏览器的事件循环。浏览器在执行 JavaScript 代码时，如遇到 DOM 事件、setTimeout 函数、异步操作等回调函数，那么这些函数会被加入事件队列。浏览器的事件循环事实上维护着以下两个队列。</p>
+<ol>
+<li><p>宏任务队列: 存放 ajax、setTimeout、setInterval、DOM 监听、UI Rendering 等任务。</p>
+</li>
+<li><p>微任务队列: 存放 Promise then 回调、Mutation ObserverAPI、queueMicrotask 等任务。</p>
+</li>
+</ol>
+<p>需要注意的是，浏览器在执行任何一个宏任务之前，都会先查看微任务队列中是否有需要执行的任务。如有，则优先执行微任务队列的任务。也就是说，在宏任务执行之前，必须保证微任务队列是空的，如果不为空，就优先执行微任务队列中的任务(这里的 “任务” 指的是回调函数)。</p>
+<p>下面以上述案例为例，分析 nextTick 函数的原理:</p>
+<ul>
+<li><p>当单击 “添加内容” 按钮时，会触发一个 DOM 监听事件，该事件的回调函数将会被加入宏任务队列。当该任务在调用栈执行时，会修改 message 中的 value。由于修改了 message，因此 Vue3 框架内部会将有关的 watch 回调函数、组件更新的回调函数和生命周期的回调函数加入微任务队列中。</p>
+</li>
+<li><p>当我们调用 nextTick 函数时，nextTick 内部会使用 Promise 包裹回调函数，目的是将该回调函数加入微任务队列。队列中的任务都是先进先出的，所以当执行完 watch 回调函数、组件更新的回调函数和生命周期的回调函数之后，就会执行 nextTick 的回调函数。这个过程就称为一次 tick。</p>
+</li>
+</ul>
+<p>因此，在上述案例中，nextTick 函数的回调函数将会推迟到下一个 DOM 更新周期之后执行。</p>
 
             </article>
         </main>
