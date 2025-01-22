@@ -541,4 +541,269 @@ export default Store;
 >
 ```
 
-[未完待续]
+**4. mapGetters 辅助函数**
+
+Vuex 同样提供了 mapGetters 辅助函数，用于简化获取 getters 的操作，其语法与 mapState 函数类似。
+
+(1) computed 属性中使用 mapGetters 函数
+
+```html
+<template>
+  <div>
+    <h4>{{ $store.getters.totalPrice }}</h4>
+    <h4>{{ $store.getters.totalPriceByName('Java') }}</h4>
+
+    <h4>{{ totalPrice }}</h4>
+    <h4>{{ discount }}</h4>
+  </div>
+</template>
+<script>
+  import { mapGetters } from "vuex";
+  export default {
+    name: "Home",
+    computed: {
+      ...mapGetters(["totalPrice"]), // 数组语法
+      ...mapGetters({
+        discount: "currentDiscount", // 对象语法
+      }),
+    },
+  };
+</script>
+```
+
+(2) setup 函数中使用 mapGetters 函数
+
+与 mapState 类似，mapGetters 函数返回对象中的属性并不是计算属性，因此不能直接在页面中展示。下面封装一个 useGetters 函数来统一处理，
+
+```sh
+|--src
+  |--hooks
+    |--useGetters.js
+    |--index.js
+```
+
+```js
+// useGetters.js
+import { mapGetters, useStore } from "vuex";
+import { computed } from "vue";
+
+export function useGetters(mapper) {
+  const store = useStore();
+  const storeGettersFns = mapGetters(mapper);
+  const storeGetters = {};
+  Object.keys(storeGettersFns).forEach((fnKey) => {
+    const fn = storeGettersFns[fnKey].bind({ $store: store });
+    storeGetters[fnKey] = computed(fn);
+  });
+  return storeGetters;
+}
+```
+
+```js
+// hooks/index.js
+import { useGetters } from "./useGetters";
+export { useGetters };
+```
+
+```html
+<template>
+  <div>
+    <h4>{{ totalPriceByName("Java") }}</h4>
+  </div>
+</template>
+<script>
+  import { useGetters } from "../hooks";
+  export default {
+    setup() {
+      const storeGetters = useGetters(["totalPriceByName"]);
+      return {
+        ...storeGetters,
+      };
+    },
+  };
+</script>
+```
+
+### mutations
+
+在 Vuex 状态管理模式中，mutations 是一个重要的概念，用于更改 store 中的状态。需要注意的是，mutations 必须是同步的，因为它是直接更改 store 中状态的唯一方法。
+
+**1. mutations 的基本使用**
+
+```js
+// src/store/index.js`
+const Store = createStore({
+  state() {
+    return {
+      counter: 0,
+    };
+  },
+  mutations: {
+    increment(state) {
+      state.counter++;
+    },
+    decrement(state) {
+      state.counter--;
+    },
+  },
+});
+export default Store;
+```
+
+可以看到，在 mutations 中，我们定义了两个函数，分别是 `increment` 和 `decrement`。这两个函数不能直接调用，因为在 mutations 中定义的选项更像事件注册。需要调用 `$store.commit` 方法提交一个类型为 increment 的 mutation 函数，才能调用 increment 函数。
+
+```html
+<template>
+  <div>
+    <h4>当前计数: {{ $store.state.counter }}</h4>
+    <button @click="$store.commit('increment')">+1</button>
+    <button @click="$store.commit('decrement')">-1</button>
+  </div>
+</template>
+```
+
+**2. mutations 接收参数**
+
+在 mutations 中定义的方法可以接收两个参数，分别为 state 对象和 payload 对象。payload 对象是一个对象
+
+其中 payload 用于接收提交 (commit) 时传递过来的参数，
+
+```js
+// src/store/index.js`
+const Store = createStore({
+  state() {
+    return {
+      counter: 0,
+    };
+  },
+  mutations: {
+    increment(state) {
+      state.counter++;
+    },
+    decrement(state) {
+      state.counter--;
+    },
+    incrementN(state, payload) {
+      state.counter += payload.num;
+    },
+  },
+});
+export default Store;
+```
+
+```js
+export default {
+  methods: {
+    addTen() {
+      this.$store.commit("incrementN", {
+        num: 10,
+        name: "why"
+        age: 18
+      });
+    },
+  },
+};
+```
+
+另外，`$store.commit` 还支持对象的方式
+
+```js
+this.$store.commit({
+	type: "incrementN",
+	// 将下面的属性都传递给 payload 参数
+	num: 10,
+	name: "why"
+	age: 18
+});
+```
+
+**3. mutations 常量类型**
+
+从上面的案例中可以看出，为了触发 mutations 中的回调函数，`$store.commit` 提交的 type 值必须与 mutations 中定义的函数名称相同。
+
+为了确保 type 值与函数名称一一对应，我们通会将 type 值提取为一个常量，这样可以避免在工作中出现不必要的错误。
+
+```sh
+|--src
+  |--store
+		|--mutation-types.js
+```
+
+```js
+// mutation-types.js
+export const INCREMENT_N = "incrementN";
+```
+
+```js
+// src/store/index.js`
+import { INCREMENT_N } from "./mutation-types";
+const Store = createStore({
+  state() {
+    return {
+      counter: 0,
+    };
+  },
+  mutations: {
+    increment(state) {
+      state.counter++;
+    },
+    decrement(state) {
+      state.counter--;
+    },
+    // 使用一个常量作为函数名字
+    [INCREMENT_N](state, payload) {
+      state.counter += payload.num;
+    },
+  },
+});
+export default Store;
+```
+
+```js
+import { INCREMENT_N } from "../store/mutation-types";
+export default {
+	methods: {
+		addTen() {
+			this.$store.commit(INCREMENT_N, {
+				num: 10,
+				name: "why"
+				age: 18
+			});
+		},
+	},
+};
+```
+
+**4. mapMutations 辅助函数**
+
+```html
+<template>
+  <button @click="increment">+1</button>
+  <button @click="decrement">-1</button>
+  <button @click="incrementN({num: 20})">+20</button>
+</template>
+<script>
+  import { mapMutations } from "vuex";
+  import { INCREMENT_N } from "../store/mutation-types";
+  export default {
+    methods: {
+      ...mapMutations(["increment"]),
+      ...mapMutations({
+        incrementN: INCREMENT_N,
+      }),
+    },
+    setup() {
+      const storeMutations = mapMutations(["decrement"]);
+      return {
+        ...storeMutations,
+      };
+    },
+  };
+</script>
+```
+
+> 在 Vuex 中，mutations 必须是同步的。这是因为 Vue.js devtools 工具会记录 mutations 函数的日志，每条 mutation 被记录时，Vue.js devtools 都需要捕捉到前一次状态和后一次状态的快照。如果在 mutation 中执行异步操作，就无法追踪到数据的变化。
+
+### actions
+
+[21]
