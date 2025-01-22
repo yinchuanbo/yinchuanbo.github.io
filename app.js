@@ -150,7 +150,7 @@ function handleEditTemp(
     tag,
     navHTML,
     time,
-    mode: "light"
+    mode: ""
   });
   const htmlName = `./md/${filename.replace("md", "html")}`;
   const outputFilePath = path.join(__dirname, htmlName);
