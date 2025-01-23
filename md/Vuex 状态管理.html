@@ -850,7 +850,570 @@ export default {
 <p>在 Vuex 中，mutations 必须是同步的。这是因为 Vue.js devtools 工具会记录 mutations 函数的日志，每条 mutation 被记录时，Vue.js devtools 都需要捕捉到前一次状态和后一次状态的快照。如果在 mutation 中执行异步操作，就无法追踪到数据的变化。</p>
 </blockquote>
 <h3>actions</h3>
-<p>[21]</p>
+<p>在 Vuex 状态管理模式中，actions 是一个重要的概念。与 mutations 不同，actions 用于异步更改 Store 中的状态。它类似于 mutations,但是负责提交 mutation 函数，而不是直接变更状态，可以用于执行异步操作。</p>
+<p><strong>1. actions 的基本使用</strong></p>
+<pre><code class="language-js">// src/store/index.js
+const Store = createStore({
+  // ...
+  actions: {
+    incrementAction(context) {
+      // 模拟异步
+      setTimeout(() =&gt; {
+        context.commit(&quot;increment&quot;); // 提交一个 type 为 increment 的 mutation 函数
+      }, 1000);
+    },
+    decrementAction(context) {
+      // 解构
+      const { commit, dispatch, state, rootState, getters, rootGetters } =
+        context;
+      commit(&quot;decrement&quot;);
+    },
+  },
+});
+</code></pre>
+<blockquote>
+<p>context 是一个与 store 实例具有相同方法和属性的上下文对象。</p>
+</blockquote>
+<p>context 参数也支持 ES6 解构写法：</p>
+<pre><code class="language-js">// ...
+actions: {
+	incrementAction({ commit, dispatch, state, rootState, getters, rootGetters }) {
+		// 也可以提交多个
+		commit(&quot;increment&quot;)
+		commit(&quot;increment&quot;)
+	},
+}
+//...
+</code></pre>
+<p>调用 actions 中的方法要使用 <code>$store.dispatch</code></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h4&gt;当前计数: {{ $store.state.counter }}&lt;/h4&gt;
+    &lt;button @click=&quot;increment&quot;&gt;+1&lt;/button&gt;
+    &lt;button @click=&quot;decrement&quot;&gt;-1&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import { useStore } from &quot;vuex&quot;;
+  export default {
+    methods: {
+      increment() {
+        this.$store.dispatch(&quot;incrementAction&quot;); // 分发 action
+      },
+    },
+    setup() {
+      const store = useStore();
+      const decrement = () =&gt; {
+        store.dispatch(&quot;decrementAction&quot;); // 分发 action
+      };
+      return {
+        decrement,
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<blockquote>
+<p>mutation 必须是同步函数，action 函数不受这种约束。因此可以在 action 函数中执行异步操作。</p>
+</blockquote>
+<p><strong>2. actions 接收参数</strong></p>
+<p>与 mutations 类，在 actions 中定义的 action 函数也可以接收两个参数，分别为 context 对象和 payload 对象。</p>
+<p>其中，context 是一个与 store 实例具有相同方法和属性的对象。payload 用于接收分发 action 时传递过来的参数。</p>
+<pre><code class="language-html">&lt;template&gt;
+	&lt;div&gt;&lt;/div&gt;
+		&lt;!-- ... --&gt;
+		&lt;button @click=&quot;addTen&quot;&gt;+10&lt;/button&gt;
+	&lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+export default {
+	setup() {
+		//...
+		const addTen = () =&gt; {
+			this.$store.dispatch(&quot;incrementNAction&quot;, {
+				num: 10
+			});
+		};
+		return {
+			addTen
+		}
+	}
+}
+&lt;/script&gt;
+</code></pre>
+<p>需要注意的是，<code>store.dispatch</code> 也支持对象的方式</p>
+<pre><code class="language-js">const addTen = () =&gt; {
+  this.$store.dispatch({
+    type: &quot;incrementNAction&quot;,
+    num: 10,
+  });
+};
+</code></pre>
+<pre><code class="language-js">// src/store/index.js
+import { INCREMENT_N } from &quot;./mutation-types&quot;;
+const Store = createStore({
+  //...
+  actions: {
+    //...
+    incrementNAction(context, payload) {
+      // 在 actions 中执行 mutations 中的函数，
+      // 直接修改 state 中的数据，只有通过 mutations 中函数才行
+      context.commit(INCREMENT_N, payload);
+    },
+  },
+});
+
+export default Store;
+</code></pre>
+<p><strong>3. mapActions 辅助函数</strong></p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h4&gt;当前计数: {{ $store.state.counter }}&lt;/h4&gt;
+    &lt;button @click=&quot;incrementAction&quot;&gt;+1&lt;/button&gt;
+    &lt;button @click=&quot;decrement&quot;&gt;-1&lt;/button&gt;
+    &lt;button @click=&quot;addTen({ num: 20 })&quot;&gt;+20&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import { mapActions } from &quot;vuex&quot;;
+  import { INCREMENT_N } from &quot;../store/mutation-types&quot;;
+  export default {
+    methods: {
+      ...mapActions([&quot;incrementAction&quot;]), // 数组形式
+    },
+    setup() {
+      // 对象形式
+      const actionsFuncs = mapActions({
+        decrement: &quot;decrementAction&quot;,
+        addTen: &quot;incrementNAction&quot;,
+      });
+      return {
+        ...actionsFuncs,
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p><strong>4. action 返回 Promise 对象</strong></p>
+<p>Action 通常用于处理异步操作。如果想在分发时知道 action 何时结束，可以让 action 函数返回一个 Promise 对象，并在 then 中监听 action 的结束</p>
+<pre><code class="language-js">// src/store/index.js
+const store = createStore({
+  state() {
+    return {
+      uuid: null,
+    };
+  },
+  mutations: {
+    addUUID(state, payload) {
+      state.uuid = payload;
+    },
+  },
+  actions: {
+    getUUIDAction({ commit }) {
+      return new Promise((resolve, reject) =&gt; {
+        fetch(&quot;https://httpbin.org/uuid&quot;)
+          .then((res) =&gt; res.json())
+          .then((data) =&gt; {
+            commit(&quot;addUUID&quot;, data.uuid);
+            resolve(data);
+          })
+          .catch((err) =&gt; {
+            reject(err);
+          });
+      });
+    },
+  },
+});
+</code></pre>
+<p>使用</p>
+<pre><code class="language-js">import { onMounted } from &quot;vue&quot;;
+import { useStore } from &quot;vuex&quot;;
+export default {
+  setup() {
+    const store = useStore();
+    onMounted(() =&gt; {
+      store.dispatch(&quot;getUUIDAction&quot;).then((res) =&gt; {
+        console.log(res);
+      });
+    });
+  },
+};
+</code></pre>
+<h3>modules</h3>
+<p>Vuex 通过“单一状态树”来管理应用层级的全部状态。然而，当 store 中的状态数据变得越来越多时，会难以维护和管理。</p>
+<p>为了解决这个问题，我们可以使用 modules 将状态数据模块化，将 store 分割成多个模块 (module)。每个模块都拥有自己的 state、mutation、action、getter，甚至嵌套子模块。这样就可以更好地组织和管理状态数据，使代码更加清晰和易于维护。</p>
+<pre><code class="language-js">// 模块 A
+const moduleA = {
+  state: () =&gt; ({ ... }),
+  mutations: { ... },
+  actions: { ... },
+  getters: { ... }
+}
+
+// 模块 B
+const moduleB = {
+  state: () =&gt; ({... }),
+  mutations: {... },
+  actions: {... }
+}
+
+const store = createStore({
+	state: () =&gt; ({ ... }),
+	mutations: {... },
+	actions: {... },
+	modules: {
+		a: moduleA,
+		b: moduleB
+	}
+})
+
+// 访问模块 A 的状态
+store.state.a
+// 访问模块 B 的状态
+store.state.b
+</code></pre>
+<p><strong>1. modules 的基本使用</strong></p>
+<pre><code class="language-sh">|--src
+  |--store
+		|--modules
+			|--home.js
+			|--user.js
+</code></pre>
+<pre><code class="language-js">// src/store/modules/home.js
+const homeModule = {
+  state() {
+    return {
+      homeCounter: 100,
+    };
+  },
+  getters: {},
+  mutations: {},
+  actions: {},
+};
+export default homeModule;
+</code></pre>
+<pre><code class="language-js">// src/store/modules/user.js
+const userModule = {
+  state() {
+    return {
+      userCounter: 1000,
+    };
+  },
+  getters: {},
+  mutations: {},
+  actions: {},
+};
+export default userModule;
+</code></pre>
+<p>引入根模块：</p>
+<pre><code class="language-js">// src/store/index.js
+import { createStore } from &quot;vuex&quot;;
+import home from &quot;./modules/home&quot;;
+import user from &quot;./modules/user&quot;;
+const Store = createStore({
+  state() {
+    return {
+      counter: 0,
+    };
+  },
+  getters: {},
+  mutations: {},
+  actions: {},
+  modules: {
+    home: home,
+    user,
+  },
+});
+export default Store;
+</code></pre>
+<p>在组件中使用：</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h4&gt;Home: {{ $store.state.home.homeCounter }}&lt;/h4&gt;
+    &lt;h4&gt;User: {{ $store.state.user.userCounter }}&lt;/h4&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<p><strong>2. modules 的局部状态</strong></p>
+<p>子模块会拥有自己的状态，包括 state、mutation、action、getter，以及嵌套的子模块。以下是子模块的一些特点：</p>
+<ul>
+<li><p>模块定义的 state 属于子模块的状态，称为局部状态。</p>
+</li>
+<li><p>在子模块内部，mutation 和 getter 函数接收的第一个参数 state 也是局部状态</p>
+</li>
+<li><p>在子模块内部，对于 action 函数，局部状态可以通过 context.state 暴露出来，而根节点状态则通过 context.rootState 暴露出来</p>
+</li>
+<li><p>在子模块内部，getter 函数的根节点状态 (rootState) 会作为第三个参数暴露出来。</p>
+</li>
+</ul>
+<pre><code class="language-js">// src/store/modules/user.js
+const userModule = {
+  state() {
+    return {
+      userCounter: 1000,
+    };
+  },
+  // user 模块的 mutation 和 getter 函数接收的第一个参数是局部状态 state
+  getters: {
+    doubleUserCount(state) {
+      return state.userCounter * 2;
+    },
+    // 根节点状态 (rootState) 会作为第三个参数暴露出来
+    userCountAddRootCount(state, getters, rootState) {
+      return state.userCounter + rootState.counter;
+    },
+  },
+  mutations: {
+    increment(state) {
+      state.userCounter++;
+    },
+  },
+  actions: {
+    incrementAction({ commit, state, rootState }) {
+      commit(&quot;increment&quot;);
+    },
+  },
+};
+export default userModule;
+</code></pre>
+<p>组件中应用：</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h4&gt;root state 根模块的状态: {{ $store.state.counter }}&lt;/h4&gt;
+    &lt;h4&gt;
+      root state 根模块 currentDiscount: {{ $store.getters.currentDiscount }}
+    &lt;/h4&gt;
+    &lt;h4&gt;User 子模块: {{ $store.state.user.userCounter }}&lt;/h4&gt;
+    &lt;h4&gt;User: {{ $store.getters[&quot;doubleUserCount&quot;] }}&lt;/h4&gt;
+    &lt;h4&gt;User: {{ $store.getters.userCountAddRootCount }}&lt;/h4&gt;
+    &lt;button @click=&quot;incrementAction&quot;&gt;+1&lt;/button&gt;
+  &lt;/div&gt;&lt;/template
+&gt;
+&lt;script&gt;
+  import { useStore } from &quot;vuex&quot;;
+  export default {
+    setup() {
+      const store = useStore();
+      const incrementAction = () =&gt; {
+        // store.dispatch(&quot;user/incrementAction&quot;);
+        // 会触发 root 模块的 incrementAction 函数和 user 子模块的 incrementAction 函数
+        store.dispatch(&quot;incrementAction&quot;);
+      };
+      return {
+        incrementAction,
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<blockquote>
+<p>过 <code>$store.getters</code> 可以获取所有模块的 getters 对象</p>
+</blockquote>
+<p><strong>3. modules 命名空间</strong></p>
+<p>上述案例存在一个问题，多个模块可以对同一个 action 作出响应。例如，当单击“+1”按钮，分发 type 为 incrementAction 的 action 时，会触发根模块和 user 子模块的 incrementAction 函数回调。这是因为在默认情况下，子模块内部的 action、getter 和 mutation 仍然注册在全局的命名空间中，使得多个模块可以对同一个 action 或 mutation 作出响应。</p>
+<p>为了解决这个问题，我们希望子模块具有更高的封装度和复用性，因此可以添加 <code>namespaced: true</code> 使其成为带有命名空间的模块。这样当子模块被注册后，它的所有 getter、action 及 mutation 都会自动根据模块注册的路径调整命名。</p>
+<pre><code class="language-js">// src/store/modules/home.js
+const homeModule = {
+  namespaced: true,
+  state() {
+    return {
+      homeCounter: 20,
+    };
+  },
+  getters: {
+    doubleHomeCount(state) {
+      return state.homeCounter * 2;
+    },
+    homeCountAddRootCount(state, getters, rootState) {
+      return state.homeCounter + rootState.counter;
+    },
+  },
+  mutations: {
+    increment(state) {
+      state.homeCounter++;
+    },
+  },
+  actions: {
+    incrementAction({ commit, state, rootState }) {
+      commit(&quot;increment&quot;);
+    },
+  },
+};
+export default homeModule;
+</code></pre>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h4&gt;Home: {{ $store.state.home.homeCounter }}&lt;/h4&gt;
+    &lt;h4&gt;Home: {{ $store.getters[&quot;home/doubleHomeCount&quot;] }}&lt;/h4&gt;
+    &lt;h4&gt;Home: {{ $store.getters[&quot;home/homeCountAddRootCount&quot;] }}&lt;/h4&gt;
+    &lt;button @click=&quot;incrementAction&quot;&gt;+1&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import { useStore } from &quot;vuex&quot;;
+  export default {
+    setup() {
+      const store = useStore();
+      const incrementAction = () =&gt; {
+        store.dispatch(&quot;home/incrementAction&quot;);
+      };
+      return {
+        incrementAction,
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p><strong>4. 带命名空间的子模块访问根模块</strong></p>
+<p>如果希望在子模块中使用根 state 和 getter，那么可以将 rootState 和 rootGetters 作为 getter 函数的第三个和第四个参数传入，也可以通过 context 对象的属性进行访问。</p>
+<p>在子模块中，如果想要分发全局命名空间内的 action 或提交 mutation，只需将 <code>{ root: true }</code> 作为第三个参数传递给 dispatch 或 commit</p>
+<pre><code class="language-js">// src/store/modules/home.js
+const homeModule = {
+  namespaced: true,
+  state() {
+    return {
+      homeCounter: 20,
+    };
+  },
+  getters: {
+    doubleHomeCount(state) {
+      return state.homeCounter * 2;
+    },
+    homeCountAddRootCount(state, getters, rootState, rootGetters) {
+      return state.homeCounter + rootState.counter;
+    },
+  },
+  mutations: {
+    increment(state) {
+      state.homeCounter++;
+    },
+  },
+  actions: {
+    incrementAction({
+      commit,
+      state,
+      rootState,
+      dispatch,
+      rootGetters,
+      rootState,
+    }) {
+      commit(&quot;increment&quot;); // 提交到当前模块的 mutation
+      commit(&quot;increment&quot;, null, { root: true }); // 提交到根模块的 mutation
+
+      dispatch(&quot;incrementAction&quot;); // 分发到当前模块的 action
+      dispatch(&quot;incrementAction&quot;, null, { root: true }); // 分发到根模块的 action
+    },
+  },
+};
+export default homeModule;
+</code></pre>
+<p><strong>5. modules 辅助函数</strong></p>
+<p>方式一：映射时指定模块名前缀</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h4&gt;Home: {{ homeCounter }}&lt;/h4&gt;
+    &lt;h4&gt;Home: {{ doubleHomeCount }}&lt;/h4&gt;
+    &lt;button @click=&quot;homeIncrementCommit&quot;&gt;+1&lt;/button&gt;
+    &lt;button @click=&quot;incrementAction&quot;&gt;+1&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import { mapState, mapGetters, mapMutations, mapActions } from &quot;vuex&quot;;
+  export default {
+    computed: {
+      ...mapState({
+        homeCounter: (state) =&gt; state.home.homeCounter,
+      }),
+      ...mapGetters({
+        doubleHomeCount: &quot;home/doubleHomeCount&quot;,
+      }),
+    },
+    methods: {
+      ...mapMutations({
+        homeIncrementCommit: &quot;home/increment&quot;,
+      }),
+      ...mapActions({
+        incrementAction: &quot;home/incrementAction&quot;,
+      }),
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>方式二：辅助函数第一个参数作为模块名前缀</p>
+<pre><code class="language-html">&lt;script&gt;
+  import { mapState, mapGetters, mapMutations, mapActions } from &quot;vuex&quot;;
+  export default {
+    computed: {
+      ...mapState(&quot;home&quot;, [&quot;homeCounter&quot;]),
+      ...mapGetters(&quot;home&quot;, [&quot;doubleHomeCount&quot;]),
+    },
+    methods: {
+      ...mapMutations(&quot;home&quot;, {
+        homeIncrementCommit: &quot;increment&quot;,
+      }),
+      ...mapActions(&quot;home&quot;, [&quot;incrementAction&quot;]),
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>方式三：借助辅助函数统一添加模块名前缀（推荐）</p>
+<pre><code class="language-html">&lt;script&gt;
+  import { createNamespacedHelpers } from &quot;vuex&quot;;
+  const { mapState, mapGetters, mapMutations, mapActions } =
+    createNamespacedHelpers(&quot;home&quot;);
+  export default {
+    computed: {
+      ...mapState([&quot;homeCounter&quot;]),
+      ...mapGetters([&quot;doubleHomeCount&quot;]),
+    },
+    methods: {
+      ...mapMutations({
+        homeIncrementCommit: &quot;increment&quot;,
+      }),
+      ...mapActions([&quot;incrementAction&quot;]),
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<p>方式四：在 setup 中统一添加模块名前缀（推荐）</p>
+<pre><code class="language-html">&lt;script&gt;
+  import { createNamespacedHelpers } from &quot;vuex&quot;;
+  import { computed } from &quot;vue&quot;;
+  import { useMapper } from &quot;../hooks/index&quot;;
+  const { mapState, mapGetters, mapMutations, mapActions } =
+    createNamespacedHelpers(&quot;home&quot;);
+  export default {
+    setup() {
+      const stateFunc = useMapper(mapState, [&quot;homeCounter&quot;]);
+      const gettersFunc = useMapper(mapGetters, [&quot;doubleHomeCount&quot;]);
+      const mutationsFunc = mapMutations({
+        homeIncrementCommit: &quot;increment&quot;,
+      });
+      const actionsFunc = mapActions([&quot;incrementAction&quot;]);
+      return {
+        ...stateFunc,
+        ...gettersFunc,
+        ...mutationsFunc,
+        ...actionsFunc,
+      };
+    },
+  };
+&lt;/script&gt;
+</code></pre>
+<pre><code class="language-js">// src/hooks/useMapper.js
+import { computed } from &quot;vue&quot;;
+import { useStore } from &quot;vuex&quot;;
+export function useMapper(mapFn, mapper) {
+  const store = useStore();
+  const storeStateFns = mapFn(mapper);
+  const storeState = {};
+  Object.keys(storeStateFns).forEach((fnKey) =&gt; {
+    const fn = storeStateFns[fnKey];
+    storeState[fnKey] = computed(fn.bind({ $store: store }));
+  });
+  return storeState;
+}
+</code></pre>
 
         </article>
       </main>
