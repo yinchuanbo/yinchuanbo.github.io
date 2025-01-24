@@ -198,7 +198,10 @@ for (const key in structure) {
   });
 }
 
-const homeTemplateContent = fs.readFileSync("./templates/index-html.html", "utf-8");
+const homeTemplateContent = fs.readFileSync(
+  "./templates/index-html.html",
+  "utf-8"
+);
 const homeOutputFilePath = path.join(__dirname, `html/index.html`);
 
 let homeHTML = `<ul>`;
@@ -220,7 +223,7 @@ for (let i = 0; i < urls.length; i++) {
   const url = urls[i];
   const htmlUrl = `/articles/html/${url.key}/`;
   const skipUrl = `/html/${url.htmlName.replace("_-_download", "")}`;
-  homeHTML += `<li class="card"><iframe loading="lazy" src="${htmlUrl}" width="100%" height="100%" frameborder="0" scrolling="no" allowfullscreen></iframe><button onclick="window.location.href='${skipUrl}'">Get Code</button></li>`;
+  homeHTML += `<li class="card"><iframe loading="lazy" src="${htmlUrl}" width="100%" height="100%" frameborder="0" scrolling="no" allowfullscreen></iframe><button onclick="window.open('${skipUrl}')">Get Code</button></li>`;
 }
 
 homeHTML += `</ul>`;
