@@ -483,8 +483,308 @@ bar();
 </code></pre>
 <p>由于只在开发时才会用到 rollup.js，因此我们通过上面的参数 <code>--save-dev</code> 将其安装为开发时依赖，这样会将依赖添加到 package.json 文件的 devDependencies 字段中代码如下:</p>
 <p>rollup.js 的使用方式和 webpack 的使用方式类似，需要通过配置文件告诉 rollup 如何打包。</p>
-<p>[未完待续]</p>
+<table>
+<thead>
+<tr>
+<th>打包输出文件</th>
+<th align="center">配置文件</th>
+<th align="right">技术体系</th>
+<th align="right">模块规范</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>dist/index.js</td>
+<td align="center">rollup.config.js</td>
+<td align="right">Node.js</td>
+<td align="right">CommonJS</td>
+</tr>
+<tr>
+<td>dist/index.esm.js</td>
+<td align="center">rollup.config.esm.js</td>
+<td align="right">webpack</td>
+<td align="right">ES Module</td>
+</tr>
+<tr>
+<td>dist/index.aio.js</td>
+<td align="center">rollup.config.aio.js</td>
+<td align="right">浏览器</td>
+<td align="right">UMD</td>
+</tr>
+</tbody></table>
+<p>接下来，先实现第 1 个配置文件 confg/rollup.confg.js</p>
+<pre><code class="language-js">module.exports = {
+  input: &quot;src/index.js&quot;,
+  output: {
+    file: &quot;dist/index.js&quot;,
+    format: &quot;cjs&quot;,
+  },
+};
+</code></pre>
+<p>input 配置和 output 配置表示将 src/index.js 文件打包输出为 dist/index.js 文件，format 配置表明可以选择的模块方案，其值 cjs 的含义是输出模块遵循 CommonJS 规范。</p>
+<p>接下来，运行下面的命令即可实现打包:</p>
+<pre><code class="language-sh">npx rollup -c config/rollup.config.js
+</code></pre>
+<p>打包成功后，打开 dist/index.js 文件，该文件中的内容如下:</p>
+<pre><code class="language-js">&quot;use strict&quot;;
 
+Object.defineProperty(exports, &quot;__esModule&quot;, {
+  value: true,
+});
+
+function clone(source) {
+  // 此处省略
+}
+
+exports.clone = clone;
+</code></pre>
+<p>接着实现第 2 个配置文件 config/rollup.confg.esm.js，示例代码如下。</p>
+<p>其与实现第 1 个配置文件的代码基本类似，不同点是 format 配置的值，此处为 es，表示输出模块遵循 ES Module 规范。</p>
+<pre><code class="language-js">module.exports = {
+  input: &quot;src/index.js&quot;,
+  output: {
+    file: &quot;dist/index.esm.js&quot;,
+    format: &quot;es&quot;,
+  },
+};
+</code></pre>
+<p>打包成功后，打开 dis/index.esm.js 文件，该文件中的内容如下:</p>
+<pre><code class="language-js">function clone(source) {
+  // 此处省略
+}
+
+export { clone };
+</code></pre>
+<p>最后实现第 3 个配置文件 <code>config/rollup.confg.aio.js</code>，为了将依赖的库也打包进来，需要使用 <code>rollup-plugin-node-resolve</code> 插件，通过如下命令安装该插件:</p>
+<pre><code class="language-sh">npm i rollup-plugin-node-resolve -D
+</code></pre>
+<p>实现 <code>config/rollup.config.aio.js</code> 文件的完整代码如下，format 配置的值为 umd，表示输出模块遵循 UMD 规范，name 配置的值作为全局变量和 AMD 规范的模块名，plugins 配置使用 rollup-plugin-node-resolve 插件。</p>
+<blockquote>
+<p>aio 是 all in one 的缩写，表示将全部模块规范和依赖都集成在一起。</p>
+</blockquote>
+<pre><code class="language-js">var nodeResolve = require(&quot;rollup-plugin-node-resolve&quot;);
+
+module.exports = {
+  input: &quot;src/index.js&quot;,
+  output: {
+    file: &quot;dist/index.aio.js&quot;,
+    format: &quot;umd&quot;,
+    name: &quot;clone&quot;,
+  },
+  plugins: [
+    nodeResolve({
+      main: true,
+      extensions: [&quot;.js&quot;],
+    }),
+  ],
+};
+</code></pre>
+<p>打包成功后，打开 dist/index.aio.js 文件，该文件中的内容如下:</p>
+<pre><code class="language-js">(function (global, factory) {
+  typeof exports === &quot;object&quot; &amp;&amp; typeof module !== &quot;undefined&quot;
+    ? factory(exports)
+    : typeof define === &quot;function&quot; &amp;&amp; defined.amd
+    ? define([&quot;exports&quot;], factory)
+    : factory((global.clone = {}));
+})(this, function (exports) {
+  &quot;use strict&quot;;
+  function type(data) {
+    // 此处省略
+  }
+  function clone(source) {
+    // 此处省略
+  }
+  exports.clone = clone;
+  Object.defineProperty(exports, &quot;__esModule&quot;, { value: true });
+});
+</code></pre>
+<p>每次都执行 <code>rollup -c config/rollup.confg.js</code> 命令有些烦琐，为了简化构建命令，同时收敛统一构建命令，可以使用 npm 提供的自定义 scripts 功能。在 package.json 文件中添加下面的代码:</p>
+<pre><code class="language-json">{
+  &quot;scripts&quot;: {
+    &quot;build:self&quot;: &quot;rollup -c config/rollup.config.js&quot;,
+    &quot;build:esm&quot;: &quot;rollup -c config/rollup.config.esm.js&quot;,
+    &quot;build:aio&quot;: &quot;rollup -c config/rollup.config.aio.js&quot;,
+    &quot;build&quot;: &quot;npm run build:self &amp;&amp; npm run build:esm &amp;&amp; npm run build:aio&quot;
+  }
+}
+</code></pre>
+<p>直接运行下面的命令就可以完成对所有方案的打包:</p>
+<pre><code class="language-sh">npm run build
+</code></pre>
+<p>由于现在入口文件位于 dist 目录下，因此需要修改 package.json 文件中相应的字段，指向 dist 目录下的构建文件。改动后的内容如下:</p>
+<pre><code class="language-json">{
+  &quot;main&quot;: &quot;dist/index.js&quot;,
+  &quot;jsnext:main&quot;: &quot;dist/index.esm.js&quot;,
+  &quot;module&quot;: &quot;dist/index.esm.js&quot;
+}
+</code></pre>
+<h3>添加 banner</h3>
+<p>一般开源库文件的顶部都会提供一些关于库的说明，如协议信息等，如</p>
+<pre><code class="language-js">/**
+ * clone: 1.0.0
+ * License: MIT
+ */
+</code></pre>
+<p>下面给我们的库添加统一的说明。现在用户使用的文件是自动构建出来的，无法手动添加，其实 rollup.js 支持添加统一的 banner 信息，</p>
+<p>由于不同的配置文件需要同样的 banner，因此可以将 banner 信息统一放到 rollup.js 文件中</p>
+<pre><code class="language-js">var pkg = require(&quot;./package.json&quot;);
+var version = pkg.version;
+
+var banner = `
+/*!
+ * ${pkg.name} ${version}
+ * @license under MIT
+ */
+`;
+
+exports.banner = banner;
+</code></pre>
+<p>然后修改配置文件，添加 banner 配置。以 rollup.config.esm.js 文件为例，修改后的代码如下:</p>
+<pre><code class="language-js">var { banner } = require(&quot;./rollup.config&quot;);
+module.exports = {
+  input: &quot;src/index.js&quot;,
+  output: {
+    file: &quot;dist/index.esm.js&quot;,
+    format: &quot;es&quot;,
+    banner,
+  },
+};
+</code></pre>
+<h3>按需加载</h3>
+<p>很多时候，在使用一个库时可能只会用到其中的一小部分功能，但是却要加载整个库的内容，这对于 Node.js 来说问题不大，但对于浏览器端应用来说是不能接受的，好在 rollup.js 支持按需加载。</p>
+<p>按需加载分为两种情况:</p>
+<p><strong>第一种情况是</strong>，我们的库要用到另一个库的功能，但只用到其中一小部分功能如果将其全部打包过来，则会让打包体积变大，此时通过 rollup.js 提供的 treeshaking 功能可以自动屏蔽未被使用的功能。</p>
+<p>例如，假设 index.js 文件只使用了第三方包 is.js 中的一个 isString 函数，当不使用 treeshaking 功能时，会将 is.js 中的函数全部引用进来</p>
+<p>而在使用了 treeshaking 功能后，则可以屏蔽 is.js 中的其他函数，仅引用 isString 函数</p>
+<p><strong>第二种情况是</strong>，要让使用库的项目能够按需加载。一个库如果不进行任何配置，那么现代打包工具是不会使用 treeshaking 功能对其进行优化的，因为打包工具无法知道一个库是否有副作用。假如我们的库中有如下代码，如果引用了该库，就会向 window 下写入一个变量，打包工具如果把这段代码屏蔽，则可能产生 Bug。</p>
+<pre><code class="language-js">window.aaa = 1;
+</code></pre>
+<p>如果我们的库没有副作用，则可以向 package.json 文件中添加 sideEffects 字段，这样打包工具就能够使用 treeshaking 功能进行优化了。</p>
+<pre><code class="language-json">{
+  &quot;sideEffects&quot;: false
+}
+</code></pre>
+<p>至此，库打包的全部工作就完成了。</p>
+<h2>兼容方案</h2>
+<p>当我们的库被用到生产环境时，由于真实用户的浏览器环境不可控，因此会在库用到一些新的语言特性时产生报错。</p>
+<p>例如，库代码中使用了 ECMAScript 2015 中新的变量声明关键字 const，此时如果用户使用正 IE9 浏览器，则会产生一个语法错误。</p>
+<p>由于 JavaScript 的错误是中断式的。因此会导致整个页面失去响应，这显然是不能接受的。</p>
+<h3>确定兼容环境</h3>
+<p>想要解决上述问题，需要库的开发者给出关于库的兼容性的明确说明，这样库的使用者可以根据自己的需求挑选适合的库。对于 JavaScript 库来说，兼容性越好，其使用范围就越广泛，同时意味着付出的成本会越高。所以，库的开发者需要权衡利弊，做一个折中的选择。</p>
+<p>那么，都有哪些环境需要兼容呢？目前，需要兼容的环境主要包括浏览器和 Node.js，<code>statcounter</code> 是一款统计全球浏览器市场份额的工具，提供了详细的数据，可以帮助库的开发者确定要兼容的环境。对于国内浏览器市场份额数据，可以查看<code>百度流量研究院发布</code>的数据。</p>
+<blockquote>
+<p>需要兼容的自主内核浏览器主要包括 Chrome、Firefox、IE、Edge 和 Safari。移动端浏览器的情况会更加复杂，但是兼容性和桌面端相比已经非常好了。对于 JavaScript 来说，以桌面端浏览器的兼容性为标准即可。</p>
+</blockquote>
+<p>Node.js 的兼容性情况会好很多，可以参考官方提供的 metrics 数据，包括不同版本的下载数据，</p>
+<p>不同的库可以选择更宽泛或更严格的兼容性要求，但请进行严格测试，并明确告知库的使用者。如果是为某些特殊场景服务的库，比如与 Canvas 相关的库，那么其兼容性与 Canvas 对齐即可。</p>
+<h3>ECMAScript 5 兼容方案</h3>
+<p>如何知道自己编写的代码是否存在兼容性问题呢？原来解决此类问题都是依靠开发者的经验，掌握前端常用的特性在不同浏览器上的兼容性情况，是评判一个前端开发者的经验是否丰富的指标之一，如是否知道 IE8 浏览器上缺少 Anray.prototype.indexOf 方法。</p>
+<p>当遇到不熟悉的语法或方法时，可以在 MDN 网站上查看语法或方法的详细兼容性信息。</p>
+<p>除了 MDN，还可以通过 caniuse 网站查询更详细的兼容性信息。</p>
+<p>下面我们来系统分析目前 JavaScript 语言不同特性的兼容性情况。大体来说，JavaScript 语言可以分为 ECMAScript 5 之前的版本、ECMAScript 5 和 ECMAScript 5 之后的版本，ECMAScript 5 之前的特性是非常安全的。</p>
+<p>使用 ECMAScript 5 及之后的版本可能存在兼容性问题，<strong>compat-table</strong> 网站记录了 JavaScript 语言不同版本的兼容性情况。可以看到，只有 IE8 浏览器上存在兼容性问题。</p>
+<h3>ECMAScript 2015 兼容方案</h3>
+<p>目前，ECMAScript 2015 及后续版本的兼容性情况还不容乐观，不过每一个 ECMAScript 2015 的特性都可以用 ECMAScript 5 实现，最简单的方法就是直接使用 ECMAScript5 来实现库代码。</p>
+<p>但是这种依赖于经验的手动方式效率低下，为此，JavaScript 社区提供了更好的方案，即通过转换器将 ECMAScript 2015 代码自动编译为 ECMAScript 5 代码。</p>
+<p>常用的 ECMAScript 2015 转换工具是 Babel，下面给我们的库添加 Babel。首先需要安装 Babel，由于已经使用了 rollup.js，因此还需要安装对应的 rollup.js 插件。</p>
+<pre><code class="language-sh">npm i --save-dev rollup-plugin-babel @babel/core @babel/preset-env
+</code></pre>
+<p>Babel 为每个 ECMAScript 2015 的特性都提供了一个插件，这样可以让开发者自己选择要转换哪些属性。手动维护需要转换的特性是比较烦琐的，这里推荐使用 Babel 的 preset-env 插件，使用 preset-env 插件，只要简单配置需要兼容的环境即可。</p>
+<p>preset-env 插件会自动帮助开发者选择相应的插件。在 rollup.js 中使用 Babel 需要配置 plugins，由于 3 个文件都需要配置，因此将其提取到 rollup.js 文件中，</p>
+<pre><code class="language-js">// rollup.js
+function getCompiler(opt) {
+  return babel({
+    babelrc: false,
+    presets: [
+      {
+        &quot;@babel/preset-env&quot;,
+        {
+          targets: {
+            browsers:
+              &quot;last 2 versions, &gt; 1%, ie &gt;= 8, Chrome &gt;= 45, safari &gt;= 10&quot;,
+          },
+          node: &quot;0.12&quot;
+        },
+        modeuls: false,
+        loose: true // 松散模式
+      }
+    ],
+    exclude: &quot;node_modules/**&quot;
+  });
+}
+exports.getCompiler = getCompiler;
+</code></pre>
+<p>这里不使用独立的 Babel 配置文件，所以将 babelrc 和 modules 都设置为 false; loose 代表松散模式，将 loose 设置为 true 能够更好地兼容 IE 8 浏览器。</p>
+<p>使用下面的命令可以查看 targets 配置对应的浏览器列表:</p>
+<pre><code class="language-sh">npx browserslist &quot;last 2 versions, &gt; 1%, ie &gt;= 8, Chrome &gt;= 45, safari &gt;= 10&quot;
+</code></pre>
+<p>如下：</p>
+<pre><code class="language-sh">chrome 132
+# ...
+edge 130
+firefox 134
+firefox 133
+ie 11
+ie 10
+ie 9
+ie 8
+ie_mob 11
+ie_mob 10
+ios_saf 18.2
+ios_saf 18.1
+ios_saf 17.6-17.7
+kaios 3.0-3.1
+kaios 2.5
+op_mini all
+op_mob 80
+opera 114
+opera 113
+safari 18.2
+safari 18.1
+safari 18.0
+#...
+samsung 27
+samsung 26
+</code></pre>
+<p>接下来，分别在 3 个配置文件中添加如下的配置代码:</p>
+<pre><code class="language-js">var common = require(&quot;./rollup.js&quot;);
+
+module.exports = {
+  plugins: [common.getCompiler()],
+};
+</code></pre>
+<p>现在我们已经解决了 ECMAScript 2015 新语法的兼容性问题，但是如果用到了 ECMAScript 2015 的 API，还是会存在兼容性问题，平时我们在自己的项目中可以引入全局的 polyfill 解决这个问题，但对于库来说这种方法并不友好，会污染全局环境这对于库来说是难以接受的。</p>
+<p>core-js 是一个 ECMAScript2015+ 的 polyfill 库，提供了不污染全局环境的使用方式。首先需要安装 core-js，安装命令如下:</p>
+<pre><code class="language-sh">npm i core-js --save
+</code></pre>
+<p>如果想使用 ECMAScript 2015 的 Array.from 功能，可以通过下面的示例代码引入一个本地函数 from，这样不会污染全局环境中的 Array.from 函数。</p>
+<pre><code class="language-js">import from from &quot;core-js-pure/features/array/from&quot;;
+from(&quot;abc&quot;); // [&#39;a&#39;, &#39;b&#39;, &#39;c&#39;]
+</code></pre>
+<p>如果还想使用其他的 API，则只需要分别引入即可，不过这种方式虽然能够解决问题，但是需要手动引入依赖。而 Babel 集成了 core-js，可以通过编译自动将我们用到的 API 转换为上面的 core-js 方式。要使用这个功能，首先需要安装两个插件。</p>
+<pre><code class="language-sh">npm i @babel/plugin-transform-runtime --save-dev
+npm i @babel/runtime-corejs2 --save
+</code></pre>
+<p>然后修改 rollup.js 文件中的 Babel 配置，</p>
+<pre><code class="language-js">{
+  plugins: [
+    [
+      &quot;@babel/plugin-transform-runtime&quot;,
+      {
+        corejs: 2,
+      },
+    ],
+  ];
+}
+</code></pre>
+<p>现在直接在源代码中使用 Array.from 函数，</p>
+<pre><code class="language-js">Array.from(&quot;abc&quot;); // [&#39;a&#39;, &#39;b&#39;, &#39;c&#39;]
+</code></pre>
+<p>重新构建，编译完成后的代码如下，可以看到 Array.from 函数被替换了，编译结果和上面手动使用 core-js 的结果一样。</p>
+<pre><code class="language-js">import _Array$from from &quot;@babel/runtime-corejs2/core-js/array/from&quot;;
+_Array$from(&quot;abc&quot;); // [&#39;a&#39;, &#39;b&#39;, &#39;c&#39;]
+</code></pre>
+<p>至此，我们就可以使用 ECMAScript 2015+ 的新语法和 API 了，通过编译将 ECMAScript 2015+ 代码转换为 ECMAScript5 代码,</p>
+<img src="../imgs/139/04.png" />
         </article>
       </main>
 
