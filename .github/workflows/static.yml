@@ -2,27 +2,26 @@
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
+  # 在 main 分支上的推送触发部署
   push:
     branches: ["main"]
 
-  # Allows you to run this workflow manually from the Actions tab
+  # 允许手动触发部署
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# GITHUB_TOKEN 的权限设置
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# 只允许同时运行一个部署
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  # Single deploy job since we're just deploying
+  # 单个部署工作
   deploy:
     environment:
       name: github-pages
@@ -31,19 +30,37 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          # Upload entire repository
-          path: '.'
-      
+          node-version: '16'
+          
+      - name: Install Dependencies
+        run: npm install
+        
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+        
+      - name: Build Project
+        run: |
+          # 如果你有构建命令，在这里添加
+          # npm run build
+          
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          # 上传整个项目目录，但排除不需要的文件
+          path: |
+            .
+            !node_modules
+            !.git
+            !.github
+            !*.log
+            
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v2
 
       - name: Log Deployment URL
-        run: echo "Deployment URL: ${{ steps.deployment.outputs.page_url }}"
+        run: echo "Deployed to ${{ steps.deployment.outputs.page_url }}"
