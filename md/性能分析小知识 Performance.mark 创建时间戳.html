@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+      name="viewport"
+    />
+    <title>性能分析小知识 Performance.mark 创建时间戳</title>
+    <link rel="shortcut icon" href="../code.svg" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=fallback"
+      rel="stylesheet"
+    />
+    <link id="prismTheme" rel="stylesheet" href="../css/prism.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+    
+    <style>
+      /* Animation Styles */
+      .fade-in {
+        animation: fadeIn 0.5s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .slide-in {
+        animation: slideIn 0.5s ease;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateY(-20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .button {
+        transition: background-color 0.3s, transform 0.3s;
+      }
+
+      .button:hover {
+        background-color: #3700b3;
+        transform: scale(1.05);
+      }
+
+      /* Tooltip Styles */
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 5px;
+        padding: 5px 0;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+      }
+    </style>
+  </head>
+
+  <body class="fade-in">
+    <button
+      class="toggle-sidebar"
+      id="toggleSidebar"
+      aria-label="Toggle Sidebar"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+
+    <div class="app-container">
+      <!-- Sidebar Navigation -->
+      <nav class="sidebar">
+        <div class="sidebar-header">
+          <button class="toggle-sidebar" id="toggleSidebar">
+            <span></span>
+          </button>
+        </div>
+        <div class="sidebar-content">
+          <div class="nav-section"><li class=""><a title="商业化大前端在性能优化领域的探索与实践" href="/md/商业化大前端在性能优化领域的探索与实践.html">35 商业化大前端在性能优化领域的探索与实践</a></li><li class="active"><a title="性能分析小知识 Performance.mark 创建时间戳" href="/md/性能分析小知识 Performance.mark 创建时间戳.html">34 性能分析小知识 Performance.mark 创建时间戳</a></li><li class=""><a title="百分之90前端工程师都踩过的内存泄漏陷阱" href="/md/百分之90前端工程师都踩过的内存泄漏陷阱.html">33 百分之90前端工程师都踩过的内存泄漏陷阱</a></li><li class=""><a title="什么是双键缓存？我们必须了解的浏览器缓存新规则" href="/md/什么是双键缓存？我们必须了解的浏览器缓存新规则.html">32 什么是双键缓存？我们必须了解的浏览器缓存新规则</a></li><li class=""><a title="分析组件的渲染时间" href="/md/分析组件的渲染时间.html">31 分析组件的渲染时间</a></li><li class=""><a title="Rust vs JavaScript 使用 WebAssembly 提升百分 66 的性能" href="/md/Rust vs JavaScript 使用 WebAssembly 提升百分 66 的性能.html">30 Rust vs JavaScript 使用 WebAssembly 提升百分 66 的性能</a></li><li class=""><a title="避免巨大网络负载的 10 个方法" href="/md/避免巨大网络负载的 10 个方法.html">29 避免巨大网络负载的 10 个方法</a></li><li class=""><a title="利用fetchpriority优化资源加载，提升网页性能" href="/md/利用fetchpriority优化资源加载，提升网页性能.html">28 利用fetchpriority优化资源加载，提升网页性能</a></li><li class=""><a title="一文读懂 JS 内存管理，掌握面试中 7 大内存泄漏场景" href="/md/一文读懂 JS 内存管理，掌握面试中 7 大内存泄漏场景.html">27 一文读懂 JS 内存管理，掌握面试中 7 大内存泄漏场景</a></li><li class=""><a title="首页加载速度优化" href="/md/首页加载速度优化.html">26 首页加载速度优化</a></li><li class=""><a title="前端如何实现 gzip 打包压缩" href="/md/前端如何实现 gzip 打包压缩.html">25 前端如何实现 gzip 打包压缩</a></li><li class=""><a title="性能优化思路之网络层优化" href="/md/性能优化思路之网络层优化.html">24 性能优化思路之网络层优化</a></li><li class=""><a title="你实现的前端图片预加载真的够优雅吗" href="/md/你实现的前端图片预加载真的够优雅吗.html">23 你实现的前端图片预加载真的够优雅吗</a></li><li class=""><a title="前端如何避免重排 reflow 和重绘 repaint" href="/md/前端如何避免重排 reflow 和重绘 repaint.html">22 前端如何避免重排 reflow 和重绘 repaint</a></li><li class=""><a title="页面加载流程分析技巧" href="/md/页面加载流程分析技巧.html">21 页面加载流程分析技巧</a></li><li class=""><a title="资源优先级" href="/md/资源优先级.html">20 资源优先级</a></li><li class=""><a title="聊聊图片预加载" href="/md/聊聊图片预加载.html">19 聊聊图片预加载</a></li><li class=""><a title="网站优化之静态资源优化" href="/md/网站优化之静态资源优化.html">18 网站优化之静态资源优化</a></li><li class=""><a title="看《浏览器基本原理与实践》后，36点总结" href="/md/看《浏览器基本原理与实践》后，36点总结.html">17 看《浏览器基本原理与实践》后，36点总结</a></li><li class=""><a title="渲染优化" href="/md/渲染优化.html">16 渲染优化</a></li><li class=""><a title="浏览器渲染性能分析技巧" href="/md/浏览器渲染性能分析技巧.html">15 浏览器渲染性能分析技巧</a></li><li class=""><a title="构建优化" href="/md/构建优化.html">14 构建优化</a></li><li class=""><a title="性能优化全家桶：6 个方面 9 点建议" href="/md/性能优化全家桶：6 个方面 9 点建议.html">13 性能优化全家桶：6 个方面 9 点建议</a></li><li class=""><a title="性能优化-时间分片渲染简单做法" href="/md/性能优化-时间分片渲染简单做法.html">12 性能优化-时间分片渲染简单做法</a></li><li class=""><a title="加载注意事项" href="/md/加载注意事项.html">11 加载注意事项</a></li><li class=""><a title="利用 Performance API 分析网站性能" href="/md/利用 Performance API 分析网站性能.html">10 利用 Performance API 分析网站性能</a></li><li class=""><a title="内存泄漏排查" href="/md/内存泄漏排查.html">09 内存泄漏排查</a></li><li class=""><a title="了解透彻浏览器缓存" href="/md/了解透彻浏览器缓存.html">08 了解透彻浏览器缓存</a></li><li class=""><a title="书写高性能的代码" href="/md/书写高性能的代码.html">07 书写高性能的代码</a></li><li class=""><a title="Performance 面板分析性能瓶颈全流程" href="/md/Performance 面板分析性能瓶颈全流程.html">06 Performance 面板分析性能瓶颈全流程</a></li><li class=""><a title="API 技巧" href="/md/API 技巧.html">05 API 技巧</a></li><li class=""><a title="速通 JS 性能优化" href="/md/速通 JS 性能优化.html">04 速通 JS 性能优化</a></li><li class=""><a title="网页太慢了怎么排查" href="/md/网页太慢了怎么排查.html">03 网页太慢了怎么排查</a></li><li class=""><a title="浅谈前端性能优化之评估工具" href="/md/浅谈前端性能优化之评估工具.html">02 浅谈前端性能优化之评估工具</a></li><li class=""><a title="前端如何优化资源加载" href="/md/前端如何优化资源加载.html">01 前端如何优化资源加载</a></li></div>
+        </div>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <header class="content-header">
+          <div class="header-left">
+            <h1 class="page-title">性能分析小知识 Performance.mark 创建时间戳</h1>
+            <p class="time">HaoTian · 2025-02-05 14:11:56</p>
+          </div>
+          <div class="header-right">
+            <div class="tag-container">
+              <span class="tag">性能优化</span>
+            </div>
+            <button
+              id="themeToggle"
+              class="theme-toggle"
+              aria-label="Toggle theme"
+            >
+              <svg
+                class="sun-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+              <svg
+                class="moon-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                ></path>
+              </svg>
+            </button>
+            <button
+              class="theme-toggle"
+              aria-label="Toggle theme"
+              style="width: 36px; height: 36px"
+              onclick="window.location.href='/md';"
+            >
+              <svg
+                t="1737442501710"
+                class="icon"
+                viewBox="0 0 1024 1024"
+                version="1.1"
+                xmlns="http://www.w3.org/2000/svg"
+                p-id="5258"
+                width="20"
+                height="20"
+              >
+                <path
+                  d="M883.773793 626.047476c-17.308201 0-31.408337 14.029528-31.408337 31.304983l0 207.437469c0 17.204847-14.098089 31.302937-31.406291 31.302937L203.040834 896.092865c-17.340947 0-31.408337-14.098089-31.408337-31.302937L171.632497 657.352459c0-17.275455-14.099113-31.304983-31.408337-31.304983-17.380856 0-31.444153 14.029528-31.444153 31.304983l0 207.437469c0 51.773154 42.261523 93.91188 94.260827 93.91188l617.918331 0c52.031027 0 94.259804-42.139749 94.259804-93.91188L915.21897 657.352459C915.21897 640.077004 901.152603 626.047476 883.773793 626.047476L883.773793 626.047476zM230.262826 614.286618c55.523571 0 104.556311-27.674293 134.394896-69.762877 32.487925 46.451962 86.303598 77.0744 147.343813 77.0744 61.036122 0 114.846678-30.623461 147.306974-77.0744 29.943986 42.018999 78.902024 69.762877 134.426619 69.762877 90.948385 0 164.968216-73.77526 164.968216-164.371628 0-11.062963-2.342348-22.859637-5.130857-35.178197-0.209778-1.134847 0.031722-2.26867-0.277316-3.38612l-0.629333-2.267647c-0.24764-0.924045-0.140193-1.535983-0.352017-2.547009-0.138146-0.505513-0.521886-0.87288-0.695848-1.39579l-85.364203-316.671313c-3.699252-13.645788-16.051581-23.172769-30.293957-23.172769L187.965487 65.296145c-14.238282 0-26.665313 9.526981-30.360472 23.24133L72.309374 405.1566c-0.103354 0.50756-0.48607 0.820692-0.62524 1.309832-0.210801 0.942465-0.107447 1.639337-0.349971 2.511193l-0.62524 2.373047c-0.318248 1.11745 0 2.25025-0.210801 3.38612-2.863211 12.31856-5.201465 24.115234-5.201465 35.178197C65.295634 540.511357 139.315464 614.286618 230.262826 614.286618L230.262826 614.286618z"
+                  fill="currentColor"
+                  p-id="5259"
+                ></path>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- Article Content -->
+        <article
+          class="content-body md md "
+        >
+          <p><code>Performance.mark()</code>  是一个 Web API 方法，用于在浏览器的性能时间线中创建一个时间戳。这对于测量代码执行的性能非常有用，因为它允许开发者在特定的代码执行点上标记时间，然后可以通过  <code>Performance.measure()</code>  方法来计算两个标记之间的时间差。</p>
+<p>以下是如何使用  <code>Performance.mark()</code>  方法的步骤：</p>
+<h3>1. 创建标记</h3>
+<p>使用  <code>performance.mark()</code>  方法在代码的特定点创建一个标记。你可以给每个标记起一个唯一的名称。</p>
+<pre><code class="language-js">performance.mark(&quot;start&quot;);
+// ... 你的代码 ...
+performance.mark(&quot;end&quot;);
+</code></pre>
+<h3>2. 测量时间差</h3>
+<p>使用  <code>performance.measure()</code>  方法来计算两个标记之间的时间差。你需要提供一个测量的名称，以及开始和结束标记的名称。</p>
+<pre><code class="language-js">performance.measure(&quot;myMeasurement&quot;, &quot;start&quot;, &quot;end&quot;);
+</code></pre>
+<h3>3. 访问测量结果</h3>
+<p>使用  <code>performance.getEntriesByName()</code>  方法来获取测量结果。它返回一个包含测量信息的数组。</p>
+<pre><code class="language-js">const measures = performance.getEntriesByName(&quot;myMeasurement&quot;);
+measures.forEach((measure) =&gt; {
+  console.log(`${measure.name}: ${measure.duration}ms`);
+});
+</code></pre>
+<h3>4. 清理标记和测量</h3>
+<p>为了避免内存泄漏或混淆后续的测量，可以使用  <code>performance.clearMarks()</code>  和  <code>performance.clearMeasures()</code>  方法来清除标记和测量。</p>
+<pre><code class="language-js">performance.clearMarks(&quot;start&quot;);
+performance.clearMarks(&quot;end&quot;);
+performance.clearMeasures(&quot;myMeasurement&quot;);
+</code></pre>
+<p>这是一个完整的例子，展示了如何使用  <code>Performance.mark()</code>  和相关方法来测量代码执行时间：</p>
+<pre><code class="language-js">// 创建开始标记
+performance.mark(&quot;start&quot;);
+
+// 模拟一些工作
+for (let i = 0; i &lt; 1000000; i++) {
+  // 一些耗时操作
+}
+
+// 创建结束标记
+performance.mark(&quot;end&quot;);
+
+// 测量两个标记之间的时间
+performance.measure(&quot;loopTime&quot;, &quot;start&quot;, &quot;end&quot;);
+
+// 获取并输出测量结果
+const measures = performance.getEntriesByName(&quot;loopTime&quot;);
+measures.forEach((measure) =&gt; {
+  console.log(`${measure.name}: ${measure.duration}ms`);
+});
+
+// 清理标记和测量
+performance.clearMarks(&quot;start&quot;);
+performance.clearMarks(&quot;end&quot;);
+performance.clearMeasures(&quot;loopTime&quot;);
+</code></pre>
+<p>使用  <code>Performance.mark()</code>  可以帮助你精确地分析代码性能瓶颈，并更好地优化应用程序的性能。</p>
+
+        </article>
+      </main>
+
+      <!-- Table of Contents Sidebar -->
+      <aside class="toc-sidebar">
+        <div class="toc-header">
+          <h3>Table of Contents</h3>
+        </div>
+        <div class="toc-content" id="tocContent">
+          <!-- TOC will be generated dynamically -->
+        </div>
+      </aside>
+    </div>
+
+    <div class="body_bg"></div>
+    <div class="zoom-overlay"></div>
+
+    <button id="backToTop" class="back-to-top" aria-label="Back to top">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 19V5M5 12l7-7 7 7" />
+      </svg>
+    </button>
+
+    <style>
+      .zoom-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        z-index: 1000;
+        cursor: zoom-out;
+      }
+      .zoomed-image {
+        position: fixed;
+        z-index: 1001;
+        will-change: transform;
+        cursor: zoom-out;
+        max-width: 90vw;
+        max-height: 90vh;
+        object-fit: contain;
+      }
+      .back-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        border-radius: 100%;
+        background-color: #07a;
+        border: none;
+        color: #333;
+        text-decoration: none;
+        font-size: 14px;
+        margin-bottom: 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        position: fixed !important;
+        top: 30px;
+        right: 30px;
+        z-index: 10;
+        display: none;
+      }
+      .back-button svg {
+        width: 50%;
+        height: 50%;
+      }
+      .back-button:hover {
+        opacity: 0.8;
+      }
+      .layout {
+        position: relative;
+        z-index: 1;
+      }
+      .back-to-top {
+        position: fixed;
+        bottom: 2rem;
+        right: 340px;
+        background: linear-gradient(
+          135deg,
+          var(--accent),
+          rgba(59, 130, 246, 0.8)
+        );
+        color: white;
+        border: none;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+      }
+
+      .back-to-top svg {
+        width: 1.5rem;
+        height: 1.5rem;
+        stroke: currentColor;
+        transition: transform 0.3s ease;
+      }
+
+      .back-to-top:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+        background: linear-gradient(135deg, var(--accent), #2563eb);
+      }
+
+      .back-to-top:hover svg {
+        transform: translateY(-2px);
+      }
+
+      .dark .back-to-top {
+        background: linear-gradient(135deg, #4b5563, #1f2937);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .dark .back-to-top:hover {
+        background: linear-gradient(135deg, #4b5563, #111827);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+      }
+      @media screen and (max-width: 768px) {
+        .back-to-top {
+          right: 15px;
+          bottom: 15px;
+          width: 36px;
+          height: 36px;
+        }
+      }
+
+      @media screen and (max-width: 480px) {
+        .back-to-top {
+          right: 12px;
+          bottom: 12px;
+          width: 32px;
+          height: 32px;
+        }
+      }
+    </style>
+    <script defer src="../js/prism.min.js"></script>
+    <script>
+      // Sidebar Toggle
+      const toggleBtn = document.getElementById("toggleSidebar");
+      const sidebar = document.querySelector(".sidebar");
+      const mainContent = document.querySelector(".main-content");
+
+      function toggleSidebar() {
+        sidebar.classList.toggle("hidden");
+        // Store sidebar state in localStorage
+        localStorage.setItem(
+          "sidebarHidden",
+          sidebar.classList.contains("hidden")
+        );
+      }
+
+      toggleBtn.addEventListener("click", toggleSidebar);
+
+      // Keyboard shortcut (Ctrl + B)
+      window.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "b") {
+          e.preventDefault(); // Prevent browser's default behavior
+          toggleSidebar();
+        }
+      });
+
+      // Restore sidebar state from localStorage
+      document.addEventListener("DOMContentLoaded", () => {
+        const sidebarHidden = localStorage.getItem("sidebarHidden") === "true";
+        if (sidebarHidden) {
+          sidebar.classList.add("hidden");
+        }
+      });
+
+      // Generate Table of Contents
+      function generateTOC() {
+        const article = document.querySelector(".content-body");
+        const headings = article.querySelectorAll("h1, h2, h3, h4");
+        const tocContent = document.getElementById("tocContent");
+        const toc = document.createElement("ul");
+
+        headings.forEach((heading, index) => {
+          const id = `heading-${index}`;
+          heading.id = id;
+
+          const li = document.createElement("li");
+          const a = document.createElement("a");
+          a.href = `#${id}`;
+          a.textContent = heading.textContent;
+          a.className = `toc-level-${heading.tagName.toLowerCase()}`;
+
+          li.appendChild(a);
+          toc.appendChild(li);
+        });
+
+        tocContent.appendChild(toc);
+      }
+
+      // Initialize TOC
+      document.addEventListener("DOMContentLoaded", generateTOC);
+
+      // Image zoom with FLIP animation
+      const overlay = document.querySelector(".zoom-overlay");
+      let activeImage = null;
+
+      document.querySelectorAll("img").forEach((img) => {
+        if (img.closest("a")) return; // Skip images that are inside links
+        img.style.cursor = "zoom-in";
+        img.addEventListener("click", handleImageClick);
+      });
+
+      function handleImageClick(event) {
+        const img = event.target;
+
+        if (activeImage) {
+          // If an image is already zoomed, unzoom it
+          unzoomImage();
+          return;
+        }
+
+        // Get the initial position and size
+        const rect = img.getBoundingClientRect();
+        const first = {
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height,
+        };
+
+        // Create a clone of the image
+        const clone = img.cloneNode();
+        clone.classList.add("zoomed-image");
+        document.body.appendChild(clone);
+
+        // Position the clone exactly over the original
+        clone.style.position = "fixed";
+        clone.style.left = `${first.x}px`;
+        clone.style.top = `${first.y}px`;
+        clone.style.width = `${first.width}px`;
+        clone.style.height = `${first.height}px`;
+        clone.style.margin = "0";
+        clone.style.transformOrigin = "top left";
+
+        // Show the overlay
+        overlay.style.display = "block";
+
+        // Calculate the final position and scale
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const targetWidth = Math.min(img.naturalWidth, viewportWidth * 0.9);
+        const targetHeight = Math.min(img.naturalHeight, viewportHeight * 0.9);
+        const scaleX = targetWidth / first.width;
+        const scaleY = targetHeight / first.height;
+        const scale = Math.min(scaleX, scaleY);
+
+        const last = {
+          width: first.width * scale,
+          height: first.height * scale,
+        };
+        last.x = (viewportWidth - last.width) / 2;
+        last.y = (viewportHeight - last.height) / 2;
+
+        // Calculate and apply the transform
+        const dx = last.x - first.x;
+        const dy = last.y - first.y;
+
+        requestAnimationFrame(() => {
+          clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+          clone.style.transition = "transform 0.3s ease-out";
+        });
+
+        activeImage = { original: img, clone: clone };
+
+        // Add click handlers for closing
+        clone.addEventListener("click", unzoomImage);
+        overlay.addEventListener("click", unzoomImage);
+      }
+
+      function unzoomImage() {
+        if (!activeImage) return;
+
+        const { original, clone } = activeImage;
+        const rect = original.getBoundingClientRect();
+
+        // Animate back to the original position
+        clone.style.transform = `translate(0, 0) scale(1)`;
+
+        // Clean up after the animation
+        clone.addEventListener(
+          "transitionend",
+          () => {
+            clone.remove();
+            overlay.style.display = "none";
+          },
+          { once: true }
+        );
+
+        activeImage = null;
+      }
+
+      // 监听 ctrl + b
+      window.addEventListener("keydown", (e) => {
+        const leftDom = document.querySelector(".sidebar");
+        if (e.ctrlKey && e.key === "b") {
+          leftDom.classList.toggle("hidden");
+        }
+      });
+
+      // Modal
+      // const modal = document.getElementById("myModal");
+      // const modalContent = modal.querySelector(".modal-content");
+      // const openModal = document.getElementById("openModal");
+      // const close = modal.querySelector(".close");
+
+      // openModal.addEventListener("click", () => {
+      //     modal.style.display = "block";
+      // });
+
+      // close.addEventListener("click", () => {
+      //     modal.style.display = "none";
+      // });
+
+      // window.addEventListener("click", (e) => {
+      //     if (e.target === modal) {
+      //         modal.style.display = "none";
+      //     }
+      // });
+
+      // Back to top button
+      const backToTop = document.getElementById("backToTop");
+      window.addEventListener("scroll", () => {
+        if (window.scrollY > 200) {
+          backToTop.style.display = "block";
+        } else {
+          backToTop.style.display = "none";
+        }
+      });
+
+      backToTop.addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+
+      // Theme toggle
+      document.addEventListener("DOMContentLoaded", () => {
+        const themeToggle = document.getElementById("themeToggle");
+        const html = document.documentElement;
+        const prismTheme = document.getElementById("prismTheme");
+
+        // Function to update theme and stylesheet
+        function updateTheme(theme) {
+          html.className = theme;
+          prismTheme.href = `../css/prism${theme === "dark" ? "2" : ""}.css`;
+          localStorage.setItem("theme", theme);
+        }
+
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem("theme") || "light";
+        updateTheme(savedTheme);
+
+        themeToggle.addEventListener("click", () => {
+          const currentTheme = html.className;
+          const newTheme = currentTheme === "light" ? "dark" : "light";
+          updateTheme(newTheme);
+        });
+      });
+    </script>
+  </body>
+</html>
