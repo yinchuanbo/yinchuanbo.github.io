@@ -21,11 +21,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 单个部署工作
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # 构建工作
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,23 +32,35 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
           
       - name: Install Dependencies
         run: npm install
-        
+
       - name: Setup Pages
         uses: actions/configure-pages@v3
+        with:
+          enablement: true  # 启用 GitHub Pages
         
-      - name: Build Project
+      - name: Copy Static Files
         run: |
-          # 如果你有构建命令，在这里添加
-          # npm run build
+          mkdir -p ./dist
+          cp -r index.html speech.html ./dist/
+          cp -r css js imgs svg fonts code.svg ./dist/
           
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'  # 上传整个项目目录
-            
+          path: ./dist
+
+  # 部署工作
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v3
