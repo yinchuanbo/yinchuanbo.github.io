@@ -21,11 +21,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 部署工作
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # 构建工作
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,13 +35,38 @@ jobs:
         run: touch .nojekyll
           
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-artifact@v3
         with:
+          name: github-pages
+          path: |
+            .
+            !.git/
+            !.github/
+            !node_modules/
+            !package.json
+            !package-lock.json
+            !app.js
+            !articles/
+            !templates/
+          if-no-files-found: error
+
+  # 部署工作
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: github-pages
           path: .
 
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v3
+        id: deployment
 
       - name: Log Deployment URL
         run: echo "Deployed to ${{ steps.deployment.outputs.page_url }}"
