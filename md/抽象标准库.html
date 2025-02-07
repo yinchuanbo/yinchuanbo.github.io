@@ -375,6 +375,496 @@ new String(&quot;1&quot;) === &quot;1&quot;; // false
 type(new Number(1)); // &#39;number&#39;
 </code></pre>
 <p>下面修改我们的程序，使其可以区分两种类型。</p>
+<pre><code class="language-js">export function type(x) {
+  const t = typeof x;
+
+  if (x === null) {
+    return &quot;null&quot;;
+  }
+
+  if (t !== &quot;object&quot;) {
+    return t;
+  }
+
+  const toString = Object.prototype.toString;
+  const innerType = toString.call(x).slice(8, -1);
+  const innerLowType = innerType.toLowerCase();
+
+  // 新增代码
+  if ([&quot;String&quot;, &quot;Boolean&quot;, &quot;Number&quot;].includes(innerType)) {
+    return innerType;
+  }
+
+  // 占位符
+  return innerLowType;
+}
+</code></pre>
+<p>在 ECMAScript 5 中可以通过自定义构造函数来创建对象实例，在 ECMAScript2015 中可以通过 Class 来创建对象实例，对于这种类型的实例，现在的 type 函数无法区分普通对象实例和通过自定义构造函数创建的对象实例。</p>
+<pre><code class="language-js">function A() {}
+
+const a = new A();
+
+type({}); // object
+type(a); // object
+</code></pre>
+<p>对于上述这种情况，可以通过对象原型上的 constructor 属性来获取构造函数，进而获得函数名字，返回名字即可。</p>
+<pre><code class="language-js">function A() {}
+const a = new A();
+
+console.log(a.constructor.name); // &#39;A&#39;
+</code></pre>
+<p>在上面代码中占位符的位置添加如下代码，即可区分通过自定义构造函数创建的对象实例。</p>
+<pre><code class="language-js">export function type(x) {
+  const t = typeof x;
+
+  if (x === null) {
+    return &quot;null&quot;;
+  }
+
+  if (t !== &quot;object&quot;) {
+    return t;
+  }
+
+  const toString = Object.prototype.toString;
+  const innerType = toString.call(x).slice(8, -1);
+  const innerLowType = innerType.toLowerCase();
+
+  if ([&quot;String&quot;, &quot;Boolean&quot;, &quot;Number&quot;].includes(innerType)) {
+    return innerType;
+  }
+
+  // 新增代码
+  if (typeof x?.constructor?.name === &quot;string&quot;) {
+    return x.constructor.name;
+  }
+
+  // 占位符
+  return innerLowType;
+}
+</code></pre>
+<p>添加单元测试：</p>
+<pre><code class="language-js">function A() {}
+expect(type(new A()), &quot;A&quot;);
+</code></pre>
+<p>至此，类型判断库已经初步完成。</p>
+<p>下面将类型判断库发布到 npm 上，以便能够给其他的库使用。首先修改 package.json 文件中的 name 字段</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;@jslib-book/type&quot;
+}
+</code></pre>
+<p>接下来，执行下面的命令，即可完成构建并发布。在看到发布成功的消息后,就大功告成了。</p>
+<pre><code class="language-sh">npm build
+npm publish --access public
+</code></pre>
+<p>其他项目可以使用如下命令来安装我们的类型判断库:</p>
+<pre><code class="language-sh">npm install --save @jslib-book/type
+</code></pre>
+<h2>函数工具</h2>
+<p>函数是开源库十分常见的对外接口。对于开源库来说，经常对函数进行一些常见包装后，才会对外导出，可以将这些操作抽象为通用的功能。本节将抽象一个函数工具库，其中包含多个操作函数的函数工具库。</p>
+<h3>once</h3>
+<p>有时候，函数只希望被执行一次，除了每次都实现一个只执行一次的函数，更好的做法是可以抽象一个公共函数，实现对传入函数的包装，使其只能执行一次。</p>
+<pre><code class="language-js">export function once(fn) {
+  let count = 0;
+  return function (...args) {
+    if (count === 0) {
+      count += 1;
+      return fn(...args);
+    }
+  };
+}
+</code></pre>
+<p>假设有个函数 log，通过 once 函数包装，即可实现只执行一次。</p>
+<pre><code class="language-js">let i = 0;
+
+const log = () =&gt; {
+  console.log(i++);
+};
+
+const log1 = once(log);
+
+// 原函数每次都执行
+log(); // 0
+log(); // 1
+log(); // 2
+
+// 通过 once 函数包装后，函数只执行一次
+log1(); // 2
+log1(); // 无输出
+</code></pre>
+<h3>curry</h3>
+<p>curry(柯里化) 也是比较常用的功能，它可以将普通函数变成可以传入部分参数的函数，一个典型的使用场景是可以给函数预设一些参数。例如，add 函数接收两个参数，通过 curry 可以生成预设加 10 的新函数 curryAdd10。</p>
+<pre><code class="language-js">function add(x, y) {
+  return x + y;
+}
+
+add(1, 2); // 3
+
+const curryAdd10 = curry(add)(10);
+curryAdd10(2); // 12
+</code></pre>
+<p>下面是实现 curry 的代码，其核心是通过一个数组来存储传入的参数列表，当参数列表中实际存储的参数的个数达到预设参数个数时，就执行函数并返回执行结果。</p>
+<pre><code class="language-js">export function curry(func) {
+  // 函数的 length 属性是函数形参的个数
+  const len = func.length;
+  function partial(func, argsList, argsLen) {
+    // 当参数的个数达到期望个数时，返回执行结果
+    if (argsList.length &gt;= argsLen) {
+      return func(...argsList);
+    }
+    // 当参数的个数少于期望个数时，继续返回函数
+    return function (...args) {
+      return partial(func, [...argsList, ...args], argsLen);
+    };
+  }
+  return partial(func, [], len);
+}
+</code></pre>
+<h3>pipe</h3>
+<p>将指定的函数串起来执行，每次都将前一个函数的返回值传递给后一个函数作为输入，这个过程在函数式编程中被称为 pipe，pipe 执行函数的顺序是从左往右</p>
+<pre><code class="language-js">function a() {
+  console.log(&quot;a&quot;);
+}
+function b() {
+  console.log(&quot;b&quot;);
+}
+function c() {
+  console.log(&quot;c&quot;);
+}
+
+const pipefn = pipe(a, b, c); // 等价于 c(b(a()))
+pipefn(); // 先后输出 &#39;a&#39;、&#39;b&#39;、&#39;c&#39;
+</code></pre>
+<p>下面是实现 pipe 函数的代码，其核心是使用数组的 reduce 方法。</p>
+<pre><code class="language-js">export function pipe(...fns) {
+  return function (...args) {
+    return fns.reduce((prevResult, fn) =&gt; fn(...prevResult), args);
+  };
+}
+</code></pre>
+<h3>compose</h3>
+<p>compose 和 pipe 类似，也是将函数串起来执行，每次都将前一个函数的返回信传递给后一个函数作为输入，compose 和 pipe 的区别是其执行函数的顺序是从右往左。</p>
+<pre><code class="language-js">function a() {
+  console.log(&quot;a&quot;);
+}
+function b() {
+  console.log(&quot;b&quot;);
+}
+function c() {
+  console.log(&quot;c&quot;);
+}
+
+const composefn = compose(a, b, c);
+composefn(); // &#39;c&#39;、&#39;b&#39;、&#39;a&#39;
+</code></pre>
+<p>下面是实现 compose 函数的代码，compose 函数有很多种实现方式。参考实现 pipe 函数的代码，只要将其中的 reduce 改成 reduceRight 即可，reduceRight 和 reduc 类似，但其执行函数的顺序是从右往左。</p>
+<pre><code class="language-js">export function compose(...fns) {
+  return function (...args) {
+    return fns.reduceRight((prevResult, fn) =&gt; fn(...prevResult), args);
+  };
+}
+</code></pre>
+<p>再来看另一种实现思路。由于已经有了上面的 pipe 函数，因此 compose 函数可以依赖 pipe 函数，这样只需要将传入的函数数组翻转顺序即可。</p>
+<pre><code class="language-js">export function compose(...fns) {
+  return function (...args) {
+    return pipe(...args.reverse());
+  };
+}
+</code></pre>
+<p>下面将函数库发布到 npm 上，以便能够给其他的库使用。首先修改 package.json 文件中的 name 字段，</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;@jslib-book/functional&quot;
+}
+</code></pre>
+<p>接下来，执行下面的命令，即可完成构建并发布。在看到发布成功的消息后，就大功告成了。</p>
+<pre><code class="language-sh">npm build
+npm publish --access publish
+</code></pre>
+<p>其他项目可以使用如下命令安装我们的函数库:</p>
+<pre><code class="language-sh">npm install --save @jslib-book/functional
+</code></pre>
+<h2>数据拷贝</h2>
+<h3>背景知识</h3>
+<p>其实深拷贝和浅拷贝都是针对引用类型数据的。JavaScript 中的变量类型分为值类型(基本类型)和引用类型；当将一个值类型的变量赋值给另一个变量时，会值进行一份拷贝；而当将一个引用类型的变量赋值给另一个变量时，则会进行地址的拷贝，最终两个变量指向同一份数据。两者的区别示例如下:</p>
+<pre><code class="language-js">// 基本类型
+var a = 1;
+var b = a;
+a = 2;
+
+console.log(a, b); // 2, 1 变量 a 和 b 指向不同的数据
+
+// 引用类型指向同一份数据
+var a = { c: 1 };
+var b = a;
+a.c = 2;
+console.log(a.c, b.c); // 2, 2 全是 2，变量 a 和 b 指向同一份数据
+</code></pre>
+<p>当变量 a 为引用类型变量时，执行赋值操作后，变量 a 和 b 指向同一份数据，如果对其中一个变量进行修改，就会影响到另外一个变量。有时候这可能不是我们想
+要的结果，如果对这种现象不清楚的话，还可能造成不必要的 Bug。</p>
+<p>那么应该如何切断变量 a 和 b 之间的关系呢？可以拷贝一份变量 a 的数据。根据拷贝的层级不同可以分为浅拷贝和深拷贝，浅拷贝就是只进行一层拷贝，而深拷贝则是无限层级拷贝。两种拷贝的区别示例如下:</p>
+<pre><code class="language-js">var a1 = { b: { c: {} } };
+
+var a2 = shallowClone(a1); // 浅拷贝
+a2.b.c === a1.b.c; // true
+
+var a3 = clone(a1); // 深拷贝
+a3.b.c === a1.b.c; // false
+</code></pre>
+<p>浅拷贝的实现非常简单，并且有多种方法，其实就是遍历对象属性的问题。这里只给出一种方法，</p>
+<pre><code class="language-js">function shallowClone(source) {
+  var target = {};
+  for (var i in source) {
+    if (source.hasOwnProperty(i)) {
+      target[i] = source[1];
+    }
+  }
+  return target;
+}
+</code></pre>
+<h3>最简单的深拷贝</h3>
+<p>深拷贝的间题其实可以分解成两个问题，即<strong>浅拷贝 + 递归</strong></p>
+<p>假如有如下数据：</p>
+<pre><code class="language-js">var a1 = { b: { c: { d: 1 } } };
+</code></pre>
+<p>只要稍加政动，给前面实现浅拷贝的代码添加递归，即可实现最简单的深拷贝</p>
+<pre><code class="language-js">function clone(source) {
+  var target = {};
+  for (var i in source) {
+    if (source.hasOwnProperty(i)) {
+      if (typeof source[i] === &quot;object&quot;) {
+        target[i] = clone(source[i]);
+      } else {
+        target[i] = source[i];
+      }
+    }
+  }
+  return target;
+}
+</code></pre>
+<p>相信大部分读者都能写出上面的代码，但是上面的代码问题很多。先来举几个例子:</p>
+<ul>
+<li><p>没有对参数做校验</p>
+</li>
+<li><p>判断是否是对象的逻辑不够严谨</p>
+</li>
+<li><p>没有考虑数组的兼容性</p>
+</li>
+</ul>
+<p>下面来看一下各个问题的解决办法。首先需要抽象一个判断对象的方法，比较常用的判断对象的方法如下:</p>
+<pre><code class="language-js">function isObject(x) {
+  return Object.prototype.toString.call(x) === &quot;[object Object]&quot;;
+}
+</code></pre>
+<p>函数需要添加参数校验，如果不是对象的话，则直接返回。</p>
+<pre><code class="language-js">function clone(source) {
+  if (!isObject(source)) return source;
+  var target = {};
+  for (var i in source) {
+    if (source.hasOwnProperty(i)) {
+      if (typeof source[i] === &quot;object&quot;) {
+        target[i] = clone(source[i]);
+      } else {
+        target[i] = source[i];
+      }
+    }
+  }
+  return target;
+}
+</code></pre>
+<p>递归方法最大的问题在于爆栈，当数据的层级很深时就会发生栈溢出。</p>
+<p>下面的 createData 函数可以生成指定深度和每层广度的数据，这个函数后面还会用到。</p>
+<pre><code class="language-js">function createData(deep, breadth) {
+  var data = {};
+  var temp = data;
+
+  for (var i = 0; i &lt; deep; i++) {
+    temp = temp[&quot;data&quot;] = {};
+    for (var j = 0; j &lt; breadth; j++) {
+      temp[j] = j;
+    }
+  }
+  return data;
+
+
+createData(1, 3); // 1层深度，每层有3个数据 {data: { 0:0, 1:1, 2:2 }}
+createData(3, 0); // 3层深度，每层有 0 个数据 {data:{ data: {data:{}} }}
+</code></pre>
+<p>当传递给 clone 函数的数据层级很深时就会发生栈溢出，但是数据的广度不会造成溢出。</p>
+<pre><code class="language-js">clone(createData(1000)); // 不会溢出
+clone(createData(10000)); // Maximum call stack size exceeded
+clone(createData(10, 100000)); // 广度大，不会溢出
+</code></pre>
+<p>大部分情况下不会出现这么深层级的数据，但有一种特殊情况，就是循环引用。例如，以下代码就会导致栈溢出:</p>
+<pre><code class="language-js">var a = {};
+a.a = a;
+
+clone(a); // Maximum call stack size exceeded 直接死循环
+</code></pre>
+<p>解决循环引用间题的方法有两种，一种是循环检测，另一种是暴力破解。对于循环检测，读者可以自行思考一下；下面的内容将详细讲解暴力破解。</p>
+<h3>一行代码的深拷贝</h3>
+<p>使用系统自带的 <code>JSON.stingify</code> 方法和 <code>JSON.parse</code> 方法可以实现一行代码的深拷贝，这是非常聪明的做法。</p>
+<pre><code class="language-js">function cloneJSON(source) {
+  return JSON.parse(JSON.string(source));
+}
+</code></pre>
+<p>下面来测试 cloneJSON 方法有没有溢出的问题，看起来 cloneJSON 方法内部也是使用递归的方式。</p>
+<pre><code class="language-js">cloneJSON(createData(10000)); // Maximum call stack size exceeded
+</code></pre>
+<p>虽然用了递归, 但是循环引用数据并不会造成栈溢出, JSON.stringify 方法内部做了循环引用的检测，正是上面提到解决循环引用的第一种方法--循环检测。示例代码如下:</p>
+<pre><code class="language-js">var a = {};
+a.a = a;
+
+cloneJSON(a); // Uncaught TypeError: Converting circular structure to JSON
+</code></pre>
+<h3>破解递归爆栈</h3>
+<p>破解递归爆栈的方法有两种: 第一种是消除尾递归，但在这个例子中行不通；第二种是不用递归，改用循环。</p>
+<p>例如，假设有如下数据:</p>
+<pre><code class="language-js">var a = {
+  a1: 1,
+  a2: {
+    b1: 1,
+    b2: {
+      c1: 1,
+    },
+  },
+};
+</code></pre>
+<p>其数据结构是树状的，如下所示:</p>
+<img src="../imgs/141/12.png" />
+
+<p>使用循环遍历一棵树需要借助一个栈，当栈为空时就遍历完了。栈里面存储下一个需要拷贝的节点，栈中每个节点要存储 3 个数据，分别是待拷贝的节点 data、待拷贝节点的父节点 parent、待拷贝节点在父节点中的属性值 key。</p>
+<p>首先往栈中放入种子数据，第一个种子节点就是根节点。然后遍历当前节点下的子元素，如果是对象，就放到栈中，否则直接拷贝。示例代码如下:</p>
+<pre><code class="language-js">function cloneLoop(x) {
+  const root = {};
+
+  // 栈
+  const loopList = [
+    {
+      parent: root,
+      key: undefined,
+      data: x,
+    },
+  ];
+
+  while (loopList.length) {
+    // 深度优先
+    const node = loopList.pop();
+    const patent = node.parent;
+    const key = node.key;
+    const daya = node.data;
+
+    // 初始化赋值目标
+    let res = parent;
+
+    if (typeof key !== &quot;undefined&quot;) {
+      res = parent[key] = {};
+    }
+
+    for (let k in data) {
+      if (data.hasOwnProperty(k)) {
+        if (typeof data[k] === &quot;object&quot;) {
+          // 下一次循环
+          loopList.push({
+            parent: res,
+            key: k,
+            data: data[k],
+          });
+        } else {
+          res[k] = data[k];
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<p>改用循环后，再也不会出现爆栈的问题了，但是对于循环引用的数据，依然会死循环，无法完成拷贝。</p>
+<h3>破解循环引用</h3>
+<p>有没有一种办法可以破解循环引用呢？先来看另一个问题，上面的 3 种方法都存在引用丢失的问题，这在某些情况下也许是不能接受的。</p>
+<p>例如，有一个对象 a，a 下面的两个键值都引用同一个对象 b，经过深拷贝后，a 的两个键值会丢失引用关系，从而变成两个不同的对象。示例代码如下:</p>
+<pre><code class="language-js">var b = {};
+var a = { a1: b, a2: b };
+
+a.a1 === a.a2; // true
+
+var c = clone(a);
+c.a1 === c.a2; // false
+</code></pre>
+<p>如果发现一个新对象，就把这个对象和它的拷贝保存下来。每次拷贝对象前，都先看一下这个对象是否已经拷贝过了，如果已经拷贝过了，就不需要拷贝了，直接用之前拷贝的值，这样就能够保持引用关系了。</p>
+<p>但是代码应该怎么编写呢?</p>
+<p>本书的思路是引入一个数组 uniqueList，用来存储已经拷贝的数组，每次循环遍历时，先判断对象是否已经在数组 uniqueList 中了，如果在的话，就不执行拷贝逻辑了，find 函数的作用是查找指定对象是否在数组 uniqueList 中。</p>
+<pre><code class="language-js">// 保持引用关系
+function cloneForce(x) {
+  // ==========
+  const uniqueList = []; // 用来去重
+  // ==========
+
+  let root = {};
+
+  // 循环数组
+  const loopList = [
+    {
+      parent: root,
+      key: undefined,
+      data: x,
+    },
+  ];
+
+  while (loopList.length) {
+    // 深度优先
+    const node = loopList.pop();
+    const parent = node.parent;
+    const key = node.key;
+    const data = node.data;
+
+    // 初始化赋值目标，如果 key 为 undefined，则拷贝到 parent，否则拷贝到 parent[key]
+    let res = parent;
+    if (typeof key !== &quot;undefined&quot;) {
+      res = parent[key] = {};
+    }
+
+    // ==========
+    // 数据已经存在
+    let uniqueData = find(uniqueList, data);
+    if (uniqueData) {
+      parent[key] = uniqueData.target;
+      continue; // 中断本次循环
+    }
+
+    // 数据不存在
+    // 将拷贝过的数据存起来
+    uniqueList.push({
+      source: data,
+      target: res,
+    });
+    // ==========
+
+    for (let k in data) {
+      if (data.hasOwnProperty(k)) {
+        if (typeof data[k] === &quot;object&quot;) {
+          // 下一次循环
+          loopList.push({
+            parent: res,
+            key: k,
+            data: data[k],
+          });
+        } else {
+          res[k] = data[k];
+        }
+      }
+    }
+  }
+  return root;
+}
+
+function find(arr, item) {
+  for (let i = 0; i &lt; arr.length; i++) {
+    if (arr[i].source === item) {
+      return arr[i];
+    }
+  }
+  return null;
+}
+</code></pre>
+<p>【183】</p>
 
         </article>
       </main>
