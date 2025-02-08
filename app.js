@@ -123,7 +123,7 @@ function renderNavList(navList = [], filename = "") {
     }"><a title="${item.replace(".md", "")}" href="/md/${item.replace(
       ".md",
       ".html"
-    )}"><span>${idx + 1 < 10 ? "0" + (idx + 1) : idx + 1}</span> ${item.replace(
+    )}">${idx + 1 < 10 ? "0" + (idx + 1) : idx + 1} ${item.replace(
       ".md",
       ""
     )}</a></li>`;
