@@ -858,7 +858,346 @@ function find(arr, item) {
   return null;
 }
 </code></pre>
-<p>【183】</p>
+<p>下面来验证一下效果，现在深拷贝可以保留引用关系了</p>
+<pre><code class="language-js">var b = {};
+var a = { a1: b, a2: b };
+
+a.a1 === a.a2; // true
+
+var c = cloneForce(a);
+c.a1 === c.a2; // true
+</code></pre>
+<p>接下来，看一下如何破解循环引用。其实上面的代码已经可以破解循环引用了，验证一下，</p>
+<pre><code class="language-js">var a = {};
+a.a = a;
+
+cloneForce(a);
+</code></pre>
+<p>那么看起来完美的 cloneForce 函数是不是就没有问题呢？其实 cloneForce 函数存在以下两个问题:</p>
+<ol>
+<li><p>所谓成也萧何，败也萧何，如果保留的引用关系不是我们想要的，就不能用 cloneForce 数了。</p>
+</li>
+<li><p>cloneForce 函数在对象数量很多时会出现性能问题，所以，当数据量很大时不适合使用 cloneForce 函数。</p>
+</li>
+</ol>
+<h3>性能对比</h3>
+<p>下面对比一下 4 种深拷贝函数的性能：影响性能的原因有两个，一个是深度，另一个是每层的广度。</p>
+<p>下面采用控制变量法，即只让一个变量变化的方法来测试性能。</p>
+<p>测试在指定的时间内深拷贝函数执行的次数，次数越多，证明函数的性能越好</p>
+<p>下面的 runTime 函数是测试代码的核心片段。在下面的例子中,测试在 2 秒内执行 <code>clone(createData(500,1))</code> 的次数。</p>
+<pre><code class="language-js">function runTime(fn, time) {
+  var stime = Date.now();
+  var count = 0;
+  while (Date.now() - stime &lt; time) {
+    fn();
+    count++;
+  }
+  return count;
+}
+
+runTime(function () {
+  clone(createData(500, 1));
+}, 2000);
+</code></pre>
+<p>下面来做第一个测试。将广度固定在 100，深度由小到大变化，记录 1 秒内 4 种深拷贝函数执行的次数</p>
+<img src="../imgs/142/01.png" />
+
+<p>数据做成折线图，</p>
+<img src="../imgs/142/02.png" />
+
+<p>可以发现如下规律:</p>
+<ul>
+<li><p>随着深度变小，不同函数之间的差异在变小。</p>
+</li>
+<li><p>clone 和 cloneLoop 函数之间的差别并不大。</p>
+</li>
+<li><p>性能对比: <code>cloneLoop &gt; cloneForce &gt; cloneJSON</code>，clone 函数的性能受层级影响较大。</p>
+</li>
+</ul>
+<p>下面分析各种函数的时间复杂度问题，4 种函数的关键区别如下:</p>
+<ul>
+<li><p>clone 时间 = 创建递归函数时间 + 每个对象处理时间。</p>
+</li>
+<li><p>cloneJSON 时间 = 循环检测时间 + 每个对象处理时间 x 2 (递归转字符串+递归解析)。</p>
+</li>
+<li><p>cloneLoop 时间 = 每个对象处理时间。</p>
+</li>
+<li><p>cloneForce 时间 = 判断对象是否在缓存中时间 + 每个对象处理时间。</p>
+</li>
+</ul>
+<p>cloneJSON 函数的速度只有 clone 函数的速度的 50%，这很容易理解，因为其会多进行一次递归操作。</p>
+<img src="../imgs/142/03.png" />
+
+<p>关于 clone 函数和 cloneLoop 函数这里有一点问题，看起来实验结果和推理结果不一致，这是为什么呢?</p>
+<p>接下来做第二个测试。将深度固定在 10000，广度固定为 0，记录 2 秒内 4 种深拷贝函数执行的次数：</p>
+<img src="../imgs/142/04.png" />
+
+<p>排除广度的干扰，来看一下深度对各种函数的影响，总结如下:</p>
+<ul>
+<li><p>随着对象的增多，cloneForce 函数的性能低下凸显。</p>
+</li>
+<li><p>cloneJSON 函数的性能也大打折扣，这是因为循环检测占用了很多时间。</p>
+</li>
+<li><p>cloneLoop 函数的性能略高于 clone 函数的性能，可以看到，比起 clone 函数中使用递归方法，cloneLoop 函数中使用循环方法带来的性能提升并不大。</p>
+</li>
+</ul>
+<p>下面测试一下 cloneForce 函数的性能极限，这次测试执行指定次数需要的时间，测试代码如下:</p>
+<pre><code class="language-js">var data1 = createData(2000, 0);
+var data2 = createData(4000, 0);
+var data3 = createData(6000, 0);
+var data4 = createData(8000, 0);
+var data5 = createData(10000, 0);
+
+cloneForce(data1);
+cloneForce(data2);
+cloneForce(data3);
+cloneForce(data4);
+cloneForce(data5);
+</code></pre>
+<p>通过测试可以发现，其时间成指数级增长，当对象个数大于万级别时，就会有 300ms 以上的延迟。</p>
+<img src="../imgs/142/05.png" />
+
+<p>尺有所短，寸有所长，其实每种函数都有自己的优点和缺点及适用场景。</p>
+<img src="../imgs/142/06.png" />
+
+<img src="../imgs/142/07.png" />
+
+<p>下面将深拷贝库发布到 npm 上，以便能够给其他库使用。首先修改 package.json 文件中的 name 字段，</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;@jslib-book/clone&quot;
+}
+</code></pre>
+<p>接下来，执行下面的命令，即可完成构建并发布。在看到发布成功的消息后，就大功告成了。</p>
+<pre><code class="language-sh">npm build
+npm publish --access public
+</code></pre>
+<p>其他项目可以使用如下命令安装我们的深拷贝库:</p>
+<pre><code class="language-sh">npm install @jslib-book/clone --save
+</code></pre>
+<h2>相等性判断</h2>
+<p>判断两个值相等是非常常用的功能。虽然逻辑看似很简单，但是在 JavaScript 中想要准确地判断两个值相等，并且没有边界异常，并不是一件容易的事情。</p>
+<h3>背景知识</h3>
+<p>JavaScript 规范中存在四种相等算法。第一种算法叫作非严格相等，它使用两个等号，表示语义相等，不要求类型一样。非严格相等在比较前会先将要比较的参数的类型转换为一致的类型，再进行比较。</p>
+<pre><code class="language-js">1 == 1; // true
+1 == &quot;1&quot;; // true 类型不同，不影响比较结果
+</code></pre>
+<p>非严格相等有十分复杂的转换规则，非常难以记忆。</p>
+<img src="../imgs/142/08.png" />
+
+<p>想要记住表中的内容并不容易，对于非对象类型的值，可以总结如下 3 条规则:</p>
+<ul>
+<li><p>Undefined 只和 Null 相等。</p>
+</li>
+<li><p>和 Number 比较时，另一个值会自动转换为 Number。</p>
+</li>
+<li><p>和 Boolean 比较时，另一个值会转换为 Number。</p>
+</li>
+</ul>
+<p>如果值的类型为对象类型，则会使用内部的 ToPrimitive 方法进行转换，可以通过自定义 Symbol.toPrimitive 方法来改变返回值，示例代码如下。需要注意的是，在相等的判断中，Symbol.toPrimitive 方法接收的参数 hint 都是 default。</p>
+<pre><code class="language-js">const obj = {
+  [Symbol.toPrimitive](hint) {
+    console.log(hint);
+    if (hint === &quot;number&quot;) {
+      return 1;
+    }
+    if (hint === &quot;string&quot;) {
+      return &quot;yan&quot;;
+    }
+    return true;
+  },
+};
+
+console.log(obj == 1); // true
+console.log(obj == &quot;1&quot;); // true
+console.log(obj == true); // true
+</code></pre>
+<p>虽然非严格相等通过隐式的自动转换简化了部分场景的工作，如 Number 和 String 的自动转换简化了前端从表或 URL 参数中获取值的比较问题，但是自动转换带来的问题比便利还多。</p>
+<p><strong>隐式转换的规则在大部分情况下难以驾驭，现在主流的观点是不建议使用，本书建议只在判断 Undefined 和 Null 的场景下可以使用非严格相等。</strong></p>
+<p>严格相等是另一种比较算法，其和非严格想等的区别是不会进行类型转换，当类型不一致时直接返回 false。严格相等对应 === 操作符，因为使用 3 个等号，所以也被称作三等或全等。严格相等的示例如下:</p>
+<pre><code class="language-js">1 === 1; // true
+1 === &quot;1&quot;; // false 类型不同，影响比较结果
+</code></pre>
+<p>严格相等更符合直觉。虽然严格相等解决了非严格相等中隐式转换带来的问题但是也丢失了隐式转换带来的便利，对于类型可能不一致的情况，如从表单中获取的值都是字符串，保险的做法是，在比较前手动进行类型转换。</p>
+<pre><code class="language-js">1 === Number(&quot;1&quot;); // true 手动进行类型转换
+</code></pre>
+<p>虽然严格相等几乎总是正确的，但是也有例外情况，如 <code>NaN</code>、<code>+0</code> 和 <code>-0</code> 的问题。</p>
+<p>Number 类型数据有个特殊的值 NaN，它用来表示计算错误的情况，比较常见的场景是当非 Number 类型数据和 Number 类型数据计算时，会得到 NaN 值。</p>
+<pre><code class="language-js">const a = 0 / 0; // NaN
+const b = &quot;a&quot; / 1; // NaN
+const c = undefined + 1; // NaN
+</code></pre>
+<p>在严格相等中，NaN 是不等于自己的，NaN 是 (x!=x) 成立的唯一情况。在某些场最下其实是希望能够判断 NaN 的，可以使用 isNaN 方法进行判断。</p>
+<p>ECMAScript 2015 引入了 Number.isNaN 方法，该方法和 isNaN 方法的区别是不会对传入的参数供类型转换，建议使用语义更清晰的 Number.isNaN 方法，但是要注意兼容性问题。</p>
+<pre><code class="language-js">NaN === NaN; // false
+
+isNaN(NaN); // true
+Number.isNaN(NaN); // true
+
+isNaN(&quot;aaa&quot;); // true 自动转换类型，&#39;aaa&#39;的类型转换为 Number 类型后为 NaN
+Number.isNaN(&quot;aaa&quot;); // false 不进行类型转换，类型不为 Number，直接返回 false
+</code></pre>
+<p>Number 类型数据中还有两个特殊的值，分别是 +0 和 -0。</p>
+<pre><code class="language-js">+0 === -0; // true
+</code></pre>
+<p>JavaScript 中的很多系统函数和语句都使用严格相等，如数组的 indexOf 方法和 lastIndexOf 方法及 switch-case 语句等，需要注意的是，对于 NaN，这些系统函数和语句无法返回正确结果。示例代码如下:</p>
+<pre><code class="language-js">[NaN].indexOf(NaN); // -1 数组中其实存在 NaN
+[NaN].lastIndexOf(NaN); // -1
+</code></pre>
+<p>同值零是另一种相等算法，其名字来源于规范的直译，规范中叫作 SameValueZero 同值零的功能和严格相等的功能一样，除了处理 NaN 的方式，同值零认为 NaN 和 NaN 相等，这在判断 NaN 是否在集合中的语义下是非常合理的。</p>
+<p>ECMAScript 2016 引入的 includes 方法使用此算法，此外，Map 的键去重和 Set 的值去重也使用此算法。</p>
+<pre><code class="language-js">[NaN].includes(NaN); // true
+new Set([NaN, NaN]); // Set { NaN } Set 中只会有一个 NaN，如果 NaN!==NaN，则应该是 [NaN，NaN]
+new Map([
+  [NaN, 1],
+  [NaN, 2],
+]); // Map { NaN =&gt; 2 } Map 中只会有一个 NaN，如果 NaN!==NaN，则应该是 {NaN=&gt;1, NaN=&gt;2}
+</code></pre>
+<p>同值是最后一种相等算法，其和同值零类似，但认为 +0 不等于 -0，</p>
+<p>ECMAScript 2015 引入了 Object.is 方法，该方法使用同值算法</p>
+<pre><code class="language-js">Object.is(NaN, NaN); // true
+Object.is(+0, -0); // false 注意这里
+</code></pre>
+<p>同值算法用于确定两个值是否在任何情况下功能上都是相同的，比较不常用，<code>Object.defineProperty</code> 方法使用此算法确认键是否存在。例如，在将存在的只读属性值-0 修改为 +0 时会报错，但如果将原本是 -0 的值再次赋值为 -0，则将正常执行。</p>
+<pre><code class="language-js">function test() {
+  &quot;use strict&quot;;
+  var a = {};
+
+  Object.defineProperty(a, &quot;a1&quot;, {
+    value: -0,
+    writable: false,
+    configurable: false,
+    enumerable: false,
+  });
+
+  Object.defineProperty(a, &quot;a1&quot;, {
+    value: -0,
+  }); // 正常执行
+
+  Object.defineProperty(a, &quot;a1&quot;, {
+    value: 0,
+  }); // Uncaught TypeError: Cannot redefine property: a1
+}
+
+test();
+</code></pre>
+<p>由于数组的 includes 方法无法区分 +0 和 -0，因此如果想区分 +0 和 -0，则可以使用 ECMAScript 2015 引入的 <code>find</code> 方法，自行控制判断逻辑。</p>
+<pre><code class="language-js">[0].includes(-0); // 不能区分 +0 和 -0
+[0].find((n) =&gt; Object.is(n, -0)); // 能区分 +0 和 -0
+</code></pre>
+<p>最后来对比 4 种算法的区别，</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th align="center">隐式转换</th>
+<th align="right">NaN 和 NaN</th>
+<th align="right">+0 和 -0</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>非严格相等</td>
+<td align="center">是</td>
+<td align="right">false</td>
+<td align="right">true</td>
+</tr>
+<tr>
+<td>严格相等</td>
+<td align="center">否</td>
+<td align="right">false</td>
+<td align="right">true</td>
+</tr>
+<tr>
+<td>同值零（incudes 等）</td>
+<td align="center">否</td>
+<td align="right">true</td>
+<td align="right">true</td>
+</tr>
+<tr>
+<td>同值（Object.is）</td>
+<td align="center">否</td>
+<td align="right">true</td>
+<td align="right">false</td>
+</tr>
+</tbody></table>
+<p>Number 类型数据还存在小数的比较问题，这是前端比较容易出问题的地方，一般运算时都会规避小数的运算。如果已经存在两个小数，想要对比两个小数是否相同，则可能会违反直觉，如 <code>0.1+0.2</code> 并不和 0.3 全等。</p>
+<pre><code class="language-js">0.1 + 0.2 === 0.3; // false
+</code></pre>
+<p>对于小数的比较，一般都是让两个数字做减法，如果其差值小于某一个很小的数字 x，就认为其相等，x 的值其实要依赖语言内部使用的浮点数规格，JavaScript 使用 IEEE 754 规范存储浮点数。</p>
+<p>因此，ECMAScript2015 引入了 Number.EPSILON 常量来表示这个数字，</p>
+<pre><code class="language-js">var a = 0.1 + 0.2;
+var b = 0.3;
+console.log(Math.abs(a - b) &lt; Number.EPSILON); // true
+</code></pre>
+<p>可以将小数的相等抽象为一个函数，由于不知道哪个数字更大，因此通过 <code>Math.abs</code> 方法获取两个数字之差的绝对值后和 Numbe.EPSILON 进行比较。</p>
+<pre><code class="language-js">function equalFloat(a, b) {
+  return Math.abs(a - b) &lt; Number.EPSILON;
+}
+
+equalFloat(0.1 + 0.2, 0.3); // true
+</code></pre>
+<p>上面介绍了 JavaScript 中判断两个变量是否相等的各种方法，如果有两个内容一样的对象，那么使用上面的方法得到的结果可能不是我们希望的结果。</p>
+<p>原因很简单，上面的 4 种算法都只比较变量的值是否一样，不会递归比较对象内部是否一样。对于两个对象来说，它们指向了不同的地址，所以会返回 false。</p>
+<pre><code class="language-js">const a1 = { a: 1 };
+const a2 = { a: 1 };
+
+console.log(a1 == a2); // false
+console.log(a1 === a2); // false
+Object.is(a1, a2); // false
+</code></pre>
+<p>在某些语义下，结构一样的对象希望得出相等的判断，但是 JavaScript 中缺少结构相似的内置判断。一种解决办法是先把对象序列化为字符串，然后比较字符串是否相等。将对象序列化可以使用 JSON.stringify 方法，</p>
+<pre><code class="language-js">const a1 = { a: 1 };
+const a2 = { a: 1 };
+
+console.log(JSON.stringify(a1) === JSON.stringify(a2)); // true
+</code></pre>
+<p>这种方法简单好用，对于如下的基础类型数据、对象类型数据和数组类型数据都可以正常使用，没有问题。</p>
+<pre><code class="language-js">const a = {
+  a1: null,
+  a2: 1,
+  a3: true,
+  a4: &quot;&quot;,
+};
+
+console.log(JSON.stringify(a)); // {&quot;a1&quot;:null,&quot;a2&quot;:1,&quot;a3&quot;:true,&quot;a4&quot;:&quot;&quot;}
+</code></pre>
+<p>但是这种方法存在缺陷，其中一个缺陷是部分值序列化后会不可辨认，比如:</p>
+<ul>
+<li><p>NaN 序列化后和 null 无法区分</p>
+</li>
+<li><p>+0 和 -0 在序列化后无法区分</p>
+</li>
+<li><p>溢出的数字和 null 无法区分</p>
+</li>
+<li><p>普通类型值和包装类型值无法区分</p>
+</li>
+<li><p>函数序列化后和 null 无法区分</p>
+</li>
+</ul>
+<pre><code class="language-js">const a = {
+  a1: NaN,
+  a2: null,
+};
+
+console.log(JSON.stringify(a)); // {&quot;a1&quot;:null, &quot;a2&quot;:null}
+
+const b = {
+  b1: +0,
+  b2: -0,
+};
+
+console.log(JSON.stringify(b)); // {&quot;b1&quot;:0, &quot;b2&quot;:0}
+
+const c = {
+  c1: Infinity,
+  c2: null,
+};
+
+console.log(JSON.stringify(c)); // {&quot;c1&quot;:null, &quot;c2&quot;:null}
+console.log(JSON.stringify([1, new Number(1)])); // &#39;[1,1]&#39;
+console.log([function () {}]); // &#39;[null]&#39;
+</code></pre>
+<p>另一个缺陷是很多值不能序列化，如 undefined 和 symbol，序列化后就丢失了。</p>
+<p>[194]</p>
 
         </article>
       </main>
