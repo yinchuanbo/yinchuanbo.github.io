@@ -64,12 +64,11 @@ function getDirectoryStructure(dirPath) {
       } else {
         if (!itemPath.includes(".zip")) {
           const fileContent = fs.readFileSync(itemPath, "utf-8");
-          result[item] = fileContent;
-          // if (itemPath.includes(".md")) {
-          //   result[item] = marked.parse(fileContent);
-          // } else {
-          //   result[item] = fileContent;
-          // }
+          if (itemPath.includes(".md")) {
+            result[item] = marked.parse(fileContent);
+          } else {
+            result[item] = fileContent;
+          }
         }
       }
     }
@@ -174,6 +173,7 @@ let urls = [];
 for (const key in structure) {
   const len = Object.keys(structure[key]).length;
   const hasHtml = !!structure[key]["index.html"];
+  console.log("iisisisi", key);
   const tempHTML = ejs.render(templateContent, {
     nav: convertToHTML(structure[key]),
     datas: structure[key],
@@ -187,10 +187,7 @@ for (const key in structure) {
   });
   const sanitizedKey = key.replace(/\s+/g, "_");
   const htmlName = `${sanitizedKey}.html`;
-  const outputFilePath = path.join(
-    __dirname,
-    `html/${htmlName.replace("_-_download", "")}`
-  );
+  const outputFilePath = path.join(__dirname, `html/${htmlName.replace("_-_download", "")}`);
   fs.writeFileSync(outputFilePath, tempHTML, "utf-8");
   urls.push({
     htmlName,
@@ -198,29 +195,13 @@ for (const key in structure) {
   });
 }
 
-const homeTemplateContent = fs.readFileSync("./templates/index-html.html", "utf-8");
+const homeTemplateContent = fs.readFileSync("./templates/index.html", "utf-8");
 const homeOutputFilePath = path.join(__dirname, `html/index.html`);
 
 let homeHTML = `<ul>`;
-// 对 urls 进行排序，根据文件夹名称中的数字进行降序排序
-urls.sort((a, b) => {
-  // 提取文件夹名称中的数字
-  const getNumber = (str) => {
-    const match = str.match(/^(\d+)/);
-    return match ? parseInt(match[1]) : 0;
-  };
-
-  const numA = getNumber(a.htmlName);
-  const numB = getNumber(b.htmlName);
-
-  return numB - numA; // 降序排序
-});
-
 for (let i = 0; i < urls.length; i++) {
   const url = urls[i];
-  const htmlUrl = `/articles/html/${url.key}/`;
-  const skipUrl = `/html/${url.htmlName.replace("_-_download", "")}`;
-  homeHTML += `<li class="card" onclick="window.href = ${htmlUrl}">111</li>`;
+  homeHTML += `<li class="card"><a href="/html/${url.htmlName.replace("_-_download", "")}">${url.key.replace(" - download", "")}</a></li>`;
 }
 
 homeHTML += `</ul>`;
