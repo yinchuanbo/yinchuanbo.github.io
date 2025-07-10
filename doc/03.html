@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>从 Babel 到 PostCSS：重构你的 CSS 构建</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg t="1752133512751" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6015" width="50" height="50"><path d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z" fill="#ffffff" p-id="6016"></path></svg></a>
+    <main>
+      <header>
+        <h1>从 Babel 到 PostCSS：重构你的 CSS 构建</h1>
+        <p>分类：CSS | 日期：2025年7月10日</p>
+      </header>
+      <h2>一.PostCSS 是什么？为什么它值得深入了解？</h2>
+<p>PostCSS 是一个用 JavaScript 编写的 CSS 转换引擎。它的核心理念并不是像 Sass 或 Less 那样提供新语法，而是提供一个<strong>插件驱动的处理架构</strong>，你可以使用社区插件或自定义插件，对 CSS 做任何你想做的处理。</p>
+<p>它做的事，类似于 Babel 之于 JavaScript。</p>
+<table>
+<thead>
+<tr>
+<th>Babel</th>
+<th>PostCSS</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>编译 JS</td>
+<td>编译 CSS</td>
+</tr>
+<tr>
+<td>插件系统</td>
+<td>插件系统</td>
+</tr>
+<tr>
+<td>支持 AST 转换</td>
+<td>支持 AST 转换</td>
+</tr>
+<tr>
+<td>Preset 支持</td>
+<td>Preset 支持</td>
+</tr>
+</tbody></table>
+<p>换句话说，如果你能接受“现代 JavaScript 需要构建”，就应该理解“现代 CSS 同样需要构建”。</p>
+<hr>
+<h2>二.PostCSS 在现代前端中的定位</h2>
+<p>在一个 Vite 项目中，我们通常会使用如下 CSS 工具链：</p>
+<ul>
+<li><code>Tailwind CSS</code>: 原子化 CSS 框架</li>
+<li><code>Autoprefixer</code>: 自动添加前缀</li>
+<li><code>postcss-preset-env</code>: 支持未来 CSS 特性</li>
+<li><code>CSS Modules</code> 或 <code>SCSS</code>: 局部作用域</li>
+</ul>
+<p>这些东西背后，其实都在使用 PostCSS 做统一处理。</p>
+<p><strong>架构示意图如下：</strong></p>
+<pre><code>.css 文件
+                ↓
+       ┌────────────────────┐
+       │     PostCSS 核心    │
+       └────────────────────┘
+        ↓       ↓        ↓
+  autoprefixer  preset-env  tailwindcss
+        ↓       ↓        ↓
+          → 构建输出给浏览器
+</code></pre>
+<p>也就是说，PostCSS 是所有 CSS 逻辑的中间枢纽。</p>
+<hr>
+<h2>三.PostCSS 插件实战：从基础到高级</h2>
+<h3>1.自动添加浏览器前缀（autoprefixer）</h3>
+<pre><code class="language-bash">npm i autoprefixer postcss -D
+</code></pre>
+<p><code>postcss.config.js</code>:</p>
+<pre><code class="language-js">module.exports = {
+  plugins: [require(&quot;autoprefixer&quot;)],
+};
+</code></pre>
+<p>用途：写 <code>display: flex</code> 会自动加上 <code>-webkit-</code> 和 <code>-ms-</code> 前缀。</p>
+<hr>
+<h3>2.支持未来语法（postcss-preset-env）</h3>
+<pre><code class="language-bash">npm i postcss-preset-env -D
+</code></pre>
+<p>配置：</p>
+<pre><code class="language-js">module.exports = {
+  plugins: [
+    require(&quot;postcss-preset-env&quot;)({
+      stage: 1, // 支持最新实验语法
+      features: {
+        &quot;nesting-rules&quot;: true, // CSS 嵌套
+      },
+    }),
+  ],
+};
+</code></pre>
+<p>用途：让你在 CSS 中写未来版本的语法（比如嵌套、逻辑运算、容器查询）。</p>
+<hr>
+<h3>3.动态主题生成（自定义插件）</h3>
+<p>假设你希望自动将 CSS 中的主色 <code>--primary</code> 生成三种亮度变体。</p>
+<p>你可以自己写一个插件：</p>
+<pre><code class="language-js">const postcss = require(&quot;postcss&quot;);
+module.exports = postcss.plugin(&quot;postcss-theme-generator&quot;, () =&gt; {
+  return (root) =&gt; {
+    root.walkDecls((decl) =&gt; {
+      if (decl.prop === &quot;--primary&quot;) {
+        const baseColor = decl.value;
+        decl.cloneAfter({ prop: &quot;--primary-light&quot;, value: `${baseColor}99` });
+        decl.cloneAfter({ prop: &quot;--primary-dark&quot;, value: `${baseColor}cc` });
+      }
+    });
+  };
+});
+</code></pre>
+<hr>
+<h2>四.PostCSS 与 Tailwind、UnoCSS 的关系</h2>
+<p>很多开发者以为 Tailwind 是一套独立的编译器，其实它最初就是个 PostCSS 插件。</p>
+<ul>
+<li><strong>Tailwind</strong>：高度依赖 PostCSS 插件机制来生成 class 和处理配置</li>
+<li><strong>UnoCSS</strong>：不依赖 PostCSS，本身是原子 CSS 编译器，但也提供 <code>postcss-unocss</code> 插件以供兼容</li>
+</ul>
+<p>也就是说：</p>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>Tailwind CSS</th>
+<th>UnoCSS</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>基于 PostCSS 吗？</td>
+<td>是</td>
+<td>不是</td>
+</tr>
+<tr>
+<td>插件机制</td>
+<td>PostCSS 插件</td>
+<td>自定义解析器</td>
+</tr>
+<tr>
+<td>运行方式</td>
+<td>依赖构建工具</td>
+<td>支持 CLI / Vite</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>五.你不知道的 PostCSS 冷知识</h2>
+<ol>
+<li>PostCSS 的作者是 Andrey Sitnik，他也是 autoprefixer 和 Browserslist 的作者。</li>
+<li>PostCSS 支持完整的 CSS AST，可以用类似 Babel 的方式操作任意节点。</li>
+<li>它不光能处理 CSS 文件，<strong>还能嵌入在 Markdown、HTML、Vue SFC、React 的 style 标签中。</strong></li>
+<li><code>cssnano</code>（压缩工具）、<code>stylelint</code>（CSS 检查工具）都可作为 PostCSS 插件运行。</li>
+</ol>
+<hr>
+<h2>六.常见误区 &amp; 项目实战建议</h2>
+<h3>“我不写 SCSS，就不需要 PostCSS”</h3>
+<p>即使你不用 Sass、不写 Nesting，仍然需要：</p>
+<ul>
+<li>自动前缀</li>
+<li>CSS 压缩</li>
+<li>浏览器兼容处理</li>
+<li>变量替换（如 env 变量）</li>
+<li>主题暗黑模式处理</li>
+</ul>
+<h3>项目最佳实践（以 Vite 为例）</h3>
+<p>在 <code>vite.config.ts</code> 中：</p>
+<pre><code class="language-js">export default defineConfig({
+  css: {
+    postcss: {
+      plugins: [
+        require(&quot;autoprefixer&quot;),
+        require(&quot;postcss-preset-env&quot;),
+        require(&quot;./postcss-theme-generator&quot;),
+      ],
+    },
+  },
+});
+</code></pre>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

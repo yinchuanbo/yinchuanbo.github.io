@@ -1,0 +1,171 @@
+const express = require("express");
+const fs = require("fs-extra");
+const path = require("path");
+const frontMatter = require("front-matter");
+const chokidar = require("chokidar");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const srcDir = path.join(__dirname, "src");
+const docDir = path.join(__dirname, "doc");
+const templatePath = path.join(__dirname, "templates", "template.html");
+const indexTemplatePath = path.join(__dirname, "templates", "index.html");
+
+// 设置静态文件目录
+app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(docDir));
+
+// 读取模板文件
+const template = fs.readFileSync(templatePath, "utf8");
+const indexTemplate = fs.existsSync(indexTemplatePath)
+  ? fs.readFileSync(indexTemplatePath, "utf8")
+  : `
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>知识库</title>
+      <link rel="stylesheet" href="/css/style.css">
+    </head>
+    <body>
+      <main>
+        <h2>文章列表</h2>
+        <ul>
+          {{{articleList}}}
+        </ul>
+      </main>
+    </body>
+    </html>
+  `;
+
+// 编译单个 Markdown 文件到 HTML
+async function compileMarkdown(filePath) {
+  try {
+    const marked = (await import("marked")).marked;
+    const fileContent = fs.readFileSync(filePath, "utf8");
+    const { attributes, body } = frontMatter(fileContent);
+
+    // 调试：打印解析的 front-matter
+    console.log(`解析 ${path.basename(filePath)} 的 front-matter:`, attributes);
+
+    // 确保 attributes 存在并提供默认值
+    const title = attributes.title || "无标题";
+    const category = attributes.category || "未分类";
+    let dateStr = attributes.date;
+    if (dateStr) {
+      const date = new Date(dateStr);
+      const options = { year: "numeric", month: "long", day: "numeric" };
+      dateStr = date.toLocaleDateString("zh-CN", options);
+    } else {
+      dateStr = "未知日期";
+    }
+
+    const date = dateStr;
+
+    const htmlContent = marked(body);
+
+    // 替换模板中的占位符
+    let output = template
+      .replace(/{{title}}/g, title)
+      .replace(/{{category}}/g, category)
+      .replace(/{{date}}/g, date)
+      .replace(/{{{content}}}/g, htmlContent);
+
+    // 生成输出文件名
+    const outputFileName = path.basename(filePath, ".md") + ".html";
+    const outputPath = path.join(docDir, outputFileName);
+
+    // 确保 doc 目录存在
+    fs.ensureDirSync(docDir);
+    fs.writeFileSync(outputPath, output);
+    console.log(`已生成：${outputPath}`);
+
+    // 更新 index.html
+    await generateIndex();
+  } catch (error) {
+    console.error(`处理 ${filePath} 时出错:`, error);
+  }
+}
+
+// 生成 index.html，列出所有文章
+async function generateIndex() {
+  try {
+    const files = fs.readdirSync(srcDir).filter((file) => file.endsWith(".md"));
+    let articleList = "";
+
+    for (const file of files) {
+      const filePath = path.join(srcDir, file);
+      const fileContent = fs.readFileSync(filePath, "utf8");
+      const { attributes } = frontMatter(fileContent);
+      const htmlFileName = path.basename(file, ".md") + ".html";
+      const title = attributes.title || "无标题";
+      const category = attributes.category || "未分类";
+      let dateStr = attributes.date;
+      if (dateStr) {
+        const date = new Date(dateStr);
+        const options = { year: "numeric", month: "long", day: "numeric" };
+        dateStr = date.toLocaleDateString("zh-CN", options);
+      } else {
+        dateStr = "未知日期";
+      }
+
+      articleList += `<li><a href="/${htmlFileName}">${title}</a> (${category}, ${dateStr})</li>`;
+    }
+
+    // 替换 index 模板中的占位符
+    const indexContent = indexTemplate.replace(
+      "{{{articleList}}}",
+      articleList
+    );
+    fs.writeFileSync(path.join(docDir, "index.html"), indexContent);
+    console.log(`已生成：${path.join(docDir, "index.html")}`);
+  } catch (error) {
+    console.error("生成 index.html 时出错:", error);
+  }
+}
+
+// 编译所有 Markdown 文件
+async function compileAllMarkdown() {
+  try {
+    fs.ensureDirSync(docDir);
+    const files = fs.readdirSync(srcDir).filter((file) => file.endsWith(".md"));
+    for (const file of files) {
+      await compileMarkdown(path.join(srcDir, file));
+    }
+  } catch (error) {
+    console.error("编译所有 Markdown 文件时出错:", error);
+  }
+}
+
+// 监听 src 目录的变化
+chokidar
+  .watch(srcDir, { ignored: /(^|[\/\\])\../ })
+  .on("all", async (event, filePath) => {
+    if (filePath.endsWith(".md")) {
+      console.log(`检测到文件变化：${filePath} (${event})`);
+      await compileMarkdown(filePath);
+    }
+  });
+
+// 根路由
+app.get("/", (req, res) => {
+  const indexPath = path.join(docDir, "index.html");
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res
+      .status(404)
+      .send(
+        "Index page not found. Please ensure Markdown files exist in src/ and try again."
+      );
+  }
+});
+
+// 初始编译所有 Markdown 文件
+compileAllMarkdown();
+
+// 启动服务器
+app.listen(PORT, () => {
+  console.log(`服务器运行在 http://localhost:${PORT}`);
+});
