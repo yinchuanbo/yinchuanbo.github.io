@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>无标题</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>无标题</h1>
+        <p>未分类 | 未知日期</p>
+      </header>
+      <h1>一次性上传 1000 张图片, 总量 10GB 的方案设计</h1>
+<h2>背景</h2>
+<p>最近有一个上传文件方面的需求，上传图片，用户可以选择文件夹上传。</p>
+<p>文件夹里的图片可能很多，而且由于特殊的项目背景，用户选择的图片可能会比较大，10MB左右。</p>
+<p>这里就需要做一些方案上的设计了，确保整个过程的流畅和容错。</p>
+<h2>方案设计</h2>
+<p>这个过程中需要考虑到的细节主要是以下几点：</p>
+<ul>
+<li>重复图片的认定</li>
+<li>图片上传任务的控制</li>
+<li>上传失败和上传中断处理</li>
+</ul>
+<h3>图片去重</h3>
+<h3>hash</h3>
+<p>图片去重这一块，我们可以在前端做<strong>hash</strong>，但是对于10MB左右的图片，走hash的话，每一张大概要花费30-60ms不等的时间，如果每张图片都先算hash，1000张这样大小的图片就要等待30s~60s,然后才能开始进行上传任务，我们觉得这个等待时间有点久了。</p>
+<h3>文件路径 + 文件名 + 文件大小</h3>
+<p>由于我们的项目支持文件夹选择上传，再递归遍历文件夹的过程中，我们是可以拿到图片的相对路径的，再加上图片的文件名，以及文件的<strong>size</strong>，我们决定就将这三者条件的联合作为图片是否上传过的对比凭证。</p>
+<p>那么这样一来，在选择了文件之后，就可以立马得到这些信息，那么此时就可以把整个文件列表传给后端，后端返回哪些文件重复，哪些文件不重复。</p>
+<p>这样就能快速拿到我们需要进行上传的图片列表了。</p>
+<h3>对文件做浏览器持久化缓存</h3>
+<p>为什么要在前端做持久化的缓存？</p>
+<p>多文件的上传任务是一个耗时的任务，这个过程可能会出现不确定的情况，比如网页关了，或者浏览器关了，而前端无法记住文件在客户机器上的位置，如果没有持久化的存储，那么用户就必须手动再去选择一下文件或者文件夹，用户体验没那么友好。</p>
+<p>那么我们就需要一个像<strong>localStorage</strong>那样的存储，浏览器关了也不会消失的存储。</p>
+<p>既然这样说了，那<strong>localStorage</strong>肯定是不行的，因为它无法保存<strong>file</strong>类型的数据，也就是无法保存文件，就算能保存图片，大小也不够，5M左右的大小，都装不下一张图片。</p>
+<p>我们用<strong>indexDB</strong>来做文件的存储。</p>
+<h3>上传过程的并发控制</h3>
+<p>前面两步设计好了，下面就该发上传的请求了，1000张图片，不可能走一个请求的，我们让每个图片走一个上传请求，也就是发1000个请求来上传这些图片。</p>
+<p>如果用的是HTTP1.1,就要考虑并发控制的问题了，因为你不可能1000个请求一次性无脑发出去，那么这样，用户就必须等1000个上传任务完成，才能操作页面，因为接下来的网络请求都要排队，要等1000个图片上传完。</p>
+<p>我们的设计是，上传过程中，用户不用干等，可以比较流畅的进行其他操作，留一个任务列表展示当前的任务状态。</p>
+<p>如果用的是HTTP2.0, 虽然可以不用做并发控制，浏览器会把其他的请求提前，但是也要等当前的某个请求结束，因为并发数也是有限的，实测每个可能会等待个3s以内。</p>
+<p>而且因为这个任务的主要瓶颈是1000个10MB图片的上传，是带宽。所以HTTP2.0的优势，多路复用，头部压缩，并不能很好的体现出来，也就是说总任务时长差不多。所以我们最终没有升级成HTTP2.0，还是用的HTTP1.1。</p>
+<p>对HTTP1.1，chrome浏览器对同一个域名的并发数最大是6，所以并发数可以设置为5，留一点网络资源给前台任务。</p>
+<h3>失败和中断处理</h3>
+<p>失败和中断的任务主要还是依赖了本地持久化存储。</p>
+<p>我们在第一次拿到后端返回的需要上传的文件列表的时候，就应该把这个文件列表加上文件本身存进<strong>indexDB</strong>中，然后做上传，成功上传一个，就从<strong>indexDB</strong>中删除一条，那么最后留下来的，就是没有成功的。</p>
+<p>当然也可以在上传任务中加入<strong>catch</strong>，这样可以对失败的任务做自动重传，这个不是必须的。</p>
+<h2>部分实现</h2>
+<h3>对indexDB操作的封装</h3>
+<pre><code class="language-jsx">class FileStorage {
+  private db: IDBDatabase | null = null
+  private dbName = &#39;fileStore&#39;
+  private storeName = &#39;files&#39;
+  private openCallback: () =&gt; void
+
+  constructor(open = () =&gt; {}) {
+    this.openCallback = open
+    this.openDatabase()
+  }
+
+  // 打开或创建数据库
+  private openDatabase(): void {
+    const request = indexedDB.open(this.dbName, 1)
+
+    request.onupgradeneeded = (event) =&gt; {
+      this.db = (event.target as IDBOpenDBRequest).result
+      if (!this.db.objectStoreNames.contains(this.storeName)) {
+        this.db.createObjectStore(this.storeName, {
+          keyPath: &#39;id&#39;,
+          autoIncrement: true
+        })
+      }
+    }
+
+    request.onsuccess = (event) =&gt; {
+      this.db = (event.target as IDBOpenDBRequest).result
+      this.openCallback()
+    }
+
+    request.onerror = (event) =&gt; {
+      console.error(&#39;Error opening database:&#39;, event)
+    }
+  }
+
+  // 插入整个 fileList 数组
+  public async insertFileList(fileList: fileInfoWithId[]): Promise&lt;void&gt; {
+    const fileContents = await Promise.all(
+      fileList.map((file) =&gt; this.readFileAsArrayBuffer(file.raw))
+    )
+
+    await this.transaction(async (transaction) =&gt; {
+      const objectStore = transaction.objectStore(this.storeName)
+      for (let i = 0; i &lt; fileList.length; i++) {
+        const file = fileList[i]
+        const content = fileContents[i]
+        await this.insertObjectStore(objectStore, { ...file, content })
+      }
+    })
+  }
+
+  // 插入单个 fileInfo
+  public async insertFile(fileInfo: fileInfoWithId): Promise&lt;void&gt; {
+    this.insertFileList([fileInfo])
+  }
+
+  // 读取文件为 ArrayBuffer
+  private readFileAsArrayBuffer(file: File): Promise&lt;ArrayBuffer&gt; {
+    return new Promise((resolve, reject) =&gt; {
+      const reader = new FileReader()
+      reader.readAsArrayBuffer(file)
+      reader.onload = () =&gt; resolve(reader.result as ArrayBuffer)
+      reader.onerror = (error) =&gt; reject(error)
+    })
+  }
+
+  // 插入对象到 objectStore
+  private async insertObjectStore(
+    objectStore: IDBObjectStore,
+    file: fileInfoWithId &amp; { content: ArrayBuffer }
+  ): Promise&lt;void&gt; {
+    return new Promise((resolve, reject) =&gt; {
+      const request = objectStore.add(file)
+      request.onsuccess = () =&gt; resolve()
+      request.onerror = (error) =&gt; reject(error)
+    })
+  }
+
+  // 根据 ID 列表删除数据
+  public async deleteByIds(ids: number[]): Promise&lt;void&gt; {
+    await this.transaction(async (transaction) =&gt; {
+      const objectStore = transaction.objectStore(this.storeName)
+      for (const id of ids) {
+        const request = objectStore.delete(id)
+        await this.waitForRequest(request)
+      }
+    })
+  }
+
+  // 根据单个 ID 删除数据
+  public async deleteById(id: number): Promise&lt;void&gt; {
+    await this.transaction(async (transaction) =&gt; {
+      const objectStore = transaction.objectStore(this.storeName)
+      const exists = await this.checkIfExists(objectStore, id)
+      if (!exists) {
+        console.warn(`No file found with id ${id}`)
+        return
+      }
+      console.log(`Deleting file with id ${id}`)
+      const request = objectStore.delete(id)
+      await this.waitForRequest(request)
+    })
+  }
+
+  // 检查是否存在指定 ID 的数据
+  private async checkIfExists(
+    objectStore: IDBObjectStore,
+    id: number
+  ): Promise&lt;boolean&gt; {
+    return new Promise((resolve) =&gt; {
+      const getRequest = objectStore.get(id)
+
+      getRequest.onsuccess = () =&gt; {
+        resolve(getRequest.result !== undefined) // 如果 result 是 undefined，说明没有找到该 ID
+      }
+
+      getRequest.onerror = (error) =&gt; {
+        console.error(&#39;Check existence error:&#39;, error)
+        resolve(false)
+      }
+    })
+  }
+
+  // 查找所有数据
+  public async findAll(): Promise&lt;fileInfoWithId[]&gt; {
+    return await this.transaction(async (transaction) =&gt; {
+      const objectStore = transaction.objectStore(this.storeName)
+      const request = objectStore.getAll()
+      return await this.waitForRequest(request)
+    })
+  }
+
+  // 清空整个对象存储中的所有数据
+  public async clearDatabase(): Promise&lt;void&gt; {
+    await this.transaction(async (transaction) =&gt; {
+      const objectStore = transaction.objectStore(this.storeName)
+      const request = objectStore.clear()
+
+      await this.waitForRequest(request)
+      console.log(&#39;Database cleared successfully&#39;)
+    })
+  }
+
+  // 带分页的查找功能
+  public async findWithPagination(
+    page: number,
+    pageSize: number
+  ): Promise&lt;fileInfoWithId[]&gt; {
+    return await this.transaction(async (transaction) =&gt; {
+      const objectStore = transaction.objectStore(this.storeName)
+      const start = (page - 1) * pageSize
+      const result: fileInfoWithId[] = []
+      let currentIndex = 0
+
+      const cursorRequest = objectStore.openCursor()
+
+      return new Promise&lt;fileInfoWithId[]&gt;((resolve, reject) =&gt; {
+        cursorRequest.onerror = (error) =&gt; reject(error)
+
+        cursorRequest.onsuccess = (event) =&gt; {
+          const cursor = (event.target as IDBRequest).result
+          if (cursor) {
+            if (currentIndex &gt;= start &amp;&amp; currentIndex &lt; start + pageSize) {
+              result.push(cursor.value)
+            }
+            if (currentIndex &lt; start + pageSize) {
+              currentIndex++
+              cursor.continue()
+            } else {
+              resolve(result)
+            }
+          } else {
+            resolve(result)
+          }
+        }
+      })
+    })
+  }
+
+  // 创建事务并执行回调
+  private async transaction&lt;T&gt;(
+    callback: (transaction: IDBTransaction) =&gt; Promise&lt;T&gt;
+  ): Promise&lt;T&gt; {
+    return new Promise((resolve, reject) =&gt; {
+      if (!this.db) {
+        reject(new Error(&#39;Database not initialized&#39;))
+        return
+      }
+
+      const transaction = this.db.transaction([this.storeName], &#39;readwrite&#39;)
+      callback(transaction).then(resolve).catch(reject)
+      transaction.oncomplete = () =&gt; {
+        console.log(&#39;Transaction completed&#39;)
+      }
+
+      transaction.onerror = (error) =&gt; {
+        console.error(&#39;Transaction error:&#39;, error)
+        reject(error)
+      }
+    })
+  }
+
+  // 等待请求完成
+  private waitForRequest&lt;T&gt;(request: IDBRequest&lt;T&gt;): Promise&lt;T&gt; {
+    return new Promise((resolve, reject) =&gt; {
+      request.onsuccess = () =&gt; resolve(request.result)
+
+      request.onerror = (error) =&gt; {
+        console.error(&#39;Request error:&#39;, error)
+        reject(error)
+      }
+    })
+  }
+}
+
+export default FileStorage
+</code></pre>
+<h3><strong>并发任务控制</strong></h3>
+<pre><code class="language-jsx">class concurrencyControl {
+  private maxConcurrency: number
+  private queue: any[]
+  private running: number
+  private onAllTasksCompleted: Function
+
+  constructor(
+    maxConcurrency: number,
+    onAllTasksCompleted: Function = () =&gt; {}
+  ) {
+    this.maxConcurrency = maxConcurrency
+    this.queue = []
+    this.running = 0
+    this.onAllTasksCompleted = onAllTasksCompleted
+  }
+
+  addQueue(queue: Function[]) {
+    this.queue.push(...queue)
+    this.run()
+  }
+
+  addTask(task: Function) {
+    this.queue.push(task)
+    this.run()
+  }
+
+  run() {
+    while (this.running &lt; this.maxConcurrency &amp;&amp; this.queue.length) {
+      this.running++
+      const task = this.queue.shift()
+      Promise.resolve(task()).finally(() =&gt; {
+        this.running--
+        this.run()
+        if (this.running === 0 &amp;&amp; this.queue.length === 0) {
+          this.onAllTasksCompleted()
+        }
+      })
+    }
+  }
+}
+
+export default concurrencyControl
+</code></pre>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
