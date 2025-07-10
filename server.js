@@ -55,8 +55,10 @@ async function compileMarkdown(filePath) {
     let dateStr = attributes.date;
     if (dateStr) {
       const date = new Date(dateStr);
-      const options = { year: "numeric", month: "long", day: "numeric" };
-      dateStr = date.toLocaleDateString("zh-CN", options);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      dateStr = `${year}.${month}.${day}`;
     } else {
       dateStr = "未知日期";
     }
@@ -104,8 +106,10 @@ async function generateIndex() {
       let dateStr = attributes.date;
       if (dateStr) {
         const date = new Date(dateStr);
-        const options = { year: "numeric", month: "long", day: "numeric" };
-        dateStr = date.toLocaleDateString("zh-CN", options);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        dateStr = `${year}.${month}.${day}`;
       } else {
         dateStr = "未知日期";
       }
