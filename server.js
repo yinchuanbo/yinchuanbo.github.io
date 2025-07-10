@@ -114,7 +114,7 @@ async function generateIndex() {
         dateStr = "未知日期";
       }
 
-      articleList += `<li><a href="/${htmlFileName}">${title}</a> (${category}, ${dateStr})</li>`;
+      articleList += `<li><a href="/${htmlFileName}">${title}</a> <span class="other-info">[${category}-${dateStr}]</span></li>`;
     }
 
     // 替换 index 模板中的占位符
