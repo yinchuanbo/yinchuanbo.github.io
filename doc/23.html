@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>为什么 JavaScript 的 Map 比 Object 更好</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>为什么 JavaScript 的 Map 比 Object 更好</h1>
+        <p>JavaScript | 2025.07.11</p>
+      </header>
+      <p>JavaScript 提供了 Map 和 Object 来存储键值对，但是 Map 在许多场景下具有显著的优势。</p>
+<h2>1. Key 类型的灵活性</h2>
+<h3>1.1 键的范围</h3>
+<h3>Object:</h3>
+<p>对象键 <strong>只能是字符串或符号</strong>。其他类型（例如对象、函数和数字）会 <strong>自动转换为字符串</strong>：</p>
+<pre><code class="language-js">const obj = {};
+const key = { id: 1 };
+obj[key] = &quot;value&quot;; // Key is converted to &quot;[object Object]&quot;
+console.log(obj); // { &quot;[object Object]&quot;: &quot;value&quot; }
+</code></pre>
+<h3>Map:</h3>
+<p>Map 的键可以是 <strong>任何类型</strong>，包括对象、函数和 NaN：</p>
+<pre><code class="language-js">const map = new Map();
+const key = { id: 1 };
+map.set(key, &#39;value&#39;);  // Key retains its original type
+console.log(map.get(key)); // &quot;value&quot;
+</code></pre>
+<h3>1.2 处理特殊键</h3>
+<p>使用 NaN 作为键：</p>
+<pre><code class="language-js">const map = new Map();
+map.set(NaN, &#39;Not a Number&#39;);
+console.log(map.get(NaN)); // &quot;Not a Number&quot;
+const obj = {};
+obj[NaN] = &#39;Not a Number&#39;;
+console.log(obj[NaN]); // &quot;Not a Number&quot;, but internally converted to the string &quot;NaN&quot;
+</code></pre>
+<p>Map 可以正确识别 <code>NaN</code> 作为唯一键，而 Object 会将其转换为字符串。</p>
+<h2>2. 内置方法和性能</h2>
+<h3>2.1 内置方法</h3>
+<p>Map 提供了更直观的 API：</p>
+<pre><code class="language-js">map.set(key, value);  // Add a key-value pair
+map.get(key);         // Retrieve a value
+map.has(key);         // Check if a key exists
+map.delete(key);      // Remove a key-value pair
+map.clear();          // Remove all entries
+map.size;             // Get the number of entries (no need for Object.keys(obj).length)
+</code></pre>
+<p>相比之下，Object 需要手动处理：</p>
+<pre><code class="language-js">obj[key] = value;      // Add a property
+obj[key];              // Retrieve a value
+delete obj[key];       // Remove a property
+Object.keys(obj).length; // Get the number of properties
+</code></pre>
+<h3>2.2 迭代效率</h3>
+<p>Map 支持直接迭代：</p>
+<pre><code class="language-js">map.forEach((value, key) =&gt; { /* ... */ });
+for (const [key, value] of map) { /* ... */ }
+</code></pre>
+<p>相反，Object 在迭代之前需要进行转换：</p>
+<pre><code class="language-js">Object.keys(obj).forEach(key =&gt; { /* ... */ });
+Object.values(obj).forEach(value =&gt; { /* ... */ });
+Object.entries(obj).forEach(([key, value]) =&gt; { /* ... */ });
+</code></pre>
+<h3>2.3 性能比较</h3>
+<ul>
+<li>频繁的增删改查操作：Map 针对频繁的键值插入和删除操作做了优化。</li>
+<li>处理大型数据集：Map 通常在内存使用和访问速度方面表现更好，尤其是动态生成的键。</li>
+</ul>
+<h2>3. 保留插入顺序</h2>
+<p>Map 严格维护键值对的插入顺序，非常适合顺序很重要的场景：</p>
+<pre><code class="language-js">const map = new Map();
+map.set(&#39;a&#39;, 1);
+map.set(&#39;b&#39;, 2);
+console.log([...map]); // [[&#39;a&#39;, 1], [&#39;b&#39;, 2]]
+</code></pre>
+<p>对于对象，ES6+ 保证以下顺序：</p>
+<ul>
+<li>数字键按升序排序。</li>
+<li>字符串键维持插入顺序。</li>
+<li>符号键保持插入顺序。</li>
+</ul>
+<p>但是，依赖对象键顺序可能会导致兼容性问题，尤其是在较旧的 JavaScript 引擎中。</p>
+<h2>4. 避免原型污染</h2>
+<h3>对象容易受到原型链污染：</h3>
+<pre><code class="language-js">const obj = {};
+console.log(obj.constructor); // Outputs Object constructor
+obj.hasOwnProperty(&#39;key&#39;);    // Can be overridden
+</code></pre>
+<h3>Map 独立于原型链：</h3>
+<pre><code class="language-js">const map = new Map();
+console.log(map.constructor); // utputs Map constructor
+map.set(&#39;hasOwnProperty&#39;, &#39;safe&#39;); // Safe to use
+</code></pre>
+<h2>5. 推荐使用场景</h2>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>推荐的数据结构</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>复杂键类型(对象、函数)</td>
+<td>Map</td>
+<td>支持任何键类型</td>
+</tr>
+<tr>
+<td>频繁的键值插入和删除</td>
+<td>Map</td>
+<td>Map 性能更强</td>
+</tr>
+<tr>
+<td>保持插入顺序</td>
+<td>Map</td>
+<td>保证插入顺序</td>
+</tr>
+<tr>
+<td>快速键值计数和检索</td>
+<td>Map</td>
+<td>插入键值对数量和大小计算更快</td>
+</tr>
+<tr>
+<td>避免原型污染</td>
+<td>Map</td>
+<td>不受原型链的干扰</td>
+</tr>
+<tr>
+<td>只需要基础字符串键名的简单静态数据</td>
+<td>Object</td>
+<td>语法简洁</td>
+</tr>
+<tr>
+<td>对象需要 JSON 序列化</td>
+<td>Object</td>
+<td>Map 不能直接序列化</td>
+</tr>
+</tbody></table>
+<h2>6. 代码示例</h2>
+<h3>6.1 词频统计</h3>
+<p>使用Map:</p>
+<pre><code class="language-js">const text = &quot;apple banana apple orange&quot;;
+const wordCount = new Map();
+text.split(&#39; &#39;).forEach(word =&gt; {
+    wordCount.set(word, (wordCount.get(word) || 0) + 1);
+});
+console.log(wordCount.get(&#39;apple&#39;)); // 2
+</code></pre>
+<p>使用 Object:</p>
+<pre><code class="language-js">const text = &quot;apple banana apple orange&quot;;
+const wordCount = {};
+text.split(&#39; &#39;).forEach(word =&gt; {
+    wordCount[word] = (wordCount[word] || 0) + 1;
+});
+console.log(wordCount.apple); // 2
+</code></pre>
+<h3>6.2 使用对象作为键</h3>
+<p>使用 Map 的正确实现：</p>
+<pre><code class="language-jsx">const user1 = { id: 1 };
+const user2 = { id: 2 };
+const permissions = new Map();
+permissions.set(user1, [&#39;read&#39;]);
+permissions.set(user2, [&#39;write&#39;]);
+console.log(permissions.get(user1)); // [&#39;read&#39;]
+</code></pre>
+<p>使用 Object 会失败：</p>
+<pre><code class="language-js">const user1 = { id: 1 };
+const user2 = { id: 2 };
+const permissions = {};
+permissions[user1] = [&#39;read&#39;];  // Key converted to &quot;[object Object]&quot;
+permissions[user2] = [&#39;write&#39;]; // Overwrites previous key
+console.log(permissions[user1]); // [&#39;write&#39;]
+</code></pre>
+<h2>7. 结论</h2>
+<p>在以下情况下使用 Map：</p>
+<ul>
+<li>使用动态或复杂的键类型</li>
+<li>执行频繁插入或删除</li>
+<li>保留插入顺序</li>
+<li>快速检索已插入条目数量</li>
+<li>避免原型链干扰</li>
+</ul>
+<p>在以下情况下使用对象：</p>
+<ul>
+<li>存储简单、静态的数据</li>
+<li>需要 JSON 序列化</li>
+<li>更喜欢使用更简洁的语法来定义键值对</li>
+</ul>
+<p>在现代 JavaScript 开发中选择正确的数据结构可以显著提高代码的可维护性和性能。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

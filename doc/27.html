@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>如何优雅的处理请求竞态问题</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>如何优雅的处理请求竞态问题</h1>
+        <p>JavaScript | 2025.07.11</p>
+      </header>
+      <blockquote>
+<p>快速、频繁请求造成的数据混乱问题。</p>
+</blockquote>
+<p>在 JavaScript 中处理请求竞态问题（即防止旧请求覆盖新请求结果）有以下几种优雅方案，按推荐程度排序：</p>
+<h3>方案 1：使用 AbortController (现代浏览器标准方案)</h3>
+<pre><code class="language-js">let controller = null;
+
+async function fetchData(query) {
+    // 取消上一个未完成的请求
+    if (controller) controller.abort();
+
+    controller = new AbortController();
+
+    try {
+        const response = await fetch(`/api?q=${query}`, {
+            signal: controller.signal, // 绑定取消信号
+        });
+        const data = await response.json();
+        // 处理数据（此时确保是最新请求）
+        return data;
+    } catch (err) {
+        // 忽略被主动取消的请求错误
+        if (err.name !== &quot;AbortError&quot;) throw err;
+    }
+}
+
+// 使用示例
+searchInput.addEventListener(&quot;input&quot;, (e) =&gt; {
+    fetchData(e.target.value);
+});
+</code></pre>
+<h3>方案 2：请求 ID 标记法 (兼容性好)</h3>
+<pre><code class="language-js">let currentRequestId = 0;
+
+async function fetchData(query) {
+    const requestId = ++currentRequestId;
+
+    const response = await fetch(`/api?q=${query}`);
+    const data = await response.json();
+
+    // 只处理最新请求的结果
+    if (requestId === currentRequestId) {
+        // 渲染数据
+    }
+}
+
+// 使用同上
+</code></pre>
+<h3>方案 3：Promise 状态锁 (纯 Promise 实现)</h3>
+<pre><code class="language-js">let latestPromise = null;
+
+async function fetchData(query) {
+    const thisPromise = fetch(`/api?q=${query}`)
+    .then(r =&gt; r.json());
+
+    latestPromise = thisPromise;
+
+    const result = await thisPromise;
+
+    // 只处理最新的 Promise
+    if (thisPromise === latestPromise) {
+        // 处理数据
+    }
+}
+</code></pre>
+<h3>方案 4：RxJS (响应式编程方案)</h3>
+<pre><code class="language-js">import { fromEvent } from &quot;rxjs&quot;;
+import { switchMap } from &quot;rxjs/operators&quot;;
+
+fromEvent(searchInput, &quot;input&quot;)
+    .pipe(
+    switchMap((e) =&gt; fetch(`/api?q=${e.target.value}`).then((r) =&gt; r.json()))
+)
+    .subscribe((data) =&gt; {
+    // 自动取消前序请求，只处理最新
+});
+</code></pre>
+<h3>方案 5：React Hooks 封装 (React 专属)</h3>
+<pre><code class="language-js">function useRaceSafeFetch() {
+    const controllerRef = useRef();
+
+    return async (url) =&gt; {
+        // 取消上一个请求
+        if (controllerRef.current) {
+            controllerRef.current.abort();
+        }
+
+        const controller = new AbortController();
+        controllerRef.current = controller;
+
+        try {
+            const res = await fetch(url, { signal: controller.signal });
+            return res.json();
+        } catch (err) {
+            if (err.name !== &quot;AbortError&quot;) throw err;
+        }
+    };
+}
+
+// 在组件中使用
+function MyComponent() {
+    const safeFetch = useRaceSafeFetch();
+
+    const handleSearch = (query) =&gt; {
+        safeFetch(`/api?q=${query}`).then((data) =&gt; {
+            // 安全更新状态
+        });
+    };
+}
+</code></pre>
+<h3>最佳实践建议：</h3>
+<ol>
+<li><p><strong>现代项目首选 <code>AbortController</code></strong> - 原生支持且符合标准</p>
+</li>
+<li><p><strong>框架集成</strong>：</p>
+<ul>
+<li>React：结合 <code>useEffect</code> + <code>AbortController</code></li>
+<li>Vue：在组件卸载时自动取消 (<code>onUnmounted</code>)</li>
+</ul>
+</li>
+<li><p><strong>错误处理</strong>：务必检查 <code>error.name === &#39;AbortError&#39;</code></p>
+</li>
+<li><p><strong>性能优化</strong>：添加防抖避免频繁取消请求</p>
+<pre><code class="language-js">// 配合防抖使用 (lodash.debounce)
+const debouncedFetch = debounce(fetchData, 300);
+</code></pre>
+</li>
+</ol>
+<h3>防抖 + AbortController 完整示例</h3>
+<pre><code class="language-js">function createRaceSafeFetcher() {
+    let controller = null;
+    let lastCall = 0;
+
+    return async (query) =&gt; {
+        // 防抖：300ms 内的请求视为同一批次
+        const now = Date.now();
+        if (now - lastCall &lt; 300) {
+            if (controller) controller.abort();
+        }
+        lastCall = now;
+
+        controller = new AbortController();
+
+        try {
+            const res = await fetch(`/api?q=${query}`, {
+                signal: controller.signal,
+            });
+            return res.json();
+        } catch (err) {
+            if (err.name !== &quot;AbortError&quot;) throw err;
+        }
+    };
+}
+
+// 使用
+const safeFetch = createRaceSafeFetcher();
+searchInput.addEventListener(&quot;input&quot;, (e) =&gt; safeFetch(e.target.value));
+</code></pre>
+<p>选择方案的建议：</p>
+<ul>
+<li>浏览器项目：优先使用 <code>AbortController</code></li>
+<li>兼容旧浏览器：请求ID标记法</li>
+<li>React项目：自定义Hook封装</li>
+<li>复杂异步流：考虑RxJS</li>
+</ul>
+<p>这些方案都能有效解决请求竞态问题，核心思路都是 <strong>&quot;使旧请求失效&quot;</strong> 或 <strong>&quot;忽略旧响应&quot;</strong>。实际项目中建议根据技术栈和浏览器支持情况选择最合适的方案。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端流式输出</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>前端流式输出</h1>
+        <p>JavaScript | 2025.07.11</p>
+      </header>
+      <h3>摘要</h3>
+<p>自chatGPT诞生以来，前端页面的流式输出，已经非常常见了。但凡涉及到大模型、AI智能体开发的项目，都离不开前端的流式输出。</p>
+<h3>本文所采用的环境</h3>
+<blockquote>
+<p>node.js v18.20.1</p>
+<p>koa 3.0</p>
+</blockquote>
+<h3>正文</h3>
+<h3>传统的、标准的、典型的SSE</h3>
+<p>SSE（Server-Sent Events）是一种用于在浏览器中从服务器接收数据的技术。它允许服务器向浏览器推送数据，而不需要浏览器主动请求数据。</p>
+<h3>服务端关键</h3>
+<ul>
+<li>响应方法 get</li>
+<li>响应头设置 Content-Type: text/event-stream</li>
+</ul>
+<p>koa 代码</p>
+<pre><code class="language-js">import Router from &quot;koa-router&quot;;
+import { PassThrough } from &quot;node:stream&quot;;
+
+const demo = new Router();
+demo.get(&quot;/sse&quot;, async (ctx) =&gt; {
+    ctx.set({
+        &quot;Content-Type&quot;: &quot;text/event-stream;charset=utf-8&quot;,
+        &quot;Cache-Control&quot;: &quot;no-cache&quot;,
+        Connection: &quot;keep-alive&quot;,
+    });
+
+    let stream = new PassThrough();
+    ctx.status = 200;
+    ctx.body = stream;
+    let str = &quot;大家好，这里展示SSE流式输出的效果。&quot;;
+    sse(str, 0, stream);
+});
+
+function sse(str, i, stream) {
+    if (i === str.length) return stream.end();
+    stream.write(&quot;data: &quot; + JSON.stringify({ value: str[i] }));
+    stream.write(&quot;\n\n&quot;);
+    setTimeout(() =&gt; {
+        sse(str, i + 1, stream);
+    }, Math.random() * 1000);
+}
+</code></pre>
+<h3>服务端注意事项</h3>
+<ul>
+<li>SSE 消息体 每条消息以<code>\n\n</code>结束</li>
+<li>允许自定义消息体，具体可参考EventSource</li>
+</ul>
+<h3>前端关键</h3>
+<ul>
+<li>使用EventSource客户端</li>
+<li>EventSource仅支持GET请求</li>
+<li>服务端消息体要严格按照SSE规范输出</li>
+<li>监听onmessage事件或者服务端自定义事件</li>
+</ul>
+<p>前端代码</p>
+<pre><code class="language-js">const source = new EventSource(&quot;http://localhost:3000/demo/sse&quot;);
+source.onmessage = (e) =&gt; {
+    console.log(e.data);
+};
+</code></pre>
+<h3>前端注意事项</h3>
+<ul>
+<li><strong>单向通信</strong>：SSE是一种单向通信协议，即服务器向客户端推送数据，如需双向通信，需要使用WebSocket。</li>
+<li><strong>自动重连</strong>：EventSource内置了自动重连功能，当连接断开时，会自动重新连接。在上面的例子中，当服务端<code>stream.end()</code>时，EventSource会自动重新连接。所以应当在合适的时机，前端主动断开连接，防止无限重连（<code>source.close()</code>）。</li>
+</ul>
+<h3>总结</h3>
+<p>标准的EventSource实现简单，但仅支持GET请求，无法传输大量数据；不支持自定义Header，也无法实现鉴权。因此，使用场景有限，一般用来实现简单聊天应用、单纯从服务端推送数据到客户端的场景。</p>
+<p>为了满足更多的需求，前端开始花式整活~</p>
+<h3>非标准SSE方式1-服务端按标准的SSE输出，浏览器端使用fetch</h3>
+<p>浏览器端代码</p>
+<pre><code class="language-js">fetch(&quot;http://localhost:3000/demo/sse&quot;).then(async (response) =&gt; {
+    if (response.ok) {
+        let decoder = new TextDecoder(&quot;utf-8&quot;, { stream: true });
+        let reader = response.body?.getReader();
+        while (true) {
+            let { done, value } = await reader.read();
+            if (done) break;
+            let data = decoder.decode(value);
+            console.log(&quot;data：&quot;, data);
+        }
+    }
+});
+</code></pre>
+<h3>注意事项</h3>
+<ul>
+<li>value 原始值是一个<code>ArrayBuffer</code>，需要使用<code>TextDecoder</code>进行解码。</li>
+</ul>
+<h3>非标准SSE方式2-服务端按标准的SSE输出，浏览器端使用普通的XMLHttpRequest</h3>
+<p>浏览器端代码</p>
+<pre><code class="language-js">let xhr = new XMLHttpRequest();
+xhr.open(&quot;GET&quot;, &quot;http://localhost:3000/demo/sse&quot;, true);
+xhr.onprogress = (e) =&gt; {
+    console.log(xhr.responseText);
+};
+xhr.send();
+</code></pre>
+<p>同学们尝试一下，可以发现，这种方式返回的数据是<strong>历次消息体拼接后的结果</strong>。熟悉XMLHttpRequest的同学应该知道，这其实跟文件上传监听上传进度一样的道理，得到的是实时的进度，这样是不是就能理解为何的返回数据是<strong>历次消息体拼接后的结果</strong>了？</p>
+<h3>注意事项</h3>
+<ul>
+<li>XMLHttpRequest并没有真正建立长连接，所以当消息超长时，会面临超时问题。所以，该方式实际是一种“<strong>伪流式传输</strong>”</li>
+<li>由于返回的是历次消息体拼接后的结果，如需处理单个消息体，需要自己实现。</li>
+</ul>
+<h3>非标准SSE方式3-服务端按POST方式输出SSE，浏览器端使用（fetch/XMLHttpRequest）接收</h3>
+<p>此种方式前端代码和方式1、方式2一致，服务端改成POST方式输出SSE，实际效果一致，仅需把GET换成POST，可以支持前端大量数据的传输，可以传输大文件，不在赘述。</p>
+<h3>非标准SSE方式4-服务端按chunked方式输出（分块传输），浏览器端使用fetch接收</h3>
+<p>服务端代码</p>
+<pre><code class="language-js">import Router from &quot;koa-router&quot;;
+import { PassThrough } from &quot;node:stream&quot;;
+
+const demo = new Router();
+
+demo.post(&quot;/chunked&quot;, async (ctx) =&gt; {
+    ctx.set({
+        &quot;Content-Type&quot;: &quot;text/plain;charset=utf-8&quot;,
+        &quot;Transfer-Encoding&quot;: &quot;chunked&quot;,
+        Connection: &quot;keep-alive&quot;,
+    });
+    let stream = new PassThrough();
+    ctx.status = 200;
+    ctx.body = stream;
+    let str = &quot;大家好，这里展示chunked流式输出的效果。&quot;;
+    chunked(str, 0, stream);
+});
+
+function chunked(str, i, res) {
+    if (i === str.length) return res.end();
+    res.write(str[i] + &quot;\r\n&quot;);
+    setTimeout(() =&gt; {
+        chunked(str, i + 1, res);
+    }, Math.random() * 1000);
+}
+</code></pre>
+<p>前端代码</p>
+<pre><code class="language-js">fetch(&quot;http://localhost:3000/demo/chunked&quot;, {
+    method: &quot;POST&quot;,
+}).then(async (response) =&gt; {
+    if (response.ok) {
+        let decoder = new TextDecoder(&quot;utf-8&quot;, { stream: true });
+        let reader = response.body?.getReader();
+        while (true) {
+            let { done, value } = await reader.read();
+            if (done) break;
+            let data = decoder.decode(value);
+            console.log(&quot;data：&quot;, data);
+        }
+    }
+});
+</code></pre>
+<h3>注意事项</h3>
+<ul>
+<li>chunked方式，服务端返回的响应头中，需要设置Transfer-Encoding: chunked，表示返回的是分块传输。</li>
+<li>实际效果发现与SSE一样</li>
+<li>仔细观察可发现，SSE中会默认设置响应头Transfer-Encoding: chunked</li>
+</ul>
+<h3>结尾</h3>
+<p>想要实现流式传输，最佳方案如下：</p>
+<ul>
+<li><p><strong>服务端按照不必严格按照SSE消息体方式传输，GET/POST均可</strong>，只需设置如下响应头即可。</p>
+<blockquote>
+<p>Content-Type: text/event-stream</p>
+<p>Connection: keep-alive</p>
+<p>Cache-Control: no-cache</p>
+<p>Transfer-Encoding: chunked</p>
+</blockquote>
+</li>
+<li><p>浏览器端使用<strong>fetch</strong>接收</p>
+</li>
+</ul>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

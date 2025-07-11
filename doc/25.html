@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端滚动穿透</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>前端滚动穿透</h1>
+        <p>JavaScript | 2025.07.11</p>
+      </header>
+      <p>前端滚动穿透（Scroll Penetration）问题是指当页面上弹出一个模态框（Modal）、侧边抽屉（Drawer）或任何覆盖层时，用户在覆盖层上滑动鼠标滚轮或触摸板时，底层的页面内容也跟着一起滚动。这会给用户带来困惑，并破坏用户体验。</p>
+<h3>滚动穿透问题产生的原因</h3>
+<p>通常，滚动穿透发生在以下情况：</p>
+<ol>
+<li><strong>事件冒泡</strong>: 覆盖层内的滚动事件没有被完全阻止，或者事件冒泡到了 <code>body</code> 或 <code>html</code> 元素，导致底层页面接收到滚动指令。</li>
+<li><strong><code>overflow</code> 属性未正确设置</strong>: 当模态框弹出时，底层页面的 <code>body</code> 或 <code>html</code> 元素的 <code>overflow</code> 属性没有被设置为 <code>hidden</code> 或其他能阻止滚动的值。</li>
+<li><strong>移动端特殊行为</strong>: 尤其在iOS设备上，<code>position: fixed</code> 元素内的滚动和底层页面的滚动行为比较特殊，即使设置了 <code>overflow: hidden</code>，也可能出现弹性滚动或穿透。</li>
+</ol>
+<h3>解决滚动穿透问题的思路和方法</h3>
+<p>解决滚动穿透问题有多种方法，可以根据具体场景和需求选择。</p>
+<h3>1. 设置 <code>body</code> 或 <code>html</code> 的 <code>overflow: hidden</code> (最常用且简单)</h3>
+<p>这是最直接也最常用的方法。当模态框显示时，将 <code>body</code> 或 <code>html</code> 元素的 <code>overflow</code> 属性设置为 <code>hidden</code>，阻止其滚动。当模态框关闭时，再恢复 <code>overflow</code> 属性。</p>
+<p><strong>优点</strong>:</p>
+<ul>
+<li>实现简单，代码量少。</li>
+<li>兼容性较好。</li>
+</ul>
+<p><strong>缺点</strong>:</p>
+<ul>
+<li><strong>滚动位置丢失</strong>: 如果页面在弹出模态框前已经滚动到某个位置，设置 <code>overflow: hidden</code> 后，页面会瞬间跳到顶部（滚动位置丢失）。</li>
+<li><strong>滚动条消失/出现导致页面抖动</strong>: 当 <code>overflow: hidden</code> 导致滚动条消失时，页面的宽度会增加（因为没有了滚动条占据空间），这可能导致页面内容向右移动，产生抖动。反之，滚动条出现时也会抖动。</li>
+</ul>
+<p><strong>解决方案改进 (解决滚动位置丢失和抖动)</strong> :</p>
+<ul>
+<li><p><strong>保存滚动位置并用 <code>position: fixed</code> 模拟</strong>:</p>
+<ol>
+<li>当模态框打开时，记录当前的 <code>scrollTop</code>。</li>
+<li>将 <code>body</code> 的 <code>position</code> 设置为 <code>fixed</code>，<code>top</code> 设置为负的 <code>scrollTop</code> 值，<code>width</code> 设置为 <code>100%</code>。</li>
+<li>同时，为了防止滚动条消失导致的抖动，可以计算滚动条的宽度，并将其作为 <code>padding-right</code> 添加到 <code>body</code> 上。</li>
+<li>当模态框关闭时，恢复 <code>body</code> 的 <code>position</code> 和 <code>top</code>，并移除 <code>padding-right</code>，然后将 <code>scrollTop</code> 恢复到之前保存的值。</li>
+</ol>
+<pre><code class="language-js">let scrollTop;
+function disableBodyScroll() {
+    scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+    document.body.style.cssText = `
+        position: fixed;
+        top: -${scrollTop}px;
+        left: 0;
+        width: 100%;
+        overflow: hidden;
+        padding-right: ${
+    window.innerWidth - document.documentElement.clientWidth
+}px; /* 补偿滚动条宽度 */
+    `;
+}
+
+function enableBodyScroll() {
+    document.body.style.cssText = &quot;&quot;;
+    document.documentElement.scrollTop = scrollTop; // 恢复滚动位置
+    document.body.scrollTop = scrollTop; // 兼容旧浏览器
+}
+
+// 示例使用
+// 当模态框打开时调用 disableBodyScroll()
+// 当模态框关闭时调用 enableBodyScroll()
+</code></pre>
+<p>  <strong>注意</strong>: <code>window.innerWidth - document.documentElement.clientWidth</code> 可以用来获取滚动条的宽度。</p>
+</li>
+</ul>
+<h3>2. 阻止事件冒泡和默认行为 (适用于移动端，尤其是iOS)</h3>
+<p>在移动设备上，特别是iOS，即使设置 <code>overflow: hidden</code>，也可能因为弹性滚动等特性导致穿透。此时，需要更精细地控制触摸事件。</p>
+<ul>
+<li><p><strong>在覆盖层上阻止 <code>touchmove</code> 默认行为</strong>:</p>
+<p>  在模态框的滚动容器上，监听 <code>touchmove</code> 事件，并阻止其默认行为。</p>
+<pre><code class="language-js">const modalContent = document.querySelector(&quot;.modal-content&quot;); // 模态框内部可滚动区域
+if (modalContent) {
+    modalContent.addEventListener(
+        &quot;touchmove&quot;,
+        (e) =&gt; {
+            // 检查是否滚动到了顶部或底部
+            const isAtTop = modalContent.scrollTop === 0;
+            const isAtBottom =
+                  modalContent.scrollHeight - modalContent.scrollTop ===
+                  modalContent.clientHeight;
+
+            // 如果已经滚动到顶部且继续向上滑动，或者滚动到底部且继续向下滑动，则阻止默认行为
+            // 否则，允许模态框内部滚动
+            if ((isAtTop &amp;&amp; e.deltaY &lt; 0) || (isAtBottom &amp;&amp; e.deltaY &gt; 0)) {
+                e.preventDefault();
+            }
+            e.stopPropagation(); // 阻止事件冒泡到body
+        },
+        { passive: false }
+    ); // 设置 passive: false 以允许阻止默认行为
+}
+
+// 在模态框外部的遮罩层上，直接阻止所有 touchmove
+const modalOverlay = document.querySelector(&quot;.modal-overlay&quot;);
+if (modalOverlay) {
+    modalOverlay.addEventListener(
+        &quot;touchmove&quot;,
+        (e) =&gt; {
+            e.preventDefault();
+        },
+        { passive: false }
+    );
+}
+</code></pre>
+<p>  <strong>注意</strong>:</p>
+<ul>
+<li><code>passive: false</code> 是关键，它告诉浏览器你可能会调用 <code>preventDefault()</code>，否则 <code>preventDefault()</code> 可能无效。</li>
+<li>对于模态框内部有滚动区域的情况，需要判断是否滚动到了顶部或底部，只在此时阻止默认行为，否则会阻止模态框内部的正常滚动。</li>
+</ul>
+</li>
+<li><p><strong><code>touch-action: none</code> (CSS 属性)</strong> :</p>
+<p>  <code>touch-action</code> CSS 属性可以用来指定触摸屏用户如何与元素进行交互。设置为 <code>none</code> 可以阻止所有的平移和捏合手势。</p>
+<pre><code class="language-css">.modal-overlay {
+  touch-action: none; /* 阻止所有触摸手势 */
+}
+</code></pre>
+<p>  <strong>优点</strong>: 纯CSS实现，简单。</p>
+<p>  <strong>缺点</strong>:</p>
+<ul>
+<li>兼容性不如JS事件监听广泛（旧浏览器可能不支持）。</li>
+<li>只阻止了元素本身的触摸行为，如果事件冒泡到父元素，可能仍然会穿透。</li>
+<li>通常需要与JS方法结合使用，或作为辅助手段。</li>
+</ul>
+</li>
+</ul>
+<h3>3. 禁用底层页面滚动条 (不推荐，但作为思路了解)</h3>
+<p>在模态框显示时，将底层页面的滚动条隐藏，并让模态框自身拥有滚动条。这种方法比较复杂，且容易出现问题，一般不推荐。</p>
+<h3>4. 使用成熟的UI库或框架</h3>
+<p>如果你正在使用React、Vue、Angular等框架，并使用了它们提供的UI组件库（如Ant Design, Element UI, Material UI等），那么它们的模态框组件通常已经内置了滚动穿透的解决方案，你无需手动处理。</p>
+<p>例如，Ant Design 的 <code>Modal</code> 组件在打开时会自动在 <code>body</code> 上添加 <code>overflow: hidden</code> 和 <code>padding-right</code> 来处理。</p>
+<h3>5. 针对iOS的特殊处理</h3>
+<p>iOS的WebView在处理 <code>position: fixed</code> 和滚动时有其独特之处。</p>
+<ul>
+<li><strong><code>position: fixed</code> 在iOS上的问题</strong>: 在某些iOS版本中，当软键盘弹出时，<code>position: fixed</code> 的元素可能会失效或错位。这与滚动穿透问题略有不同，但都与布局和滚动有关。</li>
+<li><strong><code>webkit-overflow-scrolling: touch</code></strong>: 这个CSS属性可以改善iOS上滚动体验，使其更流畅，但与滚动穿透问题关系不大。</li>
+</ul>
+<h3>总结与选择</h3>
+<ul>
+<li><strong>最推荐的方案</strong>: <strong>方案1的改进版</strong>（保存滚动位置，使用 <code>position: fixed</code> 和 <code>padding-right</code> 补偿滚动条）。它兼顾了用户体验（不丢失滚动位置，不抖动）和实现复杂度。</li>
+<li><strong>移动端（尤其是iOS）补充方案</strong>: 结合<strong>方案2</strong>，在模态框的遮罩层和内容区域（如果可滚动）上监听 <code>touchmove</code> 事件并阻止默认行为，以应对弹性滚动和事件冒泡。</li>
+<li><strong>使用UI库</strong>: 如果项目允许，直接使用成熟的UI库提供的模态框组件是最省心、最可靠的方式。</li>
+</ul>
+<p>在实际开发中，可能需要结合多种方法，并在不同设备上进行充分测试，以确保最佳的兼容性和用户体验。 <code>overscroll-behavior: contain</code> 是一个很好的 CSS 属性，它能有效解决<strong>子元素滚动到边界时父元素继续滚动</strong>的问题。然而，它并不能解决所有滚动穿透的场景，特别是：</p>
+<ul>
+<li>阻止 <code>body</code> 自身的滚动（当模态框弹出时）。</li>
+<li>解决 <code>body</code> 滚动条消失/出现导致的页面抖动。</li>
+<li>阻止直接在非滚动区域（如遮罩层）上滑动导致的底层滚动。</li>
+<li>解决iOS <code>position: fixed</code> 元素的问题。</li>
+</ul>
+<p>因此，<strong>最完整的解决方案</strong>是：</p>
+<ol>
+<li><strong>核心</strong>: 通过 JavaScript 动态控制 <code>body</code> 或 <code>html</code> 的 <code>overflow</code> 属性，并结合 <code>position: fixed</code> 和 <code>padding-right</code> 来保持滚动位置和防止抖动。</li>
+<li><strong>辅助 (移动端)</strong> : 对模态框的遮罩层和内部可滚动元素，使用 <code>touchmove</code> 事件的 <code>e.preventDefault()</code> 和 <code>e.stopPropagation()</code> 来阻止事件冒泡和默认行为。</li>
+<li><strong>优化</strong>: 在模态框内部的可滚动元素上使用 <code>overscroll-behavior: contain</code> 或 <code>none</code>，以进一步优化滚动体验，防止滚动链。</li>
+</ol>
+<p>通过这三者的结合，才能实现对滚动穿透问题的全面且兼容性良好的解决。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

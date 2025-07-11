@@ -96,7 +96,8 @@ async function generateIndex() {
     let articleList = "";
     const categorySet = new Set();
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       const filePath = path.join(srcDir, file);
       const fileContent = fs.readFileSync(filePath, "utf8");
       const { attributes } = frontMatter(fileContent);
@@ -113,7 +114,7 @@ async function generateIndex() {
       } else {
         dateStr = "未知日期";
       }
-      articleList += `<li data-category="${category}"><a href="/${htmlFileName}">${title}</a> <span class="other-info">${category}-${dateStr}</span></li>`;
+      articleList += `<li data-category="${category}"><a href="/${htmlFileName}">${i+1}.${title}</a></li>`;
       categorySet.add(category);
     }
 

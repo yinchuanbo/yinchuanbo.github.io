@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>深入理解 JavaScript 中的柯里化</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>深入理解 JavaScript 中的柯里化</h1>
+        <p>JavaScript | 2025.07.11</p>
+      </header>
+      <h2>什么是柯里化</h2>
+<p>柯里化（Currying）是一种将多参数函数转换为一系列单参数函数的技术，名称来源于数学家 Haskell Curry。在数学领域，柯里化用于将多元函数转换为一元函数的链式调用，这种转换保持了函数的可组合性和数学性质。</p>
+<p>在编程中，柯里化允许我们分步传递参数，当所有参数都传递完毕后，函数才会真正执行。这种技术使得函数更加灵活，便于复用和组合。</p>
+<h2>柯里化的实现过程</h2>
+<p><strong>在该部分，我们先引入rest语法，为后面的讲解进行铺垫，然后介绍柯里化的具体实现过程，以及详细分析该过程中的递归调用。</strong></p>
+<h3>rest 语法… 展开数组</h3>
+<p>在 ES6 中，rest 参数语法（<code>...</code>）允许我们将不定数量的参数表示为一个数组。这对于柯里化实现非常重要：</p>
+<p>展开参数：</p>
+<pre><code class="language-js">function sum(...numbers) {
+    return numbers.reduce((acc, curr) =&gt; acc + curr, 0);
+}
+console.log(sum(1, 2, 3, 4)); // 10
+</code></pre>
+<p>展开数组：</p>
+<pre><code class="language-jsx">const numbers = [1, 2, 3];
+console.log(sum(...numbers)); // 6
+</code></pre>
+<h3>如何柯里化–递归</h3>
+<p>下面是一个基本的柯里化函数实现：</p>
+<p>让我们从一个简单的加法函数开始：</p>
+<pre><code class="language-js">function add(a, b, c) {
+    return a + b + c;
+}
+console.log(add(1, 2, 3)); // 6
+</code></pre>
+<p>柯里化：</p>
+<pre><code class="language-js">function curry(fn) {
+    // fn 是被柯里化的原始函数 例如我们待会要传add
+    // 通过闭包保持对fn的引用
+    let judge = (...args) =&gt; {
+        // 使用ES6 rest参数收集所有传入参数
+        // 这里由于闭包可以访问到外层函数的fn变量
+        if (args.length === fn.length) {
+            // 终止条件：当收集的参数数量等于原函数参数数量时
+            return fn(...args); // 展开参数执行原函数
+        }
+        // 递归逻辑
+        return (...newArgs) =&gt; judge(...args, ...newArgs);
+    };
+    return judge; // 返回柯里化后的函数 例如我们待会要将judge给addCurry
+}
+let addCurry = curry(add); //进行柯里化 addCurry就是函数返回的judge
+
+addCurry(1)(2)(3); //柯里化调用 递归
+</code></pre>
+<h2>柯里化执行过程分析</h2>
+<h3>1. 初始化阶段</h3>
+<pre><code class="language-js">let addCurry = curry(add);
+</code></pre>
+<ul>
+<li><code>curry</code>函数接收<code>add</code>作为参数</li>
+<li>创建并返回<code>judge</code>函数，该函数通过闭包记住了<code>add</code>函数</li>
+</ul>
+<h3>2. 第一次调用：addCurry(1)</h3>
+<pre><code class="language-js">const step1 = addCurry(1);
+</code></pre>
+<ul>
+<li>传入第一个参数1，<code>args = [1]</code></li>
+<li><code>args.length(1) &lt; add.length(3)</code>，不满足执行条件</li>
+<li>返回一个新函数：<code>(...newArgs) =&gt; judge(1, ...newArgs)</code></li>
+</ul>
+<h3>3. 第二次调用：step1(2)</h3>
+<pre><code class="language-js">const step2 = step1(2);
+</code></pre>
+<ul>
+<li>传入第二个参数2，<code>args = [1, 2]</code></li>
+<li><code>args.length(2) &lt; add.length(3)</code>，仍不满足</li>
+<li>返回新函数：<code>(...newArgs) =&gt; judge(1, 2, ...newArgs)</code></li>
+</ul>
+<h3>4. 第三次调用：step2(3)</h3>
+<pre><code class="language-js">const result = step2(3);
+</code></pre>
+<ul>
+<li>传入第三个参数3，<code>args = [1, 2, 3]</code></li>
+<li><code>args.length(3) === add.length(3)</code>，满足执行条件</li>
+<li>执行<code>add(1, 2, 3)</code>并返回结果6</li>
+</ul>
+<h3>介绍该实现过程中的闭包应用</h3>
+<p><strong>闭包机制</strong>：</p>
+<p><strong>讲讲这里闭包的形成</strong></p>
+<pre><code class="language-js">function curry(fn) {  // 外部函数
+    let judge = (...args) =&gt; {  // 内部函数
+
+        if (args.length === fn.length) {// 由于闭包，可以访问fn
+            return fn(...args);  //由于闭包可以访问args
+        }
+        return (...newArgs) =&gt; judge(...args, ...newArgs);  //由于闭包可以访问args
+    }
+    return judge;  // 返回内部函数
+}
+</code></pre>
+<p><strong>curry的fn闭包：</strong> 当执行<code>const addCurry = curry(add)</code>时：</p>
+<ol>
+<li><code>curry</code>函数执行，创建了一个作用域，其中包含：<ul>
+<li>参数<code>fn</code>（指向<code>add</code>函数）</li>
+<li>局部函数<code>judge</code></li>
+</ul>
+</li>
+<li><code>curry</code>返回<code>judge</code>函数，但<code>judge</code>函数仍然保持着对<code>fn</code>的引用</li>
+<li>即使<code>curry</code>函数执行完毕，其作用域也不会被销毁，因为<code>judge</code>函数还在引用其中的<code>fn</code>变量</li>
+</ol>
+<p><strong>递归时的闭包：</strong> 当柯里化函数被多次调用时，会形成闭包链：</p>
+<pre><code class="language-js">addCurry(1)(2)(3);
+</code></pre>
+<ol>
+<li><code>addCurry(1)</code>：<ul>
+<li>创建新作用域，<code>args = [1]</code></li>
+<li>返回新函数，该函数闭包包含了<code>args</code>和原始<code>fn</code></li>
+</ul>
+</li>
+<li><code>(2)</code>：<ul>
+<li>创建新作用域，<code>newArgs = [2]</code></li>
+<li>合并参数<code>[1, 2]</code></li>
+<li>返回新函数，闭包包含了合并后的参数和原始<code>fn</code></li>
+</ul>
+</li>
+<li><code>(3)</code>：<ul>
+<li>参数足够，调用原始<code>fn(1, 2, 3)</code></li>
+</ul>
+</li>
+</ol>
+<h2>柯里化在 JS 中的应用</h2>
+<p>最后讲讲柯里化在JS中的应用！柯里化在 JavaScript 中有多种实用场景：</p>
+<ol>
+<li><strong>参数复用</strong>：</li>
+</ol>
+<pre><code class="language-js">const add5 = curriedAdd(5);console.log(add5(10)(15)); // 30
+</code></pre>
+<ol>
+<li><strong>延迟执行</strong>：</li>
+</ol>
+<pre><code class="language-js">// 先收集参数，需要时再执行
+const fetchData = curry((url, params) =&gt; {
+    // 实际请求逻辑
+});
+
+const getUser = fetchData(&#39;/api/user&#39;);
+// 需要时再传入剩余参数
+getUser({ id: 123 });
+</code></pre>
+<ol>
+<li><strong>函数组合</strong>：</li>
+</ol>
+<pre><code class="language-js">const compose =
+      (...fns) =&gt;
+(x) =&gt;
+fns.reduceRight((v, f) =&gt; f(v), x);
+
+const toUpperCase = (str) =&gt; str.toUpperCase();
+const exclaim = (str) =&gt; str + &quot;!&quot;;
+
+const shout = compose(exclaim, toUpperCase);
+console.log(shout(&quot;hello&quot;)); // &quot;HELLO!&quot;
+</code></pre>
+<ol>
+<li><strong>React 高阶组件</strong>：</li>
+</ol>
+<pre><code class="language-js">const withProps = curry((props, Component) =&gt; {
+    return (ownProps) =&gt; &lt;Component {...ownProps} {...props} /&gt;;
+});
+
+const withUser = withProps({ user: currentUser });
+const EnhancedComponent = withUser(MyComponent);
+</code></pre>
+<h2>总结</h2>
+<p>柯里化是一种强大的函数式编程技术，它通过将多参数函数转换为一系列单参数函数，提供了更大的灵活性和可组合性。在 JavaScript 中，我们可以利用闭包和递归优雅地实现柯里化，并在各种场景中应用它：</p>
+<ul>
+<li>参数复用和部分应用</li>
+<li>延迟函数执行</li>
+<li>函数组合和管道</li>
+<li>创建更专门化的函数版本</li>
+</ul>
+<p>虽然柯里化可能带来一些性能上的考虑（每次调用都会创建新的函数），但在大多数应用中，它带来的代码清晰度和可维护性的提升远远超过了这点微小的性能开销。掌握柯里化可以让你写出更加声明式、模块化的 JavaScript 代码。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
