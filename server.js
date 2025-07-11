@@ -94,28 +94,38 @@ async function generateIndex() {
     const files = fs.readdirSync(srcDir).filter((file) => file.endsWith(".md"));
     let articleList = "";
     const categorySet = new Set();
+    const articles = [];
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    // 收集所有文章信息
+    for (const file of files) {
       const filePath = path.join(srcDir, file);
       const fileContent = fs.readFileSync(filePath, "utf8");
       const { attributes } = frontMatter(fileContent);
       const htmlFileName = path.basename(file, ".md") + ".html";
       const title = attributes.title || "无标题";
       const category = attributes.category || "未分类";
-      let dateStr = attributes.date;
-      if (dateStr) {
-        const date = new Date(dateStr);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        dateStr = `${year}.${month}.${day}`;
-      } else {
-        dateStr = "未知日期";
-      }
-      articleList += `<li data-category="${category}"><a href="/${htmlFileName}">${i+1}.${title}</a></li>`;
+      let date = attributes.date ? new Date(attributes.date) : new Date(0);
+      
+      articles.push({
+        title,
+        category,
+        date,
+        htmlFileName
+      });
       categorySet.add(category);
     }
+
+    // 按日期倒序排序
+    articles.sort((a, b) => b.date - a.date);
+
+    // 生成文章列表
+    articles.forEach((article, index) => {
+      const dateStr = article.date.getTime() > 0 
+        ? `${article.date.getFullYear()}.${String(article.date.getMonth() + 1).padStart(2, "0")}.${String(article.date.getDate()).padStart(2, "0")}`
+        : "未知日期";
+      
+      articleList += `<li data-category="${article.category}"><a href="/${article.htmlFileName}">${files.length - index}. ${article.title} <span class="article-date">${dateStr}</span></a></li>`;
+    });
 
     // 生成分类按钮
     let categoryFilter = `<button class="category-btn" data-category="all">全部</button>`;
