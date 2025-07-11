@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>跨过前端工程化建设的三座大山</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>跨过前端工程化建设的三座大山</h1>
+        <p>工程化 | 2025.07.11</p>
+      </header>
+      <h2>前言</h2>
+<p>现如今前端构建打包工具层出不穷，有  <code>Webpack</code>、<code>Vite</code>、<code>Rollup</code>...，但无论是哪一个工具，还是从一个工具切换到一个新颖的工具，实际上最终都离不开  <strong>解析编译</strong>，<strong>模块分包</strong>，<strong>压缩优化</strong>三个阶段。本文使用  <code>Webpack5</code>  解释并配置这三个阶段。</p>
+<h2>三大阶段</h2>
+<p>整篇文章都会围绕以下这张图讲解。最左边是多入口的业务文件，中间是构建打包三个阶段，最右边是产物文件。</p>
+<p><img src="../images/09/image.png" alt="image.png"></p>
+<h3>解析编译</h3>
+<h3>入口</h3>
+<p>Webpack 在读取配置的时候会先读取 entry 字段，该字段就是入口文件地址。</p>
+<pre><code class="language-js">entry: {
+    &#39;entry1&#39;: path.resolve(process.cwd(), &#39;./app/entry1/entry1.js&#39;),
+    &#39;entry2&#39;: path.resolve(process.cwd(), &#39;./app/entry2/entry2.js&#39;)
+}
+</code></pre>
+<h3>输出路径</h3>
+<p>不同环境文件的输出路径有所不同。</p>
+<h3>生产环境</h3>
+<pre><code class="language-json">output: {
+    // 文件名
+    filename: &#39;js/[name]_[chunkhash:8].bundle.js&#39;,
+    // 输出路径
+    path: path.resolve(process.cwd(), &#39;./app/public/dist/prod/&#39;),
+    // 公共路径
+    publicPath: &#39;/dist/prod/&#39;
+},
+</code></pre>
+<h3>开发环境</h3>
+<p>开发环境不需要文件落地，通过 devServer (下面会讲如何使用中间件实现)放置到内存中。</p>
+<pre><code class="language-json">output: {
+    filename: &#39;js/[name]_[chunkhash:8].bundle.js&#39;,
+    path: path.resolve(process.cwd(), &#39;./app/public/dist/dev/&#39;), // 输出文件存储路径
+    publicPath: `http://${DEV_SERVER_CONFIG.HOST}:${DEV_SERVER_CONFIG.PORT}/public/dist/dev/`, // 外部资源文件公共路径
+},
+</code></pre>
+<h3>模块解析</h3>
+<p>有一些模块需要通过解析器进行被更好的识别/兼容/优化。比如 <code>.vue</code> 结尾的文件需要转换成 <code>.js</code> 结尾才能被浏览器识别，<code>.less</code> 结尾的文件需要转换成 .css 结尾的文件，.css 结尾的文件需要转换成 style 标签 ...</p>
+<p>模块解析需要配置在 module 字段下面。</p>
+<pre><code class="language-json">// 模块解析配置(决定了要加载解析哪些模块, 以及用什么方式去解释)
+module: {
+    rules: [],
+},
+</code></pre>
+<p>处理 .vue 文件</p>
+<pre><code class="language-json">{
+    test: /.vue$/,
+    use: {
+        loader: &#39;vue-loader&#39;,
+    },
+},
+</code></pre>
+<p><strong>处理 .js 文件</strong></p>
+<pre><code class="language-json">{
+    test: /.js$/,
+    include: [
+        // 只对业务代码进行 babel 处理
+        path.resolve(process.cwd(), &#39;./app/pages&#39;),
+    ],
+    use: {
+        loader: &#39;babel-loader&#39;,
+    },
+},
+</code></pre>
+<h3>处理资源文件</h3>
+<p>对小图片进行 base64 转换。</p>
+<pre><code class="language-json">{
+    test: /.(png|jpe?g|gif|svg)(?.+)?$/,
+    use: {
+        loader: &#39;url-loader&#39;,
+        options: {
+            limit: 300
+        },
+    },
+},
+</code></pre>
+<p>在引入其他静态文件的时候，输出到 output 目录，并且修改成正确的 url。</p>
+<pre><code class="language-json">{
+    test: /.(eot|svg|ttf|woff|woff2)(?\S*)?$/,
+    use: &#39;file-loader&#39;,
+},
+</code></pre>
+<h3>处理 css 相关文件</h3>
+<p>less -&gt; css</p>
+<p>css -&gt; style</p>
+<pre><code class="language-json">{
+    test: /.css$/,
+    use: [&#39;style-loader&#39;, &#39;css-loader&#39;],
+},
+{
+    test: /.less$/,
+    use: [&#39;style-loader&#39;, &#39;css-loader&#39;, &#39;less-loader&#39;],
+},
+</code></pre>
+<h3><strong>文件扩展名和路径别名</strong></h3>
+<pre><code class="language-json">resolve: {
+    // import xxx from &#39;./xxx.vue&#39; -&gt; import xxx from &#39;./xxx&#39;
+    extensions: [&#39;.js&#39;, &#39;.vue&#39;, &#39;.less&#39;, &#39;.css&#39;],
+    alias: {
+        // 配置别名 ./app/pages/xxx -&gt; $pages/xxx
+        $pages: path.resolve(process.cwd(), &#39;./app/pages&#39;),
+        $store: path.resolve(process.cwd(), &#39;./app/pages/store&#39;),
+    },
+},
+</code></pre>
+<h3><strong>plugins</strong></h3>
+<pre><code class="language-json">plugins: [
+    // 处理 .vue 文件
+    // 它的职责是将你定义过的其它规则复制并应用到 .vue 文件里。
+    // 例如，如果你有一条匹配 /.js$/ 的规则，那么它会应用到 .vue 文件里的 &lt;script&gt; 块。
+    new VueLoaderPlugin(),
+    // 把第三方库暴露到 window context 下
+    new webpack.ProvidePlugin({
+        Vue: &#39;vue&#39;,
+        axios: &#39;axios&#39;,
+        _: &#39;lodash&#39;,
+    }),
+    // 构造最终渲染的页面模板 entry1
+    new HtmlWebpackPlugin({
+        // 产物 (最终模板) 输出路径
+        filename: path.resolve(process.cwd(), &#39;./app/public/dist/&#39;, &#39;entry.page1.tpl&#39;),
+        // 指定要使用的模板文件
+        template: path.resolve(process.cwd(), &#39;./app/view/entry.tpl&#39;),
+        // 要注入的代码块 与入口对应
+        chunks: [&#39;entry1&#39;],
+    }),
+    // 构造最终渲染的页面模板 entry2
+    new HtmlWebpackPlugin({
+        // 产物 (最终模板) 输出路径
+        filename: path.resolve(process.cwd(), &#39;./app/public/dist/&#39;, &#39;entry.page2.tpl&#39;),
+        // 指定要使用的模板文件
+        template: path.resolve(process.cwd(), &#39;./app/view/entry.tpl&#39;),
+        // 要注入的代码块 与入口对应
+        chunks: [&#39;entry2&#39;],
+    })
+],
+</code></pre>
+<h3>模块分包</h3>
+<p>把 js 文件打包成三个类型:</p>
+<ol>
+<li>vendor: 第三方库，基本不会改，除非依赖升级。</li>
+<li>common: 业务组件的公共部分抽取出来，改动较少。</li>
+<li>entry.{page}: 不同页面 entry 里的业务组件代码的差异部分，会经常改动。</li>
+</ol>
+<blockquote>
+<p>目的：把改动和引用频率不一样的 js 区分出来，以达到更好利用浏览器缓存的效果</p>
+</blockquote>
+<pre><code class="language-js">// 配置打包输出优化 (代码分割, 模块合并 等优化策略)
+optimization: {
+    splitChunks: {
+      chunks: &#39;all&#39;, // 对同步和异步模块都进行分割
+      maxAsyncRequests: 10, // 每个异步加载模块最多的并行请求数
+      maxInitialRequests: 10, // 一个入口的最大并行请求数
+      cacheGroups: {
+        vendor: {
+          // 第三方依赖库
+          test: /[\/]node_modules[\/]/, // 匹配 node_modules 目录下的模块
+          name: &#39;vendor&#39;, // 模块名称
+          priority: 20, // 优先级 数字越大优先级越高
+          enforce: true, // 强制执行
+          reuseExistingChunk: true, // 复用已经存在的 chunk
+        },
+        common: {
+          // 公共模块
+          test: /[\/]common|widgets[\/]/,
+          name: &#39;common&#39;,
+          minChunks: 2, // 最少引用次数
+          minSize: 1, // 最小分割文件大小 字节为单位
+          priority: 10,
+          reuseExistingChunk: true,
+        },
+      },
+    },
+    // 将 webpack 运行时的代码单独抽离出来 runtime.js
+    runtimeChunk: true,
+}
+</code></pre>
+<h3>压缩/优化</h3>
+<h3>生产环境</h3>
+<h3>css</h3>
+<p>多线程处理 happypack</p>
+<p>抽离公共部分 MiniCssExtractPlugin</p>
+<p>压缩 CSSMinimizerPlugin</p>
+<pre><code class="language-js">// 多线程 build 设置
+const happypackCommonConifig = {
+debug: false,
+threadPool: HappyPack.ThreadPool({ size: os.cpus().length }),
+};
+
+module: {
+    rules: [{
+        test: /.css$/,
+        use: [MiniCssExtractPlugin.loader, &#39;happypack/loader?id=css&#39;],
+    }]
+},
+
+plugins: [{
+    // 提取 css 的公共部分
+    new MiniCssExtractPlugin({
+      chunkFilename: &#39;css/[name]_[chunkhash:8].bundle.css&#39;, // 非入口 chunk 的名称
+    }),
+    // 优化并压缩 css 资源
+    new CSSMinimizerPlugin(),
+    // 多线程打包 CSS，加快打包速度
+    new HappyPack({
+      ...happypackCommonConifig,
+      id: &#39;css&#39;,
+      loaders: [
+        {
+          path: &#39;css-loader&#39;,
+          options: {
+            importLoaders: 1,
+          },
+        },
+      ],
+    }),
+}]
+</code></pre>
+<h3>js</h3>
+<p>多线程处理 loader happypack</p>
+<p>并行压缩 TerserWebpackPlugin</p>
+<pre><code class="language-js">module: {
+    rules: [{
+        test: /.js$/,
+        include: [
+          // 只对业务代码进行 babel 处理，加快 webpack 打包速度
+          path.resolve(process.cwd(), &#39;./app/pages&#39;),
+        ],
+        use: [&#39;happypack/loader?id=js&#39;],
+    }]
+},
+plugins: [
+    // 多线程打包 JS，加快打包速度
+    new HappyPack({
+      ...happypackCommonConifig,
+      id: &#39;js&#39;,
+      loaders: [
+        `babel-loader?${JSON.stringify({
+          presets: [&#39;@babel/preset-env&#39;],
+          plugins: [
+            &#39;@babel/plugin-transform-runtime&#39;
+          ],
+        })}`,
+      ],
+    }),
+]
+optimization: {
+    // 使用 TerserPlugin 的并发和缓存，提升压缩阶段性能
+    // 清除 console.log
+    minimize: true,
+    minimizer: [
+      new TerserWebpackPlugin({
+        parallel: true, // 利用多核 CPU 进行压缩
+        cache: true, // 启动缓存来加速构建过程
+        terserOptions: {
+          compress: {
+            drop_console: true, // 删除所有的 `console` 语句
+          },
+        },
+      }),
+    ],
+}
+</code></pre>
+<h3>其他优化</h3>
+<p>打包前清空目录</p>
+<pre><code class="language-js">plugins: [
+  // 每次 build 前，清空 public/dist 目录
+  new CleanWebpackPlugin([&quot;public/dist&quot;], {
+    root: path.resolve(process.cwd(), &quot;./app/&quot;),
+    exclude: [],
+    verbose: true,
+    dry: false,
+  }),
+];
+</code></pre>
+<h3>开发环境</h3>
+<h3>热更新 HMR</h3>
+<p>开启 devServer 去热更新，需要具备两种能力，一种是监控文件变化的能力，一种是通知页面可以去更新代码的能力。</p>
+<p>启动 devServer 的时候，可以将打包构建的其他代码放入内存，将双向通信的代码片段注入模板文件，当启动模块页的服务时就能建立与 devServer 双向通信的桥梁。</p>
+<p><img src="../images/09/image%201.png" alt="image.png"></p>
+<h3>devServer</h3>
+<p>前置配置</p>
+<pre><code class="language-js">const DEV_SERVER_CONFIG = {
+  HOST: &quot;127.0.0.1&quot;,
+  PORT: 9002,
+  HMR_PATH: &quot;__webpack_hmr&quot;, // 官方规定
+  TIMEOUT: 20000,
+};
+</code></pre>
+<p>这里使用 express 启动服务器，然后使用下面两个中间件：</p>
+<p>监听文件改动：webpack-dev-middleware</p>
+<p>通知文件更新：webpack-hot-middleware</p>
+<pre><code class="language-js">// 本地开发启动 devServer 配置
+const express = require(&quot;express&quot;);
+const path = require(&quot;path&quot;);
+const webpack = require(&quot;webpack&quot;);
+const consoler = require(&quot;consoler&quot;);
+const devMiddleware = require(&quot;webpack-dev-middleware&quot;);
+const hotMiddleware = require(&quot;webpack-hot-middleware&quot;);
+const webpackDevConfig = require(&quot;./config/webpack.dev.js&quot;);
+const app = express();
+
+// 从 webpack.dev.js 获取 webpack 配置 和 devServer 配置
+const { webpackConfig, DEV_SERVER_CONFIG } = webpackDevConfig;
+
+const compiler = webpack(webpackConfig);
+
+// 指定静态文件目录
+app.use(express.static(path.join(__dirname, &quot;../public/dist&quot;)));
+// 引用 webpack-dev-middleware 中间件  (监控文件改动)
+app.use(
+  devMiddleware(compiler, {
+    // 落地文件: 生成的 tpl
+    writeToDisk: (filePath) =&gt; filePath.endsWith(&quot;.tpl&quot;),
+    // 资源路径
+    publicPath: webpackConfig.output.publicPath,
+
+    // headers 配置
+    headers: {
+      &quot;Access-Control-Allow-Origin&quot;: &quot;*&quot;,
+      &quot;Access-Control-Allow-Method&quot;: &quot;GET,POST,PUT,DELETE,OPTIONS,PATCH&quot;,
+      &quot;Access-Control-Allow-Headers&quot;:
+        &quot;X-Requested-With,content-type,Authorization&quot;,
+    },
+    // 控制台输出
+    stats: {
+      colors: true,
+    },
+  })
+);
+// 引用 webpack-hot-middleware 中间件  (热更新通讯)
+app.use(
+  hotMiddleware(compiler, {
+    log: () =&gt; {},
+    path: `/${DEV_SERVER_CONFIG.HMR_PATH}`,
+  })
+);
+
+consoler.info(&quot;请等待 webpack 初次构建完成提示...&quot;);
+
+// 启动 devServer
+const port = DEV_SERVER_CONFIG.PORT;
+app.listen(port, () =&gt; {
+  console.log(`app listening on port ${port}`);
+});
+</code></pre>
+<p>HMR 相关的 Webpack 配置</p>
+<pre><code class="language-js">entry: {
+    // 注入代码
+    &#39;entry1&#39;: [
+        path.resolve(process.cwd(), &#39;./app/entry1/entry1.js&#39;),
+        `webpack-hot-middleware/client?path=http://${DEV_SERVER_CONFIG.HOST}:${DEV_SERVER_CONFIG.PORT}/${DEV_SERVER_CONFIG.HMR_PATH}?timeout=${DEV_SERVER_CONFIG.TIMEOUT}&amp;reload=true`,
+    ],
+    &#39;entry2&#39;: [
+        path.resolve(process.cwd(), &#39;./app/entry2/entry2.js&#39;),
+        `webpack-hot-middleware/client?path=http://${DEV_SERVER_CONFIG.HOST}:${DEV_SERVER_CONFIG.PORT}/${DEV_SERVER_CONFIG.HMR_PATH}?timeout=${DEV_SERVER_CONFIG.TIMEOUT}&amp;reload=true`,
+    ]
+},
+output: {
+    filename: &#39;js/[name]_[chunkhash:8].bundle.js&#39;,
+    path: path.resolve(process.cwd(), &#39;./app/public/dist/dev/&#39;), // 输出文件存储路径
+    publicPath: `http://${DEV_SERVER_CONFIG.HOST}:${DEV_SERVER_CONFIG.PORT}/public/dist/dev/`, // 外部资源文件公共路径
+},
+// 开发阶段插件
+plugins: [
+    // 实现热模块替换
+    // 模块热替换允许在运行时更新各种模块
+    new webpack.HotModuleReplacementPlugin({
+      multiStep: false,
+    }),
+]
+</code></pre>
+<h3>其他优化</h3>
+<p>开启 sourceMap，呈现代码的映射关系，便于在开发过程中调试代码</p>
+<pre><code class="language-jsx">devtool: &#39;eval-cheap-module-source-map&#39;,
+</code></pre>
+<h2>总结</h2>
+<p>以上就是使用  <code>Webpack5</code>  实现前端构建打包过程中的三个阶段。这里无论是哪种构建工具都可以实现这三个阶段，<strong>工具可以变，使用方式可以变，但核心原理核心阶段都是不变的</strong>。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

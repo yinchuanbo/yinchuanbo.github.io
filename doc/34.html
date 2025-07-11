@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>模块联邦：更快的微前端方式！</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>模块联邦：更快的微前端方式！</h1>
+        <p>工程化 | 2025.07.11</p>
+      </header>
+      <h2>什么是模块联邦</h2>
+<p>在前端项目中，不同团队之间的业务模块可能有耦合，比如 A 团队的页面里有一个富文本模块（组件），而 B 团队 的页面恰好也需要使用这个富文本模块。</p>
+<p>传统模式下，B 团队只能去抄 A 团队的代码，把这个组件放到自己的项目了。</p>
+<p><img src="../images/07/image.png" alt="image.png"></p>
+<p>为了解决不同服务之间组件共享的问题，Webpack 的模块联邦功能应用而生。借助模块联邦，可以在 B 服务运行时，动态加载 A 服务「<strong>暴露的模块</strong>」。</p>
+<blockquote>
+<p>Vite 通过  vite-plugin-federation 插件也可以实现</p>
+</blockquote>
+<h2>模块联邦的核心优势</h2>
+<p>结合模块联邦的原理与功能，它具有以下显著优势：</p>
+<ul>
+<li><strong>「独立部署」</strong>：各个应用可独立开发、构建和部署，互不依赖。</li>
+<li><strong>「运行时共享」</strong>：模块在运行时动态加载，无需在构建阶段打包进主应用。</li>
+<li><strong>「版本控制」</strong>：支持为共享模块指定版本，便于多项目之间的依赖管理。</li>
+<li><strong>「减少重复代码」</strong>：多个应用可共享功能模块，避免重复实现。</li>
+</ul>
+<p>相比 qiankun 等微前端方案，模块联邦在灵活性上更具优势。qiankun 侧重于加载整个子应用，而模块联邦支持按需加载特定模块，粒度更细，使用更灵活。</p>
+<h2>如何实现</h2>
+<p>以 Vite+Vue 为例。</p>
+<p>假设我们有 Vite 应用：</p>
+<ul>
+<li><code>ui-library</code>：组件提供者，暴露一个按钮组件  <code>SharedButton.vue</code>。</li>
+<li><code>main-app</code>：主应用，运行时动态加载  <code>ui-library</code>  中的按钮组件来使用。</li>
+</ul>
+<pre><code class="language-bash">shixiaoshi-demo/
+│
+├── ui-library/     # 远程模块：暴露组件
+│   ├── src/SharedButton.vue
+│   ├── vite.config.js
+│
+└── main-app/       # 主项目：加载远程组件
+    ├── src/App.vue
+    ├── vite.config.js
+</code></pre>
+<h3>1.安装模块联邦插件</h3>
+<p>我们需要使用  vite-plugin-federation 插件。</p>
+<pre><code class="language-bash">npm install vite-plugin-federation --save-dev
+</code></pre>
+<h3>2.暴露组件</h3>
+<ul>
+<li><code>ui-library/src/SharedButton.vue</code></li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;button class=&quot;shared-btn&quot;&gt;我是共享按钮&lt;/button&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;&lt;/script&gt;
+
+&lt;style scoped&gt;
+  .shared-btn {
+    padding: 10px;
+    background-color: teal;
+    color: white;
+    border: none;
+    border-radius: 5px;
+  }
+&lt;/style&gt;
+</code></pre>
+<p>• <code>ui-library/vite.config.js</code></p>
+<pre><code class="language-js">import { defineConfig } from &quot;vite&quot;;
+import vue from &quot;@vitejs/plugin-vue&quot;;
+import federation from &quot;@originjs/vite-plugin-federation&quot;;
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    federation({
+      name: &quot;ui_library&quot;,
+      filename: &quot;remoteEntry.js&quot;,
+      exposes: {
+        &quot;./SharedButton&quot;: &quot;./src/SharedButton.vue&quot;,
+      },
+      shared: [&quot;vue&quot;],
+    }),
+  ],
+  build: {
+    target: &quot;esnext&quot;,
+    minify: false,
+    cssCodeSplit: false,
+  },
+});
+</code></pre>
+<p>「启动服务」</p>
+<pre><code class="language-jsx">npm run dev -- --port=5001
+</code></pre>
+<p>暴露地址：<code>http://localhost:5001/assets/remoteEntry.js</code></p>
+<h3>3.加载远程组件</h3>
+<ul>
+<li><code>main-app/vite.config.js</code></li>
+</ul>
+<pre><code class="language-js">import { defineConfig } from &quot;vite&quot;;
+import vue from &quot;@vitejs/plugin-vue&quot;;
+import federation from &quot;@originjs/vite-plugin-federation&quot;;
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    federation({
+      name: &quot;main_app&quot;,
+      remotes: {
+        ui_library: &quot;http://localhost:5001/assets/remoteEntry.js&quot;,
+      },
+      shared: [&quot;vue&quot;],
+    }),
+  ],
+});
+</code></pre>
+<ul>
+<li>main-app/src/App.vue</li>
+</ul>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div&gt;
+    &lt;h1&gt;主应用&lt;/h1&gt;
+    &lt;RemoteButton /&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+  import { defineAsyncComponent } from &quot;vue&quot;;
+  // 从 ui-library 中动态加载共享组件
+  const RemoteButton = defineAsyncComponent(() =&gt;
+    import(&quot;ui_library/SharedButton&quot;)
+  );
+&lt;/script&gt;
+</code></pre>
+<ul>
+<li>启动主应用</li>
+</ul>
+<pre><code class="language-bash">npm run dev
+</code></pre>
+<p>访问  <code>http://localhost:5173</code>，你会看到来自  <code>ui-library</code>  的按钮组件成功渲染！</p>
+<h2>主应用与子组件关系图</h2>
+<pre><code class="language-bash">main-app (主应用)
+   |
+   | -- 在运行时访问 --&gt;
+   |    http://localhost:5001/assets/remoteEntry.js
+   |
+   | -- 加载 --&gt;
+   |    ui-library 中暴露的 SharedButton.vue
+   |
+   | -- 使用 --&gt;
+   |    作为主应用的本地组件一样渲染
+</code></pre>
+<h2>缺陷</h2>
+<p>在实际使用中，模块联邦也存在一些问题。</p>
+<p>以我们项目开发中遇到的问题为例，当应用 A 加载应用 B 中的某个组件时，B 的代码执行环境会落在 A 的作用域下。这会带来一些潜在影响：</p>
+<ul>
+<li><strong>「依赖冲突问题」</strong>：如果 B 服务依赖特定版本的 Vue，而 A 服务的 Vue 版本不同，实际运行时组件会使用 A 的 Vue 实例，可能导致行为异常，特别是在响应式系统、生命周期等细节方面。</li>
+<li><strong>「状态失效问题」</strong>：如果 B 中的组件依赖 Vuex 或 Pinia 等状态管理工具，运行时由于上下文切换，可能无法正确获取或响应状态，导致 store 在远程加载后失效。</li>
+<li><strong>「构建配置差异问题」</strong>：例如，B 使用了自动引入插件（如 unplugin-auto-import），可以在代码中直接使用  <code>ref</code>、<code>computed</code>  等 Vue API 而无需显式导入；但若 A 没有启用相同插件，加载 B 的组件时会因缺少这些 API 导致运行错误，除非显式引入相关函数。</li>
+</ul>
+<p>因此，在使用模块联邦时，建议主应用与远程模块在框架版本、构建工具、插件配置等方面尽可能保持一致，或通过适配包装进行隔离，以减少因上下文差异带来的问题。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
