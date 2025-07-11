@@ -12,7 +12,6 @@ const templatePath = path.join(__dirname, "templates", "template.html");
 const indexTemplatePath = path.join(__dirname, "templates", "index.html");
 
 // 设置静态文件目录
-app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(docDir));
 
 // 读取模板文件
