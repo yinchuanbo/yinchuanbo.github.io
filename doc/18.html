@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端监控体系搭建</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>前端监控体系搭建</h1>
+        <p>监控体系 | 2025.07.11</p>
+      </header>
+      <h3>概览</h3>
+<blockquote>
+<ul>
+<li>为什么要做前端监控</li>
+<li>前端监控目标</li>
+<li>前端监控流程</li>
+<li>编写采集脚本<ul>
+<li>日志系统监控</li>
+<li>错误监控</li>
+<li>接口异常</li>
+<li>白屏监控</li>
+<li>加载时间</li>
+<li>性能指标</li>
+<li>卡顿</li>
+<li>pv</li>
+</ul>
+</li>
+<li><a href="https://juejin.cn/post/7078512301665419295#qa" title="#qa">扩展问题</a><ol>
+<li>性能监控指标</li>
+<li>前端怎么做性能监控</li>
+<li>线上错误监控怎么做</li>
+<li>导致内存泄漏的方法，怎么监控内存泄漏</li>
+<li>Node 怎么做性能监控</li>
+</ol>
+</li>
+</ul>
+</blockquote>
+<h3><a href="https://link.juejin.cn/?target=https%3A%2F%2Fgithub.com%2Fmiracle90%2Fmonitor" title="https://github.com/miracle90/monitor">源码地址</a></h3>
+<h2>1. 为什么要做前端监控</h2>
+<ul>
+<li>更快的发现问题和解决问题</li>
+<li>做产品的决策依据</li>
+<li>为业务扩展提供了更多可能性</li>
+<li>提升前端工程师的技术深度和广度，打造简历亮点</li>
+</ul>
+<h2>2. 前端监控目标</h2>
+<h3>2.1 稳定性 stability</h3>
+<ul>
+<li>js 错误：js 执行错误、promise 异常</li>
+<li>资源错误：js、css 资源加载异常</li>
+<li>接口错误：ajax、fetch 请求接口异常</li>
+<li>白屏：页面空白</li>
+</ul>
+<h3>2.2 用户体验 experience</h3>
+<h3>2.3 业务 business</h3>
+<ul>
+<li>pv：页面浏览量和点击量</li>
+<li>uv：访问某个站点的不同 ip 的人数</li>
+<li>用户在每一个页面的停留时间</li>
+</ul>
+<h2>3. 前端监控流程</h2>
+<ol>
+<li>前端埋点</li>
+<li>数据上报</li>
+<li>加工汇总</li>
+<li>可视化展示</li>
+<li>监控报警</li>
+</ol>
+<p><img src="../images/05/01.awebp" alt="image.png"></p>
+<h3>3.1 常见的埋点方案</h3>
+<h4>3.1.1 代码埋点</h4>
+<ul>
+<li>嵌入代码的形式</li>
+<li>优点：精确（任意时刻，数据量全面）</li>
+<li>缺点：代码工作量点</li>
+</ul>
+<h4>3.1.2 可视化埋点</h4>
+<ul>
+<li>通过可视化交互的手段，代替代码埋点</li>
+<li>将业务代码和埋点代码分离，提供一个可视化交互的页面，输入为业务代码，通过这个系统，可以在业务代码中自定义的增加埋点事件等等，最后输出的代码耦合了业务代码和埋点代码</li>
+<li>用系统来代替手工插入埋点代码</li>
+</ul>
+<h4>3.1.3 无痕埋点</h4>
+<ul>
+<li>前端的任意一个事件被绑定一个标识，所有的事件都被记录下来</li>
+<li>通过定期上传记录文件，配合文件解析，解析出来我们想要的数据，并生成可视化报告供专业人员分析</li>
+<li>无痕埋点的优点是采集全量数据，不会出现漏埋和误埋等现象</li>
+<li>缺点是给数据传输和服务器增加压力，也无法灵活定制数据结构</li>
+</ul>
+<h2>4. 编写采集脚本</h2>
+<h3>4.1 接入日志系统</h3>
+<ul>
+<li>各公司一般都有自己的日志系统，接收数据上报，例如：阿里云</li>
+</ul>
+<h3>4.2 监控错误</h3>
+<h4>4.2.1 错误分类</h4>
+<ul>
+<li>js 错误（js 执行错误，promise 异常）</li>
+<li>资源加载异常：监听 error</li>
+</ul>
+<h4>4.2.2 数据结构分析</h4>
+<p>1. jsError</p>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;前端监控系统&quot;, // 页面标题
+  &quot;url&quot;: &quot;http://localhost:8080/&quot;, // 页面URL
+  &quot;timestamp&quot;: &quot;1590815288710&quot;, // 访问时间戳
+  &quot;userAgent&quot;: &quot;Chrome&quot;, // 用户浏览器类型
+  &quot;kind&quot;: &quot;stability&quot;, // 大类
+  &quot;type&quot;: &quot;error&quot;, // 小类
+  &quot;errorType&quot;: &quot;jsError&quot;, // 错误类型
+  &quot;message&quot;: &quot;Uncaught TypeError: Cannot set property &#39;error&#39; of undefined&quot;, // 类型详情
+  &quot;filename&quot;: &quot;http://localhost:8080/&quot;, // 访问的文件名
+  &quot;position&quot;: &quot;0:0&quot;, // 行列信息
+  &quot;stack&quot;: &quot;btnClick (http://localhost:8080/:20:39)^HTMLInputElement.onclick (http://localhost:8080/:14:72)&quot;, // 堆栈信息
+  &quot;selector&quot;: &quot;HTML BODY #container .content INPUT&quot; // 选择器
+}
+</code></pre>
+<p>2. promiseError</p>
+<pre><code class="language-json">{
+    ...
+    &quot;errorType&quot;: &quot;promiseError&quot;,//错误类型
+    &quot;message&quot;: &quot;someVar is not defined&quot;,//类型详情
+    &quot;stack&quot;: &quot;http://localhost:8080/:24:29^new Promise (&lt;anonymous&gt;)^btnPromiseClick (http://localhost:8080/:23:13)^HTMLInputElement.onclick (http://localhost:8080/:15:86)&quot;,//堆栈信息
+    &quot;selector&quot;: &quot;HTML BODY #container .content INPUT&quot;//选择器
+}
+</code></pre>
+<p>3. resourceError</p>
+<pre><code class="language-json">...
+    &quot;errorType&quot;: &quot;resourceError&quot;,//错误类型
+    &quot;filename&quot;: &quot;http://localhost:8080/error.js&quot;,//访问的文件名
+    &quot;tagName&quot;: &quot;SCRIPT&quot;,//标签名
+    &quot;timeStamp&quot;: &quot;76&quot;,//时间
+</code></pre>
+<h4>4.2.3 实现</h4>
+<p>1. 资源加载错误 + js 执行错误</p>
+<pre><code class="language-js">//一般JS运行时错误使用window.onerror捕获处理
+window.addEventListener(
+  &quot;error&quot;,
+  function (event) {
+    let lastEvent = getLastEvent();
+    // 有 e.target.src(href) 的认定为资源加载错误
+    if (event.target &amp;&amp; (event.target.src || event.target.href)) {
+      tracker.send({
+        //资源加载错误
+        kind: &quot;stability&quot;, //稳定性指标
+        type: &quot;error&quot;, //resource
+        errorType: &quot;resourceError&quot;,
+        filename: event.target.src || event.target.href, //加载失败的资源
+        tagName: event.target.tagName, //标签名
+        timeStamp: formatTime(event.timeStamp), //时间
+        selector: getSelector(event.path || event.target), //选择器
+      });
+    } else {
+      tracker.send({
+        kind: &quot;stability&quot;, //稳定性指标
+        type: &quot;error&quot;, //error
+        errorType: &quot;jsError&quot;, //jsError
+        message: event.message, //报错信息
+        filename: event.filename, //报错链接
+        position: (event.lineNo || 0) + &quot;:&quot; + (event.columnNo || 0), //行列号
+        stack: getLines(event.error.stack), //错误堆栈
+        selector: lastEvent
+          ? getSelector(lastEvent.path || lastEvent.target)
+          : &quot;&quot;, //CSS选择器
+      });
+    }
+  },
+  true
+); // true代表在捕获阶段调用,false代表在冒泡阶段捕获,使用true或false都可以
+</code></pre>
+<p>2. promise 异常</p>
+<pre><code class="language-javascript">//当Promise 被 reject 且没有 reject 处理器的时候，会触发 unhandledrejection 事件
+window.addEventListener(
+  &quot;unhandledrejection&quot;,
+  function (event) {
+    let lastEvent = getLastEvent();
+    let message = &quot;&quot;;
+    let line = 0;
+    let column = 0;
+    let file = &quot;&quot;;
+    let stack = &quot;&quot;;
+    if (typeof event.reason === &quot;string&quot;) {
+      message = event.reason;
+    } else if (typeof event.reason === &quot;object&quot;) {
+      message = event.reason.message;
+    }
+    let reason = event.reason;
+    if (typeof reason === &quot;object&quot;) {
+      if (reason.stack) {
+        var matchResult = reason.stack.match(/at\s+(.+):(\d+):(\d+)/);
+        if (matchResult) {
+          file = matchResult[1];
+          line = matchResult[2];
+          column = matchResult[3];
+        }
+        stack = getLines(reason.stack);
+      }
+    }
+    tracker.send({
+      //未捕获的promise错误
+      kind: &quot;stability&quot;, //稳定性指标
+      type: &quot;error&quot;, //jsError
+      errorType: &quot;promiseError&quot;, //unhandledrejection
+      message: message, //标签名
+      filename: file,
+      position: line + &quot;:&quot; + column, //行列
+      stack,
+      selector: lastEvent
+        ? getSelector(lastEvent.path || lastEvent.target)
+        : &quot;&quot;,
+    });
+  },
+  true
+); // true代表在捕获阶段调用,false代表在冒泡阶段捕获,使用true或false都可以
+</code></pre>
+<h3>4.3 接口异常采集脚本</h3>
+<h4>4.3.1 数据设计</h4>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;前端监控系统&quot;, //标题
+  &quot;url&quot;: &quot;http://localhost:8080/&quot;, //url
+  &quot;timestamp&quot;: &quot;1590817024490&quot;, //timestamp
+  &quot;userAgent&quot;: &quot;Chrome&quot;, //浏览器版本
+  &quot;kind&quot;: &quot;stability&quot;, //大类
+  &quot;type&quot;: &quot;xhr&quot;, //小类
+  &quot;eventType&quot;: &quot;load&quot;, //事件类型
+  &quot;pathname&quot;: &quot;/success&quot;, //路径
+  &quot;status&quot;: &quot;200-OK&quot;, //状态码
+  &quot;duration&quot;: &quot;7&quot;, //持续时间
+  &quot;response&quot;: &quot;{\&quot;id\&quot;:1}&quot;, //响应内容
+  &quot;params&quot;: &quot;&quot; //参数
+}
+</code></pre>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;前端监控系统&quot;,
+  &quot;url&quot;: &quot;http://localhost:8080/&quot;,
+  &quot;timestamp&quot;: &quot;1590817025617&quot;,
+  &quot;userAgent&quot;: &quot;Chrome&quot;,
+  &quot;kind&quot;: &quot;stability&quot;,
+  &quot;type&quot;: &quot;xhr&quot;,
+  &quot;eventType&quot;: &quot;load&quot;,
+  &quot;pathname&quot;: &quot;/error&quot;,
+  &quot;status&quot;: &quot;500-Internal Server Error&quot;,
+  &quot;duration&quot;: &quot;7&quot;,
+  &quot;response&quot;: &quot;&quot;,
+  &quot;params&quot;: &quot;name=zhufeng&quot;
+}
+</code></pre>
+<h4>4.3.2 实现</h4>
+<p>使用 webpack devServer 模拟请求</p>
+<ul>
+<li>重写 xhr 的 open、send 方法</li>
+<li>监听 load、error、abort 事件</li>
+</ul>
+<pre><code class="language-javascript">import tracker from &quot;../util/tracker&quot;;
+export function injectXHR() {
+  let XMLHttpRequest = window.XMLHttpRequest;
+  let oldOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (
+    method,
+    url,
+    async,
+    username,
+    password
+  ) {
+    // 上报的接口不用处理
+    if (!url.match(/logstores/) &amp;&amp; !url.match(/sockjs/)) {
+      this.logData = {
+        method,
+        url,
+        async,
+        username,
+        password,
+      };
+    }
+    return oldOpen.apply(this, arguments);
+  };
+  let oldSend = XMLHttpRequest.prototype.send;
+  let start;
+  XMLHttpRequest.prototype.send = function (body) {
+    if (this.logData) {
+      start = Date.now();
+      let handler = (type) =&gt; (event) =&gt; {
+        let duration = Date.now() - start;
+        let status = this.status;
+        let statusText = this.statusText;
+        tracker.send({
+          //未捕获的promise错误
+          kind: &quot;stability&quot;, //稳定性指标
+          type: &quot;xhr&quot;, //xhr
+          eventType: type, //load error abort
+          pathname: this.logData.url, //接口的url地址
+          status: status + &quot;-&quot; + statusText,
+          duration: &quot;&quot; + duration, //接口耗时
+          response: this.response ? JSON.stringify(this.response) : &quot;&quot;,
+          params: body || &quot;&quot;,
+        });
+      };
+      this.addEventListener(&quot;load&quot;, handler(&quot;load&quot;), false);
+      this.addEventListener(&quot;error&quot;, handler(&quot;error&quot;), false);
+      this.addEventListener(&quot;abort&quot;, handler(&quot;abort&quot;), false);
+    }
+    oldSend.apply(this, arguments);
+  };
+}
+</code></pre>
+<h3>4.4 白屏</h3>
+<ul>
+<li>白屏就是页面上什么都没有</li>
+</ul>
+<h4>4.4.1 数据设计</h4>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;前端监控系统&quot;,
+  &quot;url&quot;: &quot;http://localhost:8080/&quot;,
+  &quot;timestamp&quot;: &quot;1590822618759&quot;,
+  &quot;userAgent&quot;: &quot;chrome&quot;,
+  &quot;kind&quot;: &quot;stability&quot;, //大类
+  &quot;type&quot;: &quot;blank&quot;, //小类
+  &quot;emptyPoints&quot;: &quot;0&quot;, //空白点
+  &quot;screen&quot;: &quot;2049x1152&quot;, //分辨率
+  &quot;viewPoint&quot;: &quot;2048x994&quot;, //视口
+  &quot;selector&quot;: &quot;HTML BODY #container&quot; //选择器
+}
+</code></pre>
+<h4>4.4.2 实现</h4>
+<ul>
+<li><a href="https://link.juejin.cn/?target=https%3A%2F%2Fdeveloper.mozilla.org%2Fzh-CN%2Fdocs%2FWeb%2FAPI%2FDocument%2FelementsFromPoint" title="https://developer.mozilla.org/zh-CN/docs/Web/API/Document/elementsFromPoint">elementsFromPoint</a>方法可以获取到当前视口内指定坐标处，由里到外排列的所有元素</li>
+<li>根据 elementsFromPoint api，获取屏幕水平中线和竖直中线所在的元素</li>
+</ul>
+<pre><code class="language-javascript">import tracker from &quot;../util/tracker&quot;;
+import onload from &quot;../util/onload&quot;;
+function getSelector(element) {
+  var selector;
+  if (element.id) {
+    selector = `#${element.id}`;
+  } else if (element.className &amp;&amp; typeof element.className === &quot;string&quot;) {
+    selector =
+      &quot;.&quot; +
+      element.className
+        .split(&quot; &quot;)
+        .filter(function (item) {
+          return !!item;
+        })
+        .join(&quot;.&quot;);
+  } else {
+    selector = element.nodeName.toLowerCase();
+  }
+  return selector;
+}
+export function blankScreen() {
+  const wrapperSelectors = [&quot;body&quot;, &quot;html&quot;, &quot;#container&quot;, &quot;.content&quot;];
+  let emptyPoints = 0;
+  function isWrapper(element) {
+    let selector = getSelector(element);
+    if (wrapperSelectors.indexOf(selector) &gt;= 0) {
+      emptyPoints++;
+    }
+  }
+  onload(function () {
+    let xElements, yElements;
+    debugger;
+    for (let i = 1; i &lt;= 9; i++) {
+      xElements = document.elementsFromPoint(
+        (window.innerWidth * i) / 10,
+        window.innerHeight / 2
+      );
+      yElements = document.elementsFromPoint(
+        window.innerWidth / 2,
+        (window.innerHeight * i) / 10
+      );
+      isWrapper(xElements[0]);
+      isWrapper(yElements[0]);
+    }
+    if (emptyPoints &gt;= 0) {
+      let centerElements = document.elementsFromPoint(
+        window.innerWidth / 2,
+        window.innerHeight / 2
+      );
+      tracker.send({
+        kind: &quot;stability&quot;,
+        type: &quot;blank&quot;,
+        emptyPoints: &quot;&quot; + emptyPoints,
+        screen: window.screen.width + &quot;x&quot; + window.screen.height,
+        viewPoint: window.innerWidth + &quot;x&quot; + window.innerHeight,
+        selector: getSelector(centerElements[0]),
+      });
+    }
+  });
+}
+//screen.width  屏幕的宽度   screen.height 屏幕的高度
+//window.innerWidth 去除工具条与滚动条的窗口宽度 window.innerHeight 去除工具条与滚动条的窗口高度
+</code></pre>
+<h3>4.5 加载时间</h3>
+<ul>
+<li><a href="https://link.juejin.cn/?target=https%3A%2F%2Fdeveloper.mozilla.org%2Fzh-CN%2Fdocs%2FWeb%2FAPI%2FPerformanceTiming" title="https://developer.mozilla.org/zh-CN/docs/Web/API/PerformanceTiming">PerformanceTiming</a></li>
+<li><a href="https://link.juejin.cn/?target=https%3A%2F%2Fdeveloper.mozilla.org%2Fzh-CN%2Fdocs%2FWeb%2FEvents%2FDOMContentLoaded" title="https://developer.mozilla.org/zh-CN/docs/Web/Events/DOMContentLoaded">DOMContentLoaded</a></li>
+<li><a href="https://link.juejin.cn/?target=https%3A%2F%2Fdocs.google.com%2Fdocument%2Fd%2F1BR94tJdZLsin5poeet0XoTW60M0SjvOJQttKT-JK8HI%2Fview%23" title="https://docs.google.com/document/d/1BR94tJdZLsin5poeet0XoTW60M0SjvOJQttKT-JK8HI/view#">FMP</a></li>
+</ul>
+<h4>4.5.1 阶段含义</h4>
+<p><img src="../images/05/02.awebp" alt="image.png"></p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>navigationStart</td>
+<td>初始化页面，在同一个浏览器上下文中前一个页面 unload 的时间戳，如果没有前一个页面的 unload,则与 fetchStart 值相等</td>
+</tr>
+<tr>
+<td>redirectStart</td>
+<td>第一个 HTTP 重定向发生的时间,有跳转且是同域的重定向,否则为 0</td>
+</tr>
+<tr>
+<td>redirectEnd</td>
+<td>最后一个重定向完成时的时间,否则为 0</td>
+</tr>
+<tr>
+<td>fetchStart</td>
+<td>浏览器准备好使用 http 请求获取文档的时间,这发生在检查缓存之前</td>
+</tr>
+<tr>
+<td>domainLookupStart</td>
+<td>DNS 域名开始查询的时间,如果有本地的缓存或 keep-alive 则时间为 0</td>
+</tr>
+<tr>
+<td>domainLookupEnd</td>
+<td>DNS 域名结束查询的时间</td>
+</tr>
+<tr>
+<td>connectStart</td>
+<td>TCP 开始建立连接的时间,如果是持久连接,则与<code>fetchStart</code>值相等</td>
+</tr>
+<tr>
+<td>secureConnectionStart</td>
+<td>https 连接开始的时间,如果不是安全连接则为 0</td>
+</tr>
+<tr>
+<td>connectEnd</td>
+<td>TCP 完成握手的时间，如果是持久连接则与<code>fetchStart</code>值相等</td>
+</tr>
+<tr>
+<td>requestStart</td>
+<td>HTTP 请求读取真实文档开始的时间,包括从本地缓存读取</td>
+</tr>
+<tr>
+<td>requestEnd</td>
+<td>HTTP 请求读取真实文档结束的时间,包括从本地缓存读取</td>
+</tr>
+<tr>
+<td>responseStart</td>
+<td>返回浏览器从服务器收到（或从本地缓存读取）第一个字节时的 Unix 毫秒时间戳</td>
+</tr>
+<tr>
+<td>responseEnd</td>
+<td>返回浏览器从服务器收到（或从本地缓存读取，或从本地资源读取）最后一个字节时的 Unix 毫秒时间戳</td>
+</tr>
+<tr>
+<td>unloadEventStart</td>
+<td>前一个页面的 unload 的时间戳 如果没有则为 0</td>
+</tr>
+<tr>
+<td>unloadEventEnd</td>
+<td>与<code>unloadEventStart</code>相对应，返回的是<code>unload</code>函数执行完成的时间戳</td>
+</tr>
+<tr>
+<td>domLoading</td>
+<td>返回当前网页 DOM 结构开始解析时的时间戳,此时<code>document.readyState</code>变成 loading,并将抛出<code>readyStateChange</code>事件</td>
+</tr>
+<tr>
+<td>domInteractive</td>
+<td>返回当前网页 DOM 结构结束解析、开始加载内嵌资源时时间戳,<code>document.readyState</code>  变成<code>interactive</code>，并将抛出<code>readyStateChange</code>事件(注意只是 DOM 树解析完成,这时候并没有开始加载网页内的资源)</td>
+</tr>
+<tr>
+<td>domContentLoadedEventStart</td>
+<td>网页 domContentLoaded 事件发生的时间</td>
+</tr>
+<tr>
+<td>domContentLoadedEventEnd</td>
+<td>网页 domContentLoaded 事件脚本执行完毕的时间,domReady 的时间</td>
+</tr>
+<tr>
+<td>domComplete</td>
+<td>DOM 树解析完成,且资源也准备就绪的时间,<code>document.readyState</code>变成<code>complete</code>.并将抛出<code>readystatechange</code>事件</td>
+</tr>
+<tr>
+<td>loadEventStart</td>
+<td>load 事件发送给文档，也即 load 回调函数开始执行的时间</td>
+</tr>
+<tr>
+<td>loadEventEnd</td>
+<td>load 回调函数执行完成的时间</td>
+</tr>
+</tbody></table>
+<h4>4.5.2 阶段计算</h4>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>描述</th>
+<th>计算方式</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>unload</td>
+<td>前一个页面卸载耗时</td>
+<td>unloadEventEnd – unloadEventStart</td>
+<td>-</td>
+</tr>
+<tr>
+<td>redirect</td>
+<td>重定向耗时</td>
+<td>redirectEnd – redirectStart</td>
+<td>重定向的时间</td>
+</tr>
+<tr>
+<td>appCache</td>
+<td>缓存耗时</td>
+<td>domainLookupStart – fetchStart</td>
+<td>读取缓存的时间</td>
+</tr>
+<tr>
+<td>dns</td>
+<td>DNS 解析耗时</td>
+<td>domainLookupEnd – domainLookupStart</td>
+<td>可观察域名解析服务是否正常</td>
+</tr>
+<tr>
+<td>tcp</td>
+<td>TCP 连接耗时</td>
+<td>connectEnd – connectStart</td>
+<td>建立连接的耗时</td>
+</tr>
+<tr>
+<td>ssl</td>
+<td>SSL 安全连接耗时</td>
+<td>connectEnd – secureConnectionStart</td>
+<td>反映数据安全连接建立耗时</td>
+</tr>
+<tr>
+<td>ttfb</td>
+<td>Time to First Byte(TTFB)网络请求耗时</td>
+<td>responseStart – requestStart</td>
+<td>TTFB 是发出页面请求到接收到应答数据第一个字节所花费的毫秒数</td>
+</tr>
+<tr>
+<td>response</td>
+<td>响应数据传输耗时</td>
+<td>responseEnd – responseStart</td>
+<td>观察网络是否正常</td>
+</tr>
+<tr>
+<td>dom</td>
+<td>DOM 解析耗时</td>
+<td>domInteractive – responseEnd</td>
+<td>观察 DOM 结构是否合理，是否有 JS 阻塞页面解析</td>
+</tr>
+<tr>
+<td>dcl</td>
+<td>DOMContentLoaded 事件耗时</td>
+<td>domContentLoadedEventEnd – domContentLoadedEventStart</td>
+<td>当 HTML 文档被完全加载和解析完成之后，DOMContentLoaded 事件被触发，无需等待样式表、图像和子框架的完成加载</td>
+</tr>
+<tr>
+<td>resources</td>
+<td>资源加载耗时</td>
+<td>domComplete – domContentLoadedEventEnd</td>
+<td>可观察文档流是否过大</td>
+</tr>
+<tr>
+<td>domReady</td>
+<td>DOM 阶段渲染耗时</td>
+<td>domContentLoadedEventEnd – fetchStart</td>
+<td>DOM 树和页面资源加载完成时间，会触发<code>domContentLoaded</code>事件</td>
+</tr>
+<tr>
+<td>首次渲染耗时</td>
+<td>首次渲染耗时</td>
+<td>responseEnd-fetchStart</td>
+<td>加载文档到看到第一帧非空图像的时间，也叫白屏时间</td>
+</tr>
+<tr>
+<td>首次可交互时间</td>
+<td>首次可交互时间</td>
+<td>domInteractive-fetchStart</td>
+<td>DOM 树解析完成时间，此时 document.readyState 为 interactive</td>
+</tr>
+<tr>
+<td>首包时间耗时</td>
+<td>首包时间</td>
+<td>responseStart-domainLookupStart</td>
+<td>DNS 解析到响应返回给浏览器第一个字节的时间</td>
+</tr>
+<tr>
+<td>页面完全加载时间</td>
+<td>页面完全加载时间</td>
+<td>loadEventStart - fetchStart</td>
+<td>-</td>
+</tr>
+<tr>
+<td>onLoad</td>
+<td>onLoad 事件耗时</td>
+<td>loadEventEnd – loadEventStart</td>
+<td></td>
+</tr>
+</tbody></table>
+<p><img src="..%5Cimages%5C05%5C03.awebp" alt="image.png"></p>
+<h4>4.5.3 数据结构</h4>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;前端监控系统&quot;,
+  &quot;url&quot;: &quot;http://localhost:8080/&quot;,
+  &quot;timestamp&quot;: &quot;1590828364183&quot;,
+  &quot;userAgent&quot;: &quot;chrome&quot;,
+  &quot;kind&quot;: &quot;experience&quot;,
+  &quot;type&quot;: &quot;timing&quot;,
+  &quot;connectTime&quot;: &quot;0&quot;,
+  &quot;ttfbTime&quot;: &quot;1&quot;,
+  &quot;responseTime&quot;: &quot;1&quot;,
+  &quot;parseDOMTime&quot;: &quot;80&quot;,
+  &quot;domContentLoadedTime&quot;: &quot;0&quot;,
+  &quot;timeToInteractive&quot;: &quot;88&quot;,
+  &quot;loadTime&quot;: &quot;89&quot;
+}
+</code></pre>
+<h4>4.5.4 实现</h4>
+<pre><code class="language-javascript">import onload from &quot;../util/onload&quot;;
+import tracker from &quot;../util/tracker&quot;;
+import formatTime from &quot;../util/formatTime&quot;;
+import getLastEvent from &quot;../util/getLastEvent&quot;;
+import getSelector from &quot;../util/getSelector&quot;;
+export function timing() {
+  onload(function () {
+    setTimeout(() =&gt; {
+      const {
+        fetchStart,
+        connectStart,
+        connectEnd,
+        requestStart,
+        responseStart,
+        responseEnd,
+        domLoading,
+        domInteractive,
+        domContentLoadedEventStart,
+        domContentLoadedEventEnd,
+        loadEventStart,
+      } = performance.timing;
+      tracker.send({
+        kind: &quot;experience&quot;,
+        type: &quot;timing&quot;,
+        connectTime: connectEnd - connectStart, //TCP连接耗时
+        ttfbTime: responseStart - requestStart, //ttfb
+        responseTime: responseEnd - responseStart, //Response响应耗时
+        parseDOMTime: loadEventStart - domLoading, //DOM解析渲染耗时
+        domContentLoadedTime:
+          domContentLoadedEventEnd - domContentLoadedEventStart, //DOMContentLoaded事件回调耗时
+        timeToInteractive: domInteractive - fetchStart, //首次可交互时间
+        loadTime: loadEventStart - fetchStart, //完整的加载时间
+      });
+    }, 3000);
+  });
+}
+</code></pre>
+<h3>4.6 性能指标</h3>
+<ul>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/PerformanceObserver/observe">PerformanceObserver.observe</a> 方法用于观察传入的参数中指定的性能条目类型的集合。当记录一个指定类型的性能条目时，性能监测对象的回调函数将会被调用</li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/PerformanceEntry/entryType">entryType</a></li>
+<li><a href="https://w3c.github.io/paint-timing/">paint-timing</a></li>
+<li><a href="https://wicg.github.io/event-timing/">event-timing</a></li>
+<li><a href="https://wicg.github.io/largest-contentful-paint/">LCP</a></li>
+<li><a href="https://docs.google.com/document/d/1BR94tJdZLsin5poeet0XoTW60M0SjvOJQttKT-JK8HI/view">FMP</a></li>
+<li><a href="https://github.com/WICG/time-to-interactive">time-to-interactive</a></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>描述</th>
+<th>备注</th>
+<th>计算方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>FP</td>
+<td>First Paint(首次绘制)</td>
+<td>包括了任何用户自定义的背景绘制，它是首先将像素绘制到屏幕的时刻</td>
+<td></td>
+</tr>
+<tr>
+<td>FCP</td>
+<td>First Content Paint(首次内容绘制)</td>
+<td>是浏览器将第一个 DOM 渲染到屏幕的时间,可能是文本、图像、SVG 等,这其实就是白屏时间</td>
+<td></td>
+</tr>
+<tr>
+<td>FMP</td>
+<td>First Meaningful Paint(首次有意义绘制)</td>
+<td>页面有意义的内容渲染的时间</td>
+<td></td>
+</tr>
+<tr>
+<td>LCP</td>
+<td>(Largest Contentful Paint)(最大内容渲染)</td>
+<td>代表在 viewport 中最大的页面元素加载的时间</td>
+<td></td>
+</tr>
+<tr>
+<td>DCL</td>
+<td>(DomContentLoaded)(DOM 加载完成)</td>
+<td>当 HTML 文档被完全加载和解析完成之后, DOMContentLoaded  事件被触发，无需等待样式表、图像和子框架的完成加载</td>
+<td></td>
+</tr>
+<tr>
+<td>L</td>
+<td>(onLoad)</td>
+<td>当依赖的资源全部加载完毕之后才会触发</td>
+<td></td>
+</tr>
+<tr>
+<td>TTI</td>
+<td>(Time to Interactive) 可交互时间</td>
+<td>用于标记应用已进行视觉渲染并能可靠响应用户输入的时间点</td>
+<td></td>
+</tr>
+<tr>
+<td>FID</td>
+<td>First Input Delay(首次输入延迟)</td>
+<td>用户首次和页面交互(单击链接，点击按钮等)到页面响应交互的时间</td>
+<td></td>
+</tr>
+</tbody></table>
+<p><img src="../images/05/05.awebp" alt="image.png"></p>
+<p><img src="../images/05/06.awebp" alt="image.png"></p>
+<h4>4.6.1 数据结构设计</h4>
+<p>1. paint</p>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;前端监控系统&quot;,
+  &quot;url&quot;: &quot;http://localhost:8080/&quot;,
+  &quot;timestamp&quot;: &quot;1590828364186&quot;,
+  &quot;userAgent&quot;: &quot;chrome&quot;,
+  &quot;kind&quot;: &quot;experience&quot;,
+  &quot;type&quot;: &quot;paint&quot;,
+  &quot;firstPaint&quot;: &quot;102&quot;,
+  &quot;firstContentPaint&quot;: &quot;2130&quot;,
+  &quot;firstMeaningfulPaint&quot;: &quot;2130&quot;,
+  &quot;largestContentfulPaint&quot;: &quot;2130&quot;
+}
+</code></pre>
+<p>2. firstInputDelay</p>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;前端监控系统&quot;,
+  &quot;url&quot;: &quot;http://localhost:8080/&quot;,
+  &quot;timestamp&quot;: &quot;1590828477284&quot;,
+  &quot;userAgent&quot;: &quot;chrome&quot;,
+  &quot;kind&quot;: &quot;experience&quot;,
+  &quot;type&quot;: &quot;firstInputDelay&quot;,
+  &quot;inputDelay&quot;: &quot;3&quot;,
+  &quot;duration&quot;: &quot;8&quot;,
+  &quot;startTime&quot;: &quot;4812.344999983907&quot;,
+  &quot;selector&quot;: &quot;HTML BODY #container .content H1&quot;
+}
+</code></pre>
+<h4>4.6.2 实现</h4>
+<p>关键时间节点通过 window.performance.timing 获取</p>
+<p><img src="../images/05/07.awebp" alt="image.png"></p>
+<pre><code class="language-javascript">import tracker from &quot;../utils/tracker&quot;;
+import onload from &quot;../utils/onload&quot;;
+import getLastEvent from &quot;../utils/getLastEvent&quot;;
+import getSelector from &quot;../utils/getSelector&quot;;
+
+export function timing() {
+  let FMP, LCP;
+  // 增加一个性能条目的观察者
+  new PerformanceObserver((entryList, observer) =&gt; {
+    const perfEntries = entryList.getEntries();
+    FMP = perfEntries[0];
+    observer.disconnect(); // 不再观察了
+  }).observe({ entryTypes: [&quot;element&quot;] }); // 观察页面中有意义的元素
+  // 增加一个性能条目的观察者
+  new PerformanceObserver((entryList, observer) =&gt; {
+    const perfEntries = entryList.getEntries();
+    const lastEntry = perfEntries[perfEntries.length - 1];
+    LCP = lastEntry;
+    observer.disconnect(); // 不再观察了
+  }).observe({ entryTypes: [&quot;largest-contentful-paint&quot;] }); // 观察页面中最大的元素
+  // 增加一个性能条目的观察者
+  new PerformanceObserver((entryList, observer) =&gt; {
+    const lastEvent = getLastEvent();
+    const firstInput = entryList.getEntries()[0];
+    if (firstInput) {
+      // 开始处理的时间 - 开始点击的时间，差值就是处理的延迟
+      let inputDelay = firstInput.processingStart - firstInput.startTime;
+      let duration = firstInput.duration; // 处理的耗时
+      if (inputDelay &gt; 0 || duration &gt; 0) {
+        tracker.send({
+          kind: &quot;experience&quot;, // 用户体验指标
+          type: &quot;firstInputDelay&quot;, // 首次输入延迟
+          inputDelay: inputDelay ? formatTime(inputDelay) : 0, // 延迟的时间
+          duration: duration ? formatTime(duration) : 0,
+          startTime: firstInput.startTime, // 开始处理的时间
+          selector: lastEvent
+            ? getSelector(lastEvent.path || lastEvent.target)
+            : &quot;&quot;,
+        });
+      }
+    }
+    observer.disconnect(); // 不再观察了
+  }).observe({ type: &quot;first-input&quot;, buffered: true }); // 第一次交互
+
+  // 刚开始页面内容为空，等页面渲染完成，再去做判断
+  onload(function () {
+    setTimeout(() =&gt; {
+      const {
+        fetchStart,
+        connectStart,
+        connectEnd,
+        requestStart,
+        responseStart,
+        responseEnd,
+        domLoading,
+        domInteractive,
+        domContentLoadedEventStart,
+        domContentLoadedEventEnd,
+        loadEventStart,
+      } = window.performance.timing;
+      // 发送时间指标
+      tracker.send({
+        kind: &quot;experience&quot;, // 用户体验指标
+        type: &quot;timing&quot;, // 统计每个阶段的时间
+        connectTime: connectEnd - connectStart, // TCP连接耗时
+        ttfbTime: responseStart - requestStart, // 首字节到达时间
+        responseTime: responseEnd - responseStart, // response响应耗时
+        parseDOMTime: loadEventStart - domLoading, // DOM解析渲染的时间
+        domContentLoadedTime:
+          domContentLoadedEventEnd - domContentLoadedEventStart, // DOMContentLoaded事件回调耗时
+        timeToInteractive: domInteractive - fetchStart, // 首次可交互时间
+        loadTime: loadEventStart - fetchStart, // 完整的加载时间
+      });
+      // 发送性能指标
+      let FP = performance.getEntriesByName(&quot;first-paint&quot;)[0];
+      let FCP = performance.getEntriesByName(&quot;first-contentful-paint&quot;)[0];
+      console.log(&quot;FP&quot;, FP);
+      console.log(&quot;FCP&quot;, FCP);
+      console.log(&quot;FMP&quot;, FMP);
+      console.log(&quot;LCP&quot;, LCP);
+      tracker.send({
+        kind: &quot;experience&quot;,
+        type: &quot;paint&quot;,
+        firstPaint: FP ? formatTime(FP.startTime) : 0,
+        firstContentPaint: FCP ? formatTime(FCP.startTime) : 0,
+        firstMeaningfulPaint: FMP ? formatTime(FMP.startTime) : 0,
+        largestContentfulPaint: LCP
+          ? formatTime(LCP.renderTime || LCP.loadTime)
+          : 0,
+      });
+    }, 3000);
+  });
+}
+</code></pre>
+<h3>4.7 卡顿</h3>
+<ul>
+<li>响应用户交互的响应时间如果大于 100ms,用户就会感觉卡顿</li>
+</ul>
+<h4>4.7.1 数据设计 longTask</h4>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;前端监控系统&quot;,
+  &quot;url&quot;: &quot;http://localhost:8080/&quot;,
+  &quot;timestamp&quot;: &quot;1590828656781&quot;,
+  &quot;userAgent&quot;: &quot;chrome&quot;,
+  &quot;kind&quot;: &quot;experience&quot;,
+  &quot;type&quot;: &quot;longTask&quot;,
+  &quot;eventType&quot;: &quot;mouseover&quot;,
+  &quot;startTime&quot;: &quot;9331&quot;,
+  &quot;duration&quot;: &quot;200&quot;,
+  &quot;selector&quot;: &quot;HTML BODY #container .content&quot;
+}
+</code></pre>
+<h4>4.7.2 实现</h4>
+<ul>
+<li>new PerformanceObserver</li>
+<li>entry.duration &gt; 100 判断大于 100ms，即可认定为长任务</li>
+<li>使用 requestIdleCallback 上报数据</li>
+</ul>
+<pre><code class="language-javascript">import tracker from &quot;../util/tracker&quot;;
+import formatTime from &quot;../util/formatTime&quot;;
+import getLastEvent from &quot;../util/getLastEvent&quot;;
+import getSelector from &quot;../util/getSelector&quot;;
+export function longTask() {
+  new PerformanceObserver((list) =&gt; {
+    list.getEntries().forEach((entry) =&gt; {
+      if (entry.duration &gt; 100) {
+        let lastEvent = getLastEvent();
+        requestIdleCallback(() =&gt; {
+          tracker.send({
+            kind: &quot;experience&quot;,
+            type: &quot;longTask&quot;,
+            eventType: lastEvent.type,
+            startTime: formatTime(entry.startTime), // 开始时间
+            duration: formatTime(entry.duration), // 持续时间
+            selector: lastEvent
+              ? getSelector(lastEvent.path || lastEvent.target)
+              : &quot;&quot;,
+          });
+        });
+      }
+    });
+  }).observe({ entryTypes: [&quot;longtask&quot;] });
+}
+</code></pre>
+<h3>4.8 PV、UV、用户停留时间</h3>
+<h4>4.8.1 数据设计 business</h4>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;前端监控系统&quot;,
+  &quot;url&quot;: &quot;http://localhost:8080/&quot;,
+  &quot;timestamp&quot;: &quot;1590829304423&quot;,
+  &quot;userAgent&quot;: &quot;chrome&quot;,
+  &quot;kind&quot;: &quot;business&quot;,
+  &quot;type&quot;: &quot;pv&quot;,
+  &quot;effectiveType&quot;: &quot;4g&quot;,
+  &quot;rtt&quot;: &quot;50&quot;,
+  &quot;screen&quot;: &quot;2049x1152&quot;
+}
+</code></pre>
+<h4>4.8.2 PV、UV、用户停留时间</h4>
+<p>PV(page view) 是页面浏览量，UV(Unique visitor)用户访问量。PV 只要访问一次页面就算一次，UV 同一天内多次访问只算一次。</p>
+<p>对于前端来说，只要每次进入页面上报一次 PV 就行，UV 的统计放在服务端来做，主要是分析上报的数据来统计得出 UV。</p>
+<pre><code class="language-js">import tracker from &quot;../util/tracker&quot;;
+export function pv() {
+  tracker.send({
+    kind: &quot;business&quot;,
+    type: &quot;pv&quot;,
+    startTime: performance.now(),
+    pageURL: getPageURL(),
+    referrer: document.referrer,
+    uuid: getUUID(),
+  });
+  let startTime = Date.now();
+  window.addEventListener(
+    &quot;beforeunload&quot;,
+    () =&gt; {
+      let stayTime = Date.now() - startTime;
+      tracker.send({
+        kind: &quot;business&quot;,
+        type: &quot;stayTime&quot;,
+        stayTime,
+        pageURL: getPageURL(),
+        uuid: getUUID(),
+      });
+    },
+    false
+  );
+}
+</code></pre>
+<hr>
+<h3><a href="https://link.juejin.cn/?target=">扩展问题</a></h3>
+<ol>
+<li>性能监控指标</li>
+<li>前端怎么做性能监控</li>
+<li>线上错误监控怎么做</li>
+<li>导致内存泄漏的方法，怎么监控内存泄漏</li>
+<li>Node 怎么做性能监控</li>
+</ol>
+<h4>1. 性能监控指标</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>名称</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>FP</td>
+<td>First-Paint 首次渲染</td>
+<td>表示浏览器从开始请求网站到屏幕渲染第一个像素点的时间</td>
+</tr>
+<tr>
+<td>FCP</td>
+<td>First-Contentful-Paint 首次内容渲染</td>
+<td>表示浏览器渲染出第一个内容的时间，这个内容可以是文本、图片或 SVG 元素等等，不包括 iframe 和白色背景的 canvas 元素</td>
+</tr>
+<tr>
+<td>SI</td>
+<td>Speed Index 速度指数</td>
+<td>表明了网页内容的可见填充速度</td>
+</tr>
+<tr>
+<td>LCP</td>
+<td>Largest Contentful Paint 最大内容绘制</td>
+<td>标记了渲染出最大文本或图片的时间</td>
+</tr>
+<tr>
+<td>TTI</td>
+<td>Time to Interactive 可交互时间</td>
+<td>页面从开始加载到主要子资源完成渲染，并能够快速、可靠的响应用户输入所需的时间</td>
+</tr>
+<tr>
+<td>TBT</td>
+<td>Total Blocking Time 总阻塞时间</td>
+<td>测量 FCP 与 TTI 之间的总时间，这期间，主线程被阻塞的时间过长，无法作出输入响应</td>
+</tr>
+<tr>
+<td>FID</td>
+<td>First Input Delay 首次输入延迟</td>
+<td>测量加载响应度的一个以用户为中心的重要指标</td>
+</tr>
+<tr>
+<td>CLS</td>
+<td>Cumulative Layout Shift 累积布局偏移</td>
+<td>测量的是整个页面生命周期内发生的所有意外布局偏移中最大一连串的布局偏移分数</td>
+</tr>
+<tr>
+<td>DCL</td>
+<td>DOMContentLoaded</td>
+<td>当初始的  HTML 文档被完全加载和解析完成之后，DOMContentLoaded 事件被触发，而无需等待样式表、图像和子框架的完成加载</td>
+</tr>
+<tr>
+<td>L</td>
+<td>Load</td>
+<td>检测一个完全加载的页面，页面的 html、css、js、图片等资源都已经加载完之后才会触发 load 事件</td>
+</tr>
+</tbody></table>
+<h4>2. 前端怎么做性能监控</h4>
+<ul>
+<li>FP、FCP、LCP、CLS、FID、FMP 可通过 PerformanceObserver 获取</li>
+<li>TCP 连接耗时、首字节到达时间、response 响应耗时、DOM 解析渲染的时间、TTI、DCL、L 等可通过 performance.timing 获取</li>
+<li>长任务监听，PerformanceObserver 监听 longTask</li>
+</ul>
+<pre><code class="language-js">const {
+  fetchStart,
+  connectStart,
+  connectEnd,
+  requestStart,
+  responseStart,
+  responseEnd,
+  domLoading,
+  domInteractive,
+  domContentLoadedEventStart,
+  domContentLoadedEventEnd,
+  loadEventStart,
+} = window.performance.timing;
+const obj = {
+  kind: &quot;experience&quot;, // 用户体验指标
+  type: &quot;timing&quot;, // 统计每个阶段的时间
+  dnsTime: domainLookupEnd - domainLookupStart, // DNS查询时间
+  connectTime: connectEnd - connectStart, // TCP连接耗时
+  ttfbTime: responseStart - requestStart, // 首字节到达时间
+  responseTime: responseEnd - responseStart, // response响应耗时
+  parseDOMTime: loadEventStart - domLoading, // DOM解析渲染的时间
+  domContentLoadedTime: domContentLoadedEventEnd - domContentLoadedEventStart, // DOMContentLoaded事件回调耗时
+  timeToInteractive: domInteractive - fetchStart, // 首次可交互时间
+  loadTime: loadEventStart - fetchStart, // 完整的加载时间
+};
+</code></pre>
+<p><img src="../images/05/08.awebp" alt="image.png"></p>
+<h4>3. 线上错误监控怎么做</h4>
+<ul>
+<li>资源加载错误 window.addEventListener(&#39;error&#39;) 判断 e.target.src || href</li>
+<li>js 运行时错误 window.addEventListener(&#39;error&#39;)</li>
+<li>promise 异常 window.addEventListener(&#39;unhandledrejection&#39;)</li>
+<li>接口异常 重写 xhr 的 open send 方法，监控 load、error、abort，进行上报</li>
+</ul>
+<h4>4. 导致内存泄漏的方法，怎么监控内存泄漏</h4>
+<ul>
+<li>全局变量</li>
+<li>被遗忘的定时器</li>
+<li>脱离 Dom 的引用</li>
+<li>闭包</li>
+</ul>
+<p>监控内存泄漏</p>
+<ul>
+<li>window.performance.memory</li>
+<li>开发阶段<ul>
+<li>浏览器的 Performance</li>
+<li>移动端可使用 PerformanceDog</li>
+</ul>
+</li>
+</ul>
+<p><img src="../images/05/09.awebp" alt="image.png"></p>
+<h4>5. Node 怎么做性能监控</h4>
+<ol>
+<li><strong>日志监控</strong> 可以通过监控异常日志的变动，将新增的异常类型和数量反映出来 监控日志可以实现 pv 和 uv 的监控，通过 pv/uv 的监控，可以知道使用者们的使用习惯，预知访问高峰</li>
+<li><strong>响应时间</strong> 响应时间也是一个需要监控的点。一旦系统的某个子系统出现异常或者性能瓶颈将会导致系统的响应时间变长。响应时间可以在 nginx 一类的反向代理上监控，也可以通过应用自己产生访问日志来监控</li>
+<li><strong>进程监控</strong> 监控日志和响应时间都能较好地监控到系统的状态，但是它们的前提是系统是运行状态的，所以监控进程是比前两者更为紧要的任务。监控进程一般是检查操作系统中运行的应用进程数，比如对于采用多进程架构的 web 应用，就需要检查工作进程的数，如果低于低估值，就应当发出警报</li>
+<li><strong>磁盘监控</strong> 磁盘监控主要是监控磁盘的用量。由于写日志频繁的缘故，磁盘空间渐渐被用光。一旦磁盘不够用将会引发系统的各种问题，给磁盘的使用量设置一个上限，一旦磁盘用量超过警戒值，服务器的管理者应该整理日志或者清理磁盘</li>
+<li><strong>内存监控</strong> 对于 node 而言，一旦出现内存泄漏，不是那么容易排查的。监控服务器的内存使用情况。如果内存只升不降，那么铁定存在内存泄漏问题。符合正常的内存使用应该是有升有降，在访问量大的时候上升，在访问量回落的时候，占用量也随之回落。监控内存异常时间也是防止系统出现异常的好方法。如果突然出现内存异常，也能够追踪到近期的哪些代码改动导致的问题</li>
+<li><strong>cpu 占用监控</strong> 服务器的 cpu 占用监控也是必不可少的项，cpu 的使用分为用户态、内核态、IOWait 等。如果用户态 cpu 使用率较高，说明服务器上的应用需要大量的 cpu 开销；如果内核态 cpu 使用率较高，说明服务器需要花费大量时间进行进程调度或者系统调用；IOWait 使用率反映的是 cpu 等待磁盘 I/O 操作；cpu 的使用率中，用户态小于 70%，内核态小于 35%且整体小于 70%，处于正常范围。监控 cpu 占用情况，可以帮助分析应用程序在实际业务中的状况。合理设置监控阈值能够很好地预警</li>
+<li><strong>cpu load 监控</strong> cpu load 又称 cpu 平均负载。它用来描述操作系统当前的繁忙程度，又简单地理解为 cpu 在单位时间内正在使用和等待使用 cpu 的平均任务数。它有 3 个指标，即 1 分钟的平均负载、5 分钟的平均负载，15 分钟的平均负载。cpu load 过高说明进程数量过多，这在 node 中可能体现在用于进程模块反复启动新的进程。监控该值可以防止意外发生</li>
+<li><strong>I/O 负载</strong> I/O 负载指的主要是磁盘 I/O。反应的是磁盘上的读写情况，对于 node 编写的应用，主要是面向网络业务，是不太可能出现 I/O 负载过高的情况，大多数的 I/O 压力来自于数据库。不管 node 进程是否与数据库或其他 I/O 密集的应用共同处理相同的服务器，我们都应该监控该值防止意外情况</li>
+<li><strong>网络监控</strong> 虽然网络流量监控的优先级没有上述项目那么高，但还是需要对流量进行监控并设置流量上限值。即便应用突然受到用户的青睐，流量暴涨的时候也可以通过数值感知到网站的宣传是否有效。一旦流量超过警戒值，开发者就应当找出流量增长的原因。对于正常增长，应当评估是否该增加硬件设备来为更多用户提供服务。网络流量监控的两个主要指标是流入流量和流出流量<ul>
+<li>应用状态监控 除了这些硬性需要检测的指标之外，应用还应该提供一种机制来反馈其自身的状态信息，外部监控将会持续性地调用应用地反馈接口来检查它地健康状态。</li>
+<li>dns 监控 dns 是网络应用的基础，在实际的对外服务产品中，多数都对域名有依赖。dns 故障导致产品出现大面积影响的事件并不少见。由于 dns 服务通常是稳定的，容易让人忽略，但是一旦出现故障，就可能是史无前例的故障。对于产品的稳定性，域名 dns 状态也需要加入监控。</li>
+</ul>
+</li>
+</ol>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

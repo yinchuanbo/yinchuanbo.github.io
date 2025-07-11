@@ -15,12 +15,15 @@ if (localStorage.getItem("darkMode") === "true") {
 // 目录生成
 document.addEventListener("DOMContentLoaded", function () {
   const toTop = document.querySelector(".to-top");
-  toTop.onclick = function () {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
+  if (toTop) {
+    toTop.onclick = function () {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    };
+  }
+
   // 格式化页面中的日期
   const dateElements = document.querySelectorAll("header p");
   dateElements.forEach((el) => {
@@ -71,21 +74,28 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // 分类筛选功能
-if (document.querySelector('.home-articles-list') && document.getElementById('category-list')) {
-  document.getElementById('category-list').addEventListener('click', function(e) {
-    if (e.target.classList.contains('category-btn')) {
-      const cat = e.target.getAttribute('data-category');
-      document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
-      e.target.classList.add('active');
-      document.querySelectorAll('.home-articles-list li').forEach(li => {
-        if (cat === 'all' || li.getAttribute('data-category') === cat) {
-          li.style.display = '';
-        } else {
-          li.style.display = 'none';
-        }
-      });
-    }
-  });
+if (
+  document.querySelector(".home-articles-list") &&
+  document.getElementById("category-list")
+) {
+  document
+    .getElementById("category-list")
+    .addEventListener("click", function (e) {
+      if (e.target.classList.contains("category-btn")) {
+        const cat = e.target.getAttribute("data-category");
+        document
+          .querySelectorAll(".category-btn")
+          .forEach((btn) => btn.classList.remove("active"));
+        e.target.classList.add("active");
+        document.querySelectorAll(".home-articles-list li").forEach((li) => {
+          if (cat === "all" || li.getAttribute("data-category") === cat) {
+            li.style.display = "";
+          } else {
+            li.style.display = "none";
+          }
+        });
+      }
+    });
 }
 
 // 主题切换功能
