@@ -30,8 +30,7 @@ const indexTemplate = fs.existsSync(indexTemplatePath)
     </head>
     <body>
       <main>
-        <h2>文章列表</h2>
-        <ul>
+        <ul class="home-articles-list">
           {{{articleList}}}
         </ul>
       </main>
@@ -95,6 +94,7 @@ async function generateIndex() {
   try {
     const files = fs.readdirSync(srcDir).filter((file) => file.endsWith(".md"));
     let articleList = "";
+    const categorySet = new Set();
 
     for (const file of files) {
       const filePath = path.join(srcDir, file);
@@ -113,15 +113,20 @@ async function generateIndex() {
       } else {
         dateStr = "未知日期";
       }
-
-      articleList += `<li><a href="/${htmlFileName}">${title}</a> <span class="other-info">[${category}-${dateStr}]</span></li>`;
+      articleList += `<li data-category="${category}"><a href="/${htmlFileName}">${title}</a> <span class="other-info">${category}-${dateStr}</span></li>`;
+      categorySet.add(category);
     }
 
+    // 生成分类按钮
+    let categoryFilter = `<button class="category-btn" data-category="all">全部</button>`;
+    Array.from(categorySet).sort().forEach(cat => {
+      categoryFilter += `\n<button class="category-btn" data-category="${cat}">${cat}</button>`;
+    });
+
     // 替换 index 模板中的占位符
-    const indexContent = indexTemplate.replace(
-      "{{{articleList}}}",
-      articleList
-    );
+    const indexContent = indexTemplate
+      .replace("{{{articleList}}}", articleList)
+      .replace("{{{categoryFilter}}}", categoryFilter);
     fs.writeFileSync(path.join(docDir, "index.html"), indexContent);
     console.log(`已生成：${path.join(docDir, "index.html")}`);
   } catch (error) {
