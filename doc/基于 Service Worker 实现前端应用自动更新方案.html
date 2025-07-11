@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>无标题</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>无标题</h1>
+        <p>未分类 | 未知日期</p>
+      </header>
+      <h1>基于 Service Worker 实现前端应用自动更新方案</h1>
+<h2>背景介绍</h2>
+<p>在前端应用开发中，当我们部署新版本后，往往需要用户手动刷新页面才能获取最新内容。这种体验并不理想，本文将介绍如何使用 Service Worker 结合版本号实现自动检测更新并提示用户刷新页面的功能。</p>
+<h2>实现原理</h2>
+<ol>
+<li>使用 Service Worker 拦截并缓存应用资源</li>
+<li>通过检测 version.json 中的版本号来判断是否有更新</li>
+<li>在检测到更新时通过消息机制通知页面</li>
+<li>提供用户更新提示，并在用户确认后刷新页面</li>
+</ol>
+<h2>具体实现</h2>
+<h3>1. Service Worker 实现（sw.js）</h3>
+<p>在 public 目录下创建 sw.js 文件，主要功能包括：</p>
+<ul>
+<li>缓存静态资源</li>
+<li>拦截网络请求</li>
+<li>定期检查版本更新</li>
+<li>向页面发送更新通知</li>
+</ul>
+<p>关键代码：</p>
+<pre><code class="language-js">const CACHE_FILES = [&quot;/&quot;, &quot;/index.html&quot;, &quot;./version.json&quot;];
+
+let currentVersion = null;
+
+// 安装 Service Worker
+self.addEventListener(&quot;install&quot;, (event) =&gt; {
+    event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) =&gt; {
+            return cache.addAll(CACHE_FILES);
+        })
+    );
+});
+
+// 激活 Service Worker
+self.addEventListener(&quot;activate&quot;, (event) =&gt; {
+    event.waitUntil(
+        Promise.all([
+            // 清理旧缓存
+            caches.keys().then((cacheNames) =&gt; {
+                return Promise.all(
+                    cacheNames
+                    .filter((name) =&gt; name !== CACHE_NAME)
+                    .map((name) =&gt; caches.delete(name))
+                );
+            }),
+            // 立即接管页面
+            self.clients.claim(),
+        ]).then(() =&gt; {
+            // 激活后立即检查版本
+            checkVersion();
+        })
+    );
+});
+
+// 添加请求拦截器
+self.addEventListener(&quot;fetch&quot;, (event) =&gt; {
+    // 特别处理 version.json 的请求，始终从网络获取最新版本
+    if (event.request.url.includes(&quot;./version.json&quot;)) {
+        event.respondWith(
+            fetch(event.request, {
+                cache: &quot;no-cache&quot;,
+                headers: {
+                    &quot;Cache-Control&quot;: &quot;no-cache&quot;,
+                    Pragma: &quot;no-cache&quot;,
+                },
+            })
+            .then((response) =&gt; {
+                return response;
+            })
+            .catch((error) =&gt; {
+                throw error;
+            })
+        );
+        return;
+    }
+
+    event.respondWith(
+        caches.match(event.request).then((response) =&gt; {
+            // 如果在缓存中找到响应，则返回缓存的版本
+            if (response) {
+                return response;
+            }
+            // 否则发起网络请求
+            return fetch(event.request);
+        })
+    );
+});
+
+// 检查版本更新
+async function checkVersion() {
+    try {
+        console.log(&quot;[SW] 开始检查版本...&quot;);
+        const response = await fetch(&quot;./version.json&quot;, {
+            cache: &quot;no-cache&quot;,
+            headers: {
+                &quot;Cache-Control&quot;: &quot;no-cache&quot;,
+                Pragma: &quot;no-cache&quot;,
+            },
+        });
+
+        const data = await response.json();
+
+        if (data.version !== currentVersion) {
+            console.log(&quot;[SW] 检测到新版本&quot;);
+            // 使用 includeUncontrolled: true 和 type: &#39;window&#39; 参数
+            const clients = await self.clients.matchAll({
+                includeUncontrolled: true,
+                type: &quot;window&quot;,
+            });
+
+            console.log(&quot;[SW] 找到的客户端数量:&quot;, clients.length);
+
+            if (clients.length === 0) {
+                // 如果没有找到客户端，使用 BroadcastChannel
+                const bc = new BroadcastChannel(&quot;version-update&quot;);
+                bc.postMessage({
+                    type: &quot;VERSION_UPDATE&quot;,
+                    version: data.version,
+                    showAlert: true,
+                });
+            } else {
+                // 如果找到客户端，使用常规方式发送消息
+                clients.forEach((client) =&gt; {
+                    client.postMessage({
+                        type: &quot;VERSION_UPDATE&quot;,
+                        version: data.version,
+                        showAlert: true,
+                    });
+                });
+            }
+
+            currentVersion = data.version;
+        }
+    } catch (error) {
+        console.error(&quot;[SW] 版本检查失败:&quot;, error);
+    }
+}
+
+// 监听消息
+self.addEventListener(&quot;message&quot;, (event) =&gt; {
+    console.log(&quot;[SW] 收到消息:&quot;, event.data);
+    if (event.data === &quot;CHECK_VERSION&quot;) {
+        console.log(&quot;[SW] 收到检查版本请求&quot;);
+        checkVersion();
+    }
+});
+
+// 每分钟检查一次版本（测试阶段）
+setInterval(checkVersion, 5 * 60 * 1000);
+
+// 立即进行首次检查
+checkVersion();
+</code></pre>
+<h3>2. Service Worker 注册和消息处理（serviceWorker.ts）</h3>
+<p>utils目录下serviceWorker.ts</p>
+<p>创建工具函数处理 Service Worker 的注册和消息通信：</p>
+<pre><code class="language-js">import { ElMessageBox, ElMessage } from &quot;element-plus&quot;;
+import { Local } from &quot;/@/utils/storage&quot;;
+
+// 显示更新提示
+function showUpdateNotification() {
+    console.log(&quot;[Main] 显示更新提示&quot;);
+    ElMessageBox.confirm(
+        &quot;系统发现新版本，为了更好的体验，建议立即更新&quot;,
+        &quot;更新提示&quot;,
+        {
+            confirmButtonText: &quot;立即更新&quot;,
+            cancelButtonText: &quot;稍后更新&quot;,
+            type: &quot;warning&quot;,
+            distinguishCancelAndClose: true,
+        }
+    )
+        .then(() =&gt; {
+        console.log(&quot;[Main] 用户确认更新&quot;);
+        // 检查是否支持 Cache API
+        if (&quot;caches&quot; in window) {
+            return caches.keys().then(function (names) {
+                return Promise.all(names.map((name) =&gt; caches.delete(name)))
+                    .then(() =&gt; {
+                    console.log(&quot;[Main] 缓存已清除，准备刷新页面&quot;);
+                    Local.clear();
+                    window.location.reload(true);
+                })
+                    .catch((error) =&gt; {
+                    console.error(&quot;[Main] 清除缓存失败:&quot;, error);
+                    Local.clear();
+                    // 如果清除缓存失败，仍然尝试刷新页面
+                    window.location.reload(true);
+                });
+            });
+        } else {
+            Local.clear();
+            // 如果不支持 Cache API，直接刷新页面
+            console.log(&quot;[Main] 浏览器不支持 Cache API，直接刷新页面&quot;);
+            window.location.reload(true);
+        }
+    })
+        .catch((err) =&gt; {
+        if (err === &quot;cancel&quot;) {
+            console.log(&quot;[Main] 用户取消更新&quot;);
+            ElMessage({
+                type: &quot;info&quot;,
+                message: &quot;您可以继续使用，但可能存在部分功能更新&quot;,
+            });
+        } else {
+            console.error(&quot;[Main] 更新过程发生错误:&quot;, err);
+            ElMessage({
+                type: &quot;error&quot;,
+                message: &quot;更新过程发生错误，请稍后重试&quot;,
+            });
+        }
+    });
+}
+
+// 注册 Service Worker
+export const registerServiceWorker = async () =&gt; {
+    // 本地开发环境不注册 Service Worker
+    if (import.meta.env.DEV) {
+        console.log(&quot;[Main] 本地开发环境,注销 Service Worker&quot;);
+        if (&quot;serviceWorker&quot; in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                for (let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+        return;
+    }
+    if (&quot;serviceWorker&quot; in navigator) {
+        try {
+            console.log(&quot;[Main] 开始注册 Service Worker...&quot;);
+
+            // 注册 Service Worker
+            const registration = await navigator.serviceWorker.register(&quot;/sw.js&quot;);
+            console.log(&quot;[Main] Service Worker 注册成功:&quot;, registration);
+
+            // 添加常规消息监听
+            const messageHandler = (event: MessageEvent) =&gt; {
+                console.log(&quot;[Main] 收到 Service Worker 消息:&quot;, event.data);
+                if (event.data.type === &quot;VERSION_UPDATE&quot;) {
+                    console.log(&quot;[Main] 收到版本更新通知&quot;);
+                    showUpdateNotification();
+                }
+            };
+
+            // 添加 BroadcastChannel 监听
+            const bc = new BroadcastChannel(&quot;version-update&quot;);
+            bc.onmessage = (event) =&gt; {
+                console.log(&quot;[Main] 收到广播消息:&quot;, event.data);
+                if (event.data.type === &quot;VERSION_UPDATE&quot;) {
+                    console.log(&quot;[Main] 收到版本更新通知&quot;);
+                    showUpdateNotification();
+                }
+            };
+
+            navigator.serviceWorker.addEventListener(&quot;message&quot;, messageHandler);
+
+            if (registration.active) {
+                console.log(&quot;[Main] Service Worker 已激活，发送检查版本消息&quot;);
+                registration.active.postMessage(&quot;CHECK_VERSION&quot;);
+            }
+        } catch (error) {
+            console.error(&quot;[Main] Service Worker 注册失败:&quot;, error);
+        }
+    } else {
+        console.warn(&quot;[Main] 浏览器不支持 Service Worker&quot;);
+        console.log(&quot;[Main] 使用定时器检查更新&quot;);
+        setInterval(() =&gt; {
+            fetch(&quot;/version.json&quot;, {
+                cache: &quot;no-cache&quot;,
+                headers: {
+                    &quot;Cache-Control&quot;: &quot;no-cache&quot;,
+                    Pragma: &quot;no-cache&quot;,
+                },
+            })
+                .then((response) =&gt; response.json())
+                .then((data) =&gt; {
+                const currentVersion = localStorage.getItem(&quot;app-version&quot;);
+                if (currentVersion &amp;&amp; currentVersion !== data.version) {
+                    console.log(&quot;[Main] 检测到新版本&quot;);
+                    showUpdateNotification();
+                }
+                localStorage.setItem(&quot;app-version&quot;, data.version);
+            })
+                .catch((error) =&gt; {
+                console.error(&quot;[Main] 版本检查失败:&quot;, error);
+            });
+        }, 5 * 60 * 1000);
+    }
+};
+
+// 检查更新
+export const checkForUpdates = () =&gt; {
+    if (navigator.serviceWorker &amp;&amp; navigator.serviceWorker.controller) {
+        console.log(&quot;[Main] 手动触发版本检查&quot;);
+        navigator.serviceWorker.controller.postMessage(&quot;CHECK_VERSION&quot;);
+    } else {
+        console.warn(&quot;[Main] Service Worker 未就绪，无法检查更新&quot;);
+    }
+};
+</code></pre>
+<h3>3. 自动版本号递增（autoIncrementVersion.ts）</h3>
+<p>根目录下创建 autoIncrementVersion.ts</p>
+<p>为了方便版本管理，实现了一个 Vite 插件在构建时自动递增版本号：</p>
+<pre><code class="language-js">import { Plugin } from &quot;vite&quot;;
+import fs from &quot;fs&quot;;
+import path from &quot;path&quot;;
+//版本号自增
+const incrementVersion = (version: string) =&gt; {
+    const parts = version.split(&quot;.&quot;).map(Number);
+    parts[2]++;
+    if (parts[2] &gt; 9) {
+        parts[2] = 0;
+        parts[1]++;
+        if (parts[1] &gt; 9) {
+            parts[1] = 0;
+            parts[0]++;
+        }
+    }
+    return parts.join(&quot;.&quot;);
+};
+
+export default function autoIncrementVersion(): Plugin {
+    return {
+        name: &quot;vite:autoIncrementVersion&quot;,
+        apply: &quot;build&quot;,
+        //构建开始时的钩子
+        buildStart(options) {
+            if (options) {
+                try {
+                    const pkgPath = path.resolve(&quot;./public/version.json&quot;);
+                    console.log(&quot;Reading version.json from:&quot;, pkgPath);
+                    const pkg = JSON.parse(fs.readFileSync(pkgPath, &quot;utf8&quot;));
+                    console.log(&quot;Current version:&quot;, pkg.version);
+                    pkg.version = incrementVersion(pkg.version);
+                    console.log(&quot;New version:&quot;, pkg.version);
+                    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+                } catch (error) {
+                    console.error(&quot;Error updating version:&quot;, error);
+                }
+            }
+        },
+    };
+}
+</code></pre>
+<h3>4. 创建版本号json（public/version.json）</h3>
+<p>在 public 目录下创建 version.json 文件</p>
+<pre><code class="language-json">{
+  &quot;version&quot;: &quot;1.0.8&quot;,
+  &quot;buildTime&quot;: &quot;&quot;,
+  &quot;environment&quot;: &quot;production&quot;
+}
+</code></pre>
+<h2>使用方法</h2>
+<ol>
+<li>在 main.ts 中注册 Service Worker：</li>
+</ol>
+<pre><code class="language-js">// 注册 Service Worker
+import { registerServiceWorker } from &#39;/@/utils/serviceWorker&#39;;
+registerServiceWorker();
+</code></pre>
+<ol>
+<li>在 vite.config.ts 中添加版本自增插件：</li>
+</ol>
+<pre><code class="language-js">import autoIncrementVersion from &#39;./autoIncrementVersion&#39;
+
+export default defineConfig({
+    plugins: [autoIncrementVersion()]，
+    build: {
+
+    plugins: [
+    {
+    name: &#39;version-inject&#39;,
+    buildStart() {
+    // 在构建开始时就创建 version.json
+    const versionData = {
+        version: process.env.npm_package_version,
+        buildTime: new Date().toISOString(),
+        environment: process.env.NODE_ENV || &#39;production&#39;
+    };
+
+    // 写入到 public 目录
+    const fs = require(&#39;fs&#39;);
+    const path = require(&#39;path&#39;);
+    const publicDir = path.resolve(__dirname, &#39;public&#39;);
+
+    // 确保 public 目录存在
+    if (!fs.existsSync(publicDir)) {
+        fs.mkdirSync(publicDir, { recursive: true });
+    }
+
+    // 写入 version.json
+    fs.writeFileSync(
+        path.join(publicDir, &#39;version.json&#39;),
+        JSON.stringify(versionData, null, 2)
+    );
+
+    console.log(&#39;[Build] 在 public 目录生成版本信息:&#39;, versionData);
+},
+    generateBundle() {
+        // 在构建输出时创建 version.json
+        const versionData = {
+            version: process.env.npm_package_version,
+            buildTime: new Date().toISOString(),
+            environment: process.env.NODE_ENV || &#39;production&#39;
+        };
+
+        console.log(&#39;[Build] 在构建目录生成版本信息:&#39;, versionData);
+        this.emitFile({
+            type: &#39;asset&#39;,
+            fileName: &#39;version.json&#39;,
+            source: JSON.stringify(versionData, null, 2)
+        });
+    }
+}
+]
+},
+})
+</code></pre>
+<h2>注意事项</h2>
+<ol>
+<li>Service Worker 必须在 HTTPS 环境下运行（本地开发环境除外）</li>
+<li>本地开发环境（localhost）可以正常使用</li>
+<li>为了保证版本检查的准确性，package.json 的请求始终绕过缓存</li>
+<li>提供了降级方案，在不支持 Service Worker 的环境下使用定时器检查更新</li>
+</ol>
+<h2>总结</h2>
+<p>通过 Service Worker 结合版本号检查，我们实现了一个可靠的前端应用自动更新机制。该方案具有以下优点：</p>
+<ol>
+<li>自动检测新版本</li>
+<li>提供友好的更新提示</li>
+<li>支持离线缓存</li>
+<li>包含降级方案</li>
+<li>自动化的版本管理</li>
+</ol>
+<p>这个方案可以显著提升用户体验，确保用户始终使用最新版本的应用。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>无标题</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>无标题</h1>
+        <p>未分类 | 未知日期</p>
+      </header>
+      <h1>网页中如何判断用户是否处于闲置状态</h1>
+<p>最近在项目中遇到一个需求：需要监控用户是否开着页面但是没有操作，或者开了页面但已经离开电脑，发现了浏览器原生提供了专有的 <code>API</code>: <code>IdleDetector</code>（空闲检测器）。当然我们也可以自行实现，我们分别来聊聊这两种方式：</p>
+<h2>什么是 IdleDetector？</h2>
+<p><code>IdleDetector</code> 是浏览器提供的一个实验性 <code>API</code>，用于检测用户的闲置状态。它可以监控以下两种状态：</p>
+<ul>
+<li>用户状态（<code>user</code>）：用户是否在电脑前（通过键盘、鼠标等交互判断）。</li>
+<li>屏幕状态（<code>screen</code>）：屏幕是否被锁定（例如屏幕保护程序启动或电脑休眠）。</li>
+</ul>
+<p>目前，<code>IdleDetector</code> 在 <code>Chrome 94+</code> 、<code>Edge 94+</code> 中都支持，<code>Firefox</code> 和 <code>Safari</code> 尚未支持。但是 <code>IdleDetector</code> 仍为实验性 <code>API</code>，未来可能有变化，且在非 <code>HTTPS</code> 环境下无法使用。</p>
+<h3>底层原理</h3>
+<p><code>IdleDetector</code> 通过浏览器底层机制检测用户和屏幕状态，开发者只需设置阈值并监听状态变化即可。<code>API</code> 会根据用户交互和系统状态自动判断是否进入闲置。</p>
+<h3>使用要注意</h3>
+<p><code>IdleDetector</code> 需要用户授权，权限请求可通过以下两种方式触发：</p>
+<ul>
+<li><strong>显式请求</strong>：调用 <code>IdleDetector.requestPermission()</code>，需在用户手势（如点击）中触发。</li>
+<li><strong>隐式请求</strong>：直接调用 <code>detector.start()</code>，浏览器会自动弹出权限提示。</li>
+</ul>
+<p>如果正确被调用会有这样的提示：</p>
+<p><img src="..%5Cimages%5C01.png" alt="01"></p>
+<p>参考以下实现来调用：</p>
+<pre><code class="language-js">async function startIdleDetection(threshold = 60000) {
+    if (!window.IdleDetector) {
+        console.error(&quot;浏览器不支持 IdleDetector API&quot;);
+        return { success: false, error: &quot;API_NOT_SUPPORTED&quot; };
+    }
+    try {
+        // 至少要60秒, 任何小于 60 秒的设置会导致 start() 抛出 DOMException
+        const validatedThreshold = Math.max(threshold, 60000);
+        const state = await IdleDetector.requestPermission();
+        if (state !== &quot;granted&quot;) {
+            console.error(&quot;用户拒绝了空闲检测权限&quot;);
+            return { success: false, error: &quot;PERMISSION_DENIED&quot; };
+        }
+        const detector = new IdleDetector();
+        // 添加更健壮的事件处理
+        const handleStateChange = () =&gt; {
+            const now = new Date().toISOString();
+            console.log(
+                `[${now}] 用户状态: ${detector.userState}, 屏幕状态: ${detector.screenState}`
+            );
+            // 实际业务逻辑可以在这里添加
+            if (detector.userState === &quot;idle&quot;) {
+                // 用户闲置处理
+            }
+        };
+        detector.addEventListener(&quot;change&quot;, handleStateChange);
+        // 添加错误处理
+        detector.addEventListener(&quot;error&quot;, (err) =&gt; {
+            console.error(&quot;检测器错误:&quot;, err);
+        });
+        await detector.start({ threshold: validatedThreshold });
+        return { success: true, detector }; // 返回检测器实例以便后续控制
+    } catch (err) {
+        console.error(&quot;空闲检测初始化失败:&quot;, err);
+        return { success: false, error: err.message };
+    }
+}
+
+// 正确用法示例（必须在用户交互中调用）：
+document.getElementById(&quot;startBtn&quot;).addEventListener(&quot;click&quot;, async () =&gt; {
+    const result = await startIdleDetection(90000); // 90秒阈值
+    if (!result.success) {
+        // 处理失败情况
+    }
+});
+</code></pre>
+<p>如果用户拒绝了怎么办了？我们要有备选方案：</p>
+<h2>自行实现用户闲置检测</h2>
+<p>通过监听一系列浏览器事件，判断用户是否处于活跃状态。核心事件包括：</p>
+<ul>
+<li><code>visibilitychange</code>：检测页面是否可见（例如用户切换标签页或最小化窗口）。</li>
+<li><code>mousemove</code> / <code>mousedown</code> / <code>keydown</code> / <code>touchstart</code>等事件：检测用户是否与页面交互。</li>
+<li><code>focus</code> / <code>blur</code>：检测窗口是否获得焦点。</li>
+</ul>
+<p>通过设置一个定时器，当用户超过一定时间未触发上述事件时，判定为闲置状态。</p>
+<p>示例代码：</p>
+<pre><code class="language-js">class IdleMonitor {
+    constructor(idleTimeout = 60000) {
+        this.idleTimeout = idleTimeout; // 闲置超时时间（毫秒）
+        this.timer = null;
+        this.isIdle = false;
+
+        this.handleActivity = this.handleActivity.bind(this);
+        this.checkIdle = this.checkIdle.bind(this);
+
+        this.init();
+    }
+
+    init() {
+        // 监听用户交互事件
+        [&quot;mousemove&quot;, &quot;mousedown&quot;, &quot;keydown&quot;, &quot;touchstart&quot;].forEach((event) =&gt; {
+            window.addEventListener(event, this.handleActivity);
+        });
+
+        // 监听页面可见性
+        document.addEventListener(&quot;visibilitychange&quot;, this.handleActivity);
+
+        // 启动定时器
+        this.startTimer();
+    }
+
+    handleActivity() {
+        if (this.isIdle) {
+            this.isIdle = false;
+            console.log(&quot;用户恢复活跃&quot;);
+        }
+        this.startTimer();
+    }
+
+    startTimer() {
+        clearTimeout(this.timer);
+        this.timer = setTimeout(this.checkIdle, this.idleTimeout);
+    }
+
+    checkIdle() {
+        this.isIdle = true;
+        console.log(&quot;用户进入闲置状态&quot;);
+    }
+
+    destroy() {
+        clearTimeout(this.timer);
+        [&quot;mousemove&quot;, &quot;mousedown&quot;, &quot;keydown&quot;, &quot;touchstart&quot;].forEach((event) =&gt; {
+            window.removeEventListener(event, this.handleActivity);
+        });
+        document.removeEventListener(&quot;visibilitychange&quot;, this.handleActivity);
+    }
+}
+
+// 使用示例
+const monitor = new IdleMonitor(90000); // 90秒无操作进入闲置
+</code></pre>
+<p>这里只是举例，所以只用了点击、触摸、鼠标移动这些事件，实际上要监听的事件可能要更多一些,如 <code>scroll</code>、<code>wheel</code>、<code>touchmove</code>，也可以根据业务适当调整。但是对比原生的<code>IdleDetector</code>有一个弊端就是跨域的 <code>iframe</code> 中的无法监听到。跨域的 <code>iframe</code> 内的交互事件（如 <code>mousemove</code>、<code>keydown</code>）不会冒泡到父页面，但如果 <code>iframe</code> 和父页面同源，可以在 <code>iframe</code> 内部绑定事件监听并通过 <code>postMessage</code> 通知父页面。实际使用的时候也可以通过防抖或节流来优化频繁触发的事件比如 <code>mousemove</code> 降低性能开销。</p>
+<h2>总结</h2>
+<p>浏览器为开发者检测用户是否空闲提供了实验性的<code>API</code>: <code>IdleDetector</code>，但是需要比较新的浏览器并且需要用户显式授权，如果浏览器不支持或者用户拒绝了，我们也可以通过自行实现的方式来检测，只是有些许缺陷。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IndexedDB：一个强大的客户端存储解决方案</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>IndexedDB：一个强大的客户端存储解决方案</h1>
+        <p>解决方案 | 2025.07.11</p>
+      </header>
+      <h2>引言</h2>
+<p>在现代 Web 开发中，客户端存储变得越来越重要。随着 Web 应用变得越来越复杂，开发者需要能够在用户的浏览器中存储大量结构化数据的能力。IndexedDB 正是为解决这一问题而生的浏览器内置数据库系统。本文将深入探讨 IndexedDB 的特性、使用场景以及实际应用方法。</p>
+<h2>什么是IndexedDB？</h2>
+<p>IndexedDB（Indexed Database API）是浏览器提供的一种底层 API，用于在客户端存储大量结构化数据。它不同于我们熟悉的 localStorage，IndexedDB 提供了更接近传统数据库的功能，包括索引、事务处理和大容量存储。</p>
+<h3>IndexedDB的核心特点</h3>
+<ol>
+<li><strong>键值对存储</strong>：数据以对象仓库（object store）形式组织，所有类型的数据都可以直接存入，包括 JavaScript 对象。<strong>每一个数据记录都有对应的主键，主键是独一无二的，不能有重复，否则会抛出一个错误。</strong></li>
+<li><strong>异步操作</strong>：所有操作都是异步的，不会阻塞UI线程</li>
+<li><strong>事务支持</strong>：支持ACID事务，保证数据完整性</li>
+<li><strong>大容量存储</strong>：通常至少250MB，没有明确上限</li>
+<li><strong>同源限制</strong>：遵循同源策略，保障数据安全。也就是说<strong>IndexedDB 受到同源限制，每一个数据库对应创建它的域名</strong>。网页只能访问自身域名下的数据库，而不能访问跨域的数据库。</li>
+<li><strong>二进制支持</strong>：可以存储ArrayBuffer和Blob对象</li>
+</ol>
+<h2>为什么选择 IndexedDB？</h2>
+<p>当你的应用需要：</p>
+<ul>
+<li>存储大量客户端数据</li>
+<li>需要高性能的搜索和查询</li>
+<li>处理复杂的数据结构</li>
+<li>需要事务支持保证数据一致性</li>
+<li>存储二进制数据（如图片、文件等）</li>
+</ul>
+<p>IndexedDB就是理想的选择。相比 Web SQL（已废弃）和 localStorage，IndexedDB 提供了更强大和灵活的功能。</p>
+<h2>IndexedDB基础使用</h2>
+<h3>1. 打开/创建数据库</h3>
+<pre><code class="language-js">let db;
+const request = indexedDB.open(&quot;myDatabase&quot;, 1);
+request.onerror = function (event) {
+    console.error(&quot;Database error:&quot;, event.target.error);
+};
+request.onsuccess = function (event) {
+    db = event.target.result;
+    console.log(&quot;Database opened successfully&quot;);
+};
+request.onupgradeneeded = function (event) {
+    const db = event.target.result;
+    if (!db.objectStoreNames.contains(&quot;users&quot;)) {
+        db.createObjectStore(&quot;users&quot;, { keyPath: &quot;id&quot;, autoIncrement: true });
+    }
+};
+</code></pre>
+<blockquote>
+<p>当该数据库不存在时，open 方法会直接创建一个名为 myDatabase 新数据库</p>
+</blockquote>
+<h3>2. 添加数据</h3>
+<pre><code class="language-js">function addUser(db, user) {
+    const transaction = db.transaction([&quot;users&quot;], &quot;readwrite&quot;);
+    const store = transaction.objectStore(&quot;users&quot;);
+    const request = store.add(user);
+    request.onsuccess = function () {
+        console.log(&quot;User added&quot;);
+    };
+    request.onerror = function (event) {
+        console.error(&quot;Error adding user:&quot;, event.target.error);
+    };
+}
+</code></pre>
+<h3>3. 查询数据</h3>
+<pre><code class="language-js">function getUser(db, id) {
+    const transaction = db.transaction([&quot;users&quot;], &quot;readonly&quot;);
+    const store = transaction.objectStore(&quot;users&quot;);
+    const request = store.get(id);
+    request.onsuccess = function () {
+        if (request.result) {
+            console.log(&quot;User:&quot;, request.result);
+        } else {
+            console.log(&quot;User not found&quot;);
+        }
+    };
+    request.onerror = function (event) {
+        console.error(&quot;Error getting user:&quot;, event.target.error);
+    };
+}
+</code></pre>
+<h2>高级特性</h2>
+<h3>索引和高效查询</h3>
+<p>IndexedDB 允许创建索引，实现高效的数据查询：</p>
+<pre><code class="language-js">request.onupgradeneeded = function(event) {
+    const db = event.target.result;
+    const store = db.createObjectStore(&#39;users&#39;, { keyPath: &#39;id&#39; });
+    store.createIndex(&#39;email&#39;, &#39;email&#39;, { unique: true });
+    store.createIndex(&#39;name&#39;, &#39;name&#39;, { unique: false });
+};
+
+// 使用索引查询
+function getUserByEmail(db, email) {
+    const transaction = db.transaction([&#39;users&#39;], &#39;readonly&#39;);
+    const store = transaction.objectStore(&#39;users&#39;);
+    const index = store.index(&#39;email&#39;);
+
+    const request = index.get(email);
+
+    request.onsuccess = function() {
+        console.log(&#39;User by email:&#39;, request.result);
+    };
+</code></pre>
+<h3>游标和范围查询</h3>
+<pre><code class="language-js">function getUsersInRange(db, minId, maxId) {
+    const transaction = db.transaction([&quot;users&quot;], &quot;readonly&quot;);
+    const store = transaction.objectStore(&quot;users&quot;);
+
+    const range = IDBKeyRange.bound(minId, maxId);
+    const request = store.openCursor(range);
+
+    request.onsuccess = function (event) {
+        const cursor = event.target.result;
+        if (cursor) {
+            console.log(&quot;User:&quot;, cursor.value);
+            cursor.continue();
+        }
+    };
+}
+</code></pre>
+<h2>常用工具库推荐</h2>
+<p>由于原生IndexedDB API较为底层，推荐使用这些库简化开发：</p>
+<ol>
+<li><strong>Dexie.js</strong>：轻量级IndexedDB封装，提供更简洁的API</li>
+<li><strong>localForage</strong>：提供类似localStorage的简单API，但底层使用IndexedDB</li>
+<li><strong>PouchDB</strong>：支持与CouchDB同步的客户端数据库</li>
+</ol>
+<h2>示例：使用Dexie.js简化代码</h2>
+<pre><code class="language-js">const db = new Dexie(&#39;myDatabase&#39;);
+
+db.version(1).stores({
+    users: &#39;++id, name, email&#39;,
+    posts: &#39;++id, title, content, userId&#39;
+});
+
+// 添加用户
+db.users.add({ name: &#39;John&#39;, email: &#39;john@example.com&#39; })
+    .then(() =&gt; console.log(&#39;User added&#39;))
+    .catch(err =&gt; console.error(&#39;Error:&#39;, err));
+
+// 查询
+db.users.where(&#39;name&#39;).equals(&#39;John&#39;).toArray()
+    .then(users =&gt; console.log(&#39;Found users:&#39;, users));
+</code></pre>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
