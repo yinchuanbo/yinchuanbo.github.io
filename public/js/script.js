@@ -70,6 +70,24 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
+// 分类筛选功能
+if (document.querySelector('.home-articles-list') && document.getElementById('category-list')) {
+  document.getElementById('category-list').addEventListener('click', function(e) {
+    if (e.target.classList.contains('category-btn')) {
+      const cat = e.target.getAttribute('data-category');
+      document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+      e.target.classList.add('active');
+      document.querySelectorAll('.home-articles-list li').forEach(li => {
+        if (cat === 'all' || li.getAttribute('data-category') === cat) {
+          li.style.display = '';
+        } else {
+          li.style.display = 'none';
+        }
+      });
+    }
+  });
+}
+
 // 主题切换功能
 const themeToggle = document.createElement("button");
 themeToggle.className = "theme-toggle";
