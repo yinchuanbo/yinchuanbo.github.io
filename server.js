@@ -113,7 +113,7 @@ async function generateIndex() {
       } else {
         dateStr = "未知日期";
       }
-      articleList += `<li data-category="${category}"><a href="/${htmlFileName}">${title}</a> <span class="other-info">${category}-${dateStr}</span></li>`;
+      articleList += `<li data-category="${category}"><a href="/${htmlFileName}">${title}</a> <span class="other-info">${category} & ${dateStr}</span></li>`;
       categorySet.add(category);
     }
 
