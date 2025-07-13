@@ -105,12 +105,12 @@ async function generateIndex() {
       const title = attributes.title || "无标题";
       const category = attributes.category || "未分类";
       let date = attributes.date ? new Date(attributes.date) : new Date(0);
-      
+
       articles.push({
         title,
         category,
         date,
-        htmlFileName
+        htmlFileName,
       });
       categorySet.add(category);
     }
@@ -120,18 +120,26 @@ async function generateIndex() {
 
     // 生成文章列表
     articles.forEach((article, index) => {
-      const dateStr = article.date.getTime() > 0 
-        ? `${article.date.getFullYear()}.${String(article.date.getMonth() + 1).padStart(2, "0")}.${String(article.date.getDate()).padStart(2, "0")}`
-        : "未知日期";
-      
-      articleList += `<li data-category="${article.category}"><a href="/${article.htmlFileName}">${files.length - index}. ${article.title} <span class="article-date">${dateStr}</span></a></li>`;
+      const dateStr =
+        article.date.getTime() > 0
+          ? `${article.date.getFullYear()}.${String(
+              article.date.getMonth() + 1
+            ).padStart(2, "0")}.${String(article.date.getDate()).padStart(
+              2,
+              "0"
+            )}`
+          : "未知日期";
+
+      articleList += `<li data-category="${article.category}"><a href="/${article.htmlFileName}">${article.title} <span class="article-date">${dateStr}</span></a></li>`;
     });
 
     // 生成分类按钮
     let categoryFilter = `<button class="category-btn" data-category="all">全部</button>`;
-    Array.from(categorySet).sort().forEach(cat => {
-      categoryFilter += `\n<button class="category-btn" data-category="${cat}">${cat}</button>`;
-    });
+    Array.from(categorySet)
+      .sort()
+      .forEach((cat) => {
+        categoryFilter += `\n<button class="category-btn" data-category="${cat}">${cat}</button>`;
+      });
 
     // 替换 index 模板中的占位符
     const indexContent = indexTemplate
