@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCSS - 设计深浅主题 scss 结构</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>SCSS - 设计深浅主题 scss 结构</h1>
+        <p>SCSS | 2025.07.14</p>
+      </header>
+      <p>我将设计一个支持深浅主题的 SCSS 结构，采用模块化、可扩展的方式，通过变量、混合宏和控制指令实现主题切换。设计将包括全局配置、主题定义、组件样式和响应式支持，确保代码清晰、易于维护，并支持动态主题切换。</p>
+<pre><code class="language-scss">// 1. 全局变量 - 基础配置
+$breakpoints: (
+  mobile: 768px,
+  tablet: 1024px,
+  desktop: 1200px,
+);
+
+$spacing: (
+  small: 8px,
+  medium: 16px,
+  large: 24px,
+);
+
+// 2. 主题配置 - 深浅主题颜色
+$themes: (
+  light: (
+    background: #ffffff,
+    text: #333333,
+    primary: #007bff,
+    secondary: #6c757d,
+    accent: #28a745,
+    border: #dee2e6,
+  ),
+  dark: (
+    background: #1a1a1a,
+    text: #ffffff,
+    primary: #66b0ff,
+    secondary: #adb5bd,
+    accent: #51cf66,
+    border: #495057,
+  ),
+);
+
+// 3. 混合宏 - 主题样式和响应式
+@mixin apply-theme($theme-name) {
+  @if map-has-key($themes, $theme-name) {
+    $theme: map-get($themes, $theme-name);
+
+    background: map-get($theme, background);
+    color: map-get($theme, text);
+    --primary: #{map-get($theme, primary)};
+    --secondary: #{map-get($theme, secondary)};
+    --accent: #{map-get($theme, accent)};
+    --border: #{map-get($theme, border)};
+  } @else {
+    @error &quot;Invalid theme: #{$theme-name}. Available: #{map-keys($themes)}&quot;;
+  }
+}
+
+@mixin respond-to($breakpoint) {
+  @if map-has-key($breakpoints, $breakpoint) {
+    @media (max-width: map-get($breakpoints, $breakpoint)) {
+      @content;
+    }
+  } @else {
+    @error &quot;Invalid breakpoint: #{$breakpoint}. Available: #{map-keys($breakpoints)}&quot;;
+  }
+}
+
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// 4. 全局样式 - 重置和基础设置
+:root {
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  transition: background 0.3s, color 0.3s;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+// 5. 主题应用 - 深浅主题切换
+.theme-light {
+  @include apply-theme(light);
+}
+
+.theme-dark {
+  @include apply-theme(dark);
+}
+
+// 6. 组件样式 - 主题化组件
+.header {
+  padding: map-get($spacing, medium);
+  border-bottom: 1px solid var(--border);
+
+  &amp;__logo {
+    font-size: 1.5rem;
+    color: var(--primary);
+  }
+
+  &amp;__nav {
+    @include flex-center;
+    gap: map-get($spacing, medium);
+
+    a {
+      color: var(--text);
+      text-decoration: none;
+
+      &amp;:hover {
+        color: var(--accent);
+      }
+    }
+  }
+
+  @include respond-to(mobile) {
+    padding: map-get($spacing, small);
+    flex-direction: column;
+
+    &amp;__nav {
+      flex-direction: column;
+      gap: map-get($spacing, small);
+    }
+  }
+}
+
+.card {
+  padding: map-get($spacing, medium);
+  margin: map-get($spacing, medium);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  &amp;__title {
+    font-size: 1.25rem;
+    color: var(--primary);
+  }
+
+  &amp;__content {
+    color: var(--text);
+    margin-top: map-get($spacing, small);
+  }
+
+  &amp;__button {
+    padding: map-get($spacing, small) map-get($spacing, medium);
+    background: var(--accent);
+    color: var(--text);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+
+    &amp;:hover {
+      background: darken(var(--accent), 10%);
+    }
+  }
+
+  @include respond-to(mobile) {
+    margin: map-get($spacing, small);
+    padding: map-get($spacing, small);
+  }
+}
+
+// 7. 工具类 - 通用样式
+.text-center {
+  text-align: center;
+}
+
+.margin-bottom {
+  margin-bottom: map-get($spacing, medium);
+
+  @include respond-to(mobile) {
+    margin-bottom: map-get($spacing, small);
+  }
+}
+
+// 8. 动画效果 - 主题切换过渡
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+</code></pre>
+<h2>设计特点和使用说明</h2>
+<h3>1. 主题配置</h3>
+<ul>
+<li><strong>方法</strong>：使用 map 存储深浅主题的颜色配置（<code>$themes</code>），通过 <code>map-get</code> 获取具体值。</li>
+<li><strong>优势</strong>：集中管理颜色，易于扩展新主题（如高对比度主题）。</li>
+<li><strong>使用场景</strong>：通过 CSS 自定义属性（<code>--variable</code>）和 <code>apply-theme</code> 混合宏动态应用主题，结合 JavaScript 切换类（如 <code>.theme-light</code> 或 <code>.theme-dark</code>）实现主题切换。</li>
+</ul>
+<h3>2. CSS 自定义属性</h3>
+<ul>
+<li><strong>方法</strong>：将主题颜色定义为 CSS 自定义属性（<code>--primary</code> 等），在组件中直接引用。</li>
+<li><strong>优势</strong>：支持动态主题切换，减少 SCSS 编译时的重复代码；便于 JavaScript 操作（如动态调整颜色）。</li>
+<li><strong>使用场景</strong>：在需要动态修改样式的场景（如用户自定义主题）中使用。</li>
+</ul>
+<h3>3. 模块化结构</h3>
+<ul>
+<li><strong>方法</strong>：按功能组织代码（全局变量、主题配置、组件样式、工具类）。</li>
+<li><strong>优势</strong>：提高可维护性，方便添加新组件或主题。</li>
+<li><strong>使用场景</strong>：大型项目中，可将组件样式拆分为单独文件，使用 <code>@use</code> 引入。</li>
+</ul>
+<h3>4. 响应式支持</h3>
+<ul>
+<li><strong>方法</strong>：通过 <code>@mixin respond-to</code> 和 <code>$breakpoints</code> 管理媒体查询。</li>
+<li><strong>优势</strong>：统一断点管理，简化响应式样式编写。</li>
+<li><strong>使用场景</strong>：适配 PC 和移动端，确保深浅主题在不同设备上表现一致。</li>
+</ul>
+<h3>5. 错误处理</h3>
+<ul>
+<li><strong>方法</strong>：使用 <code>@error</code> 检查无效主题或断点。</li>
+<li><strong>优势</strong>：提高代码健壮性，方便调试。</li>
+<li><strong>使用场景</strong>：开发阶段捕获配置错误，避免运行时问题。</li>
+</ul>
+<h3>6. 动画效果</h3>
+<ul>
+<li><strong>方法</strong>：为主题切换添加过渡效果（如 <code>transition</code>）和动画（如 <code>fadeIn</code>）。</li>
+<li><strong>优势</strong>：提升用户体验，平滑切换主题。</li>
+<li><strong>使用场景</strong>：页面加载或主题切换时的视觉效果。</li>
+</ul>
+<h2>使用方法</h2>
+<p><strong>1. HTML 结构</strong></p>
+<pre><code class="language-html">&lt;body class=&quot;theme-light&quot;&gt;
+  &lt;header class=&quot;header&quot;&gt;
+    &lt;div class=&quot;header__logo&quot;&gt;Logo&lt;/div&gt;
+    &lt;nav class=&quot;header__nav&quot;&gt;
+      &lt;a href=&quot;#&quot;&gt;Home&lt;/a&gt;
+      &lt;a href=&quot;#&quot;&gt;About&lt;/a&gt;
+    &lt;/nav&gt;
+  &lt;/header&gt;
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;h2 class=&quot;card__title&quot;&gt;Card Title&lt;/h2&gt;
+    &lt;p class=&quot;card__content&quot;&gt;Card content here.&lt;/p&gt;
+    &lt;button class=&quot;card__button&quot;&gt;Click Me&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+</code></pre>
+<p><strong>2. 主题切换</strong></p>
+<ul>
+<li>使用 JavaScript 切换 <code>body</code> 的类：</li>
+</ul>
+<pre><code class="language-javascript">document.body.classList.toggle(&quot;theme-dark&quot;); // 切换到深色主题
+document.body.classList.toggle(&quot;theme-light&quot;); // 切换到浅色主题
+</code></pre>
+<p><strong>3. 扩展主题</strong></p>
+<ul>
+<li>在 <code>$themes</code> 中添加新主题（如 <code>high-contrast</code>），只需扩展 map：</li>
+</ul>
+<pre><code class="language-scss">$themes: (
+  light: (
+    ...,
+  ),
+  dark: (
+    ...,
+  ),
+  high-contrast: (
+    background: #000000,
+    text: #ffffff,
+    primary: #ffff00,
+    ...,
+  ),
+);
+.theme-high-contrast {
+  @include apply-theme(high-contrast);
+}
+</code></pre>
+<h3>优势总结</h3>
+<ul>
+<li><strong>灵活性</strong>：通过 map 和 CSS 自定义属性支持动态主题切换。</li>
+<li><strong>可维护性</strong>：模块化结构和集中配置便于修改和扩展。</li>
+<li><strong>响应式</strong>：结合媒体查询确保深浅主题在不同设备上表现良好。</li>
+<li><strong>用户体验</strong>：过渡动画和错误处理提升开发和使用体验。</li>
+</ul>
+<p>这个设计适合需要深浅主题切换的现代 Web 应用，可轻松扩展到更多主题或复杂组件，同时保持代码整洁和高效。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
