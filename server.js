@@ -126,7 +126,7 @@ async function generateIndex() {
             )}`
           : "未知日期";
 
-      articleList += `<li data-category="${article.category}"><a href="/${article.htmlFileName}">${article.title} <span class="article-date">${dateStr}</span></a></li>`;
+      articleList += `<li data-category="${article.category}"><a href="/${article.htmlFileName}">${article.title}</a></li>`;
     });
 
     // 生成分类按钮

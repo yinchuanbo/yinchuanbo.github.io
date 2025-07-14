@@ -12,6 +12,20 @@ if (localStorage.getItem("darkMode") === "true") {
   document.body.classList.add("dark-mode");
 }
 
+function categoryBtnCount() {
+  const categoryBtns = document.querySelectorAll(".category-btn");
+  categoryBtns.forEach((btn) => {
+    const category = btn.getAttribute("data-category");
+    const categoryCount = document.querySelectorAll(
+      `li[data-category="${category}"]`
+    ).length;
+    const allCount = document.querySelectorAll(".home-articles-list li").length;
+    btn.innerHTML = `${btn.textContent} <span class="category-count">${
+      category === "all" ? allCount : categoryCount
+    }</span>`;
+  });
+}
+
 // 目录生成
 document.addEventListener("DOMContentLoaded", function () {
   const toTop = document.querySelector(".to-top");
@@ -71,6 +85,8 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   });
+
+  categoryBtnCount();
 });
 
 // 分类筛选功能
