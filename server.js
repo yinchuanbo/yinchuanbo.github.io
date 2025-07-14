@@ -43,10 +43,6 @@ async function compileMarkdown(filePath) {
     const marked = (await import("marked")).marked;
     const fileContent = fs.readFileSync(filePath, "utf8");
     const { attributes, body } = frontMatter(fileContent);
-
-    // 调试：打印解析的 front-matter
-    console.log(`解析 ${path.basename(filePath)} 的 front-matter:`, attributes);
-
     // 确保 attributes 存在并提供默认值
     const title = attributes.title || "无标题";
     const category = attributes.category || "未分类";
