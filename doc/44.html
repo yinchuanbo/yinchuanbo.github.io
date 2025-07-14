@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SSR/SSG/ISR/DPR：一篇文章讲清楚这些眼花缭乱的前端渲染模式</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body>
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>SSR/SSG/ISR/DPR：一篇文章讲清楚这些眼花缭乱的前端渲染模式</h1>
+        <p>工程化 | 2025.07.14</p>
+      </header>
+      <p>在现代前端开发中，我们不再仅仅满足于用 JavaScript 在客户端渲染页面。为了更好的首屏加载速度和搜索引擎优化（SEO），一系列服务端相关的渲染模式应运而生。</p>
+<p>开发者常常会遇到 SSR, SSG, ISR 等术语，它们都属于服务端渲染的范畴，但其工作方式和适用场景有显著区别。本文旨在清晰、系统地阐述这些主流的前端渲染模式，并对它们的优缺点和适用场景进行对比。</p>
+<p>在开始之前，我们先定义一个基准：<strong>CSR (Client-Side Rendering)</strong> 。</p>
+<ul>
+<li><strong>CSR 工作流程</strong>：浏览器下载一个近乎空白的 HTML 文件和一个 JavaScript 包。JS 包在浏览器端执行，通过 API 获取数据，然后渲染出页面内容。</li>
+<li><strong>CSR 核心问题</strong>：首屏内容为空，SEO 不友好；用户需要等待 JS 下载并执行完毕才能看到内容，导致首屏加载速度慢（FCP/LCP 指标差）。</li>
+</ul>
+<p>为了解决 CSR 的问题，以下四种渲染模式登上了舞台。</p>
+<h2>SSR (Server-Side Rendering) - 服务端渲染</h2>
+<blockquote>
+<p>每当用户请求页面时，服务器会实时查询数据，动态生成完整的 HTML 页面，然后返回给浏览器。</p>
+</blockquote>
+<p><strong>工作流程</strong>：</p>
+<ol>
+<li><p>浏览器向服务器发起页面请求。</p>
+</li>
+<li><p>服务器接收请求，执行相关程序（例如，访问数据库或 API 获取数据）。</p>
+</li>
+<li><p>服务器将数据和前端组件渲染成一个完整的 HTML 字符串。</p>
+</li>
+<li><p>服务器将此 HTML 字符串发送回浏览器。</p>
+</li>
+<li><p>浏览器接收到 HTML 后，立刻可以展示出有内容的页面（优秀的 FCP/LCP）。</p>
+</li>
+<li><p>与此同时，浏览器在后台下载页面所需的 JavaScript 包。</p>
+</li>
+<li><p>JS 下载并执行完毕后，会对静态的 HTML 进行“注水”（Hydration），即附加事件监听器，让页面变得可交互。</p>
+</li>
+</ol>
+<p><strong>优点</strong>：</p>
+<ul>
+<li><strong>SEO 友好</strong>：返回给搜索引擎爬虫的是包含完整内容的 HTML。</li>
+<li><strong>首屏加载快</strong>：用户能非常快地看到页面的内容。</li>
+</ul>
+<p><strong>缺点</strong>：</p>
+<ul>
+<li><strong>服务器压力大</strong>：每个请求都需要在服务器端实时渲染，对服务器计算资源消耗较大。</li>
+<li><strong>TTFB（Time to First Byte）较慢</strong>：因为服务器在返回第一个字节前，需要完成数据获取和渲染的全部工作。</li>
+</ul>
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li>内容需要频繁更新、高度动态化的页面，如新闻网站、电商商品列表、社交媒体信息流。</li>
+<li>需要根据用户信息实时生成个性化内容的页面，如用户个人中心。</li>
+</ul>
+<p><strong>代表框架/工具</strong>：</p>
+<ul>
+<li>Next.js (<code>getServerSideProps</code>)</li>
+<li>Nuxt</li>
+</ul>
+<hr>
+<h2>SSG (Static Site Generation) - 静态站点生成</h2>
+<blockquote>
+<p>在构建时（Build Time），提前将所有页面都生成为静态的 HTML 文件。用户请求时，直接返回已经生成好的 HTML 文件。</p>
+</blockquote>
+<p><strong>工作流程</strong>：</p>
+<ol>
+<li>开发者执行构建命令（如 <code>npm run build</code>）。</li>
+<li>构建工具在构建过程中，获取所有需要的数据。</li>
+<li>为每一个页面路径，生成一个对应的<code>.html</code>文件。</li>
+<li>将所有生成的 HTML、CSS、JS 文件部署到静态托管服务或 CDN 上。</li>
+<li>当用户请求页面时，CDN 直接返回对应的 HTML 文件，无需服务器进行任何计算。</li>
+</ol>
+<p><strong>优点</strong>：</p>
+<ul>
+<li><strong>极快的 TTFB</strong>：响应速度是所有模式中最快的，因为文件是现成的。</li>
+<li><strong>服务器成本极低</strong>：无需应用服务器，只需静态文件托管服务。</li>
+<li><strong>安全性高</strong>：没有服务端逻辑，受攻击面小。</li>
+</ul>
+<p><strong>缺点</strong>：</p>
+<ul>
+<li><strong>构建时间长</strong>：如果网站页面数量巨大（如成千上万页），构建过程会非常缓慢。</li>
+<li><strong>内容更新不及时</strong>：每次内容更新，都需要重新构建并部署整个网站。</li>
+<li><strong>无法处理动态或个性化内容</strong>。</li>
+</ul>
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li>内容不经常变动的网站，如博客、产品文档、作品集、企业官网、营销落地页。</li>
+</ul>
+<p><strong>代表框架/工具</strong>：</p>
+<ul>
+<li>Next.js (<code>getStaticProps</code>)</li>
+<li>Nuxt (<code>nuxt generate</code>)</li>
+<li>Astro, Gatsby, Hugo</li>
+</ul>
+<hr>
+<h2>ISR (Incremental Static Regeneration) - 增量静态再生</h2>
+<p>SSG 的进化版。它允许你在构建后，根据设定的策略，在后台增量式地重新生成静态页面，而无需重新构建整个站点。</p>
+<p><strong>工作流程</strong>：</p>
+<ol>
+<li>与 SSG 类似，在构建时生成一批静态页面。</li>
+<li>为页面设置一个“重新验证”时间（例如 <code>revalidate: 60</code>，即 60 秒）。</li>
+<li>用户请求一个页面，服务器返回缓存的静态 HTML。</li>
+<li>如果距离上次生成该页面的时间超过了 60 秒，服务器会在<strong>后台</strong>悄悄地重新生成这个页面，并用新页面更新缓存。</li>
+<li>第一个触发重新生成的的用户会看到旧的（stale）页面，但其后的所有用户都会看到最新的页面。</li>
+</ol>
+<p><strong>优点</strong>：</p>
+<ul>
+<li><strong>兼具 SSG 的速度和内容的准实时性</strong>。</li>
+<li><strong>无需为内容更新而重新构建整个站点</strong>，解决了 SSG 的痛点。</li>
+<li>服务器负载远低于 SSR。</li>
+</ul>
+<p><strong>缺点</strong>：</p>
+<ul>
+<li>触发更新的用户可能会在短时间内看到旧内容。</li>
+<li>不适用于需要严格实时显示数据（如股票价格）的场景。</li>
+</ul>
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li>内容更新频繁，但对实时性要求不是极高的网站，如新闻门户、热门的电商商品页、社交媒体的热门帖子。</li>
+</ul>
+<p><strong>代表框架/工具</strong>：</p>
+<ul>
+<li>Next.js (在 <code>getStaticProps</code> 中返回 <code>revalidate</code> 属性)</li>
+</ul>
+<hr>
+<h2>DPR (Distributed Persistent Rendering) - 分布式持久化渲染</h2>
+<p>一种与 ISR 类似的按需生成策略，但它不在构建时生成任何页面。页面只在第一次被用户请求时才生成，然后被持久化缓存到 CDN 上，供后续用户访问。</p>
+<p><strong>工作流程</strong>：</p>
+<ol>
+<li>网站构建时，不生成具体的页面 HTML，只准备好生成页面的模板（通常是 Serverless Function）。</li>
+<li>用户第一次请求某个页面（例如 <code>/products/123</code>）。</li>
+<li>CDN 未命中缓存，请求回源到 Serverless Function。</li>
+<li>Serverless Function 执行，获取数据，渲染出页面 HTML。</li>
+<li>将生成的 HTML 返回给用户的同时，也将其<strong>持久化</strong>到 CDN 缓存中。</li>
+<li>之后所有请求该页面的用户，都将直接从 CDN 获取缓存的 HTML。</li>
+</ol>
+<p><strong>优点</strong>：</p>
+<ul>
+<li><strong>构建速度极快</strong>，因为几乎不生成页面。</li>
+<li>非常适合拥有海量页面（如数百万个商品）但大部分页面访问量很低的网站。</li>
+</ul>
+<p><strong>缺点</strong>：</p>
+<ul>
+<li><strong>每个页面的第一个访问者，需要经历一次较慢的 SSR 加载过程</strong>。</li>
+</ul>
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li>拥有超大规模页面的网站，如大型电商平台、文档库、历史存档网站。</li>
+</ul>
+<p><strong>代表框架/工具</strong>：</p>
+<ul>
+<li>Netlify (On-demand Builders)</li>
+<li>可以通过其他 Serverless 平台（如 Vercel）自行实现此模式。</li>
+</ul>
+<hr>
+<p>为了更直观地对比，我们可以用一个表格来总结：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th><strong>CSR</strong></th>
+<th><strong>SSR</strong></th>
+<th><strong>SSG</strong></th>
+<th><strong>ISR</strong></th>
+<th><strong>DPR</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SEO</strong></td>
+<td>差</td>
+<td>好</td>
+<td>好</td>
+<td>好</td>
+<td>好</td>
+</tr>
+<tr>
+<td><strong>TTFB</strong></td>
+<td>快</td>
+<td>慢</td>
+<td>极快</td>
+<td>极快</td>
+<td>慢 (首次) / 极快 (后续)</td>
+</tr>
+<tr>
+<td><strong>首屏速度(FCP/LCP)</strong></td>
+<td>慢</td>
+<td>快</td>
+<td>快</td>
+<td>快</td>
+<td>慢 (首次) / 快 (后续)</td>
+</tr>
+<tr>
+<td><strong>服务器成本</strong></td>
+<td>低</td>
+<td>高</td>
+<td>极低</td>
+<td>低</td>
+<td>中 (按需计算)</td>
+</tr>
+<tr>
+<td><strong>数据实时性</strong></td>
+<td>实时</td>
+<td>实时</td>
+<td>差 (构建时)</td>
+<td>准实时</td>
+<td>准实时</td>
+</tr>
+<tr>
+<td><strong>构建时间</strong></td>
+<td>快</td>
+<td>快</td>
+<td>慢 (页面多时)</td>
+<td>快</td>
+<td>极快</td>
+</tr>
+</tbody></table>
+<p><strong>我们如何选择用啥呢？</strong></p>
+<ul>
+<li><strong>内容完全静态或更新极少</strong>：选择 <strong>SSG</strong>。 (博客、文档)</li>
+<li><strong>内容需要 SEO 且高度动态/个性化</strong>：选择 <strong>SSR</strong>。 (用户中心、搜索结果)</li>
+<li><strong>内容多、更新频繁但能接受分钟级延迟</strong>：选择 <strong>ISR</strong>。 (新闻网站、热门商品)</li>
+<li><strong>内容页面数量巨大，但长尾访问多</strong>：考虑 <strong>DPR</strong>。 (大型电商)</li>
+<li><strong>无需 SEO 的应用或后台系统</strong>：经典的 <strong>CSR</strong> 依然是简单高效的选择。</li>
+</ul>
+<p>现代前端框架（如 Next.js）的强大之处在于，它们允许你在同一个应用中，为不同的页面灵活选择不同的渲染模式，让你能为每个场景都找到最优解。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
