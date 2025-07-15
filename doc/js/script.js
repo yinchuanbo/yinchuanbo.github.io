@@ -26,6 +26,104 @@ function categoryBtnCount() {
   });
 }
 
+// 创建图片预览overlay
+function createImagePreviewOverlay() {
+  const overlay = document.createElement('div');
+  overlay.className = 'img-preview-overlay';
+  
+  const img = document.createElement('img');
+  img.className = 'preview-img';
+  
+  const closeBtn = document.createElement('div');
+  closeBtn.className = 'close-preview';
+  closeBtn.innerHTML = '&times;';
+  closeBtn.addEventListener('click', () => {
+    overlay.classList.remove('active');
+    setTimeout(() => {
+      document.body.removeChild(overlay);
+    }, 300);
+  });
+  
+  const controls = document.createElement('div');
+  controls.className = 'img-controls';
+  
+  const zoomInBtn = document.createElement('button');
+  zoomInBtn.className = 'img-control-btn';
+  zoomInBtn.innerHTML = '+';
+  zoomInBtn.addEventListener('click', () => {
+    const currentWidth = parseInt(img.style.maxWidth || '90%');
+    if (currentWidth < 150) {
+      img.style.maxWidth = (currentWidth + 10) + '%';
+    }
+  });
+  
+  const zoomOutBtn = document.createElement('button');
+  zoomOutBtn.className = 'img-control-btn';
+  zoomOutBtn.innerHTML = '-';
+  zoomOutBtn.addEventListener('click', () => {
+    const currentWidth = parseInt(img.style.maxWidth || '90%');
+    if (currentWidth > 30) {
+      img.style.maxWidth = (currentWidth - 10) + '%';
+    }
+  });
+  
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'img-control-btn';
+  resetBtn.innerHTML = '⟲';
+  resetBtn.addEventListener('click', () => {
+    img.style.maxWidth = '90%';
+  });
+  
+  controls.appendChild(zoomOutBtn);
+  controls.appendChild(resetBtn);
+  controls.appendChild(zoomInBtn);
+  
+  overlay.appendChild(img);
+  overlay.appendChild(closeBtn);
+  overlay.appendChild(controls);
+  
+  // 点击overlay背景关闭预览
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.classList.remove('active');
+      setTimeout(() => {
+        document.body.removeChild(overlay);
+      }, 300);
+    }
+  });
+  
+  // ESC键关闭预览
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.querySelector('.img-preview-overlay.active')) {
+      const activeOverlay = document.querySelector('.img-preview-overlay.active');
+      activeOverlay.classList.remove('active');
+      setTimeout(() => {
+        document.body.removeChild(activeOverlay);
+      }, 300);
+    }
+  });
+  
+  return { overlay, img };
+}
+
+// 图片点击全屏预览功能
+function setupImagePreview() {
+  const images = document.querySelectorAll('main img');
+  
+  images.forEach(img => {
+    img.addEventListener('click', () => {
+      const { overlay, img: previewImg } = createImagePreviewOverlay();
+      previewImg.src = img.src;
+      document.body.appendChild(overlay);
+      
+      // 使用setTimeout确保DOM更新后再添加active类以触发动画
+      setTimeout(() => {
+        overlay.classList.add('active');
+      }, 10);
+    });
+  });
+}
+
 // 目录生成
 document.addEventListener("DOMContentLoaded", function () {
   const toTop = document.querySelector(".to-top");
@@ -87,6 +185,9 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   categoryBtnCount();
+  
+  // 设置图片点击预览
+  setupImagePreview();
 });
 
 // 分类筛选功能
