@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>修复网站的 JavaScript 性能</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>修复网站的 JavaScript 性能</h1>
+        <p>性能优化 | 2025.07.15</p>
+      </header>
+      <p>说到 Web 性能，您可能会想到压缩、资源优化甚至 HTTP 缓存等技术。这些技术非常重要，并且有很多现有资源涵盖了修复或实现这些技术的方法。然而，一些较少讨论的性能瓶颈可能会严重影响网站速度。在本文中，我们将讨论三个通常源于低效 JavaScript 模式的问题：</p>
+<ul>
+<li><strong>长任务：</strong> 垄断主线程的 JavaScript 操作，导致用户界面无响应。</li>
+<li><strong>捆绑包大小较大：</strong> JavaScript 代码太大，无法快速下载、解析和执行。</li>
+<li><strong>水化问题：</strong> 将 JavaScript 功能附加到服务器呈现的 HTML 的过程。</li>
+</ul>
+<p>虽然这些并不是新问题，但现代网络实践和网络框架可能会加剧这些问题，使它们再次成为人们关注的焦点。</p>
+<p><strong>注意：</strong> 这些问题也可能源于其他原因，例如 CSS。例如，复杂的 CSS 选择器可能需要很长时间才能匹配元素，从而导致<a href="https://developer.mozilla.org/en-US/docs/Glossary/Long_task">任务执行</a>时间过长。不过，本文的重点是 JavaScript。</p>
+<p>以下是有关每个瓶颈的更多信息，以及解决此类性能问题的高级评论。</p>
+<h2>长任务</h2>
+<p><a href="https://developer.mozilla.org/en-US/docs/Glossary/Main_thread">当主线程</a>持续活动并阻塞浏览器 50 毫秒或更长时间时，就会出现耗时任务。请注意，许多 JavaScript 和浏览器渲染任务都是在主线程上<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Execution_model">按顺序执行的。</a></p>
+<p>当主线程繁忙时，它无法处理用户交互或执行其他重要的渲染任务。这会导致页面响应明显延迟。</p>
+<p><img src="../images/17/request-waterfall-long-tasks.png" alt="请求瀑布图上的长任务。长任务会影响页面渲染"></p>
+<p>让我们在 Next.js 页面上运行<a href="https://www.debugbear.com/test/website-speed?utm_campaign=mdn-1">网站速度测试</a>。该页面由服务器渲染，然后在客户端进行数据合并。有趣的是，尽管 HTML 负载很大，但页面显示用户很早就看到了有用的内容。</p>
+<p><strong>捕获此页面加载的实验室测试</strong>显示，最大内容绘制 ( <a href="https://developer.mozilla.org/en-US/docs/Glossary/Largest_contentful_paint">LCP</a> ) 时间尚可接受，且无累积布局偏移 ( <a href="https://developer.mozilla.org/en-US/docs/Glossary/CLS">CLS</a> )。此简化图表显示了用户在执行长任务时进行交互时发生的情况。</p>
+<p><img src="../images/17/interaction-handler-delay.png" alt="长时间任务期间的用户交互可能会延迟页面更新"></p>
+<p>这里的问题是，即使内容能够及时加载，由于浏览器忙于解析和执行 JavaScript，页面也会长时间无法交互。在缓慢的“Hydration”过程中，用户看到的内容看似可交互，但实际上并非如此。这意味着，当用户尝试与页面交互时，页面会“冻结”。</p>
+<p>这个例子特别有趣，因为它强调解析和执行时间，而不仅仅是下载时间。</p>
+<h3>如何缩短你的长期任务</h3>
+<ol>
+<li><p>**让位于主线程：**将您的工作分解成更小、更易于管理的任务。这可以有效地让浏览器休息一下，让它专注于处理用户交互和渲染。您可以在我们<a href="https://www.debugbear.com/blog/scheduler-yield?utm_campaign=mdn-1">关于使用 Scheduler API 的文章</a>中了解更多关于此技术的信息。</p>
+</li>
+<li><p>**使用 Web Workers：**虽然它可能不会使您的代码运行得更快，但<a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API">Web Workers</a>允许您在后台运行 JavaScript，从而使您的主线程可以自由地进行用户交互和渲染。</p>
+</li>
+<li><p>**优化渲染模式：**实施以下技术：</p>
+<ul>
+<li><a href="https://www.debugbear.com/blog/excessive-dom-size?utm_campaign=mdn-1">减少 DOM 大小</a>：元素越少，浏览器的工作量就越小。</li>
+<li><a href="https://web.dev/articles/avoid-large-complex-layouts-and-layout-thrashing">消除布局抖动</a>：避免多次强制重排可以提高性能。</li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Performance/CSS#:~:text=before%20serving%20them.-,Simplify%20selectors,-%3A%20People%20often%20write">使用高效的 CSS 选择器</a>：复杂的选择器会降低渲染速度。</li>
+</ul>
+</li>
+</ol>
+<p>作为一般的性能策略，您应该<a href="https://www.debugbear.com/docs/performance/minimize-main-thread-work?utm_campaign=mdn-1">尽量减少主线程的工作</a>和活动。</p>
+<h2>大捆尺寸</h2>
+<p>较大的包大小是指用户访问您的网站时需要下载、解析和执行的 JavaScript 代码总量。“包”是一个 JavaScript 文件，其中包含您的应用程序代码以及所有依赖项。过大的 JavaScript 包可能会导致以下几个问题：</p>
+<ul>
+<li>**缓存命中率较低：**大文件更容易被失效并需要重新下载，因为它们更容易被更改。这降低了缓存的优势。</li>
+<li>**下载时间较慢：**较大的文件需要较长时间下载，尤其是在连接速度较慢的情况下。</li>
+<li>**解析和执行时间增加：**这一点很容易被忽视：即使在快速的网络连接下，解析和执行大型 JavaScript 文件也可能需要相当长的时间，尤其是在移动设备上。解析和执行时间过长也会导致任务执行时间过长。</li>
+</ul>
+<p>最后一点对于用户交互来说也是一个问题。用户与页面交互时期望立即获得反馈，但如果浏览器正忙于解析和执行 JavaScript，它就无法响应用户输入。</p>
+<p><img src="../images/17/long-tasks-on-javascript-bundles.png" alt="包含两个大型 JavaScript 包的页面影响页面渲染"></p>
+<p>上图显示的页面包含大量大型 JavaScript 包。页面渲染受以下因素阻碍：</p>
+<ul>
+<li>JavaScript 包的下载时间。</li>
+<li>JavaScript 包的解析器阻塞特性。</li>
+<li>JavaScript 包的执行时间。</li>
+</ul>
+<h3>如何解决大包大小问题</h3>
+<ul>
+<li>**实施<a href="https://developer.mozilla.org/en-US/docs/Glossary/Tree_shaking">树摇动</a>**以从最终捆绑包中删除未使用的代码。</li>
+<li><strong>使用代码分割</strong>将您的应用程序分解成可以选择性加载的较小块。</li>
+<li><strong>使用延迟加载</strong>来<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#defer">推迟</a>非关键资源的加载，直到需要它们为止。</li>
+<li><a href="https://www.debugbear.com/blog/reduce-unused-javascript?utm_campaign=mdn-1"><strong>使用 Chrome DevTools 或 Edge DevTools 中的 Coverage 面板来识别并消除未使用的代码</strong></a>，从而移除未使用的代码。Coverage 与源码映射兼容，因此您可以准确了解哪些源代码文件未使用，并可以安全地移除/推迟执行。</li>
+<li><strong>尽可能迁移到原生 Web 平台功能</strong>，减少对自定义 JavaScript 代码的需求。许多过去使用 JavaScript 从头实现的常见模式和功能现在都已获得原生浏览器支持。这意味着您可以用更少的代码实现相同的功能。</li>
+</ul>
+<p>以下是一些可以替代常见 JavaScript 实现的强大的 Web 平台功能：</p>
+<ul>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_scroll_snap"><strong>CSS 滚动捕捉，</strong></a>而不是 JavaScript 驱动的轮播。</li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API"><strong>查看转换</strong></a>以实现页面和页面组件之间的平滑转换。</li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout"></a>用于复杂页面布局的<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout"><strong>CSS 网格。</strong></a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API"></a>用于视口内检测 UI 元素或组件的<a href="https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API"><strong>交叉观察器。</strong></a></li>
+<li><a href="https://www.debugbear.com/blog/image-lazy-loading?utm_campaign=mdn-1"></a>图像和 iframe 的<a href="https://www.debugbear.com/blog/image-lazy-loading?utm_campaign=mdn-1"><strong>原生延迟加载。</strong></a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Popover_API"><strong>Popover API</strong></a>用于访问弹出功能。</li>
+</ul>
+<p>以下是一些需要注意的 Web 平台功能。您可以开始尝试这些功能，但请注意，它们目前尚不支持跨浏览器。如果您使用这些功能，请检查您的网站在尚不支持这些功能的浏览器上<a href="https://developer.mozilla.org/en-US/docs/Glossary/Graceful_degradation">是否仍然可用。</a></p>
+<ul>
+<li><a href="https://www.debugbear.com/blog/speculation-rules?utm_campaign=mdn-1"><strong>通过预渲染的推测规则</strong></a>实现即时导航，取代一些 SPA（单页应用程序）行为（目前仅限 Chromium）。</li>
+<li><a href="https://scroll-driven-animations.style/"><strong>滚动驱动的动画</strong></a>，用于与滚动位置相关的效果（目前仅限 Chromium）。</li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_anchor_positioning/Using"></a>工具提示和浮动元素的<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_anchor_positioning/Using"><strong>锚点定位</strong></a><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/position-anchor#browser_compatibility">（目前为实验性</a>）。</li>
+</ul>
+<h2>补水问题</h2>
+<p>JavaScript 包的大小曾经更容易理解。开发者知道包中包含哪些内容；它们由开发者自己的代码、框架代码和第三方库代码组成。所有这些部分<code>app-v123.js</code>在构建过程中被合并到一个文件中（例如）。这使得识别导致文件大小过大的原因变得更加容易。</p>
+<p>然而随着时间的推移，JavaScript Web 框架引入了服务器端渲染。这种新方法创建了不同类型的 HTML 响应，从而导致了数据融合问题。</p>
+<h3>Web 开发中的水合 (Hylation) 是什么？</h3>
+<p><a href="https://www.debugbear.com/blog/javascript-hydration?utm_campaign=mdn-1">Hydration</a>是将 JavaScript 功能附加到服务器渲染的 HTML 的过程，从而使 HTML 在客户端具有交互性。像 Next.js 这样的流行框架默认使用某些 Hydration 技术。</p>
+<p>虽然 hydration 可以补充服务器端渲染 (SSR) 功能，但它也会带来性能挑战：</p>
+<ul>
+<li>**文档大小增加：**一些框架将状态以 JSON 格式序列化到 HTML 源代码中，导致初始负载膨胀，甚至<a href="https://web.dev/articles/rendering-on-the-web#rehydration-duplication">数据重复</a>。此外，如前所述，内联序列化状态会带来解析和执行成本。</li>
+<li>**交互延迟：**用户可能会经历一段令人沮丧的时期，<a href="https://developer.mozilla.org/en-US/docs/Glossary/Time_to_interactive">页面可见但无法交互</a>。Hydration 负载越大，延迟时间越长。这有时被称为“恐怖谷”。</li>
+<li>**浪费的重建：**一些提供 SSR 功能的 JavaScript 框架实际上会导致 DOM 被构建两次——一次在服务器端，另一次在客户端进行 hydration 操作。这种冗余会浪费资源，并降低交互速度。</li>
+</ul>
+<p>您应该始终考虑流行的 JavaScript 框架和库对性能的影响。流行框架拥有丰富的资源、教程和入门工具包，这有时会导致开发人员在选择它们时没有充分考虑其性能影响。</p>
+<p>对于一些 Web 开发者来说，无论用例如何，使用 JavaScript 框架创建网站都是默认选择。框架的流行并不一定意味着更好的用户体验，因此你必须在开发者工效学、可维护性和用户体验之间取得平衡。</p>
+<p><img src="../images/17/html-size-analysis.png" alt="Next.js 页面大小分析，显示水合问题"></p>
+<p>Debugbear 的<a href="https://www.debugbear.com/html-size-analyzer?utm_campaign=mdn-1">HTML 大小分析器</a>非常有用，因为它可以分解 HTML 文档的大小，显示初始 HTML 有效载荷的大小和混合有效载荷的大小。上图显示，HTML 文档过大主要是因为：</p>
+<ul>
+<li>50kb 的段落文本（用户首先看到的内容）</li>
+<li>50kb 的 JSON 数据（水合有效载荷）</li>
+</ul>
+<p>JSON 数据的大小与段落文本相同并非巧合。这是因为 JSON 数据是段落文本的序列化版本。这种重复是 hydration 有效载荷的常见问题。</p>
+<h3>缓解补水问题的策略</h3>
+<p>对于存在数据融合问题的 Web 应用，您可以尝试以下几种方法来提升其性能。需要注意的是，使用这些技术可能需要进行重大的架构变更，在某些情况下，甚至可能需要迁移到其他 JavaScript 框架。</p>
+<ol>
+<li><strong><a href="https://www.patterns.dev/react/progressive-hydration">渐进式水合</a>/选择性水合：</strong> 首先优先对应用程序中最关键的部分进行水合，将不太重要的组件推迟到稍后进行水合。</li>
+<li><strong><a href="https://deno.com/blog/intro-to-islands">孤岛架构</a>：</strong> 在静态内容的海洋中实现交互“<a href="https://docs.astro.build/en/concepts/islands/">孤岛”，降低整体内容融合成本。使用孤岛架构，您通常使用指令来标记哪些孤岛需要进行内容融合。</a></li>
+<li><strong><a href="https://qwik.dev/docs/concepts/resumable/">可恢复性</a>：</strong> 与其重建整个 DOM，不如探索能够更高效地“恢复”服务器渲染状态的框架。有时，页面加载过程中几乎不会发送任何 JavaScript，但在需要时（例如<a href="https://www.patterns.dev/vanilla/import-on-interaction/">用户交互时）</a>会获取并执行必要的 JavaScript 。</li>
+</ol>
+<h4>服务器端渲染</h4>
+<p>考虑放弃复杂的框架，转而使用带有原始客户端 JavaScript 的服务器端渲染应用程序：</p>
+<ol>
+<li>使用常规超链接和表单提交进行导航。</li>
+<li>实现 View Transitions API 以实现平滑的页面转换。</li>
+<li>仅在绝对必要时添加一层薄薄的 JavaScript。</li>
+</ol>
+<p>例如，您可以使用：</p>
+<ul>
+<li><a href="https://hotwired.dev/">Hotwire</a>用于基本的客户端功能。</li>
+<li><a href="https://stimulus.hotwired.dev/">刺激</a>更高级的客户端交互。</li>
+<li><a href="https://domchristie.github.io/turn/">实现</a>页面和组件之间的平滑过渡。</li>
+</ul>
+<p>当您将这些工具与有效的缓存策略和页面预加载相结合时，您可以创建高性能的 Web 应用程序，而不会牺牲功能和用户体验。</p>
+<h2>衡量 JavaScript 性能如何影响真实用户</h2>
+<p>交互<a href="https://www.debugbear.com/docs/metrics/interaction-to-next-paint?utm_campaign=mdn-1">到下一次绘制</a>(INP) 指标衡量网站响应用户输入的速度。如果页面在交互后卡顿半秒钟，则用户会感觉页面响应迟钝。您可以使用<a href="https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEventTiming">事件计时 API 或</a><a href="https://github.com/GoogleChrome/web-vitals">web-vitals.js</a>等库在浏览器中计算 INP 。</p>
+<p>当交互导致渲染延迟时，<a href="https://www.debugbear.com/blog/long-animation-frames?utm_campaign=mdn-1">长动画帧 API</a>可以告诉您哪些特定的脚本导致了延迟。每次出现渲染延迟时，都会记录一个<a href="https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry"><code>PerformanceEntry</code></a>与该类型相关的事件<code>long-animation-frame</code>。您可以像这样访问这些事件：</p>
+<pre><code class="language-bash">performance.getEntriesByType(&quot;long-animation-frame&quot;);
+</code></pre>
+<p>告诉<code>invokerType</code>您脚本运行的原因。在下面的示例中，值为<code>classic-script</code>，这意味着处理发生在脚本文件的初始评估期间。</p>
+<p><img src="../images/17/get-entries-by-type.png" alt="浏览器控制台的屏幕截图显示了长动画帧，其中突出显示了脚本调用者类型和源 URL。"></p>
+<p>DebugBear<a href="https://www.debugbear.com/real-user-monitoring?utm_campaign=mdn-1">真实用户监控</a>可以为您网站的访问者可视化这些数据，显示交互过程中不同脚本的运行时间。</p>
+<p>您还可以查看用户与哪个页面元素进行了交互以及交互发生的时间。如果用户在页面加载后不久就与页面进行交互，这通常会导致额外的延迟，因为页面的某些部分仍在加载，这会延迟事件处理程序。</p>
+<p><img src="../images/17/monitor-inp-scores.png" alt="屏幕截图显示了 INP 交互的性能数据，左侧是 INP 分数和 LoAF 脚本，右侧是 CSS 选择器和 INP 元素的屏幕截图。"></p>
+<p>持续监控您网站的 INP 分数，可以让您深入了解网站上哪些页面经常出现交互响应不佳的情况，以及不同访客群体在一段时间内对您网站的体验。根据长动画帧数据，您还可以发现脚本是造成交互延迟的最常见原因。</p>
+<p><img src="../images/17/inp-by-url-path.png" alt="DebugBear 真实用户监控仪表板的屏幕截图，显示 INP 数据。"></p>
+<h2>概括</h2>
+<p>这篇文章探讨了 JavaScript 过载导致的三个鲜为人知的性能瓶颈：耗时任务、过大的包大小以及内存占用问题。我们分析了 Web 框架有时会如何放大这些问题，导致加载时间变慢并对用户交互产生负面影响。最后，我们讨论了缓解这些瓶颈的方法，以及如何衡量 JavaScript 运行缓慢对访问者的影响。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

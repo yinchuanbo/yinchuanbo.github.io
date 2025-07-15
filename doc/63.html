@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>使用 Streams API 进行高效的数据处理</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg
+        t="1752133512751"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="6015"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M932.039565 483.875452 163.745365 483.875452l350.590843-311.627437c11.008728-9.784854 12.000312-26.6428 2.215458-37.651528-9.7869-11.005658-26.63973-11.999288-37.652552-2.214435L74.241888 492.064972c-5.693676 5.062296-8.950859 12.31549-8.950859 19.934005s3.257184 14.871709 8.950859 19.934005l404.65825 359.684966c5.080715 4.51585 11.405771 6.735401 17.708314 6.735401 7.352455 0 14.675234-3.022847 19.944238-8.950859 9.784854-11.008728 8.79327-27.865651-2.215458-37.652552L160.472831 537.214265l771.566734 0c14.729469 0 26.669406-11.94096 26.669406-26.669406C958.708971 495.815389 946.769035 483.875452 932.039565 483.875452z"
+          fill="#ffffff"
+          p-id="6016"
+        ></path></svg
+    ></a>
+    <main>
+      <header>
+        <h1>使用 Streams API 进行高效的数据处理</h1>
+        <p>JavaScript | 2025.07.15</p>
+      </header>
+      <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/Streams_API">Streams API</a>让您能够访问通过网络接收的数据流，并在网页上使用 JavaScript 进行处理。以前，如果您想处理通过网络获取的数据，必须下载整个资源，等待其转换为您能够处理的格式，然后才能开始处理。使用 Streams API，您可以在原始数据到达时使用 JavaScript 进行处理，这使得 Streams API 非常适合处理连续数据源、动态转换数据、在收到所需数据后取消流等等。</p>
+<p>在本文中，我们将探讨 Streams API 的概念、用法和实际应用。我们还将通过一个实际示例，构建一个使用该 API 转换数据流的小型应用程序。</p>
+<h2>了解 Streams API</h2>
+<p>Streams API 提供了一种在 JavaScript 中处理流数据的标准方法。它允许您逐块处理数据，从而高效地处理 Web 应用程序中的大型资源或实时数据。您应该了解 Streams API 中的以下关键概念：</p>
+<p><strong>块</strong></p>
+<p>数据以块（称为“块”）的形式按顺序读取。一个块可以是一个字节，也可以是更大的字节，例如特定大小的<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Typed_arrays">类型化数组</a>。单个流可以包含不同大小和类型的块。</p>
+<p><strong>背压</strong></p>
+<p>该 API 自动管理背压，确保快速生产者不会压垮慢速消费者。这通过内部排队机制实现。</p>
+<p><strong>管道</strong></p>
+<p>API 提供了像<a href="https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream/pipeThrough"><code>pipeThrough()</code></a>和这样的方法<a href="https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream/pipeTo"><code>pipeTo()</code></a>来连接流，从而允许链式处理数据。</p>
+<p>API 包括针对不同类型流的以下抽象：</p>
+<p><a href="https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream">ReadableStream</a></p>
+<p>表示可从中读取数据的源。它可以从各种来源创建，例如获取响应或文件输入。</p>
+<p><a href="https://developer.mozilla.org/en-US/docs/Web/API/WritableStream">WritableStream</a></p>
+<p>表示可以写入数据的目标位置。它可用于执行写入文件或向服务器发送数据等任务。</p>
+<p><a href="https://developer.mozilla.org/en-US/docs/Web/API/TransformStream">TransformStream</a></p>
+<p>允许在数据从可读流传递到可写流时对其进行修改。这对于压缩或加密等任务非常有用。</p>
+<h2>构建 Node 应用程序</h2>
+<p><a href="https://developer.mozilla.org/en-US/blog/deploying-node-js-applications-with-pm2-on-vultr/#deploying_a_server_on_vultr">首先，按照上一篇文章中“在 Vultr 上部署服务器”</a>部分概述的步骤部署服务器。接下来，<a href="https://docs.vultr.com/how-to-use-ssh-with-vultr-servers">通过 SSH</a>访问服务器终端并为我们的 Web 应用程序设置一个项目。</p>
+<p>我们将使用<a href="https://help.ubuntu.com/community/Nano">Nano</a>文本编辑器在服务器上创建和编辑项目文件。您可以查看<a href="https://www.nano-editor.org/dist/latest/cheatsheet.html">快捷方式速查表，</a>获取使用 Nano 的帮助。我们还将使用<a href="https://help.ubuntu.com/community/UFW">简易防火墙 (UFW)</a>来控制允许进出服务器的流量。在我们的应用程序中，Node.js 提供应用程序的索引，并使用 运行该应用程序。Python 和<a href="https://docs.vultr.com/all?page_number=1&searchQuery=apache">Apache</a><a href="https://www.npmjs.com/package/http-server"><code>http-server</code></a>等服务器也可以实现类似的效果。我们使用 UFW 允许通过端口 8000 传入流量。<a href="https://docs.vultr.com/all?page_number=1&searchQuery=apache"></a></p>
+<ol>
+<li>创建一个项目目录并导航到该目录。</li>
+</ol>
+<pre><code class="language-bash">mkdir streaming-app &amp;&amp; cd streaming-app
+</code></pre>
+<ol start="2">
+<li>初始化一个 Node.js 项目。</li>
+<li>安装 HTTP 服务器。</li>
+<li>创建一个 HTML 文件。</li>
+<li>将以下代码复制并粘贴到 index.html 文件中。</li>
+</ol>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;title&gt;File Stream Transformer&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;File Stream Transformer&lt;/h1&gt;
+    &lt;button id=&quot;loadFileButton&quot;&gt;Load and Transform File&lt;/button&gt;
+    &lt;br /&gt;
+    &lt;h2&gt;Transformed Content:&lt;/h2&gt;
+    &lt;pre id=&quot;outputText&quot;&gt;&lt;/pre&gt;
+
+    &lt;script src=&quot;app.js&quot;&gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<ol start="6">
+<li>保存并退出文件。</li>
+<li>在项目目录中创建一个文本文件，并提供一些示例文本。为了方便起见，您可以使用<a href="https://raw.githubusercontent.com/mdn/dom-examples/main/streams/strings-transform-stream/goethe-faust-1.txt">此文本文件</a><code>textfile.txt</code>的内容。<a href="https://raw.githubusercontent.com/mdn/dom-examples/main/streams/strings-transform-stream/goethe-faust-1.txt"></a></li>
+</ol>
+<h2>创建示例 Streams API 应用</h2>
+<ol>
+<li>在 streaming-app 目录中，创建一个 JavaScript 文件。</li>
+<li>将下面的 JavaScript 代码复制并粘贴到 app.js 中。</li>
+</ol>
+<pre><code class="language-javascript">document.addEventListener(&quot;DOMContentLoaded&quot;, initializeApp);
+
+function initializeApp() {
+  const loadFileButton = document.getElementById(&quot;loadFileButton&quot;);
+  const outputText = document.getElementById(&quot;outputText&quot;);
+
+  loadFileButton.addEventListener(&quot;click&quot;, () =&gt;
+    fetchAndTransformFile(outputText)
+  );
+}
+
+async function fetchAndTransformFile(outputElement) {
+  clearOutput(outputElement);
+
+  try {
+    const response = await fetch(&quot;textfile.txt&quot;);
+    const readableStream = response.body;
+    const transformStream = createTransformStream();
+    const writableStream = createWritableStream(outputElement);
+
+    await readableStream.pipeThrough(transformStream).pipeTo(writableStream);
+
+    console.log(&quot;File stream processing completed&quot;);
+  } catch (error) {
+    handleError(error, outputElement);
+  }
+}
+
+function createTransformStream() {
+  return new TransformStream({
+    transform(chunk, controller) {
+      const text = new TextDecoder().decode(chunk);
+      const upperCaseChunk = text.toUpperCase();
+      controller.enqueue(new TextEncoder().encode(upperCaseChunk));
+    },
+  });
+}
+
+function createWritableStream(outputElement) {
+  return new WritableStream({
+    write(chunk) {
+      const text = new TextDecoder().decode(chunk);
+      outputElement.textContent += text;
+    },
+  });
+}
+
+function clearOutput(outputElement) {
+  outputElement.textContent = &quot;&quot;;
+  outputElement.style.color = &quot;black&quot;;
+}
+
+function handleError(error, outputElement) {
+  console.error(&quot;Error during stream processing:&quot;, error);
+  outputElement.textContent = `An error occurred: ${error.message}`;
+  outputElement.style.color = &quot;red&quot;;
+}
+</code></pre>
+<ol start="3">
+<li>保存并退出文件。</li>
+<li>允许传入连接到端口 8080。</li>
+<li>启动文件服务器。</li>
+<li>访问应用程序 URL <code>http://&lt;server-ip&gt;:8080</code>，然后点击 <strong>“加载和转换”</strong> 按钮。您将看到整个文本文件被提取并转换为大写字符。</li>
+</ol>
+<p>点击 <strong>“加载和转换”</strong> 按钮后，该<code>fetchAndTransformFile()</code>函数将从<code>textfile.txt</code>服务器的文件系统中获取数据。服务器以 的形式响应数据<code>ReadableStream</code>，这使得文件可以分块处理。在客户端，这些数据<code>ReadableStream</code>通过 进行管道传输，该<code>TransformStream</code>函数将每段文本转换为大写。转换后的文本块随后通过管道传输到<code>WritableStream</code>，该函数将结果文本附加到 HTML 元素中以供显示。这展示了如何使用 Streams API 获取文件，并在获取数据时在浏览器中处理、转换和显示数据，而不是在内存中对整个文件执行操作。</p>
+<h2>真实世界的用例和示例</h2>
+<p><strong>1. 在视频流媒体平台</strong></p>
+<ul>
+<li>用例：高效处理和传送大型视频文件。</li>
+<li>示例：视频流服务可以使用 Streams API 将大型视频文件分解成较小的块，进行处理（例如，应用滤镜或压缩），然后逐步将其交付给用户。这可以实现更流畅的播放并减少初始加载时间。</li>
+</ul>
+<p><strong>2. 在数据可视化应用中</strong></p>
+<ul>
+<li>用例：用于大型数据集或连续数据流的实时处理和可视化。</li>
+<li>示例：财务仪表板可以使用 Streams API 实时处理市场数据。新数据到达后，可以进行转换、过滤，并立即显示在图表或图形上，从而实现实时更新，且不会占用过多的浏览器资源。</li>
+</ul>
+<p><strong>3. 在文件上传/下载系统中</strong></p>
+<ul>
+<li>用例：用于处理具有进度跟踪和动态处理的大型文件传输。</li>
+<li>示例：云存储服务可以使用 Streams API 上传大型文件。文件可以以流的形式读取，即时压缩或加密，然后分块发送到服务器。这允许跟踪传输进度、暂停和恢复传输，并高效利用内存，尤其是在处理超大文件时。</li>
+</ul>
+<h2>结论</h2>
+<p>在本文中，我们深入探讨了 Streams API 的概念、用法和实际实现。我们开发了一个基础应用程序，演示了如何使用 Streams API 获取和转换数据。通过这个动手示例，我们学习了如何读取、写入和操作数据流。希望本文能启发您创建高效、响应迅速且现代化的 Web 应用程序。</p>
+<p>学习此 API 的下一步是执行更复杂的处理。您可以查看<a href="https://github.com/mdn/dom-examples/tree/main/streams/strings-transform-stream">MDN Streams API 示例之一</a>，它与本项目非常相似，不同之处在于它会手动循环遍历数据块，并在新数据块到达时将其记录到控制台。其他<a href="https://github.com/mdn/dom-examples/tree/main/streams">示例</a>展示了使用此 API 的不同方法，而<a href="https://jakearchibald.com/2016/streams-ftw/#cancelling-a-fetch">“取消获取”</a>演示则展示了如何在客户端收到所需数据后停止正在进行的网络操作。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="#ffffff"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

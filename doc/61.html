@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>监控和优化网站性能</title>
+    <title>通过优化图像加载来修复网站的最大内容绘制</title>
     <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="stylesheet" href="/css/prism.css" />
@@ -28,10 +28,192 @@
     ></a>
     <main>
       <header>
-        <h1>监控和优化网站性能</h1>
+        <h1>通过优化图像加载来修复网站的最大内容绘制</h1>
         <p>性能优化 | 2025.07.15</p>
       </header>
-      
+      <p>图片是大多数网站的重要组成部分。它们通常也是页面上首先显示的最大元素，因此也是<a href="https://www.debugbear.com/docs/metrics/largest-contentful-paint?utm_campaign=mdn-3">最大内容绘制 (LCP)</a>元素——这是 Google<a href="https://www.debugbear.com/docs/metrics/core-web-vitals?utm_campaign=mdn-3">核心网络指标 (Core Web Vitals)</a>中的一个指标。图片加载缓慢会延长 LCP 时间。这会损害您的核心网络指标得分和整体用户体验。让我们来看看如何加快网页上图片的加载速度。</p>
+<h2>介绍</h2>
+<p>当你向网站添加图片时，后台发生的事情比你想象的要多。从最基础的开始，将图片添加到页面的最简单方法是使用 HTML<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img"><code>&lt;img&gt;</code></a>元素：</p>
+<pre><code class="language-html">&lt;img src=&quot;image.jpg&quot; alt=&quot;Description of the image&quot; /&gt;
+</code></pre>
+<p>您还可以添加带有 CSS 背景图像的图像，这些图像仍然是<a href="https://www.debugbear.com/blog/largest-contentful-paint-background-images?utm_campaign=mdn-3">LCP 的候选者</a>：</p>
+<pre><code class="language-css">.container {
+  background-image: url(&quot;image.jpg&quot;);
+}
+</code></pre>
+<p>有些开发者改用 JavaScript 加载图片。由于 JavaScript 必须先运行，浏览器开始下载图片的时间会有所延迟。</p>
+<pre><code class="language-javascript">// Don&#39;t load images like this unless you have a good reason
+const img = new Image();
+img.src = &quot;image.jpg&quot;;
+document.querySelector(&quot;.container&quot;).appendChild(img);
+</code></pre>
+<p>事实上，当 JavaScript 文件请求其他 JavaScript 文件，而这些 JavaScript 文件又请求图像时，JavaScript 的处理方式可能会更加糟糕。这种情况被称为请求链，本文稍后将对此进行解释。</p>
+<p>为了理解图片加载过程，我们使用了网络<a href="https://www.debugbear.com/docs/waterfall?utm_campaign=mdn-3">请求瀑布图</a>。这些瀑布图显示了页面上所有网络请求的时序。像<a href="https://www.debugbear.com/?utm_campaign=mdn-3">DebugBear</a>这样的现代性能测试工具可以为您生成这些瀑布图，甚至可以识别页面上的 LCP 元素，如上图所示的 LCP 标记。</p>
+<h2>网页上图片如何加载</h2>
+<p>当图片加载到网页上时会发生什么？了解这个过程有助于解释某些优化技术为何有效。</p>
+<p>当浏览器在 HTML 中找到正在加载的图像时，浏览器会：</p>
+<ol>
+<li>发出网络请求下载图像：这就像下载任何其他资源一样，例如 CSS 或 JavaScript。</li>
+<li>为该请求分配<a href="https://www.debugbear.com/blog/request-priorities?utm_campaign=mdn-3">优先级</a>（稍后会详细介绍）：这决定了与其他资源相比图像何时下载。</li>
+<li>图像数据到达后进行解码：这是将原始图像数据转换为可在屏幕上显示的像素的过程。</li>
+<li><a href="https://web.dev/articles/rendering-performance">在页面上呈现</a>图像：浏览器根据页面布局定位并显示图像。</li>
+</ol>
+<p>与某些资源（例如 CSS）不同，图像下载不会阻止页面其余部分的加载。</p>
+<h2>图像加载如何影响 LCP</h2>
+<p><a href="https://www.debugbear.com/blog/lcp-subparts?utm_campaign=mdn-3">LCP 由多个子部分</a>组成。每个子部分都会对整体 LCP 得分产生影响。子部分越慢，LCP 得分就越慢。以下屏幕截图显示了 DebugBear<a href="https://www.debugbear.com/real-user-monitoring?utm_campaign=mdn-3">真实用户监控</a>仪表板的一部分，其中已识别出真实页面浏览的 LCP 子部分。</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/rum-lcp-score.png" alt="DebugBear 真实用户监控仪表板的屏幕截图，显示了 LCP 子部分"></p>
+<p>了解每个子部分是理解如何提高 LCP 分数的关键，因此让我们详细了解一下每个子部分。</p>
+<h3>第一个字节的时间（TTFB）</h3>
+<p>这是服务器开始响应主 HTML 文档所需的时间。在以下情况下，响应速度可能会非常慢：</p>
+<ul>
+<li>服务器和用户之间的地理距离很远。</li>
+<li>存在不正确的缓存标头或网站使用未优化的缓存策略。</li>
+</ul>
+<p>这张截图展示了特定请求的网络时间信息。有趣的是，TTFB 比下载本身还要长！事实上，其他高亮显示的资源的 TTFB 也比下载本身要长！</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/waterfall-tooltip.png" alt="网络请求瀑布图中的工具提示显示，相对于下载时间而言，TTFB 较长"></p>
+<h3>资源加载延迟</h3>
+<p><a href="https://www.debugbear.com/blog/lcp-resource-load-delay?utm_campaign=mdn-3">这是浏览器发现图片并请求图片</a>所需的时间。在以下情况下，请求速度可能会很慢：</p>
+<ul>
+<li>图像位于请求链中，必须先加载资源，然后才能开始下载图像。</li>
+<li>图像是延迟加载的，它会延迟下载，直到图像接近或在视口中。</li>
+<li>即使 JavaScript 已内联在 HTML 中，图像也会通过 JavaScript 插入到 DOM 中。这是因为浏览器的前瞻解析器必须先解析并执行 JavaScript，然后才能发现图像。</li>
+</ul>
+<h3>资源下载时间</h3>
+<p>这是图片下载所需的时间，我们大多数人想到“图片加载缓慢”时，可能就是这么想的。如果出现以下情况，图片加载速度可能会很慢：</p>
+<ul>
+<li>图像很大且未优化。</li>
+<li>屏幕外图像或其他非关键资源同时下载，导致网络争用。</li>
+</ul>
+<p>下图展示了一组 JavaScript 文件，其下载时间远远超过了 TTFB。DebugBear 中的请求瀑布图指示了水平蓝色条内实际内容下载的位置。深蓝色表示内容下载正在进行中。</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/large-download-times.png" alt="请求瀑布显示资源的下载时间较长。"></p>
+<h3>资源渲染延迟</h3>
+<p><a href="https://www.debugbear.com/blog/lcp-render-delay?utm_campaign=mdn-3">这是浏览器解码图像数据并将其渲染到页面上</a>所需的时间。在以下情况下，渲染速度可能会很慢：</p>
+<ul>
+<li>该图像采用高度压缩的格式，解码需要更多时间。</li>
+<li>渲染阻塞资源仍在下载，这可能会延迟图像渲染。</li>
+<li><a href="https://www.debugbear.com/docs/performance/minimize-main-thread-work?utm_campaign=mdn-3">主线程</a>被阻塞，无法将图像渲染到页面。</li>
+<li>使用元素加载了图像<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/rel/preload"><code>&lt;link rel=&quot;preload&quot;&gt;</code></a>，但使用该图像的页面元素尚未创建</li>
+</ul>
+<h2>现代图像格式和响应式图像</h2>
+<p>现代图像格式有助于在保持质量的同时减小图像文件大小。使用现代图像格式可以对 LCP 的**“资源下载时间**”子部分产生积极影响。推荐的<a href="https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Image_types">现代格式</a>如下：</p>
+<ul>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Image_types#webp_image">WebP</a>：受到广泛支持并提供良好的压缩。</li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Image_types#avif_image">AVIF</a>：较新的格式，压缩效果更好。</li>
+</ul>
+<p>您可以使用<a href="https://squoosh.app/">Squoosh</a>网页应用将图片转换为这些格式。以下是如何为浏览器提供不同格式供选择：</p>
+<pre><code class="language-html">&lt;picture&gt;
+  &lt;source srcset=&quot;image.avif&quot; type=&quot;image/avif&quot; /&gt;
+  &lt;source srcset=&quot;image.webp&quot; type=&quot;image/webp&quot; /&gt;
+  &lt;img
+    src=&quot;image.jpg&quot;
+    alt=&quot;Description of the image&quot;
+    width=&quot;1200&quot;
+    height=&quot;800&quot;
+  /&gt;
+&lt;/picture&gt;
+</code></pre>
+<p>下图展示了一个请求瀑布流中的 LCP 资源。虽然 TTFB 很重要，但它与整整 3 秒的图片内容下载时间相比，简直是小巫见大巫。考虑到实验室测试是使用<a href="https://www.debugbear.com/blog/packet-level-throttling?utm_campaign=mdn-3">限速</a>连接运行的，并且这张图片只有 1MB 大小，所以 TTFB 就显得合情合理了。</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/lcp-image.png" alt="LCP 图像资源的大量内容下载"></p>
+<p>将 1MB 的图片导入 Squoosh，并以 80% 的画质将其转换为 AVIF 格式，可节省 95% 的存储空间，最终文件大小仅为 46KB。这对内容下载时间有积极的影响。</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/sqoosh-avif.jpg" alt="Squoosh 将大图像转换为 AVIF"></p>
+<p><a href="https://www.debugbear.com/blog/image-formats?utm_campaign=mdn-3">使用现代图像格式</a>时，务必考虑浏览器的支持情况。您还可以考虑配置服务器，使其根据浏览器的<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Content_negotiation/List_of_default_Accept_values#values_for_an_image">Accept 标头</a>提供正确的格式。</p>
+<p><a href="https://www.debugbear.com/blog/responsive-images?utm_campaign=mdn-3">响应式图像</a>可帮助您为每个屏幕提供合适的尺寸。这可以节省带宽和处理时间。</p>
+<pre><code class="language-html">&lt;img
+  src=&quot;small.jpg&quot;
+  srcset=&quot;small.jpg 300w, medium.jpg 600w, large.jpg 900w&quot;
+  sizes=&quot;(max-width: 500px) 300px,
+         (max-width: 900px) 600px,
+         900px&quot;
+  alt=&quot;Description of the image&quot;
+/&gt;
+</code></pre>
+<p>该示例使用<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/picture"><code>&lt;picture&gt;</code></a>元素来指定适用于各种尺寸的图像：</p>
+<ul>
+<li>小屏幕上的小图像（宽度小于 500px）。</li>
+<li>中等屏幕上的中等图像（宽度为 500px 到 900px）。</li>
+<li>大屏幕上的大图像（宽度超过 900px）。</li>
+</ul>
+<p>这样，您就不会在小屏幕上浪费大图像的带宽。举个实际的例子，即使在移动端，该网站下载一张 2.26MB 的 LCP 图像也需要很长时间。</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/lcp-vitol.png" alt="请求瀑布图显示大型 LCP 图像"></p>
+<p>经过进一步调查，发现该图像的尺寸为<strong>1920 × 1080</strong>。在优化该图像以使用现代图像格式后，该网站的开发人员可以生成适合不同视口尺寸的不同版本的图像。</p>
+<h2>请求链如何影响 LCP</h2>
+<p>有时，由于请求链的存在，图片的显示会比预期的要晚。当一个或多个资源（主 HTML 之外的资源）必须先加载，然后才能启动另一个请求时，就会发生请求链：</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/request-chain.png" alt="网络请求瀑布中的请求链"></p>
+<p>例如，如果您的 JavaScript 加载图像，从高层次来看，浏览器必须：</p>
+<ol>
+<li>下载 HTML。</li>
+<li>下载 JavaScript：根据 JavaScript 的加载方式，这也会阻止页面渲染。</li>
+<li>执行 JavaScript：JavaScript 的解析和执行需要成本，这在低端设备上通常会加剧。</li>
+<li>开始下载图像。</li>
+</ol>
+<p>这会形成一个延迟图片加载的链条。您可以通过以下方式打破这个链条：</p>
+<ul>
+<li><code>&lt;img&gt;</code>直接在 HTML 中使用常规元素。</li>
+<li>使用<code>&lt;link rel=&quot;preload&quot;&gt;</code>元素提前下载图像。</li>
+</ul>
+<p><a href="https://www.debugbear.com/blog/resource-hints-rel-preload-prefetch-preconnect?utm_campaign=mdn-3">预加载提示</a>告诉浏览器尽快下载资源，并放置在 HTML 的头部：</p>
+<pre><code class="language-html">&lt;link rel=&quot;preload&quot; as=&quot;image&quot; href=&quot;image.jpg&quot; /&gt;
+</code></pre>
+<p>在这个例子中，DebugBear 识别出 LCP 图像是链的一部分，并且还提供了一个<a href="https://www.debugbear.com/docs/experiments?utm_campaign=mdn-3">测试</a>修复的实验。</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/request-chain-experiment.png" alt="请求链示例"></p>
+<p>实验会自动将 LCP 图像的请求链（包括 LCP 图像本身）预加载到主 HTML 文档中。实验运行后，可以查看实验前后的对比：</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/lcp-score-comparison.png" alt="DebugBear 实验的结果"></p>
+<p>上图显示：</p>
+<ul>
+<li>LCP 请求链的 CSS 资源部分现已预加载。</li>
+<li>LCP 图像本身现在已预加载。</li>
+</ul>
+<p>下面的 LCP 评分前后对比证实已经取得了进步。</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/lcp-score-improvement.png" alt="LCP 分数提高"></p>
+<h2>对关键图像使用 fetchpriority=high</h2>
+<p>浏览器会为网络请求分配不同的优先级。这决定了资源在竞争带宽时的下载顺序。您可以使用以下<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#fetchpriority"><code>fetchpriority</code>属性</a>提高 LCP 映像的优先级：</p>
+<pre><code class="language-html">&lt;img src=&quot;image.jpg&quot; alt=&quot;Description of the image&quot; fetchpriority=&quot;high&quot; /&gt;
+</code></pre>
+<p>这会告诉浏览器优先下载图片（相对于其他资源）。你也可以使用<code>fetchpriority</code>以下<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/rel/preload"><code>rel=&quot;preload&quot;</code>属性</a>：</p>
+<pre><code class="language-html">&lt;link
+  rel=&quot;preload&quot;
+  href=&quot;/background-image.avif&quot;
+  as=&quot;image&quot;
+  fetchpriority=&quot;high&quot;
+/&gt;
+</code></pre>
+<p>当 LCP 是背景图像时，这会特别有用，否则会在页面加载后期（CSS 下载和解析后）被发现。</p>
+<p>此示例展示了 Discord 的改进，其中 LCP 图像的<strong>整个</strong><code>fetchpriority=&quot;high&quot;</code>请求链已预加载，并标记为，这有助于改善 LCP 时间。</p>
+<p><strong>分数差距：</strong></p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/score-difference.png" alt="Discord 上的 LCP 分数差异"></p>
+<p><strong>请求瀑布差异：</strong></p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/waterfall-difference.png" alt="请求瀑布差异视图显示 LCP 图像已预加载"></p>
+<p>前面的截图显示了 Discord 的 LCP 图像是如何更早下载的。</p>
+<p>徽章<code>FP=HIGH</code>确认指定了高优先级<code>fetchpriority</code>，因此 LCP 资源现在保持高优先级，而以前，LCP 图像开始时优先级较低。</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/priority-change.png" alt="请求瀑布图中的红色垂直线。红线表示优先级发生变化的位置。"></p>
+<p>DebugBear 请求瀑布视图中，当资源的<a href="https://www.debugbear.com/blog/request-priorities#can-the-priority-of-a-network-request-change-later-on?utm_campaign=mdn-3">优先级发生变化时，</a>会显示一条细细的红色垂直线。如果浏览器迟迟没有发现需要更改优先级（例如，从一个<code>low</code>优先级更改为另一个优先级），您可以通过在适用的资源上<code>high</code>应用更改来协助浏览器。<code>fetchpriority=&quot;high&quot;</code></p>
+<h2>延迟加载图像</h2>
+<p>并非所有图片都需要立即加载。视口下方的图片可以稍后加载，从而节省带宽以用于更重要的资源。以下是如何<a href="https://developer.mozilla.org/en-US/docs/Web/Performance/Guides/Lazy_loading">延迟加载图片</a>：</p>
+<pre><code class="language-html">&lt;img loading=&quot;lazy&quot; src=&quot;image.jpg&quot; alt=&quot;Description of the image&quot; /&gt;
+</code></pre>
+<p>假设一个网页包含 10 张图片，其中只有第一张图片（LCP 元素）在初始视口中可见。在这种情况下，延迟加载剩余的 9 张图片有助于改善第一张图片的加载速度。当您延迟加载首屏以下的图片时，您可以：</p>
+<ol>
+<li>减少带宽竞争。释放带宽后，LCP 图像有时可以加载得更快。</li>
+<li>让浏览器专注于优先加载重要资源。</li>
+<li>如果用户从不向下滚动，则保存用户的数据。</li>
+</ol>
+<p>此示例展示了同一个网站的两个不同的瀑布，这些示例试图展示资源竞争对 LCP 图像的影响。</p>
+<p><strong>瀑布图 1</strong>显示一个大型 LCP 图像，需要很长时间才能下载，并且似乎正在与页面上的其他图像资源争夺带宽。</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/congestion-waterfall.png" alt="LCP 资源下载遇到网络争用"></p>
+<p><strong>瀑布图 2</strong>展示了同样大的 LCP 镜像，但这次使用了 DebugBear 的<a href="https://www.debugbear.com/docs/blocking-requests?utm_campaign=mdn-3">请求拦截功能</a>来拦截非主 LCP 镜像的其他镜像资源。此操作旨在测试带宽竞争如何影响资源下载时间。</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/bandwidth-availability.png" alt="具有可用带宽的 LCP 资源下载"></p>
+<p>如果仔细观察，你会发现图片的实际数据下载（深蓝色区域）<code>RB_8220-Large-1.png</code>更集中在第二个瀑布流中。为了理解这对时间的显著影响，请查看瀑布流对比图。在测试运行中，LCP 图像无需争夺带宽，下载时间不到一半！</p>
+<p><img src="https://developer.mozilla.org/en-US/blog/fix-image-lcp/waterfall-comparison.png" alt="vitol.com 的瀑布比较视图"></p>
+<h2>概括</h2>
+<p>图片是大多数网站的重要组成部分，会对你的 LCP 得分产生重大影响。以下是如何针对 LCP 优化图片的总结：</p>
+<ol>
+<li>使用现代图像格式，如 WebP 和 AVIF。</li>
+<li>提供响应式图像以节省带宽。</li>
+<li>使用<code>preload</code>和<code>fetchpriority</code>对关键图像进行优先排序。</li>
+<li>延迟加载折叠下方的图像以减少网络争用。</li>
+<li>避免延迟图像加载的请求链。</li>
+</ol>
+
     </main>
     <aside class="toc-container">
       <h3>目录</h3>
