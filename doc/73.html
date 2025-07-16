@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>回流与重绘：性能优化的幕后英雄</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>回流与重绘：性能优化的幕后英雄</h1>
+        <p>性能优化 | 2025.07.17</p>
+      </header>
+      <h2>1. 什么是回流与重绘？</h2>
+<h3>回流（Reflow）：浏览器的大工程</h3>
+<p>回流是当渲染树（RenderTree）中部分或全部元素的尺寸、结构或某些属性发生改变时，浏览器重新计算元素位置和几何属性的过程。简单来说，就是浏览器需要重新计算页面的布局。</p>
+<pre><code class="language-js">// 触发回流的常见操作
+document.body.appendChild(newElement); // DOM结构变化
+element.style.width = &quot;100px&quot;; // 直接修改样式
+element.classList.add(&quot;new-class&quot;); // 可能改变元素尺寸的类
+</code></pre>
+<h3>重绘（Repaint）：浏览器的小工程</h3>
+<p>当页面元素样式改变，但不影响其在文档流中的位置时（如颜色、背景、visibility 等），浏览器只需要重新绘制该元素，这个过程就叫重绘。</p>
+<pre><code class="language-js">// 只触发重绘的操作
+element.style.color = &quot;red&quot;; // 颜色变化
+element.style.backgroundColor = &quot;#f5f5f5&quot;; // 背景色变化
+element.style.visibility = &quot;hidden&quot;; // 可见性变化（但仍占空间）
+</code></pre>
+<h2>2. 回流比重绘更消耗性能，为什么？</h2>
+<p>是不是好奇为什么大家都说回流比重绘更消耗性能？我们来看看浏览器渲染页面的完整过程：</p>
+<ol>
+<li>解析 HTML，构建 DOM 树</li>
+<li>解析 CSS，构建 CSSOM 树</li>
+<li>将 DOM 树和 CSSOM 树结合，形成渲染树（RenderTree）</li>
+<li>布局（Layout）：计算每个节点在屏幕上的确切位置和大小</li>
+<li>绘制（Paint）：将计算好的节点绘制到屏幕上</li>
+</ol>
+<p><strong>回流会触发布局和绘制两个步骤</strong>，而重绘只触发绘制步骤。所以回流的代价更高！</p>
+<h2>3. 触发回流的方式有哪些？</h2>
+<p>叠个甲，以下这些操作都会触发回流，开发时要特别注意：</p>
+<h3>1. 页面首次渲染</h3>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;首次渲染&lt;/title&gt;
+    &lt;script&gt;
+      // 记录开始时间
+      const startTime = performance.now();
+
+      window.onload = function () {
+        // 计算渲染耗时
+        const loadTime = performance.now() - startTime;
+        console.log(`页面渲染耗时: ${loadTime.toFixed(2)}ms`);
+        // 网页渲染速度直接关系到用户体验和留存率
+        // 据统计，页面每慢0.1秒，可能损失1000万用户！
+      };
+    &lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div&gt;大量内容...&lt;/div&gt;
+    &lt;!-- 页面内容 --&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h3>2. 浏览器窗口大小改变</h3>
+<pre><code class="language-javascript">// 监听窗口大小变化，会触发回流
+window.addEventListener(&quot;resize&quot;, function () {
+  // 这里的代码会在每次窗口大小变化时执行
+  // 如果在这里操作DOM，可能会导致性能问题
+  console.log(&quot;窗口大小改变，触发回流&quot;);
+
+  // 优化方案：使用防抖函数限制回流频率
+  clearTimeout(window.resizeTimer);
+  window.resizeTimer = setTimeout(function () {
+    console.log(&quot;窗口大小调整完毕，执行一次回流操作&quot;);
+    // 在这里执行真正需要的DOM操作
+  }, 250);
+});
+</code></pre>
+<h3>3. 元素尺寸或位置发生改变</h3>
+<pre><code class="language-javascript">const box = document.getElementById(&quot;box&quot;);
+
+// 不好的方式：多次触发回流
+function badAnimation() {
+  for (let i = 0; i &lt; 100; i++) {
+    box.style.left = i + &quot;px&quot;; // 每次循环都会触发一次回流
+  }
+}
+
+// 好的方式：使用CSS transitions，只触发一次回流，后续由GPU处理
+function goodAnimation() {
+  box.style.transition = &quot;left 1s ease&quot;;
+  box.style.left = &quot;100px&quot;; // 只触发一次回流
+}
+
+// 更好的方式：使用transform，可能完全不触发回流（走单独的图层）
+function bestAnimation() {
+  box.style.transform = &quot;translateX(100px)&quot;; // 可能不触发主文档回流
+}
+</code></pre>
+<h3>4. 元素内容的变化</h3>
+<pre><code class="language-javascript">const container = document.querySelector(&quot;.container&quot;);
+
+// 糟糕写法：每次添加子元素都会触发回流
+function badAppend() {
+  for (let i = 0; i &lt; 1000; i++) {
+    const div = document.createElement(&quot;div&quot;);
+    div.textContent = `Item ${i}`;
+    container.appendChild(div); // 每次都触发回流！
+  }
+}
+
+// 优化写法：使用文档片段，只触发一次回流
+function goodAppend() {
+  const fragment = document.createDocumentFragment();
+  for (let i = 0; i &lt; 1000; i++) {
+    const div = document.createElement(&quot;div&quot;);
+    div.textContent = `Item ${i}`;
+    fragment.appendChild(div);
+  }
+  container.appendChild(fragment); // 只触发一次回流
+}
+</code></pre>
+<h3>5. display: none 与 display: block 之间的切换</h3>
+<pre><code class="language-javascript">const modal = document.getElementById(&quot;modal&quot;);
+
+// 触发回流的显示/隐藏方式
+function toggleWithReflow() {
+  if (modal.style.display === &quot;none&quot;) {
+    modal.style.display = &quot;block&quot;; // 触发回流
+  } else {
+    modal.style.display = &quot;none&quot;; // 同样触发回流
+  }
+}
+
+// 减少回流的方式
+function toggleWithoutReflow() {
+  // 通过提前计算和缓存元素尺寸，减少回流次数
+  if (!modal.cached) {
+    modal.cached = {
+      width: modal.offsetWidth,
+      height: modal.offsetHeight,
+    };
+  }
+
+  if (modal.style.display === &quot;none&quot;) {
+    modal.style.display = &quot;block&quot;;
+    // 直接设置缓存的尺寸，避免浏览器重新计算
+    modal.style.width = modal.cached.width + &quot;px&quot;;
+    modal.style.height = modal.cached.height + &quot;px&quot;;
+  } else {
+    modal.style.display = &quot;none&quot;;
+  }
+}
+</code></pre>
+<h3>6. 字体大小的变化</h3>
+<pre><code class="language-javascript">const article = document.querySelector(&quot;.article&quot;);
+
+// 不好的方式：直接修改字体大小，触发整篇文章的回流
+function changeFontSize(size) {
+  article.style.fontSize = size + &quot;px&quot;; // 触发回流
+}
+
+// 更好的方式：使用CSS类切换
+function changeFontSizeWithClass(size) {
+  // 先移除所有字体大小类
+  article.classList.remove(&quot;font-small&quot;, &quot;font-medium&quot;, &quot;font-large&quot;);
+  // 添加对应大小的类
+  article.classList.add(`font-${size}`);
+}
+
+// CSS定义
+/*
+.font-small { font-size: 12px; }
+.font-medium { font-size: 16px; }
+.font-large { font-size: 20px; }
+*/
+</code></pre>
+<h3>7. 激活 CSS 伪类</h3>
+<pre><code class="language-html">&lt;style&gt;
+  .button {
+    padding: 10px 20px;
+    background-color: #3498db;
+    color: white;
+    transition: transform 0.2s;
+  }
+
+  /* 这种hover效果会触发回流，因为改变了元素尺寸 */
+  .button:hover {
+    padding: 15px 25px; /* 改变了尺寸，触发回流 */
+  }
+
+  /* 这种hover效果只会触发重绘，性能更好 */
+  .button-better:hover {
+    background-color: #2980b9; /* 只改变颜色，只触发重绘 */
+  }
+
+  /* 使用transform的hover效果，可能完全不触发回流 */
+  .button-best:hover {
+    transform: scale(1.1); /* 使用GPU加速，可能不触发回流 */
+  }
+&lt;/style&gt;
+
+&lt;button class=&quot;button&quot;&gt;按钮1（会触发回流）&lt;/button&gt;
+&lt;button class=&quot;button-better&quot;&gt;按钮2（只触发重绘）&lt;/button&gt;
+&lt;button class=&quot;button-best&quot;&gt;按钮3（可能不触发回流）&lt;/button&gt;
+</code></pre>
+<h3>8. 查询某些属性或调用某些方法</h3>
+<pre><code class="language-javascript">const image = document.querySelector(&quot;.product-image&quot;);
+
+// 下面的代码会强制浏览器回流，因为需要获取最新的布局信息
+function badMeasure() {
+  // 频繁读取会导致强制回流
+  console.log(image.offsetWidth);
+  doSomething();
+  console.log(image.offsetHeight);
+  doSomethingElse();
+  console.log(image.getBoundingClientRect());
+}
+
+// 更好的方式：缓存布局信息，避免多次回流
+function goodMeasure() {
+  // 读取一次，缓存所有需要的值
+  const width = image.offsetWidth;
+  const height = image.offsetHeight;
+  const rect = image.getBoundingClientRect();
+
+  // 使用缓存的值进行后续操作
+  doSomething(width);
+  doSomethingElse(height);
+  moreOperations(rect);
+}
+</code></pre>
+<h2>4. table 布局为什么不推荐使用？</h2>
+<p>咱们来探讨一个实际案例。看这段代码：</p>
+<pre><code class="language-html">&lt;table&gt;
+  &lt;tr&gt;
+    &lt;td class=&quot;sidebar&quot;&gt;左侧边栏&lt;/td&gt;
+    &lt;td class=&quot;main&quot;&gt;主侧内容&lt;/td&gt;
+    &lt;td class=&quot;sidebar&quot;&gt;右侧边栏&lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/table&gt;
+
+&lt;script&gt;
+  // 表格中的一个小改动会导致整个表格回流
+  function updateTableContent() {
+    document.querySelector(&quot;.main&quot;).textContent = &quot;新的内容&quot;;
+    // 这个小改动会导致整个表格重新计算布局！
+  }
+
+  // 更现代的布局方式：Flexbox
+  /*
+  &lt;div class=&quot;flex-container&quot;&gt;
+    &lt;div class=&quot;sidebar&quot;&gt;左侧边栏&lt;/div&gt;
+    &lt;div class=&quot;main&quot;&gt;主侧内容&lt;/div&gt;
+    &lt;div class=&quot;sidebar&quot;&gt;右侧边栏&lt;/div&gt;
+  &lt;/div&gt;
+  */
+&lt;/script&gt;
+</code></pre>
+<p>这种布局方式现在很少使用，为什么呢？</p>
+<ol>
+<li><strong>回流成本高</strong>：table 中任何一个单元格的改变，都会导致整个表格的重新布局</li>
+<li><strong>语义不合适</strong>：table 本应用于表格数据，不是用来做页面布局的</li>
+<li><strong>灵活性差</strong>：难以响应式适配不同设备</li>
+</ol>
+<h2>5. 性能优化实战技巧</h2>
+<p>说干就干，直接上干货，这些技巧可以立即应用到你的项目中：</p>
+<h3>技巧 1：使用 CSS3 硬件加速</h3>
+<pre><code class="language-css">.accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+</code></pre>
+<p>transform、opacity 等属性在单独的图层中，不会触发主文档的回流。</p>
+<h3>技巧 2：避免频繁操作样式</h3>
+<pre><code class="language-javascript">// 糟糕
+for (let i = 0; i &lt; 100; i++) {
+  element.style.top = i + &quot;px&quot;; // 100次回流！
+}
+
+// 优秀
+let fragment = document.createDocumentFragment();
+for (let i = 0; i &lt; 100; i++) {
+  let child = document.createElement(&quot;div&quot;);
+  fragment.appendChild(child);
+}
+element.appendChild(fragment); // 只有一次回流
+</code></pre>
+<h3>技巧 3：使用 visibility 而非 display</h3>
+<pre><code class="language-html">&lt;!-- 对比两种隐藏方式 --&gt;
+&lt;div class=&quot;box vis_hid&quot;&gt;使用visibility:hidden，只触发重绘&lt;/div&gt;
+&lt;div class=&quot;box dis_none&quot;&gt;使用display:none，会触发回流&lt;/div&gt;
+</code></pre>
+<p>visibility:hidden 只会导致重绘，而 display:none 会触发回流，因为它会改变页面布局。</p>
+<h2>6. 浏览器的渲染过程：从输入 URL 到像素呈现</h2>
+<p>想要真正掌握回流与重绘，我们必须深入理解浏览器的完整渲染流程。这个过程比很多人想象的要复杂得多，让我们一步步剖析：</p>
+<h3>第一阶段：资源获取与解析</h3>
+<p><strong>1. 输入 URL，浏览器发起请求</strong></p>
+<pre><code>// 这一步在浏览器内部进行
+GET https://example.com HTTP/1.1
+Host: example.com
+User-Agent: Mozilla/5.0 ...
+</code></pre>
+<p><strong>2. 下载 HTML 文档</strong></p>
+<pre><code class="language-javascript">// 网络请求示例
+fetch(&quot;https://example.com&quot;)
+  .then((response) =&gt; response.text())
+  .then((htmlString) =&gt; {
+    // 此时获取到的是原始字节，需要转换为字符串
+    console.log(&quot;HTML字节数:&quot;, new Blob([htmlString]).size);
+    // 浏览器会根据Content-Type或&lt;meta charset&gt;将字节转为字符
+  });
+</code></pre>
+<p><strong>3. HTML 解析</strong></p>
+<pre><code class="language-html">&lt;!-- 浏览器会解析这些标签和属性 --&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;styles.css&quot; /&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div class=&quot;container&quot;&gt;...&lt;/div&gt;
+    &lt;script src=&quot;app.js&quot;&gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h3>第二阶段：构建渲染树</h3>
+<p><strong>4. CSS 处理流程</strong></p>
+<pre><code class="language-css">/* 下载的CSS文件会经过以下处理 */
+body {
+  margin: 0;
+}
+.container {
+  display: flex;
+}
+
+/* 1. 下载字节码 (Content-Type: text/css) */
+/* 2. 使用UTF-8等编码解析成文本 */
+/* 3. 词法分析，分解为token */
+/* 4. 构建CSS规则节点 */
+/* 5. 最终形成CSSOM树 */
+</code></pre>
+<p><strong>5. 构建渲染树(RenderTree)</strong></p>
+<pre><code class="language-javascript">// 伪代码表示DOM和CSSOM如何合并成渲染树
+function createRenderTree(domNode, styleRules) {
+  // 跳过不可见元素，如&lt;head&gt;或display:none的元素
+  if (isNotVisible(domNode, styleRules)) {
+    return null;
+  }
+
+  // 应用样式规则到DOM节点
+  const renderNode = {
+    domNode: domNode,
+    computedStyle: computeStyles(domNode, styleRules),
+    children: [],
+  };
+
+  // 递归处理子节点
+  for (let child of domNode.children) {
+    const childRenderNode = createRenderTree(child, styleRules);
+    if (childRenderNode) {
+      renderNode.children.push(childRenderNode);
+    }
+  }
+
+  return renderNode;
+}
+
+// DOM树 + CSSOM树 = 渲染树
+const renderTree = createRenderTree(document.documentElement, cssomRules);
+</code></pre>
+<h3>第三阶段：布局与分层</h3>
+<p><strong>6. 布局（Layout）计算</strong></p>
+<pre><code class="language-rust">// 伪代码示意布局过程
+function calculateLayout(renderNode, parentBounds) {
+  // 计算盒模型尺寸
+  renderNode.box = {
+    width: calculateWidth(renderNode, parentBounds),
+    height: calculateHeight(renderNode, parentBounds),
+    x: calculateXPosition(renderNode, parentBounds),
+    y: calculateYPosition(renderNode, parentBounds)
+  };
+
+  // 递归计算子节点的布局
+  const childBounds = {
+    width: renderNode.box.width,
+    height: renderNode.box.height,
+    x: renderNode.box.x,
+    y: renderNode.box.y
+  };
+
+  for (let child of renderNode.children) {
+    calculateLayout(child, childBounds);
+  }
+}
+
+// 生成Layout树
+calculateLayout(renderTree, viewport);
+</code></pre>
+<p><strong>7. 图层（Layer）创建</strong></p>
+<pre><code class="language-css">/* 以下CSS属性可能会创建新的图层 */
+
+/* z-index较高的元素 */
+.modal {
+  z-index: 999;
+}
+
+/* position:fixed的元素 */
+.header {
+  position: fixed;
+  top: 0;
+}
+
+/* CSS3动画和变换 */
+.animated {
+  transition: transform 0.3s;
+  transform: translateZ(0); /* 强制创建新图层 */
+}
+
+/* 使用will-change提示浏览器 */
+.optimized {
+  will-change: transform, opacity; /* 告诉浏览器这些属性会变化 */
+}
+</code></pre>
+<p><strong>8. GPU 加速与合成优化</strong></p>
+<pre><code class="language-css">/* GPU加速示例 - 这些CSS属性通常会由GPU处理 */
+.gpu-accelerated {
+  /* 使用3D变换触发GPU加速 */
+  transform: translate3d(0, 0, 0);
+
+  /* 或使用其他3D变换 */
+  transform: translateZ(0);
+  transform: rotate3d(0, 0, 1, 45deg);
+
+  /* opacity变化也通常由GPU处理 */
+  transition: opacity 0.3s ease;
+}
+
+/* 真实项目中的动画优化 */
+@keyframes slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.optimized-animation {
+  animation: slide-in 0.5s ease forwards;
+  /* 这种动画会在单独的合成层中进行，不触发主文档的回流 */
+}
+</code></pre>
+<h3>第四阶段：绘制与合成</h3>
+<p><strong>9. 图层绘制与合成</strong></p>
+<pre><code class="language-javascript">// 伪代码示意图层处理过程
+function paintLayers(layers) {
+  // 每个图层分别绘制
+  const paintedLayers = layers.map((layer) =&gt; {
+    return paintLayer(layer);
+  });
+
+  // 合成图层（考虑z-index等）
+  return compositeLayers(paintedLayers);
+}
+
+// 在真实浏览器中，这一步由渲染引擎完成
+// 比如Chrome的Blink，Firefox的Gecko
+// 最终输出像素到屏幕
+</code></pre>
+<h3>实际示例：单图层 vs 多图层</h3>
+<p><strong>单图层渲染（可能频繁触发回流）:</strong></p>
+<pre><code class="language-html">&lt;div class=&quot;container&quot;&gt;
+  &lt;div class=&quot;box&quot; id=&quot;animatedBox&quot;&gt;我会导致回流&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+  const box = document.getElementById(&quot;animatedBox&quot;);
+
+  // 这种动画会触发主文档回流
+  setInterval(() =&gt; {
+    box.style.width = parseInt(getComputedStyle(box).width) + 1 + &quot;px&quot;;
+  }, 16); // 约60fps
+&lt;/script&gt;
+</code></pre>
+<p><strong>多图层渲染（避免主文档回流）:</strong></p>
+<pre><code class="language-html">&lt;div class=&quot;container&quot;&gt;
+  &lt;div class=&quot;box gpu-layer&quot; id=&quot;optimizedBox&quot;&gt;我不会导致回流&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+  .gpu-layer {
+    transform: translateZ(0); /* 创建单独图层 */
+  }
+&lt;/style&gt;
+
+&lt;script&gt;
+  const box = document.getElementById(&quot;optimizedBox&quot;);
+
+  // 这种动画不会触发主文档回流，由GPU直接处理
+  setInterval(() =&gt; {
+    // transform由GPU在单独图层处理，主线程可以专注其他任务
+    const currentX = parseFloat(
+      getComputedStyle(box).transform.split(&quot;,&quot;)[4] || 0
+    );
+    box.style.transform = `translateZ(0) translateX(${currentX + 1}px)`;
+  }, 16);
+&lt;/script&gt;
+</code></pre>
+<p>这个复杂的渲染流程展示了为什么我们需要关注回流与重绘。当你修改 DOM 或 CSS 时，浏览器可能需要重新执行这一系列昂贵的操作。合理利用图层、GPU 加速和其他优化手段，可以显著提高页面性能和用户体验。</p>
+<h2>总结</h2>
+<p>通过深入理解浏览器的渲染机制，我们可以更有针对性地优化前端性能。回流和重绘是性能优化的关键瓶颈，减少它们的发生是提升用户体验的重要手段。</p>
+<p>记住一句话：<strong>每少一次回流，用户体验就多一分流畅；每多用一次 GPU 加速，动画就多一分丝滑。</strong></p>
+<p>你们的项目中是否遇到过因回流导致的性能问题？有什么独特的解决方案？欢迎在评论区分享讨论！</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
