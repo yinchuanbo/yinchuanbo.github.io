@@ -5,7 +5,7 @@ const frontMatter = require("front-matter");
 const chokidar = require("chokidar");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3003;
 const srcDir = path.join(__dirname, "src");
 const docDir = path.join(__dirname, "doc");
 const templatePath = path.join(__dirname, "templates", "template.html");
@@ -75,7 +75,7 @@ async function compileMarkdown(filePath) {
     // 确保 doc 目录存在
     fs.ensureDirSync(docDir);
     fs.writeFileSync(outputPath, output);
-    console.log(`已生成：${outputPath}`);
+    // console.log(`已生成：${outputPath}`);
 
     // 更新 index.html
     await generateIndex();
@@ -142,7 +142,7 @@ async function generateIndex() {
       .replace("{{{articleList}}}", articleList)
       .replace("{{{categoryFilter}}}", categoryFilter);
     fs.writeFileSync(path.join(docDir, "index.html"), indexContent);
-    console.log(`已生成：${path.join(docDir, "index.html")}`);
+    // console.log(`已生成：${path.join(docDir, "index.html")}`);
   } catch (error) {
     console.error("生成 index.html 时出错:", error);
   }
@@ -166,7 +166,7 @@ chokidar
   .watch(srcDir, { ignored: /(^|[\/\\])\../ })
   .on("all", async (event, filePath) => {
     if (filePath.endsWith(".md")) {
-      console.log(`检测到文件变化：${filePath} (${event})`);
+      // console.log(`检测到文件变化：${filePath} (${event})`);
       await compileMarkdown(filePath);
     }
   });
