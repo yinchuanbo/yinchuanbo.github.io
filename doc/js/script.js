@@ -215,6 +215,49 @@ if (
     });
 }
 
+// 专题页动态加载
+document.addEventListener("DOMContentLoaded", function () {
+  if (document.querySelector(".special-page")) {
+    const listLinks = document.querySelectorAll(".special-list ul li a");
+    const contentContainer = document.getElementById("special-content");
+
+    async function loadContent(url) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Network response was not ok");
+        const html = await response.text();
+        contentContainer.innerHTML = html;
+        Prism.highlightAll();
+        setupImagePreview();
+        const headings = contentContainer.querySelectorAll("h2, h3");
+        headings.forEach(heading => {
+          if (!heading.id) {
+            heading.id = "heading-" + heading.textContent.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, "-").replace(/^-+|-+$/g, "").replace(/(\d+)-(\d+)/g, "$1$2");
+          }
+        });
+      } catch (error) {
+        console.error("加载内容出错:", error);
+        contentContainer.innerHTML = "<p>加载内容失败，请稍后重试。</p>";
+      }
+    }
+
+    listLinks.forEach(link => {
+      link.addEventListener("click", function (e) {
+        e.preventDefault();
+        const url = this.getAttribute("data-url");
+        loadContent(url);
+        listLinks.forEach(l => l.classList.remove("active"));
+        this.classList.add("active");
+      });
+    });
+
+    // 加载第一个内容
+    if (listLinks.length > 0) {
+      listLinks[0].click();
+    }
+  }
+});
+
 // 主题切换功能
 const themeToggle = document.createElement("button");
 themeToggle.className = "theme-toggle";

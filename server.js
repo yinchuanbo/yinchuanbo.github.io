@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3003;
 const srcDir = path.join(__dirname, "src");
 const docDir = path.join(__dirname, "doc");
 const templatePath = path.join(__dirname, "templates", "template.html");
+const specialTemplatePath = path.join(__dirname, "templates", "special-template.html");
 const indexTemplatePath = path.join(__dirname, "templates", "index.html");
 
 // 设置静态文件目录
@@ -38,12 +39,11 @@ const indexTemplate = fs.existsSync(indexTemplatePath)
   `;
 
 // 编译单个 Markdown 文件到 HTML
-async function compileMarkdown(filePath) {
+async function compileMarkdown(filePath, isSpecial = false, specialDir = '') {
   try {
     const marked = (await import("marked")).marked;
     const fileContent = fs.readFileSync(filePath, "utf8");
     const { attributes, body } = frontMatter(fileContent);
-    // 确保 attributes 存在并提供默认值
     const title = attributes.title || "无标题";
     const category = attributes.category || "未分类";
     let dateStr = attributes.date;
@@ -56,106 +56,112 @@ async function compileMarkdown(filePath) {
     } else {
       dateStr = "未知日期";
     }
-
-    const date = dateStr;
-
     const htmlContent = marked(body);
-
-    // 替换模板中的占位符
-    let output = template
-      .replace(/{{title}}/g, title)
-      .replace(/{{category}}/g, category)
-      .replace(/{{date}}/g, date)
-      .replace(/{{{content}}}/g, htmlContent);
-
-    // 生成输出文件名
+    let output;
+    if (isSpecial) {
+      output = `
+        <header>
+          <h1>${title}</h1>
+          <p>${category} | ${dateStr}</p>
+        </header>
+        ${htmlContent}
+      `;
+    } else {
+      output = template
+        .replace(/{{title}}/g, title)
+        .replace(/{{category}}/g, category)
+        .replace(/{{date}}/g, dateStr)
+        .replace(/{{{content}}}/g, htmlContent);
+    }
     const outputFileName = path.basename(filePath, ".md") + ".html";
-    const outputPath = path.join(docDir, outputFileName);
-
-    // 确保 doc 目录存在
-    fs.ensureDirSync(docDir);
+    const outputDir = isSpecial ? path.join(docDir, specialDir) : docDir;
+    fs.ensureDirSync(outputDir);
+    const outputPath = path.join(outputDir, outputFileName);
     fs.writeFileSync(outputPath, output);
-    // console.log(`已生成：${outputPath}`);
-
-    // 更新 index.html
-    await generateIndex();
+    if (!isSpecial) {
+      await generateIndex();
+    }
   } catch (error) {
     console.error(`处理 ${filePath} 时出错:`, error);
   }
 }
 
-// 生成 index.html，列出所有文章
+async function generateSpecialPage(specialDir) {
+  const specialPath = path.join(srcDir, specialDir);
+  const files = fs.readdirSync(specialPath).filter(file => file.endsWith(".md"));
+  let list = '';
+  for (const file of files) {
+    const filePath = path.join(specialPath, file);
+    await compileMarkdown(filePath, true, specialDir);
+    const title = frontMatter(fs.readFileSync(filePath, "utf8")).attributes.title || "无标题";
+    const htmlFile = path.basename(file, ".md") + ".html";
+    list += `<li><a href="#" data-url="/${specialDir}/${htmlFile}">${title}</a></li>`;
+  }
+  const specialTemplate = fs.readFileSync(specialTemplatePath, "utf8");
+  const output = specialTemplate
+    .replace(/{{title}}/g, specialDir)
+    .replace(/{{{list}}}/g, list);
+  const outputPath = path.join(docDir, `${specialDir}.html`);
+  fs.writeFileSync(outputPath, output);
+}
+
 async function generateIndex() {
   try {
-    const files = fs.readdirSync(srcDir).filter((file) => file.endsWith(".md"));
-    let articleList = "";
+    let articleList = '';
     const categorySet = new Set();
     const articles = [];
-
-    // 收集所有文章信息
-    for (const file of files) {
-      const filePath = path.join(srcDir, file);
-      const fileContent = fs.readFileSync(filePath, "utf8");
-      const { attributes } = frontMatter(fileContent);
-      const htmlFileName = path.basename(file, ".md") + ".html";
-      const title = attributes.title || "无标题";
-      const category = attributes.category || "未分类";
-      let date = attributes.date ? new Date(attributes.date) : new Date(0);
-
-      articles.push({
-        title,
-        category,
-        date,
-        htmlFileName,
-      });
-      categorySet.add(category);
+    const specials = [];
+    const items = fs.readdirSync(srcDir);
+    for (const item of items) {
+      const itemPath = path.join(srcDir, item);
+      if (fs.statSync(itemPath).isDirectory()) {
+        specials.push(item);
+      } else if (item.endsWith(".md")) {
+        const fileContent = fs.readFileSync(itemPath, "utf8");
+        const { attributes } = frontMatter(fileContent);
+        const htmlFileName = path.basename(item, ".md") + ".html";
+        const title = attributes.title || "无标题";
+        const category = attributes.category || "未分类";
+        let date = attributes.date ? new Date(attributes.date) : new Date(0);
+        articles.push({ title, category, date, htmlFileName });
+        categorySet.add(category);
+      }
     }
-
-    // 按日期倒序排序
     articles.sort((a, b) => b.date - a.date);
-
-    // 生成文章列表
-    articles.forEach((article, index) => {
-      const dateStr =
-        article.date.getTime() > 0
-          ? `${article.date.getFullYear()}.${String(
-              article.date.getMonth() + 1
-            ).padStart(2, "0")}.${String(article.date.getDate()).padStart(
-              2,
-              "0"
-            )}`
-          : "未知日期";
-
+    articles.forEach(article => {
+      const dateStr = article.date.getTime() > 0 ? `${article.date.getFullYear()}.${String(article.date.getMonth() + 1).padStart(2, "0")}.${String(article.date.getDate()).padStart(2, "0")}` : "未知日期";
       articleList += `<li data-category="${article.category}"><a href="/${article.htmlFileName}">${article.title}</a></li>`;
     });
-
-    // 生成分类按钮
+    specials.forEach(special => {
+      articleList += `<li data-category="special"><a href="/${special}.html">${special}</a></li>`;
+    });
     let categoryFilter = `<button class="category-btn" data-category="all">全部</button>`;
-    Array.from(categorySet)
-      .sort()
-      .forEach((cat) => {
-        categoryFilter += `\n<button class="category-btn" data-category="${cat}">${cat}</button>`;
-      });
-
-    // 替换 index 模板中的占位符
+    Array.from(categorySet).sort().forEach(cat => {
+      categoryFilter += `\n<button class="category-btn" data-category="${cat}">${cat}</button>`;
+    });
+    categoryFilter += `\n<button class="category-btn" data-category="special">专题</button>`;
     const indexContent = indexTemplate
       .replace("{{{articleList}}}", articleList)
       .replace("{{{categoryFilter}}}", categoryFilter);
     fs.writeFileSync(path.join(docDir, "index.html"), indexContent);
-    // console.log(`已生成：${path.join(docDir, "index.html")}`);
   } catch (error) {
     console.error("生成 index.html 时出错:", error);
   }
 }
 
-// 编译所有 Markdown 文件
 async function compileAllMarkdown() {
   try {
     fs.ensureDirSync(docDir);
-    const files = fs.readdirSync(srcDir).filter((file) => file.endsWith(".md"));
-    for (const file of files) {
-      await compileMarkdown(path.join(srcDir, file));
+    const items = fs.readdirSync(srcDir);
+    for (const item of items) {
+      const itemPath = path.join(srcDir, item);
+      if (fs.statSync(itemPath).isDirectory()) {
+        await generateSpecialPage(item);
+      } else if (item.endsWith(".md")) {
+        await compileMarkdown(itemPath);
+      }
     }
+    await generateIndex();
   } catch (error) {
     console.error("编译所有 Markdown 文件时出错:", error);
   }
@@ -163,11 +169,17 @@ async function compileAllMarkdown() {
 
 // 监听 src 目录的变化
 chokidar
-  .watch(srcDir, { ignored: /(^|[\/\\])\../ })
+  .watch(srcDir, { ignored: /(^|[\\\/])\../ })
   .on("all", async (event, filePath) => {
     if (filePath.endsWith(".md")) {
-      // console.log(`检测到文件变化：${filePath} (${event})`);
-      await compileMarkdown(filePath);
+      const relative = path.relative(srcDir, filePath);
+      const parts = relative.split(path.sep);
+      if (parts.length > 1) {
+        await compileMarkdown(filePath, true, parts[0]);
+        await generateSpecialPage(parts[0]);
+      } else {
+        await compileMarkdown(filePath);
+      }
     }
   });
 
