@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React 19 使用文档（基于 React 19.1）</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>React 19 使用文档（基于 React 19.1）</h1>
+        <p>React | 2025.07.18</p>
+      </header>
+      <p>本文档为 React 19.1 的全面使用指南，涵盖核心功能、新特性、TypeScript 集成及最佳实践。每个知识点都附带详细代码示例，适用于初学者和高级开发者。React 19 引入了多项突破性特性，如 React 编译器、Server Components、Server Actions 和新 Hooks，旨在简化开发、提升性能和优化用户体验。本文档基于官方文档和其他可靠资源（如 React Conf 2024 和 freeCodeCamp）编写。<a href="https://react.dev/blog/2024/12/05/react-19"></a><a href="https://www.freecodecamp.org/news/new-react-19-features-you-should-know-with-code-examples/"></a><a href="https://medium.com/getpieces/react-19-a-comprehensive-guide-to-the-latest-features-and-updates-a32093f43ef4"></a></p>
+<h2>1. 安装与配置</h2>
+<h3>1.1 安装 React 19</h3>
+<p>React 19 可通过 npm 安装，推荐在项目中局部安装以确保版本一致性。</p>
+<pre><code class="language-bash">npm install react@19.1 react-dom@19.1
+</code></pre>
+<p><strong>TypeScript 用户</strong>：确保安装最新类型定义：</p>
+<pre><code class="language-bash">npm install --save-dev @types/react@19.0 @types/react-dom@19.0
+</code></pre>
+<h3>1.2 配置项目</h3>
+<p>React 19 要求使用新的 JSX 转换，推荐与 Vite 或 Next.js 等现代构建工具配合。以下是一个 Vite 项目的基本配置：</p>
+<p><strong>vite.config.ts</strong></p>
+<pre><code class="language-typescript">import { defineConfig } from &quot;vite&quot;;
+import react from &quot;@vitejs/plugin-react&quot;;
+
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes(&quot;node_modules&quot;)) {
+            return &quot;vendor&quot;;
+          }
+        },
+      },
+    },
+  },
+});
+</code></pre>
+<p><strong>tsconfig.json</strong></p>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;esnext&quot;,
+    &quot;module&quot;: &quot;esnext&quot;,
+    &quot;jsx&quot;: &quot;react-jsx&quot;,
+    &quot;moduleResolution&quot;: &quot;node&quot;,
+    &quot;strict&quot;: true,
+    &quot;esModuleInterop&quot;: true,
+    &quot;skipLibCheck&quot;: true,
+    &quot;baseUrl&quot;: &quot;src&quot;,
+    &quot;paths&quot;: {
+      &quot;@components/*&quot;: [&quot;components/*&quot;]
+    }
+  },
+  &quot;include&quot;: [&quot;src/**/*&quot;],
+  &quot;exclude&quot;: [&quot;node_modules&quot;, &quot;dist&quot;]
+}
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>&quot;jsx&quot;: &quot;react-jsx&quot;</code> 启用新的 JSX 转换，取代 <code>React.createElement</code>。</li>
+<li><code>&quot;strict&quot;: true</code> 确保类型安全。</li>
+<li><code>paths</code> 配置模块别名，简化导入。</li>
+</ul>
+<h2>2. 核心概念</h2>
+<h3>2.1 组件（Components）</h3>
+<p>React 19 支持函数组件和类组件，但推荐使用函数组件与 Hooks。</p>
+<p><strong>示例：函数组件</strong></p>
+<pre><code class="language-typescript">import React from &quot;react&quot;;
+
+interface Props {
+  name: string;
+}
+
+const Greeting: React.FC&lt;Props&gt; = ({ name }) =&gt; {
+  return &lt;h1&gt;Hello, {name}!&lt;/h1&gt;;
+};
+
+export default Greeting;
+</code></pre>
+<p><strong>使用</strong></p>
+<pre><code class="language-typescript">import Greeting from &quot;@components/Greeting&quot;;
+
+const App: React.FC = () =&gt; {
+  return &lt;Greeting name=&quot;Alice&quot; /&gt;;
+};
+</code></pre>
+<h3>2.2 Props 与 State</h3>
+<p>Props 用于父子组件通信，State 用于管理组件内部状态。</p>
+<p><strong>示例：State 管理</strong></p>
+<pre><code class="language-typescript">import React, { useState } from &quot;react&quot;;
+
+const Counter: React.FC = () =&gt; {
+  const [count, setCount] = useState&lt;number&gt;(0);
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;Count: {count}&lt;/p&gt;
+      &lt;button onClick={() =&gt; setCount(count + 1)}&gt;Increment&lt;/button&gt;
+    &lt;/div&gt;
+  );
+};
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>使用 TypeScript 定义 Props 和 State 类型。</li>
+<li>避免过多的 State，优先使用派生状态。</li>
+<li>对于复杂状态管理，考虑 <code>useReducer</code> 或 Zustand。</li>
+</ul>
+<h2>3. React 19 新特性</h2>
+<h3>3.1 React 编译器</h3>
+<p>React 19 引入了开源 React 编译器（React Fizz），自动优化组件渲染，消除手动使用 <code>useMemo</code> 和 <code>useCallback</code> 的需求。<a href="https://www.freecodecamp.org/news/new-react-19-features-you-should-know-with-code-examples/"></a><a href="https://medium.com/getpieces/react-19-a-comprehensive-guide-to-the-latest-features-and-updates-a32093f43ef4"></a></p>
+<p><strong>示例：无需手动优化的组件</strong></p>
+<pre><code class="language-typescript">import React from &quot;react&quot;;
+
+interface Item {
+  id: number;
+  name: string;
+}
+
+const ItemList: React.FC&lt;{ items: Item[] }&gt; = ({ items }) =&gt; {
+  // 无需 useMemo 或 useCallback，编译器自动优化
+  const filteredItems = items.filter((item) =&gt; item.id &gt; 0);
+
+  return (
+    &lt;ul&gt;
+      {filteredItems.map((item) =&gt; (
+        &lt;li key={item.id}&gt;{item.name}&lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+};
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li>编译器将 JSX 转换为优化的 JavaScript，减少不必要的重新渲染。</li>
+<li>需要安装 <code>babel-plugin-react-compiler</code>：</li>
+</ul>
+<p><strong>babel.config.js</strong></p>
+<pre><code class="language-javascript">const ReactCompilerConfig = {
+  sources: (filename: string) =&gt; filename.includes(&quot;src/components&quot;),
+};
+
+module.exports = {
+  plugins: [[&quot;babel-plugin-react-compiler&quot;, ReactCompilerConfig]],
+};
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>在项目中逐步启用编译器，先在非关键目录测试。</li>
+<li>确保代码符合编译器要求（如避免动态依赖）。</li>
+</ul>
+<h3>3.2 Server Components</h3>
+<p>Server Components 允许在服务器上渲染组件，减少客户端 JavaScript 量，提升性能和 SEO。<a href="https://vercel.com/blog/whats-new-in-react-19"></a><a href="https://medium.com/%40onix_react/what-to-expect-from-react-19-e033899f919f"></a></p>
+<p><strong>示例：Server Component</strong></p>
+<pre><code class="language-typescript">// server/HomePage.server.tsx
+import { db } from &quot;../db&quot;;
+
+async function HomePage() {
+  const posts = await db.posts.findMany();
+  return (
+    &lt;div&gt;
+      &lt;h1&gt;Latest Posts&lt;/h1&gt;
+      &lt;ul&gt;
+        {posts.map((post) =&gt; (
+          &lt;li key={post.id}&gt;{post.title}&lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+    &lt;/div&gt;
+  );
+}
+
+export default HomePage;
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li>使用 <code>&quot;use server&quot;</code> 指令定义 Server Components 或 Server Actions。</li>
+<li>Server Components 不能包含客户端交互逻辑（如 <code>useState</code>）。</li>
+<li>需要配合支持 Server Components 的框架（如 Next.js 15）。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>将数据获取逻辑放在 Server Components 中。</li>
+<li>使用 Client Components 处理交互逻辑。</li>
+<li>确保 Server Components 不依赖客户端 API（如 <code>window</code>）。</li>
+</ul>
+<h3>3.3 Server Actions</h3>
+<p>Server Actions 允许 Client Components 调用服务器上的异步函数，简化数据操作。<a href="https://medium.com/%40onix_react/what-to-expect-from-react-19-e033899f919f"></a></p>
+<p><strong>示例：Server Action</strong></p>
+<pre><code class="language-typescript">// server/actions.ts
+&quot;use server&quot;;
+
+import { db } from &quot;../db&quot;;
+
+export async function createTodo(formData: FormData) {
+  const title = formData.get(&quot;title&quot;) as string;
+  await db.todos.create({ title });
+}
+</code></pre>
+<p><strong>使用 Server Action</strong></p>
+<pre><code class="language-typescript">// client/TodoForm.tsx
+import { useActionState } from &quot;react&quot;;
+import { createTodo } from &quot;../server/actions&quot;;
+
+const TodoForm: React.FC = () =&gt; {
+  const [state, dispatch, isPending] = useActionState(createTodo, null);
+
+  return (
+    &lt;form action={dispatch}&gt;
+      &lt;input type=&quot;text&quot; name=&quot;title&quot; disabled={isPending} /&gt;
+      &lt;button type=&quot;submit&quot; disabled={isPending}&gt;
+        {isPending ? &quot;Creating...&quot; : &quot;Create Todo&quot;}
+      &lt;/button&gt;
+      {state?.message &amp;&amp; &lt;p&gt;{state.message}&lt;/p&gt;}
+    &lt;/form&gt;
+  );
+};
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>useActionState</code> 管理表单提交状态，自动处理 pending 状态和错误。</li>
+<li>Server Actions 需在支持的框架中配置（如 Next.js）。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>使用 TypeScript 验证 <code>formData</code> 的类型。</li>
+<li>提供用户反馈（如 loading 状态或错误信息）。</li>
+<li>避免在 Server Actions 中执行复杂逻辑，保持单一职责。</li>
+</ul>
+<h3>3.4 新 Hooks</h3>
+<h4>3.4.1 useOptimistic</h4>
+<p><code>useOptimistic</code> 用于乐观更新，提供即时 UI 反馈。<a href="https://www.freecodecamp.org/news/new-react-19-features/"></a></p>
+<p><strong>示例：乐观更新</strong></p>
+<pre><code class="language-typescript">import React, { useState, useOptimistic } from &quot;react&quot;;
+import { createTodo } from &quot;../server/actions&quot;;
+
+const OptimisticTodo: React.FC = () =&gt; {
+  const [todos, setTodos] = useState&lt;string[]&gt;([]);
+  const [optimisticTodos, addOptimisticTodo] = useOptimistic(
+    todos,
+    (state, newTodo: string) =&gt; [...state, newTodo]
+  );
+
+  const handleSubmit = async (formData: FormData) =&gt; {
+    const title = formData.get(&quot;title&quot;) as string;
+    addOptimisticTodo(title);
+    await createTodo(formData);
+    setTodos((prev) =&gt; [...prev, title]);
+  };
+
+  return (
+    &lt;form action={handleSubmit}&gt;
+      &lt;input type=&quot;text&quot; name=&quot;title&quot; /&gt;
+      &lt;button type=&quot;submit&quot;&gt;Add Todo&lt;/button&gt;
+      &lt;ul&gt;
+        {optimisticTodos.map((todo, index) =&gt; (
+          &lt;li key={index}&gt;{todo}&lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+    &lt;/form&gt;
+  );
+};
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>useOptimistic</code> 在服务器响应前显示临时状态。</li>
+<li>实际响应返回后，状态会同步更新。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>用于低风险操作（如添加评论、点赞）。</li>
+<li>确保服务器操作与乐观更新逻辑一致。</li>
+</ul>
+<h4>3.4.2 useFormStatus</h4>
+<p><code>useFormStatus</code> 提供表单提交状态，简化表单管理。<a href="https://eluminoustechnologies.com/blog/react-19/"></a></p>
+<p><strong>示例：表单状态</strong></p>
+<pre><code class="language-typescript">import React, { useFormStatus } from &quot;react&quot;;
+
+const SubmitButton: React.FC = () =&gt; {
+  const { pending } = useFormStatus();
+  return (
+    &lt;button type=&quot;submit&quot; disabled={pending}&gt;
+      {pending ? &quot;Submitting...&quot; : &quot;Submit&quot;}
+    &lt;/button&gt;
+  );
+};
+
+const Form: React.FC = () =&gt; {
+  return (
+    &lt;form action=&quot;/api/submit&quot;&gt;
+      &lt;input type=&quot;text&quot; name=&quot;name&quot; /&gt;
+      &lt;SubmitButton /&gt;
+    &lt;/form&gt;
+  );
+};
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>将 <code>useFormStatus</code> 用于子组件，避免 prop 钻透。</li>
+<li>结合 <code>useActionState</code> 提供完整的表单体验。</li>
+</ul>
+<h4>3.4.3 use</h4>
+<p><code>use</code> Hook 用于读取 Promise 或上下文，集成 Suspense。<a href="https://medium.com/%40onix_react/what-to-expect-from-react-19-e033899f919f"></a></p>
+<p><strong>示例：数据获取</strong></p>
+<pre><code class="language-typescript">import React, { use, Suspense } from &quot;react&quot;;
+
+interface Comment {
+  id: number;
+  text: string;
+}
+
+const Comments: React.FC&lt;{ commentsPromise: Promise&lt;Comment[]&gt; }&gt; = ({
+  commentsPromise,
+}) =&gt; {
+  const comments = use(commentsPromise);
+  return (
+    &lt;ul&gt;
+      {comments.map((comment) =&gt; (
+        &lt;li key={comment.id}&gt;{comment.text}&lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+};
+
+const Page: React.FC = () =&gt; {
+  const commentsPromise = fetch(&quot;https://api.example.com/comments&quot;).then(
+    (res) =&gt; res.json()
+  );
+  return (
+    &lt;Suspense fallback={&lt;div&gt;Loading...&lt;/div&gt;}&gt;
+      &lt;Comments commentsPromise={commentsPromise} /&gt;
+    &lt;/Suspense&gt;
+  );
+};
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>use</code> 暂停渲染直到 Promise 解析，需配合 <code>Suspense</code>。</li>
+<li>适合 Server Components 或流式渲染。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>始终用 <code>Suspense</code> 包裹 <code>use</code> 调用。</li>
+<li>提供友好的加载 UI。</li>
+</ul>
+<h3>3.5 Document Metadata</h3>
+<p>React 19 支持在组件中直接渲染 <code>&lt;title&gt;</code>、<code>&lt;meta&gt;</code> 等标签，自动提升到 <code>&lt;head&gt;</code>，简化 SEO 管理。<a href="https://react.dev/blog/2024/12/05/react-19"></a><a href="https://www.geeksforgeeks.org/reactjs/react-19-new-features-and-updates/"></a></p>
+<p><strong>示例：元数据</strong></p>
+<pre><code class="language-typescript">import React from &quot;react&quot;;
+
+const HomePage: React.FC = () =&gt; {
+  return (
+    &lt;&gt;
+      &lt;title&gt;My App - Home&lt;/title&gt;
+      &lt;meta name=&quot;description&quot; content=&quot;Welcome to my React 19 app&quot; /&gt;
+      &lt;h1&gt;Home Page&lt;/h1&gt;
+    &lt;/&gt;
+  );
+};
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>使用 <code>DocumentHead</code> 组件（若框架支持）集中管理元数据。</li>
+<li>确保元数据与页面内容一致，提升 SEO 效果。</li>
+</ul>
+<h3>3.6 Asset Loading</h3>
+<p>React 19 优化了资源（如图片、脚本、样式）加载，支持后台预加载和 Suspense。<a href="https://www.geeksforgeeks.org/reactjs/react-19-new-features-and-updates/"></a></p>
+<p><strong>示例：异步脚本</strong></p>
+<pre><code class="language-typescript">import React from &quot;react&quot;;
+
+const Analytics: React.FC = () =&gt; {
+  return &lt;script async src=&quot;https://example.com/analytics.js&quot; /&gt;;
+};
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li>异步脚本可渲染在组件树任意位置，React 自动去重并优化加载。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>使用 <code>preload</code> 和 <code>prefetch</code> API 优化关键资源。</li>
+<li>结合 <code>Suspense</code> 管理资源加载状态。</li>
+</ul>
+<h2>4. TypeScript 集成</h2>
+<p>React 19 增强了 TypeScript 支持，推荐使用最新类型定义。<a href="https://dev.to/manojspace/react-19-vs-react-18-performance-improvements-and-migration-guide-5h85"></a></p>
+<h3>4.1 Props 类型</h3>
+<p>为 Props 定义接口，确保类型安全。</p>
+<p><strong>示例</strong></p>
+<pre><code class="language-typescript">interface ButtonProps {
+  label: string;
+  onClick: () =&gt; void;
+  disabled?: boolean;
+}
+
+const Button: React.FC&lt;ButtonProps&gt; = ({ label, onClick, disabled }) =&gt; {
+  return (
+    &lt;button onClick={onClick} disabled={disabled}&gt;
+      {label}
+    &lt;/button&gt;
+  );
+};
+</code></pre>
+<h3>4.2 Refs</h3>
+<p>React 19 支持直接传递 <code>ref</code> 作为 Props，无需 <code>forwardRef</code>。<a href="https://www.geeksforgeeks.org/reactjs/react-19-new-features-and-updates/"></a></p>
+<p><strong>示例</strong></p>
+<pre><code class="language-typescript">import React, { useRef } from &quot;react&quot;;
+
+const Input: React.FC&lt;{ ref: React.RefObject&lt;HTMLInputElement&gt; }&gt; = ({
+  ref,
+}) =&gt; {
+  return &lt;input ref={ref} /&gt;;
+};
+
+const App: React.FC = () =&gt; {
+  const inputRef = useRef&lt;HTMLInputElement&gt;(null);
+
+  const focusInput = () =&gt; {
+    inputRef.current?.focus();
+  };
+
+  return (
+    &lt;div&gt;
+      &lt;Input ref={inputRef} /&gt;
+      &lt;button onClick={focusInput}&gt;Focus Input&lt;/button&gt;
+    &lt;/div&gt;
+  );
+};
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>使用 <code>React.RefObject</code> 声明 Ref 类型。</li>
+<li>检查 <code>ref.current</code> 是否存在（<code>strictNullChecks</code>）。</li>
+</ul>
+<h2>5. 性能优化</h2>
+<h3>5.1 React 编译器</h3>
+<p>如前所述，React 编译器自动优化渲染，减少手动 memoization。</p>
+<h3>5.2 Suspense 与 Lazy Loading</h3>
+<p>使用 <code>React.lazy</code> 和 <code>Suspense</code> 实现代码分割。</p>
+<p><strong>示例</strong></p>
+<pre><code class="language-typescript">import React, { Suspense, lazy } from &quot;react&quot;;
+
+const HeavyComponent = lazy(() =&gt; import(&quot;./HeavyComponent&quot;));
+
+const App: React.FC = () =&gt; {
+  return (
+    &lt;Suspense fallback={&lt;div&gt;Loading...&lt;/div&gt;}&gt;
+      &lt;HeavyComponent /&gt;
+    &lt;/Suspense&gt;
+  );
+};
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>对大型组件使用 <code>React.lazy</code> 减少初始加载时间。</li>
+<li>提供清晰的加载 UI。</li>
+</ul>
+<h3>5.3 自动批处理</h3>
+<p>React 19 扩展了自动批处理，减少不必要的重新渲染。<a href="https://dev.to/manojspace/react-19-vs-react-18-performance-improvements-and-migration-guide-5h85"></a></p>
+<p><strong>示例</strong></p>
+<pre><code class="language-typescript">import React, { useState } from &quot;react&quot;;
+
+const BatchUpdate: React.FC = () =&gt; {
+  const [count, setCount] = useState(0);
+  const [flag, setFlag] = useState(false);
+
+  const handleClick = () =&gt; {
+    setTimeout(() =&gt; {
+      setCount((c) =&gt; c + 1);
+      setFlag((f) =&gt; !f); // React 19 仅触发一次渲染
+    }, 1000);
+  };
+
+  return &lt;button onClick={handleClick}&gt;Update&lt;/button&gt;;
+};
+</code></pre>
+<h2>6. 错误处理</h2>
+<p>React 19 改进了错误处理，支持更清晰的错误信息和 Error Boundary。<a href="https://react.dev/blog/2024/12/05/react-19"></a></p>
+<p><strong>示例：Error Boundary</strong></p>
+<pre><code class="language-typescript">import React from &quot;react&quot;;
+
+interface ErrorBoundaryProps {
+  fallback: React.ReactNode;
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends React.Component&lt;
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+&gt; {
+  state: ErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error(&quot;Error:&quot;, error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
+const App: React.FC = () =&gt; {
+  return (
+    &lt;ErrorBoundary fallback={&lt;h1&gt;Something went wrong&lt;/h1&gt;}&gt;
+      &lt;ThrowsError /&gt;
+    &lt;/ErrorBoundary&gt;
+  );
+};
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>使用 <code>onUncaughtError</code> 和 <code>onCaughtError</code> 捕获全局错误。</li>
+<li>提供用户友好的错误 UI。</li>
+</ul>
+<h2>7. 最佳实践</h2>
+<ol>
+<li><strong>使用函数组件和 Hooks</strong>：优先使用函数组件，避免类组件。</li>
+<li><strong>启用 React 编译器</strong>：在支持的环境中启用编译器以简化优化。</li>
+<li><strong>TypeScript 优先</strong>：使用 TypeScript 确保类型安全，减少运行时错误。</li>
+<li><strong>Server Components 与 Client Components 分离</strong>：将数据获取放在 Server Components，交互逻辑放在 Client Components。</li>
+<li><strong>模块化与代码分割</strong>：使用 <code>React.lazy</code> 和模块别名组织代码。</li>
+<li><strong>测试与调试</strong>：<ul>
+<li>使用 <code>@testing-library/react</code> 进行单元测试。</li>
+<li>安装 React DevTools 调试组件树和性能。</li>
+</ul>
+</li>
+<li><strong>SEO 优化</strong>：使用 Document Metadata 管理 <code>&lt;head&gt;</code> 标签。</li>
+<li><strong>渐进式升级</strong>：在非生产环境测试 React 19 新特性，逐步迁移。</li>
+<li><strong>避免过早优化</strong>：依赖 React 编译器，减少手动 <code>useMemo</code> 和 <code>useCallback</code>。</li>
+<li><strong>保持一致性</strong>：遵循 PascalCase 组件命名，kebab-case 文件命名。<a href="https://www.uxpin.com/studio/blog/react-best-practices/"></a></li>
+</ol>
+<h2>8. 迁移到 React 19</h2>
+<h3>8.1 关键变更</h3>
+<ul>
+<li><strong>移除旧 API</strong>：<code>ReactDOM.render</code> 和 <code>ReactDOM.hydrate</code> 被 <code>createRoot</code> 和 <code>hydrateRoot</code> 取代。<a href="https://dev.to/manojspace/react-19-vs-react-18-performance-improvements-and-migration-guide-5h85"></a></li>
+<li><strong>新 JSX 转换</strong>：必须使用 <code>react-jsx</code>。</li>
+<li><strong>移除 <code>forwardRef</code></strong>：直接传递 <code>ref</code> 作为 Props。</li>
+<li><strong>废弃 <code>react-test-renderer</code></strong>：推荐使用 <code>@testing-library/react</code>。<a href="https://react.dev/blog/2024/04/25/react-19-upgrade-guide"></a></li>
+</ul>
+<h3>8.2 迁移步骤</h3>
+<ol>
+<li>更新依赖到 <code>react@19.1</code> 和 <code>react-dom@19.1</code>。</li>
+<li>运行 <code>npx types-react-codemod@latest preset-19 ./src</code> 自动修复类型问题。</li>
+<li>更新 JSX 转换配置（<code>tsconfig.json</code> 或 Babel）。</li>
+<li>测试 Server Components 和 Server Actions（需框架支持）。</li>
+<li>使用 React 19 升级指南（<a href="https://react.dev/reference/react/upgrade-to-19%EF%BC%89%E3%80%82">https://react.dev/reference/react/upgrade-to-19）。</a></li>
+</ol>
+<h2>9. 资源与进一步学习</h2>
+<ul>
+<li><strong>官方文档</strong>：<a href="https://react.dev">https://react.dev</a></li>
+<li><strong>React 19 升级指南</strong>：<a href="https://react.dev/reference/react/upgrade-to-19">https://react.dev/reference/react/upgrade-to-19</a></li>
+<li><strong>React Conf 2024</strong>：<a href="https://conf.react.dev">https://conf.react.dev</a></li>
+<li><strong>freeCodeCamp 教程</strong>：<a href="https://www.freecodecamp.org/news/new-react-19-features%5B%5D(https://www.freecodecamp.org/news/new-react-19-features-you-should-know-with-code-examples/)">https://www.freecodecamp.org/news/new-react-19-features[](https://www.freecodecamp.org/news/new-react-19-features-you-should-know-with-code-examples/)</a></li>
+<li><strong>Next.js 15 迁移指南</strong>：<a href="https://nextjs.org/docs/app-router">https://nextjs.org/docs/app-router</a></li>
+</ul>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

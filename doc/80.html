@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TypeScript 使用文档（基于 TypeScript 5.8.3）</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>TypeScript 使用文档（基于 TypeScript 5.8.3）</h1>
+        <p>TypeScript | 2025.07.18</p>
+      </header>
+      <p>本文档为 TypeScript 最新版（5.8.3）的使用指南，涵盖核心概念、类型系统、工具配置及高级特性，每项均附详细示例。TypeScript 是一种为 JavaScript 添加静态类型的超集，旨在提升代码健壮性和开发效率。以下内容适用于初学者和高级开发者。</p>
+<h2>1. 安装与配置</h2>
+<h3>1.1 安装 TypeScript</h3>
+<p>TypeScript 可以通过 npm 安装，推荐在项目中局部安装以确保版本一致性。</p>
+<pre><code class="language-bash"># 全局安装
+npm install -g typescript
+
+# 项目局部安装
+npm install --save-dev typescript
+</code></pre>
+<p>检查版本：</p>
+<pre><code class="language-bash">tsc --version
+</code></pre>
+<h3>1.2 配置 tsconfig.json</h3>
+<p><code>tsconfig.json</code> 是 TypeScript 的配置文件，控制编译行为。以下是一个推荐的配置示例：</p>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;esnext&quot;,
+    &quot;module&quot;: &quot;esnext&quot;,
+    &quot;strict&quot;: true,
+    &quot;outDir&quot;: &quot;./dist&quot;,
+    &quot;rootDir&quot;: &quot;./src&quot;,
+    &quot;esModuleInterop&quot;: true,
+    &quot;skipLibCheck&quot;: true
+  },
+  &quot;include&quot;: [&quot;src/**/*&quot;],
+  &quot;exclude&quot;: [&quot;node_modules&quot;]
+}
+</code></pre>
+<p><strong>示例：编译项目</strong></p>
+<pre><code class="language-bash">tsc
+</code></pre>
+<p>运行 <code>tsc</code> 会根据 <code>tsconfig.json</code> 编译项目，生成 JavaScript 文件到 <code>dist</code> 目录。</p>
+<h2>2. 基本类型</h2>
+<p>TypeScript 的核心是静态类型系统，以下是常见基本类型及其用法。</p>
+<h3>2.1 基本类型（Primitive Types）</h3>
+<p>包括 <code>string</code>、<code>number</code>、<code>boolean</code>、<code>null</code>、<code>undefined</code> 等。</p>
+<pre><code class="language-typescript">let name: string = &quot;Alice&quot;;
+let age: number = 25;
+let isStudent: boolean = true;
+let nothing: null = null;
+let notDefined: undefined = undefined;
+
+// 示例：类型检查
+// name = 123; // 错误：不能将类型“number”分配给类型“string”
+</code></pre>
+<h3>2.2 任意类型（Any）</h3>
+<p><code>any</code> 类型允许任意值，适合临时禁用类型检查。</p>
+<pre><code class="language-typescript">let anything: any = &quot;Hello&quot;;
+anything = 42; // 合法
+anything = { name: &quot;Bob&quot; }; // 合法
+</code></pre>
+<h3>2.3 未知类型（Unknown）</h3>
+<p><code>unknown</code> 是更安全的 <code>any</code>，需要类型断言或检查。</p>
+<pre><code class="language-typescript">let value: unknown = &quot;Hello&quot;;
+if (typeof value === &quot;string&quot;) {
+  console.log(value.toUpperCase()); // 合法
+}
+// console.log(value.toUpperCase()); // 错误：类型“unknown”上不存在“toUpperCase”
+</code></pre>
+<h3>2.4 数组（Arrays）</h3>
+<p>数组可以通过类型注解定义。</p>
+<pre><code class="language-typescript">let numbers: number[] = [1, 2, 3];
+let strings: Array&lt;string&gt; = [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;];
+
+// 示例：数组操作
+numbers.push(4); // 合法
+// numbers.push(&quot;5&quot;); // 错误：不能将类型“string”分配给类型“number”
+</code></pre>
+<h3>2.5 元组（Tuples）</h3>
+<p>元组允许定义固定长度和类型的数组。</p>
+<pre><code class="language-typescript">let tuple: [string, number] = [&quot;Alice&quot;, 25];
+// tuple[0] = 123; // 错误：不能将类型“number”分配给类型“string”
+// tuple.push(&quot;Bob&quot;); // 注意：元组允许 push，但可能破坏类型安全
+</code></pre>
+<h3>2.6 枚举（Enums）</h3>
+<p>枚举定义一组命名常量，支持数字和字符串值。</p>
+<pre><code class="language-typescript">enum Color {
+  Red = 1,
+  Green,
+  Blue,
+}
+let color: Color = Color.Green; // 2
+console.log(Color[2]); // &quot;Green&quot;
+
+// 字符串枚举
+enum Direction {
+  Up = &quot;UP&quot;,
+  Down = &quot;DOWN&quot;,
+}
+let dir: Direction = Direction.Up; // &quot;UP&quot;
+</code></pre>
+<h2>3. 对象类型</h2>
+<h3>3.1 接口（Interfaces）</h3>
+<p>接口用于描述对象形状。</p>
+<pre><code class="language-typescript">interface Person {
+  name: string;
+  age: number;
+  isStudent?: boolean; // 可选属性
+  readonly id: number; // 只读属性
+}
+
+let person: Person = {
+  name: &quot;Alice&quot;,
+  age: 25,
+  id: 1,
+};
+
+// person.id = 2; // 错误：无法分配到“id”，因为它是只读属性
+</code></pre>
+<h3>3.2 类型别名（Type Aliases）</h3>
+<p>类型别名与接口类似，但更灵活，支持联合类型等。</p>
+<pre><code class="language-typescript">type Point = {
+  x: number;
+  y: number;
+};
+
+let point: Point = { x: 10, y: 20 };
+</code></pre>
+<h3>3.3 联合类型（Union Types）</h3>
+<p>允许变量具有多种类型。</p>
+<pre><code class="language-typescript">let id: string | number = &quot;123&quot;;
+id = 123; // 合法
+// id = true; // 错误：不能将类型“boolean”分配给类型“string | number”
+</code></pre>
+<h3>3.4 交叉类型（Intersection Types）</h3>
+<p>组合多个类型。</p>
+<pre><code class="language-typescript">type Named = { name: string };
+type Aged = { age: number };
+type Person = Named &amp; Aged;
+
+let person: Person = { name: &quot;Alice&quot;, age: 25 };
+</code></pre>
+<h2>4. 函数</h2>
+<h3>4.1 函数类型</h3>
+<p>可以为函数参数和返回值指定类型。</p>
+<pre><code class="language-typescript">function add(a: number, b: number): number {
+  return a + b;
+}
+
+// 函数表达式
+let multiply: (x: number, y: number) =&gt; number = (x, y) =&gt; x * y;
+</code></pre>
+<h3>4.2 可选参数与默认值</h3>
+<p>参数可以是可选的或有默认值。</p>
+<pre><code class="language-typescript">function greet(name: string, greeting: string = &quot;Hello&quot;): string {
+  return `${greeting}, ${name}!`;
+}
+
+console.log(greet(&quot;Alice&quot;)); // &quot;Hello, Alice!&quot;
+console.log(greet(&quot;Bob&quot;, &quot;Hi&quot;)); // &quot;Hi, Bob!&quot;
+</code></pre>
+<h3>4.3 函数重载</h3>
+<p>支持定义多个函数签名。</p>
+<pre><code class="language-typescript">function parse(input: string): string;
+function parse(input: number): number;
+function parse(input: string | number): string | number {
+  return input;
+}
+
+let str = parse(&quot;test&quot;); // string
+let num = parse(123); // number
+</code></pre>
+<h2>5. 高级类型</h2>
+<h3>5.1 泛型（Generics）</h3>
+<p>泛型允许创建可重用的类型。</p>
+<pre><code class="language-typescript">function identity&lt;T&gt;(value: T): T {
+  return value;
+}
+
+let str = identity&lt;string&gt;(&quot;Hello&quot;); // string
+let num = identity&lt;number&gt;(42); // number
+</code></pre>
+<h3>5.2 条件类型（Conditional Types）</h3>
+<p>根据条件选择类型。</p>
+<pre><code class="language-typescript">type IsString&lt;T&gt; = T extends string ? &quot;string&quot; : &quot;not string&quot;;
+
+type A = IsString&lt;string&gt;; // &quot;string&quot;
+type B = IsString&lt;number&gt;; // &quot;not string&quot;
+</code></pre>
+<h3>5.3 工具类型（Utility Types）</h3>
+<p>TypeScript 提供内置工具类型，如 <code>Partial</code>、<code>Required</code> 等。</p>
+<pre><code class="language-typescript">interface User {
+  name: string;
+  age: number;
+}
+
+let partialUser: Partial&lt;User&gt; = { name: &quot;Alice&quot; }; // 部分属性
+let requiredUser: Required&lt;User&gt; = { name: &quot;Bob&quot;, age: 30 }; // 所有属性必填
+</code></pre>
+<h3>5.4 satisfies 运算符（TypeScript 4.9+）</h3>
+<p>确保类型匹配但保留具体类型。</p>
+<pre><code class="language-typescript">type Palette = {
+  [key: string]: string | number[];
+};
+
+const palette = {
+  red: &quot;#FF0000&quot;,
+  blue: [0, 0, 255],
+} satisfies Palette;
+
+// palette.red 是 string 类型，而不是 string | number[]
+</code></pre>
+<h2>6. 模块与命名空间</h2>
+<h3>6.1 模块（Modules）</h3>
+<p>支持 ES 模块和 CommonJS。</p>
+<pre><code class="language-typescript">// math.ts
+export function add(a: number, b: number): number {
+  return a + b;
+}
+
+// main.ts
+import { add } from &quot;./math&quot;;
+console.log(add(2, 3)); // 5
+</code></pre>
+<h3>6.2 命名空间（Namespaces）</h3>
+<p>用于组织代码，避免命名冲突。</p>
+<pre><code class="language-typescript">namespace Geometry {
+  export interface Point {
+    x: number;
+    y: number;
+  }
+
+  export function distance(p1: Point, p2: Point): number {
+    return Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
+  }
+}
+
+let p1: Geometry.Point = { x: 0, y: 0 };
+let p2: Geometry.Point = { x: 3, y: 4 };
+console.log(Geometry.distance(p1, p2)); // 5
+</code></pre>
+<h2>7. 与 JavaScript 互操作</h2>
+<h3>7.1 声明文件（Declaration Files）</h3>
+<p>为现有 JavaScript 库提供类型定义。</p>
+<pre><code class="language-typescript">// my-lib.d.ts
+declare module &quot;my-lib&quot; {
+  export function doSomething(value: string): string;
+}
+
+// main.ts
+import { doSomething } from &quot;my-lib&quot;;
+let result = doSomething(&quot;test&quot;); // 合法
+</code></pre>
+<h3>7.2 类型断言（Type Assertions）</h3>
+<p>强制指定类型。</p>
+<pre><code class="language-typescript">let value: any = &quot;Hello&quot;;
+let strLength: number = (value as string).length; // 合法
+</code></pre>
+<h2>8. 装饰器（Decorators，实验性功能）</h2>
+<p>装饰器用于元编程，需在 <code>tsconfig.json</code> 中启用 <code>experimentalDecorators</code>。</p>
+<pre><code class="language-typescript">function logged(target: any, key: string, descriptor: PropertyDescriptor) {
+  const original = descriptor.value;
+  descriptor.value = function (...args: any[]) {
+    console.log(`Calling ${key} with`, args);
+    return original.apply(this, args);
+  };
+}
+
+class Calculator {
+  @logged
+  add(a: number, b: number): number {
+    return a + b;
+  }
+}
+
+const calc = new Calculator();
+calc.add(2, 3); // 输出：Calling add with [2, 3]
+</code></pre>
+<h2>9. 工具与生态</h2>
+<h3>9.1 Visual Studio Code 支持</h3>
+<p>VS Code 内置 TypeScript 支持，提供智能提示、错误检查等。</p>
+<pre><code class="language-typescript">// 鼠标悬停即可查看类型信息
+let name: string = &quot;Alice&quot;;
+</code></pre>
+<h3>9.2 ESLint 与 TypeScript</h3>
+<p>使用 <code>typescript-eslint</code> 增强代码质量。</p>
+<pre><code class="language-bash">npm install --save-dev @typescript-eslint/parser @typescript-eslint/eslint-plugin
+</code></pre>
+<pre><code class="language-json">// .eslintrc.json
+{
+  &quot;parser&quot;: &quot;@typescript-eslint/parser&quot;,
+  &quot;plugins&quot;: [&quot;@typescript-eslint&quot;],
+  &quot;rules&quot;: {
+    &quot;@typescript-eslint/no-unused-vars&quot;: &quot;error&quot;
+  }
+}
+</code></pre>
+<h3>9.3 TypeDoc 生成文档</h3>
+<p>使用 TypeDoc 生成 TypeScript 项目文档。</p>
+<pre><code class="language-bash">npm install --save-dev typedoc
+typedoc --out docs src
+</code></pre>
+<h2>10. React 与 TypeScript</h2>
+<h3>10.1 函数组件</h3>
+<p>为 React 函数组件定义 props 类型。</p>
+<pre><code class="language-typescript">import React from &quot;react&quot;;
+
+interface Props {
+  name: string;
+  age?: number;
+}
+
+const MyComponent: React.FC&lt;Props&gt; = ({ name, age }) =&gt; {
+  return (
+    &lt;div&gt;
+      Hello, {name}! {age &amp;&amp; `Age: ${age}`}
+    &lt;/div&gt;
+  );
+};
+</code></pre>
+<h3>10.2 Hooks</h3>
+<p>TypeScript 自动推断 Hooks 类型。</p>
+<pre><code class="language-typescript">import React, { useState, useEffect } from &quot;react&quot;;
+
+const Counter: React.FC = () =&gt; {
+  const [count, setCount] = useState&lt;number&gt;(0);
+
+  useEffect(() =&gt; {
+    document.title = `Count: ${count}`;
+  }, [count]);
+
+  return &lt;button onClick={() =&gt; setCount(count + 1)}&gt;Increment&lt;/button&gt;;
+};
+</code></pre>
+<h2>11. Node.js 与 TypeScript</h2>
+<h3>11.1 使用 tsx 运行</h3>
+<p>使用 <code>tsx</code> 运行 TypeScript 文件。</p>
+<pre><code class="language-bash">npm install --save-dev tsx
+npx tsx src/index.ts
+</code></pre>
+<h3>11.2 配置 tsconfig.json</h3>
+<p>推荐 Node.js 项目的配置：</p>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;esnext&quot;,
+    &quot;module&quot;: &quot;nodenext&quot;,
+    &quot;outDir&quot;: &quot;./dist&quot;,
+    &quot;strict&quot;: true
+  }
+}
+</code></pre>
+<h2>12. 最新特性（TypeScript 5.8）</h2>
+<h3>12.1 改进的类型推断</h3>
+<p>TypeScript 5.8 增强了类型推断，尤其是在对象解构时。</p>
+<pre><code class="language-typescript">const { data } = { data: { name: &quot;Alice&quot; } };
+console.log(data.name); // 推断为 string
+</code></pre>
+<h3>12.2 实验性类型转换</h3>
+<p>Node.js 支持 <code>--experimental-transform-types</code> 处理非可擦除语法。</p>
+<pre><code class="language-typescript">enum Status {
+  Active = &quot;ACTIVE&quot;,
+  Inactive = &quot;INACTIVE&quot;,
+}
+
+let status: Status = Status.Active; // 合法
+</code></pre>
+<h2>13. 调试与错误处理</h2>
+<h3>13.1 错误提示</h3>
+<p>TypeScript 在编译时捕获类型错误。</p>
+<pre><code class="language-typescript">let num: number = 42;
+// num = &quot;Hello&quot;; // 错误：不能将类型“string”分配给类型“number”
+</code></pre>
+<h3>13.2 调试</h3>
+<p>在 VS Code 中配置 <code>launch.json</code> 调试 TypeScript。</p>
+<pre><code class="language-json">{
+  &quot;version&quot;: &quot;0.2.0&quot;,
+  &quot;configurations&quot;: [
+    {
+      &quot;type&quot;: &quot;node&quot;,
+      &quot;request&quot;: &quot;launch&quot;,
+      &quot;name&quot;: &quot;Launch Program&quot;,
+      &quot;program&quot;: &quot;${workspaceFolder}/dist/index.js&quot;,
+      &quot;preLaunchTask&quot;: &quot;tsc: build - tsconfig.json&quot;
+    }
+  ]
+}
+</code></pre>
+<h2>14. 最佳实践</h2>
+<ul>
+<li><strong>启用严格模式</strong>：在 <code>tsconfig.json</code> 中设置 <code>&quot;strict&quot;: true</code>。</li>
+<li><strong>使用类型别名或接口</strong>：为复杂类型定义清晰的结构。</li>
+<li><strong>避免 any</strong>：优先使用 <code>unknown</code> 或具体类型。</li>
+<li><strong>模块化</strong>：将代码组织成模块，增强可维护性。</li>
+</ul>
+<h2>15. 资源与进一步学习</h2>
+<ul>
+<li><strong>官方文档</strong>：<a href="https://www.typescriptlang.org/docs/">https://www.typescriptlang.org/docs/</a></li>
+<li><strong>TypeScript Handbook</strong>：<a href="https://www.typescriptlang.org/docs/handbook/">https://www.typescriptlang.org/docs/handbook/</a></li>
+<li><strong>GitHub 仓库</strong>：<a href="https://github.com/microsoft/TypeScript">https://github.com/microsoft/TypeScript</a></li>
+<li><strong>社区资源</strong>：React TypeScript Cheatsheet、TypeDoc</li>
+</ul>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
