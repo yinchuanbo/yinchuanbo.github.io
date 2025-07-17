@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tailwind CSS v4.1 使用文档</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>Tailwind CSS v4.1 使用文档</h1>
+        <p>TailwindCss | 2025.07.18</p>
+      </header>
+      <p>本文档为 Tailwind CSS v4.1（2025 年最新版本）的全面使用指南，涵盖安装、核心概念、配置、与 React 19 和 TypeScript 的集成，以及最佳实践。每个知识点都配有详细的代码示例，适用于初学者和高级开发者。Tailwind CSS 是一个实用优先（utility-first）的 CSS 框架，通过类名直接在 HTML 或 JSX 中应用样式，加速 UI 开发。v4.1 引入了现代 CSS 特性支持（如 <code>@layer</code>、容器查询）和性能优化，特别适合与 React 19 配合使用。</p>
+<h2>1. 安装与配置</h2>
+<h3>1.1 安装 Tailwind CSS</h3>
+<p>Tailwind CSS v4.1 推荐通过 npm 安装，并与现代构建工具（如 Vite、Next.js）配合使用。</p>
+<pre><code class="language-bash">npm install tailwindcss@4.1
+</code></pre>
+<p>初始化配置文件：</p>
+<pre><code class="language-bash">npx tailwindcss init
+</code></pre>
+<p>这将生成 <code>tailwind.config.js</code> 文件，用于自定义主题和配置。</p>
+<h3>1.2 配置 Tailwind CSS</h3>
+<p>创建一个 CSS 文件（如 <code>styles.css</code>）并引入 Tailwind 的层：</p>
+<pre><code class="language-css">@import &quot;tailwindcss&quot;;
+
+@layer theme {
+  :root {
+    --color-primary: oklch(0.72 0.11 221.19);
+    --font-body: &quot;Inter&quot;, sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-[--color-primary] text-white font-semibold py-2 px-4 rounded hover:bg-opacity-80;
+  }
+}
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>@import &quot;tailwindcss&quot;</code> 引入 Tailwind 的默认主题、基础样式和工具类。</li>
+<li><code>@layer theme</code> 定义自定义主题变量。</li>
+<li><code>@layer components</code> 定义自定义组件样式。</li>
+</ul>
+<p><strong>Vite 配置（vite.config.ts）</strong></p>
+<pre><code class="language-typescript">import { defineConfig } from &quot;vite&quot;;
+import react from &quot;@vitejs/plugin-react&quot;;
+
+export default defineConfig({
+  plugins: [react()],
+  css: {
+    postcss: {
+      plugins: [require(&quot;tailwindcss&quot;), require(&quot;autoprefixer&quot;)],
+    },
+  },
+});
+</code></pre>
+<p><strong>TypeScript 配置（tsconfig.json）</strong></p>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;esnext&quot;,
+    &quot;module&quot;: &quot;esnext&quot;,
+    &quot;jsx&quot;: &quot;react-jsx&quot;,
+    &quot;moduleResolution&quot;: &quot;node&quot;,
+    &quot;strict&quot;: true,
+    &quot;esModuleInterop&quot;: true,
+    &quot;skipLibCheck&quot;: true,
+    &quot;baseUrl&quot;: &quot;src&quot;,
+    &quot;paths&quot;: {
+      &quot;@components/*&quot;: [&quot;components/*&quot;]
+    }
+  },
+  &quot;include&quot;: [&quot;src/**/*&quot;],
+  &quot;exclude&quot;: [&quot;node_modules&quot;, &quot;dist&quot;]
+}
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>使用 PostCSS 插件处理 Tailwind CSS。</li>
+<li>启用 <code>strict</code> 模式确保类型安全。</li>
+<li>配置模块别名（如 <code>@components/*</code>）简化导入。</li>
+</ul>
+<h2>2. 核心概念</h2>
+<h3>2.1 实用优先（Utility-First）设计</h3>
+<p>Tailwind CSS 提供低级实用类（如 <code>flex</code>、<code>text-center</code>），直接在 HTML 或 JSX 中应用样式，无需编写传统 CSS。</p>
+<p><strong>示例：基本样式</strong></p>
+<pre><code class="language-jsx">import React from &quot;react&quot;;
+
+const Card: React.FC = () =&gt; {
+  return (
+    &lt;div className=&quot;max-w-sm mx-auto bg-white rounded-xl shadow-md p-6&quot;&gt;
+      &lt;img
+        className=&quot;h-24 rounded-full mx-auto&quot;
+        src=&quot;/avatar.jpg&quot;
+        alt=&quot;Avatar&quot;
+      /&gt;
+      &lt;h2 className=&quot;text-xl font-semibold text-center mt-4&quot;&gt;John Doe&lt;/h2&gt;
+      &lt;p className=&quot;text-gray-600 text-center&quot;&gt;Developer&lt;/p&gt;
+    &lt;/div&gt;
+  );
+};
+
+export default Card;
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>max-w-sm</code>：设置最大宽度。</li>
+<li><code>mx-auto</code>：水平居中。</li>
+<li><code>bg-white</code>、<code>rounded-xl</code>、<code>shadow-md</code>：定义背景、圆角和阴影。</li>
+<li><code>p-6</code>：内边距。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>优先使用 Tailwind 提供的实用类，避免自定义 CSS。</li>
+<li>保持类名语义清晰，遵循命名约定。</li>
+</ul>
+<h3>2.2 响应式设计</h3>
+<p>Tailwind 支持移动优先的响应式设计，通过断点前缀（如 <code>sm:</code>、<code>md:</code>）调整样式。</p>
+<p><strong>示例：响应式布局</strong></p>
+<pre><code class="language-jsx">import React from &quot;react&quot;;
+
+const Grid: React.FC = () =&gt; {
+  return (
+    &lt;div className=&quot;@container&quot;&gt;
+      &lt;div className=&quot;grid grid-cols-1 @sm:grid-cols-2 @lg:grid-cols-3 gap-4&quot;&gt;
+        &lt;div className=&quot;bg-blue-500 p-4 rounded&quot;&gt;Item 1&lt;/div&gt;
+        &lt;div className=&quot;bg-blue-500 p-4 rounded&quot;&gt;Item 2&lt;/div&gt;
+        &lt;div className=&quot;bg-blue-500 p-4 rounded&quot;&gt;Item 3&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+};
+
+export default Grid;
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>@container</code>：启用容器查询，样式基于父容器大小。</li>
+<li><code>@sm:grid-cols-2</code>：在小屏幕及以上使用两列网格。</li>
+<li><code>gap-4</code>：网格间距。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>使用容器查询（<code>@container</code>）替代传统的媒体查询，增强组件可移植性。</li>
+<li>自定义断点时使用统一单位（如 <code>rem</code>），避免样式冲突。</li>
+</ul>
+<h3>2.3 状态变体（State Variants）</h3>
+<p>支持 hover、focus、disabled 等状态的样式。</p>
+<p><strong>示例：交互按钮</strong></p>
+<pre><code class="language-jsx">import React from &quot;react&quot;;
+
+const Button: React.FC = () =&gt; {
+  return (
+    &lt;button className=&quot;bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 focus:ring focus:ring-blue-400 disabled:bg-gray-400&quot;&gt;
+      Click Me
+    &lt;/button&gt;
+  );
+};
+
+export default Button;
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>hover:bg-blue-700</code>：鼠标悬停时背景色变暗。</li>
+<li><code>focus:ring</code>：聚焦时添加环形边框。</li>
+<li><code>disabled:bg-gray-400</code>：禁用时更改背景色。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>结合 <code>group</code> 和 <code>group-hover</code> 实现复杂交互。</li>
+<li>使用 Tailwind 的状态变体，避免自定义伪类。</li>
+</ul>
+<h2>3. 自定义与扩展</h2>
+<h3>3.1 自定义主题</h3>
+<p>通过 <code>tailwind.config.js</code> 或 CSS 文件中的 <code>@theme</code> 自定义颜色、字体等。</p>
+<p><strong>示例：自定义主题（tailwind.config.js）</strong></p>
+<pre><code class="language-javascript">/** @type {import(&#39;tailwindcss&#39;).Config} */
+module.exports = {
+  content: [&quot;./src/**/*.{html,js,jsx,ts,tsx}&quot;],
+  theme: {
+    extend: {
+      colors: {
+        brand: &quot;#abc123&quot;,
+      },
+      fontFamily: {
+        handwriting: [&quot;Some handwriting font&quot;, &quot;sans-serif&quot;],
+      },
+    },
+  },
+  plugins: [],
+};
+</code></pre>
+<p><strong>使用自定义主题</strong></p>
+<pre><code class="language-jsx">&lt;div className=&quot;bg-brand text-handwriting&quot;&gt;Custom Styled Text&lt;/div&gt;
+</code></pre>
+<p><strong>CSS 中定义主题</strong></p>
+<pre><code class="language-css">@layer theme {
+  :root {
+    --color-brand: oklch(0.72 0.11 221.19);
+    --font-handwriting: &quot;Some handwriting font&quot;, sans-serif;
+  }
+}
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>extend</code> 保留默认主题并添加新值。</li>
+<li>CSS <code>@theme</code> 定义变量，生成对应的实用类（如 <code>bg-brand</code>）。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>在 <code>tailwind.config.js</code> 中定义常用主题，保持一致性。</li>
+<li>使用 <code>oklch</code> 颜色格式支持现代浏览器（Safari 16.4+、Chrome 111+）。<a href="https://tailwindcss.com/docs/upgrade-guide"></a></li>
+</ul>
+<h3>3.2 自定义实用类</h3>
+<p>使用 <code>@utility</code> 或 <code>@layer components</code> 定义自定义样式。</p>
+<p><strong>示例：自定义组件</strong></p>
+<pre><code class="language-css">@layer components {
+  .card {
+    @apply bg-white rounded-xl shadow-md p-6;
+  }
+}
+</code></pre>
+<p><strong>使用</strong></p>
+<pre><code class="language-jsx">&lt;div className=&quot;card&quot;&gt;
+  &lt;h2 className=&quot;text-xl font-semibold&quot;&gt;Card Title&lt;/h2&gt;
+  &lt;p&gt;Card content&lt;/p&gt;
+&lt;/div&gt;
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>@apply</code> 组合现有实用类，减少重复。</li>
+<li><code>@layer components</code> 确保样式在正确层级。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>仅对高复用组件使用 <code>@apply</code>，避免过度抽象。</li>
+<li>在 React 中优先使用组件封装而非 <code>@apply</code>。<a href="https://tailwindcss.com/docs/reusing-styles"></a></li>
+</ul>
+<h3>3.3 自定义变体</h3>
+<p>使用 <code>@custom-variant</code> 添加自定义变体（如暗模式）。</p>
+<p><strong>示例：暗模式变体</strong></p>
+<pre><code class="language-css">@layer utilities {
+  @custom-variant theme-dark {
+    @media (prefers-color-scheme: dark) {
+      @apply bg-black text-white;
+    }
+  }
+}
+</code></pre>
+<p><strong>使用</strong></p>
+<pre><code class="language-jsx">&lt;div className=&quot;theme-dark:bg-black theme-dark:text-white&quot;&gt;
+  Dark Mode Content
+&lt;/div&gt;
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>为特定场景（如暗模式）定义变体，保持代码简洁。</li>
+</ul>
+<h2>4. 与 React 19 和 TypeScript 集成</h2>
+<h3>4.1 配置 React 19 项目</h3>
+<p>React 19 的新特性（如 Server Components、Server Actions）与 Tailwind CSS v4.1 无缝集成。</p>
+<p><strong>示例：Server Component</strong></p>
+<pre><code class="language-tsx">// server/Hero.tsx
+import { db } from &quot;../db&quot;;
+
+async function Hero() {
+  const heroData = await db.hero.findFirst();
+  return (
+    &lt;section className=&quot;bg-[--color-primary] text-white py-16 text-center&quot;&gt;
+      &lt;h1 className=&quot;text-4xl font-bold&quot;&gt;{heroData.title}&lt;/h1&gt;
+      &lt;p className=&quot;mt-4 text-lg&quot;&gt;{heroData.description}&lt;/p&gt;
+    &lt;/section&gt;
+  );
+}
+
+export default Hero;
+</code></pre>
+<p><strong>Client Component</strong></p>
+<pre><code class="language-tsx">// client/Form.tsx
+&quot;use client&quot;;
+
+import React, { useActionState } from &quot;react&quot;;
+import { createItem } from &quot;../server/actions&quot;;
+
+const Form: React.FC = () =&gt; {
+  const [state, dispatch, isPending] = useActionState(createItem, null);
+
+  return (
+    &lt;form action={dispatch} className=&quot;max-w-md mx-auto space-y-4&quot;&gt;
+      &lt;input
+        type=&quot;text&quot;
+        name=&quot;title&quot;
+        className=&quot;w-full p-2 border rounded&quot;
+        disabled={isPending}
+      /&gt;
+      &lt;button
+        type=&quot;submit&quot;
+        className=&quot;bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:bg-gray-400&quot;
+        disabled={isPending}
+      &gt;
+        {isPending ? &quot;Submitting...&quot; : &quot;Submit&quot;}
+      &lt;/button&gt;
+      {state?.message &amp;&amp; &lt;p className=&quot;text-red-500&quot;&gt;{state.message}&lt;/p&gt;}
+    &lt;/form&gt;
+  );
+};
+
+export default Form;
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li>Server Component 使用 Tailwind 样式直接渲染静态内容。</li>
+<li>Client Component 结合 <code>useActionState</code> 处理交互逻辑。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>在 Server Components 中使用 Tailwind 样式，减少客户端 JavaScript。</li>
+<li>使用 TypeScript 定义 <code>formData</code> 类型，增强表单安全性。</li>
+</ul>
+<h3>4.2 TypeScript 支持</h3>
+<p>Tailwind CSS v4.1 通过 IntelliSense 插件（<code>tailwindcss-intellisense</code>）提供类名自动补全。</p>
+<p><strong>安装 IntelliSense</strong></p>
+<pre><code class="language-bash">npm install --save-dev @tailwindcss/vscode
+</code></pre>
+<p><strong>配置 VS Code</strong></p>
+<pre><code class="language-json">{
+  &quot;tailwindCSS.experimental.classRegex&quot;: [&quot;className=\&quot;([^\&quot;]*)\&quot;&quot;]
+}
+</code></pre>
+<p><strong>示例：类型安全的组件</strong></p>
+<pre><code class="language-tsx">interface CardProps {
+  title: string;
+  description: string;
+}
+
+const Card: React.FC&lt;CardProps&gt; = ({ title, description }) =&gt; {
+  return (
+    &lt;div className=&quot;card&quot;&gt;
+      &lt;h2 className=&quot;text-xl font-semibold&quot;&gt;{title}&lt;/h2&gt;
+      &lt;p className=&quot;text-gray-600&quot;&gt;{description}&lt;/p&gt;
+    &lt;/div&gt;
+  );
+};
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>启用 IntelliSense 提高开发效率。</li>
+<li>定义 Props 接口，确保类型安全。</li>
+</ul>
+<h2>5. 性能优化</h2>
+<h3>5.1 Just-in-Time (JIT) 编译</h3>
+<p>Tailwind v4.1 默认启用 JIT 模式，仅生成使用的样式，减少 CSS 文件大小。</p>
+<p><strong>配置 JIT</strong></p>
+<pre><code class="language-javascript">module.exports = {
+  content: [&quot;./src/**/*.{html,js,jsx,ts,tsx}&quot;],
+  mode: &quot;jit&quot;,
+};
+</code></pre>
+<p><strong>说明</strong>：</p>
+<ul>
+<li><code>content</code> 指定扫描的文件，确保只生成用到的类。</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>确保 <code>content</code> 路径覆盖所有模板文件。</li>
+<li>生产环境中运行 <code>npx tailwindcss --minify</code> 压缩 CSS。</li>
+</ul>
+<h3>5.2 移除未使用样式</h3>
+<p>Tailwind 自动移除未使用的 CSS，生成小于 10kB 的生产包。</p>
+<p><strong>示例：生产构建</strong></p>
+<pre><code class="language-bash">npx tailwindcss -i ./src/styles.css -o ./dist/output.css --minify
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>定期检查 <code>content</code> 配置，确保所有文件被扫描。</li>
+<li>使用 Tailwind Plus 或 Flowbite 提供的优化组件。<a href="https://tailwindcss.com/plus"></a><a href="https://flowbite.com/docs/getting-started/introduction/"></a></li>
+</ul>
+<h2>6. 可访问性（Accessibility）</h2>
+<h3>6.1 ARIA 属性</h3>
+<p>Tailwind 提供实用类支持 ARIA 属性，但需手动确保可访问性。</p>
+<p><strong>示例：可访问按钮</strong></p>
+<pre><code class="language-jsx">&lt;button
+  className=&quot;bg-blue-600 text-white py-2 px-4 rounded&quot;
+  aria-label=&quot;Submit form&quot;
+  disabled={isPending}
+&gt;
+  Submit
+&lt;/button&gt;
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>遵循 WAI-ARIA 实践（如 W3C 指南）。</li>
+<li>使用 Headless UI 处理复杂交互（如下拉菜单）。<a href="https://tailwindcss.com/plus/ui-blocks/documentation"></a></li>
+</ul>
+<h3>6.2 对比度与字体</h3>
+<p>使用 Tailwind 的颜色和字体类确保可访问性。</p>
+<p><strong>示例</strong></p>
+<pre><code class="language-jsx">&lt;div className=&quot;bg-gray-900 text-white text-lg&quot;&gt;High contrast content&lt;/div&gt;
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>使用 <code>oklch</code> 颜色确保高对比度。</li>
+<li>选择可读性高的字体（如 Inter）。<a href="https://tailwindcss.com/plus/ui-blocks/documentation"></a></li>
+</ul>
+<h2>7. 高级特性</h2>
+<h3>7.1 容器查询</h3>
+<p>Tailwind v4.1 支持容器查询，基于父容器大小调整样式。</p>
+<p><strong>示例</strong></p>
+<pre><code class="language-jsx">&lt;div className=&quot;@container&quot;&gt;
+  &lt;div className=&quot;text-base @sm:text-lg @lg:text-xl&quot;&gt;
+    Responsive text based on container size
+  &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>使用 <code>@container</code> 替代媒体查询，增强组件复用性。</li>
+<li>自定义容器大小通过 <code>--container-*</code> 变量。</li>
+</ul>
+<h3>7.2 动态样式</h3>
+<p>使用方括号语法（如 <code>[color:theme(--color-primary)]</code>）支持动态值。</p>
+<p><strong>示例</strong></p>
+<pre><code class="language-jsx">&lt;div className=&quot;[color:theme(--color-primary)]&quot;&gt;Dynamic Color&lt;/div&gt;
+</code></pre>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>仅在必要时使用方括号语法，避免过度复杂化。</li>
+</ul>
+<h2>8. 最佳实践</h2>
+<ol>
+<li><strong>实用优先，谨慎使用 @apply</strong>：<ul>
+<li>优先使用实用类，减少自定义 CSS。</li>
+<li>仅对高复用组件使用 <code>@apply</code>，如按钮或卡片。<a href="https://tailwindcss.com/docs/reusing-styles"></a></li>
+</ul>
+</li>
+<li><strong>组件化开发</strong>：<ul>
+<li>在 React 中通过组件封装重复样式，避免 HTML 冗长。</li>
+<li>使用 Tailwind Plus 或 Flowbite 的预制组件加速开发。<a href="https://tailwindcss.com/plus"></a><a href="https://flowbite.com/docs/getting-started/introduction/"></a></li>
+</ul>
+</li>
+<li><strong>响应式与容器查询</strong>：<ul>
+<li>优先使用容器查询（<code>@container</code>）而非媒体查询。</li>
+<li>定义自定义断点时保持一致单位（如 <code>rem</code>）。<a href="https://tailwindcss.com/docs/responsive-design"></a></li>
+</ul>
+</li>
+<li><strong>性能优化</strong>：<ul>
+<li>启用 JIT 模式和 CSS 压缩。</li>
+<li>使用 <code>content</code> 配置精确扫描文件，减少生成 CSS 大小。</li>
+</ul>
+</li>
+<li><strong>可访问性</strong>：<ul>
+<li>确保按钮、表单等元素有适当的 ARIA 属性。</li>
+<li>使用 Headless UI 处理复杂交互的可访问性。<a href="https://tailwindcss.com/plus/ui-blocks/documentation"></a></li>
+</ul>
+</li>
+<li><strong>项目结构</strong>：<ul>
+<li>按功能组织类名，如 <code>flex items-center justify-between</code>。</li>
+<li>使用模块别名（如 <code>@components/*</code>）简化导入。<a href="https://www.wisp.blog/blog/best-practices-for-using-tailwind-css-in-large-projects"></a></li>
+</ul>
+</li>
+<li><strong>学习与实践</strong>：<ul>
+<li>参考官方文档（<a href="https://tailwindcss.com%EF%BC%89%E5%AD%A6%E4%B9%A0%E6%96%B0%E7%89%B9%E6%80%A7%E3%80%82">https://tailwindcss.com）学习新特性。</a></li>
+<li>使用 Tailwind Play（<a href="https://play.tailwindcss.com%EF%BC%89%E5%BF%AB%E9%80%9F%E5%8E%9F%E5%9E%8B%E8%AE%BE%E8%AE%A1%E3%80%82%5B%5D(https://benjamincrozat.com/tailwind-css)">https://play.tailwindcss.com）快速原型设计。[](https://benjamincrozat.com/tailwind-css)</a></li>
+</ul>
+</li>
+</ol>
+<h2>9. 资源与进一步学习</h2>
+<ul>
+<li><strong>官方文档</strong>：<a href="https://tailwindcss.com">https://tailwindcss.com</a></li>
+<li><strong>Tailwind Play</strong>：<a href="https://play.tailwindcss.com">https://play.tailwindcss.com</a></li>
+<li><strong>Tailwind Plus</strong>：<a href="https://tailwindcss.com/plus">https://tailwindcss.com/plus</a> （提供 500+ 组件和模板）</li>
+<li><strong>Flowbite</strong>：<a href="https://flowbite.com">https://flowbite.com</a> （Tailwind 组件库）</li>
+<li><strong>WAI-ARIA 指南</strong>：<a href="https://www.w3.org/WAI/standards-guidelines/aria/">https://www.w3.org/WAI/standards-guidelines/aria/</a></li>
+<li><strong>React 19 文档</strong>：<a href="https://react.dev">https://react.dev</a></li>
+</ul>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
