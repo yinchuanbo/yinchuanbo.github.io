@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>一文搞定前端中的 nginx 知识</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>一文搞定前端中的 nginx 知识</h1>
+        <p>Nginx | 2025.07.17</p>
+      </header>
+      <h2>基础常用技巧</h2>
+<p>以下是前端开发中 Nginx 的核心应用场景及配置实践，结合性能优化与安全策略，帮助开发者高效部署和管理前端项目：</p>
+<hr>
+<h3>一. 静态资源服务（核心场景）</h3>
+<p>Nginx 以高效处理静态文件（HTML/CSS/JS/图片）著称，适合 Vue/React 等框架的构建产物部署。</p>
+<p><strong>配置示例</strong>：</p>
+<pre><code class="language-nginx">server {
+    listen 80;
+    server_name example.com;
+    root /var/www/dist;  # 指向构建输出目录
+    index index.html;
+
+
+    location / {
+        try_files $uri $uri/ /index.html;  # 支持 SPA 路由[5](@ref)
+    }
+}
+</code></pre>
+<ul>
+<li><p><strong>关键指令</strong>：</p>
+</li>
+<li><p><code>root</code>：定义静态资源根目录。</p>
+</li>
+<li><p><code>try_files</code>：确保前端路由刷新不报 404（History 模式必备）。</p>
+</li>
+<li><p><strong>性能优化</strong>：</p>
+</li>
+<li><p>启用 Gzip 压缩减少传输体积。</p>
+</li>
+<li><p>使用 <code>sendfile on</code> 提升文件传输效率。</p>
+</li>
+</ul>
+<hr>
+<h3>二. 反向代理（解决跨域与接口转发）</h3>
+<p>Nginx 作为中间层转发 API 请求，避免浏览器跨域限制，同时隐藏后端架构。</p>
+<p><strong>配置示例</strong>：</p>
+<pre><code class="language-nginx">location /api/ {
+    proxy_pass http://backend-server:3000;   # 转发到后端服务
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;  # 传递客户端真实 IP[11](@ref)[12](@ref)
+}
+</code></pre>
+<ul>
+<li><p><strong>场景</strong>：</p>
+</li>
+<li><p>前端独立部署时对接后端 API。</p>
+</li>
+<li><p>代理第三方服务（如 OpenAI API）。</p>
+</li>
+<li><p><strong>安全增强</strong>：</p>
+</li>
+<li><p>配置 SSL 终止：由 Nginx 统一处理 HTTPS 加解密。</p>
+</li>
+<li><p>设置超时控制：<code>proxy_connect_timeout 60s</code> 防止后端阻塞。</p>
+</li>
+</ul>
+<hr>
+<h3>三. 负载均衡（高并发场景）</h3>
+<p>通过分发请求到多个后端实例，提升系统吞吐量与容灾能力。</p>
+<p><strong>配置示例</strong>：</p>
+<pre><code class="language-nginx">upstream backend_servers {
+    server 192.168.1.101:8000 weight=3;  # 权重分配
+    server 192.168.1.102:8000;
+    server 192.168.1.103:8000 backup;     # 备用节点
+}
+
+
+location / {
+    proxy_pass http://backend_servers;
+}
+</code></pre>
+<ul>
+<li><p><strong>策略选择</strong>：</p>
+</li>
+<li><p><strong>轮询（默认）</strong> ：均分请求。</p>
+</li>
+<li><p><strong>IP Hash</strong>：同一用户固定访问某服务器（适合会话保持）。</p>
+</li>
+<li><p><strong>前端价值</strong>：</p>
+</li>
+<li><p>无缝应对流量高峰，提升 SPA 应用稳定性。</p>
+</li>
+</ul>
+<hr>
+<h3>四. 性能优化（缓存与压缩）</h3>
+<h4>1. 静态资源缓存</h4>
+<p>利用浏览器缓存减少重复请求：</p>
+<pre><code class="language-nginx">location ~* .(js|css|png)$ {
+    expires 365d;                     # 长期缓存
+    add_header Cache-Control &quot;public, immutable&quot;;  # 不可变资源标识[9](@ref)
+}
+</code></pre>
+<ul>
+<li><strong>文件指纹优化</strong>：对带哈希的文件名（如 <code>app.abc123.js</code>）设置 <code>immutable</code>，跳过验证。</li>
+</ul>
+<h4>2. 代理层缓存</h4>
+<p>缓存后端响应，减轻动态内容压力：</p>
+<pre><code class="language-nginx">proxy_cache_path /data/nginx/cache levels=1:2 keys_zone=my_cache:10m;
+location /dynamic-data {
+    proxy_cache my_cache;
+    proxy_cache_valid 200 302 10m;    # 缓存有效时间[7](@ref)[9](@ref)
+}
+</code></pre>
+<hr>
+<h3>五. 安全防护</h3>
+<h4>1. HTTPS 强制升级</h4>
+<pre><code class="language-nginx">server {
+    listen 80;
+    server_name example.com;
+    return 301 https://$host$request_uri;  # HTTP 重定向到 HTTPS
+}
+</code></pre>
+<h4>2. 安全头部注入</h4>
+<pre><code class="language-nginx">add_header X-Frame-Options &quot;SAMEORIGIN&quot;;  # 防点击劫持
+add_header Content-Security-Policy &quot;default-src &#39;self&#39;&quot;;  # 资源白名单[12](@ref)
+</code></pre>
+<hr>
+<h3>六. 进阶应用场景</h3>
+<ol>
+<li><strong>灰度发布</strong>：</li>
+</ol>
+<ul>
+<li>通过 <code>map</code> 模块分流部分用户到新版本。</li>
+</ul>
+<ol start="2">
+<li><strong>动静分离</strong>：</li>
+</ol>
+<ul>
+<li>静态资源由 Nginx 直供，动态请求转发后端。</li>
+</ul>
+<ol start="3">
+<li><strong>日志分析</strong>：</li>
+</ol>
+<ul>
+<li>定制 <code>access_log</code> 格式收集用户行为（如页面加载耗时）。</li>
+</ul>
+<hr>
+<h3>总结：Nginx 在前端的核心价值</h3>
+<table>
+<thead>
+<tr>
+<th><strong>场景</strong></th>
+<th><strong>配置重点</strong></th>
+<th><strong>收益</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>静态资源托管</strong></td>
+<td><code>root</code> + <code>try_files</code></td>
+<td>支持 SPA 路由，快速响应</td>
+</tr>
+<tr>
+<td><strong>反向代理</strong></td>
+<td><code>proxy_pass</code> + 头部转发</td>
+<td>解决跨域，隐藏后端拓扑</td>
+</tr>
+<tr>
+<td><strong>负载均衡</strong></td>
+<td><code>upstream</code> + 策略选择</td>
+<td>提升并发能力与可用性</td>
+</tr>
+<tr>
+<td><strong>缓存优化</strong></td>
+<td><code>expires</code> + <code>proxy_cache</code></td>
+<td>减少带宽消耗，加速访问</td>
+</tr>
+<tr>
+<td><strong>安全加固</strong></td>
+<td>HTTPS 重定向 + CSP 头部</td>
+<td>防御 XSS/劫持等攻击</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>提示：生产环境配置后务必执行 <code>nginx -t</code> 校验语法，并通过 <code>nginx -s reload</code> 热加载配置。</p>
+</blockquote>
+<h2>高级前端面试题</h2>
+<p>以下是针对<strong>高级前端工程师</strong>的 Nginx 面试题设计，聚焦前端协作场景（静态资源、缓存、跨域、性能优化），结合回答要点与解析：</p>
+<hr>
+<h3>一. 基础概念与前端协作</h3>
+<h4>1. Nginx 的核心特性及其在前端部署中的价值</h4>
+<p><strong>回答要点</strong>：</p>
+<ul>
+<li><p><strong>核心特性</strong>：</p>
+</li>
+<li><p>高并发处理（异步非阻塞模型，支持数万并发连接）</p>
+</li>
+<li><p>低内存消耗（10 个进程仅占 150M 内存）</p>
+</li>
+<li><p>反向代理与负载均衡（隐藏后端服务器，提升安全性）</p>
+</li>
+<li><p><strong>前端价值</strong>：</p>
+</li>
+<li><p>静态资源托管（直接返回 HTML/CSS/JS，减少后端压力）</p>
+</li>
+<li><p>内置 Gzip 压缩（节省带宽，加速资源加载）</p>
+</li>
+<li><p>健康检查（自动剔除故障后端节点） <strong>解析</strong>：前端需关注 Nginx 的静态资源处理能力和性能优化特性，以提升页面加载速度。</p>
+</li>
+</ul>
+<hr>
+<h3>二. 动静分离与缓存策略</h3>
+<h4>2. 如何配置 Nginx 实现动静分离？前端需如何配合？</h4>
+<p><strong>回答要点</strong>：</p>
+<ul>
+<li><strong>Nginx 配置</strong>：</li>
+</ul>
+<pre><code class="language-nginx">location ~* .(js|css|png)$ {
+    root /static;  # 静态资源目录
+    expires 365d;  # 长期缓存
+}
+location /api {
+    proxy_pass http://backend;   # 动态请求转发
+}
+</code></pre>
+<ul>
+<li><p><strong>前端配合</strong>：</p>
+</li>
+<li><p>静态资源添加哈希指纹（如<code>app.3a2b.js</code>），确保缓存更新</p>
+</li>
+<li><p>CDN 加速静态资源分发（Nginx 配置 CDN 回源地址） <strong>解析</strong>：动静分离减少后端负载，前端需通过版本控制避免缓存污染。</p>
+</li>
+</ul>
+<hr>
+<h3>三. 跨域与安全</h3>
+<h4>3. 如何用 Nginx 解决前端跨域问题？</h4>
+<p><strong>回答要点</strong>：</p>
+<ul>
+<li><strong>配置示例</strong>：</li>
+</ul>
+<pre><code class="language-nginx">location /api {
+    add_header &#39;Access-Control-Allow-Origin&#39; &#39;$http_origin&#39;;
+    add_header &#39;Access-Control-Allow-Methods&#39; &#39;GET,POST&#39;;
+    add_header &#39;Access-Control-Allow-Headers&#39; &#39;Content-Type&#39;;
+    proxy_pass http://backend;
+}
+</code></pre>
+<ul>
+<li><p><strong>安全优化</strong>：</p>
+</li>
+<li><p>限制<code>Access-Control-Allow-Origin</code>为可信域名（避免<code>*</code>）</p>
+</li>
+<li><p>预检请求（OPTIONS）缓存减少重复验证 <strong>解析</strong>：Nginx 作为反向代理统一处理跨域，替代前端 JSONP 等方案。</p>
+</li>
+</ul>
+<hr>
+<h3>四. 缓存控制与性能优化</h3>
+<h4>4. 如何为静态资源配置长期缓存？如何避免更新后缓存失效问题？</h4>
+<p><strong>回答要点</strong>：</p>
+<ul>
+<li><strong>长期缓存配置</strong>：</li>
+</ul>
+<pre><code class="language-nginx">location ~* .(js|css)$ {
+    expires 1y;
+    add_header Cache-Control &quot;public, immutable&quot;;  # 不可变缓存
+}
+</code></pre>
+<ul>
+<li><p><strong>更新策略</strong>：</p>
+</li>
+<li><p>文件名添加哈希（Webpack 输出<code>[chunkhash]</code>）</p>
+</li>
+<li><p>使用<code>query</code>参数版本号（如<code>lib.js?v=1.2.3</code>） <strong>解析</strong>：<code>immutable</code>属性避免浏览器重复验证缓存，显著提升性能。</p>
+</li>
+</ul>
+<hr>
+<h3>五. 负载均衡与高可用</h3>
+<h4>5. 如何为前端 API 网关配置负载均衡？</h4>
+<p><strong>回答要点</strong>：</p>
+<ul>
+<li><strong>轮询策略</strong>：</li>
+</ul>
+<pre><code class="language-nginx">upstream backend {
+    server 10.0.0.1:3000;
+    server 10.0.0.2:3000;
+}
+location /api {
+    proxy_pass http://backend;
+}
+</code></pre>
+<ul>
+<li><p><strong>会话保持</strong>：</p>
+</li>
+<li><p><code>ip_hash</code>（同一 IP 固定后端）</p>
+</li>
+<li><p><code>sticky cookie</code>（基于 Cookie 路由） <strong>解析</strong>：前端需确保无状态设计，避免用户会话依赖固定后端。</p>
+</li>
+</ul>
+<hr>
+<h3>六. 常见问题排查</h3>
+<h4>6. Nginx 返回 502 错误，前端如何协助定位问题？</h4>
+<p><strong>回答要点</strong>：</p>
+<ul>
+<li><p><strong>可能原因</strong>：</p>
+</li>
+<li><p>后端服务崩溃（检查服务端口监听）</p>
+</li>
+<li><p>代理超时（调整<code>proxy_read_timeout</code>）</p>
+</li>
+<li><p>Buffer 不足（增大<code>proxy_buffer_size</code>）</p>
+</li>
+<li><p><strong>前端协作</strong>：</p>
+</li>
+<li><p>捕获错误日志（Network 面板记录响应头）</p>
+</li>
+<li><p>区分静态/动态请求（确认问题范围） <strong>解析</strong>：502 通常源于后端不可用，前端需提供请求路径和参数辅助排查。</p>
+</li>
+</ul>
+<hr>
+<h3>七. 进阶配置与原理</h3>
+<h4>7. Nginx 如何实现高并发？与前端性能优化的关联？</h4>
+<p><strong>回答要点</strong>：</p>
+<ul>
+<li><p><strong>高并发原理</strong>：</p>
+</li>
+<li><p>事件驱动模型（epoll 异步非阻塞）</p>
+</li>
+<li><p>多进程架构（Worker 进程数=CPU 核心数）</p>
+</li>
+<li><p><strong>前端关联</strong>：</p>
+</li>
+<li><p>减少 HTTP 请求（合并 CSS/JS）</p>
+</li>
+<li><p>利用 Nginx 缓存（避免重复请求） <strong>解析</strong>：Nginx 的异步机制与前端资源合并策略共同降低服务端压力。</p>
+</li>
+</ul>
+<hr>
+<h3>八. 综合设计题</h3>
+<h4>8. 设计一套静态资源加速方案（CDN+Nginx）</h4>
+<p><strong>回答要点</strong>：</p>
+<ul>
+<li><strong>架构分层</strong>：</li>
+</ul>
+<ol>
+<li><p>CDN 边缘节点缓存静态资源（配置 Nginx 为源站）</p>
+</li>
+<li><p>Nginx 开启 Brotli 压缩（比 Gzip 提升 20%压缩率）</p>
+</li>
+<li><p>浏览器缓存（<code>Cache-Control: max-age=31536000, immuta``ble</code>）</p>
+</li>
+</ol>
+<ul>
+<li><p><strong>前端配合</strong>：</p>
+</li>
+<li><p>资源上传 CDN（构建脚本自动推送）</p>
+</li>
+<li><p>按需加载（路由懒加载减少首屏资源） <strong>解析</strong>：CDN+Nginx 多级缓存大幅提升全球访问速度，前端需适配 CDN 路径。</p>
+</li>
+</ul>
+<hr>
+<h3>九. 安全防护</h3>
+<h4>9. 如何用 Nginx 防御前端常见的 XSS 攻击？</h4>
+<p><strong>回答要点</strong>：</p>
+<ul>
+<li><strong>响应头配置</strong>：</li>
+</ul>
+<pre><code class="language-nginx">add_header X-XSS-Protection &quot;1; mode=block&quot;;
+add_header Content-Security-Policy &quot;default-src &#39;self&#39;&quot;;
+</code></pre>
+<ul>
+<li><p><strong>请求过滤</strong>：</p>
+</li>
+<li><p>拦截恶意参数（<code>if ($args ~* &quot;alert(&quot;) { return 403; }</code>） <strong>解析</strong>：安全头由 Nginx 统一设置，降低前端安全编码成本。</p>
+</li>
+</ul>
+<hr>
+<h3>十. 日志与监控</h3>
+<h4>10. 如何通过 Nginx 日志分析前端性能问题？</h4>
+<p><strong>回答要点</strong>：</p>
+<ul>
+<li><strong>日志定制</strong>：</li>
+</ul>
+<pre><code class="language-nginx">log_format perf_log &#39;$request_time $upstream_response_time $status&#39;;
+access_log /var/log/nginx/perf.log perf_log;
+</code></pre>
+<ul>
+<li><p><strong>关键指标</strong>：</p>
+</li>
+<li><p><code>$request_time</code>（客户端总耗时）</p>
+</li>
+<li><p><code>$upstream_response_time</code>（后端处理耗时） <strong>解析</strong>：对比前后端耗时，定位慢请求是资源加载（前端）还是 API 响应（后端）问题。</p>
+</li>
+</ul>
+<hr>
+<h3>考察重点总结</h3>
+<table>
+<thead>
+<tr>
+<th><strong>能力维度</strong></th>
+<th><strong>题目</strong></th>
+<th><strong>高阶回答要点</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>基础配置</strong></td>
+<td>Q1、Q2、Q3</td>
+<td>动静分离实操、跨域安全策略</td>
+</tr>
+<tr>
+<td><strong>性能优化</strong></td>
+<td>Q4、Q7、Q8</td>
+<td>多级缓存设计、CDN 与 Nginx 协同</td>
+</tr>
+<tr>
+<td><strong>故障排查</strong></td>
+<td>Q6、Q10</td>
+<td>502 定位、日志性能分析</td>
+</tr>
+<tr>
+<td><strong>安全与架构</strong></td>
+<td>Q5、Q9</td>
+<td>负载均衡会话保持、XSS 防护策略、灰度发布</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>提示：高级前端需掌握<strong>浏览器缓存机制</strong>与<strong>Nginx 缓存策略</strong>的优先级（如<code>Cache-Control</code>强于<code>expires</code>），并在部署流程中集成构建哈希与 CDN 上传。</p>
+</blockquote>
+<h2>专题补充：灰度发布</h2>
+<p>以下是基于 Nginx 实现灰度发布的完整方案，结合多种策略和实际场景，提供可落地的配置建议：</p>
+<hr>
+<h3>一. 灰度发布的核心原理</h3>
+<p>灰度发布（金丝雀发布）通过逐步将新版本服务暴露给部分用户，实现风险可控的迭代。Nginx 作为反向代理，通过路由规则控制流量分发，支持权重分流、特征标识匹配、动态规则等策略。</p>
+<hr>
+<h3>二. Nginx 灰度发布的五大方案</h3>
+<h4>1. 基于权重分流</h4>
+<p><strong>原理</strong>：按比例分配流量到新旧版本。</p>
+<p><strong>适用场景</strong>：新版本初步验证、逐步扩大测试范围。</p>
+<p><strong>配置示例</strong>：</p>
+<pre><code class="language-nginx">upstream backend {
+    server v1.example.com weight=90;  # 旧版本（90%流量）
+    server v2.example.com weight=10;  # 新版本（10%流量）
+}
+server {
+    listen 80;
+    location / {
+        proxy_pass http://backend;
+    }
+}
+</code></pre>
+<p><strong>案例</strong>：电商支付系统升级时，先分配 10% 流量到新版本，监控 48 小时无异常后逐步调至 100%。</p>
+<h3>2. 基于 Cookie 标识</h3>
+<p><strong>原理</strong>：根据 Cookie 值（如 <code>version=V2</code>）路由到新版本。</p>
+<p><strong>适用场景</strong>：定向测试内部用户或白名单用户。</p>
+<p><strong>配置示例</strong>：</p>
+<pre><code class="language-nginx">map $http_cookie $backend_version {
+    default v1.example.com;
+    &quot;~*version=V2&quot; v2.example.com;  # 匹配 Cookie 值
+}
+server {
+    listen 80;
+    location / {
+        proxy_pass http://$backend_version;
+    }
+}
+</code></pre>
+<p><strong>案例</strong>：金融 App 仅允许 Cookie 含 <code>version=V2</code> 的用户访问新投资功能。</p>
+<h4>3. 基于请求头标识</h4>
+<p><strong>原理</strong>：通过自定义请求头（如 <code>X-Gray-User: 1</code>）分流。</p>
+<p><strong>适用场景</strong>：A/B 测试或 VIP 用户优先体验。</p>
+<p><strong>配置示例</strong>：</p>
+<pre><code class="language-nginx">map $http_x_gray_user $backend_version {
+    default v1.example.com;
+    &quot;1&quot; v2.example.com;  # 请求头值为 1 时路由到新版本
+}
+server {
+    listen 80;
+    location / {
+        proxy_pass http://$backend_version;
+    }
+}
+</code></pre>
+<p><strong>案例</strong>：社交平台向 VIP 用户注入 <code>X-Gray-User: 1</code>，引导至新版界面。</p>
+<h4>4. 基于 IP 地址</h4>
+<p><strong>原理</strong>：根据客户端 IP 段（如内网 IP）分流。</p>
+<p><strong>适用场景</strong>：区域性测试或内部验证。</p>
+<p><strong>配置示例</strong>：</p>
+<pre><code class="language-nginx">geo $remote_addr $backend_version {
+    default v1.example.com;
+    192.168.1.0/24 v2.example.com;  # 指定 IP 段访问新版本
+}
+server {
+    listen 80;
+    location / {
+        proxy_pass http://$backend_version;
+    }
+}
+</code></pre>
+<p><strong>案例</strong>：企业 ERP 升级时仅允许办公网 IP 访问新版本。</p>
+<h4>5. 高级动态灰度（Nginx + Lua + Redis）</h4>
+<p><strong>原理</strong>：通过 Lua 脚本实时查询 Redis 中的灰度规则（如用户 ID 白名单）。</p>
+<p><strong>适用场景</strong>：需实时调整规则的精细化控制。</p>
+<p><strong>配置示例</strong>：</p>
+<pre><code class="language-nginx">location / {
+    access_by_lua_block {
+        local redis = require &quot;resty.redis&quot;
+        local red = redis:new()
+        red:connect(&quot;redis_host&quot;, 6379)
+        local user_id = ngx.req.get_headers()[&quot;X-User-ID&quot;]
+        local is_gray = red:get(&quot;gray:&quot; .. user_id)
+        if is_gray == &quot;1&quot; then
+            ngx.var.upstream = &quot;v2_backend&quot;
+        end
+    }
+    proxy_pass http://backend;
+}
+</code></pre>
+<p><strong>案例</strong>：在线教育平台通过 Redis 动态管理灰度用户，运营人员可实时添加/移除测试用户，无需重启 Nginx。</p>
+<hr>
+<h3>三. 综合实施步骤（以电商购物车升级为例）</h3>
+<ol>
+<li><strong>权重分流阶段</strong>：</li>
+</ol>
+<ul>
+<li>初始分配 10% 流量到新版本，监控错误率与响应时间。</li>
+</ul>
+<ol start="2">
+<li><strong>定向测试阶段</strong>：</li>
+</ol>
+<ul>
+<li>通过 Cookie 标记核心用户（如高价值用户），确保关键功能稳定性。</li>
+</ul>
+<ol start="3">
+<li><strong>全量切换阶段</strong>：</li>
+</ol>
+<ul>
+<li>逐步调整权重至 100%，通过 <code>nginx -s reload</code> 平滑加载配置。</li>
+</ul>
+<hr>
+<h3>四. 关键注意事项</h3>
+<ol>
+<li><p><strong>数据兼容性</strong>：新旧版本需共享数据库或使用兼容接口，避免数据不一致。</p>
+</li>
+<li><p><strong>监控告警</strong>：实时跟踪响应时间、错误率（5xx/4xx）、吞吐量，推荐集成 Prometheus + Grafana。</p>
+</li>
+<li><p><strong>回滚机制</strong>：保留旧版本配置，出现问题时快速切换权重至 0% 或删除灰度规则。</p>
+</li>
+<li><p><strong>会话一致性</strong>：使用 Cookie 或用户 ID 标记时，确保同一用户多次请求路由到同一版本。</p>
+</li>
+</ol>
+<hr>
+<h3>五. Kubernetes 中的 Nginx Ingress 灰度</h3>
+<p>在 K8s 环境中，通过 Ingress 注解实现灵活灰度策略：</p>
+<pre><code class="language-yaml"># 常规 Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-ingress
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        backend:
+          service:
+            name: old-service
+            port: 80
+
+
+# Canary Ingress（灰度规则）
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: canary-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/canary: &quot;true&quot;
+    nginx.ingress.kubernetes.io/canary-weight: &quot;20&quot;  # 20%流量到新版本
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        backend:
+          service:
+            name: new-service
+            port: 80
+</code></pre>
+<p><strong>优势</strong>：支持动态权重调整、Header/Cookie 分流，与 K8s 服务发现无缝集成。</p>
+<hr>
+<h3>六. 方案选型建议</h3>
+<ul>
+<li><p><strong>简单场景</strong>：优先选择权重分流（快速验证）或 Cookie/IP 标识（定向测试）。</p>
+</li>
+<li><p><strong>复杂场景</strong>：采用 Nginx + Lua + Redis 实现动态规则，兼顾灵活性与实时性。</p>
+</li>
+<li><p><strong>K8s 环境</strong>：直接使用 Nginx Ingress 的 Canary 功能，简化部署流程。</p>
+</li>
+</ul>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
