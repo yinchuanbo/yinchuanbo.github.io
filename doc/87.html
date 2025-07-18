@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>为何说 AbortController 是前端一把利剑</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>为何说 AbortController 是前端一把利剑</h1>
+        <p>JavaScript | 2025.07.19</p>
+      </header>
+      <h2>1. 通过 AbortController 提前终止 fetch</h2>
+<p>首先看一个例子，其使用 AbortController 来实现可以提前中止的 fetch：</p>
+<pre><code class="language-js">fetchButton.onclick = async () =&gt; {
+  const controller = new AbortController();
+  // 添加取消按钮
+  abortButton.onclick = () =&gt; controller.abort();
+  try {
+    const r = await fetch(&quot;/json&quot;, { signal: controller.signal });
+    const json = await r.json();
+    // 这里执行业务逻辑
+  } catch (e) {
+    const isUserAbort = e.name === &quot;AbortError&quot;;
+    // 如果是 AbortController 取消的则是 AbortError（一种 DOMException）
+  }
+};
+</code></pre>
+<p>上面示例展示了在 <code>AbortController</code> 出现之前不可能实现的事情，即 <code>主动取消网络请求</code>。浏览器将提前终止 fetch，从而节省用户网络带宽。当然，提前终止也不必非要由用户手动发起。</p>
+<p>上面示例中 <code>controller.signal</code> 返回的是 <code>AbortSignal</code>，其代表一个信号对象，其允许开发者与异步操作（例如 fetch 请求）进行通信，并在需要时通过 AbortController 对象中止。</p>
+<p>如果开发者想从多个信号中中止，可以使用 <code>AbortSignal.any()</code> 组合成单个信号，比如下面的示例：</p>
+<pre><code class="language-js">try {
+  const controller = new AbortController();
+  const timeoutSignal = AbortSignal.timeout(5000);
+  const res = await fetch(url, {
+    // This will abort the fetch when either signal is aborted
+    signal: AbortSignal.any([controller.signal, timeoutSignal]),
+  });
+  const body = await res.json();
+} catch (e) {
+  if (e.name === &quot;AbortError&quot;) {
+    // Notify the user of abort.
+  } else if (e.name === &quot;TimeoutError&quot;) {
+    // Notify the user of timeout
+  } else {
+    // A network error, or some other problem.
+    console.log(`Type: ${e.name}, Message: ${e.message}`);
+  }
+}
+</code></pre>
+<p>AbortController 和 AbortSignal 两者用途还是有一定的区别：</p>
+<ul>
+<li><code>AbortController</code>：允许通过 controller.abort() 显式中止其附加的信号</li>
+<li><code>AbortSignal</code> ：不能直接中止，但开发者可以将其传递给 fetch() 之类的调用或直接监听其中止状态。</li>
+</ul>
+<p>可以使用 <code>signal.aborted</code> 检查其状态，或为 <code>abort</code> 事件添加事件监听器，例如：fetch() 在内部执行此操作 。</p>
+<pre><code class="language-js">if (signal.aborted) {}
+signal.addEventListener(&#39;abort&#39;, () =&gt; ());
+</code></pre>
+<p>AbortController 取消请求后服务器就不会继续处理该请求，也不会发送响应，从而避免了不必要的数据传输。同时，针对客户端来说会减少并发的连接数量，提高页面的响应性能。</p>
+<h2>2.AbortController 的典型使用场景</h2>
+<h3>2.1 中止 WebSocket 等传统对象</h3>
+<p>很多老版本的 DOM API 其实并不支持 AbortSignal，例如：WebSocket，其只有一个 <code>.close()</code> 方法用于在请求完成后关闭连接。此时，开发者可以通过下面的方式显式取消请求：</p>
+<pre><code class="language-js">function abortableSocket(url, signal) {
+  const w = new WebSocket(url);
+  if (signal.aborted) {
+    w.close();
+    // 已经取消，直接失败
+  }
+  signal.addEventListener(&quot;abort&quot;, () =&gt; w.close());
+  return w;
+}
+</code></pre>
+<p>请注意，如果已经中止，AbortSignal 不会触发其 “abort”，因此必须检查是否已经 aborted，在这种情况下立即 .close()。</p>
+<h3>2.2 移除事件处理程序</h3>
+<p>在通过 removeEventListener 移除 DOM 事件处理函数时，开发者必须保证第二个事件处理函数是同一个。</p>
+<pre><code class="language-js">window.addEventListener(&quot;resize&quot;, () =&gt; doSomething());
+// addEventListener 和 removeEventListener 非同一个函数
+window.removeEventListener(&quot;resize&quot;, () =&gt; doSomething());
+</code></pre>
+<p>有了 AbortController 后，这一切变得非常简单，开发者只需要将 signal 传递给 addEventListener 的第三个参数即可。</p>
+<pre><code class="language-js">const controller = new AbortController();
+const { signal } = controller;
+window.addEventListener(&quot;resize&quot;, () =&gt; doSomething(), { signal });
+// 通过. abort() 方法移除事件处理函数
+controller.abort();
+</code></pre>
+<p>当然，针对旧版本的浏览器可以尝试添加 Polyfill 以支持 AbortController。</p>
+<h3>2.3 React hooks 中的异步任务</h3>
+<p>在 React 中，如果 Effect 在再次触发之前没有完成，开发者一般不容易发现，此时 Effect 会并行运行。</p>
+<pre><code class="language-js">function FooComponent({something}) {
+  useEffect(async () =&gt; {
+    const j = await fetch(url + something);
+    // do something with J
+  }, [something]);
+  return &lt;&gt;...&lt;&gt;;
+}
+</code></pre>
+<p>此时，开发者可以做的是创建一个 AbortController，每当下一个 useEffect 调用运行时就中止上一个请求：</p>
+<pre><code class="language-js">function FooComponent({something}) {
+  useEffect(() =&gt; {
+    const controller = new AbortController();
+    const {signal} = controller;
+    const p = (async () =&gt; {
+      // 真正执行的逻辑
+      const j = await fetch(url + something, { signal});
+      // 这里处理返回值
+    })();
+    return () =&gt; controller.abort();
+  }, [something]);
+  return &lt;&gt;...&lt;&gt;;
+}
+</code></pre>
+<h3>2.4 React hooks 中的异步任务</h3>
+<p>Node.js 里新版的 setTimeout 可以用 AbortController 取消，例如下面的代码：</p>
+<pre><code class="language-js">const { setTimeout: setTimeoutPromise } = require(&quot;node:timers/promises&quot;);
+const ac = new AbortController();
+const signal = ac.signal;
+// 📢 这里传入了 AbortSignal
+setTimeoutPromise(1000, &quot;foobar&quot;, { signal })
+  .then(console.log)
+  .catch((err) =&gt; {
+    if (err.name === &quot;AbortError&quot;) console.log(&quot;The timeout was aborted&quot;);
+  });
+ac.abort();
+</code></pre>
+<p>不过这个 Promise 版的 setTimeout 并不传入回调，回调需要在 .then() 里或者 await 后面自己调用。</p>
+<p>但是，浏览器的 setTimeout 目前并不支持 AbortController，可能是原因是其已经设计了更先进的 <code>scheduler.postTask() API</code>，该方法用于根据优先级添加要执行的任务，因此 setTimeout 没理由增强了。</p>
+<pre><code class="language-js">// Declare a TaskController with default priority
+const abortTaskController = new TaskController();
+// Post task passing the controller&#39;s signal
+scheduler
+  .postTask(() =&gt; console.log(&quot;Task executing&quot;), {
+    signal: abortTaskController.signal,
+  })
+  .then((taskResult) =&gt; console.log(`${taskResult}`)) //This won&#39;t run!
+  .catch((error) =&gt; console.error(&quot;Error:&quot;, error)); // Log the error
+// Abort the task
+abortTaskController.abort();
+</code></pre>
+<p>值得一提的是， <code>TaskController</code> 是 AbortController 的子级，除了可以调用 abort() 取消 task，还可以通过 <code>setPriority()</code> 方法中途修改 task 的优先级，如果不需要控制优先级，则可以直接使用 AbortController。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
