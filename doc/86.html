@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JavaScript 自定义组件详细指南</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>JavaScript 自定义组件详细指南</h1>
+        <p>JavaScript | 2025.07.18</p>
+      </header>
+      <p>本文档将详细介绍 JavaScript 中基于 <code>HTMLElement</code> 的自定义组件的相关功能和属性，帮助您理解并创建可重用的 Web 组件。</p>
+<hr>
+<h2>一、Web Components 简介</h2>
+<p>Web Components 是一组 Web 平台 API，允许开发者创建可重用、封装的自定义 HTML 标签。它主要包括以下四个规范：</p>
+<ol>
+<li><strong>Custom Elements（自定义元素）</strong>：定义新的 HTML 元素。</li>
+<li><strong>Shadow DOM（影子 DOM）</strong>：封装元素的内部结构和样式。</li>
+<li><strong>HTML Templates（HTML 模板）</strong>：提供可重用的 HTML 片段。</li>
+<li><strong>ES Modules（ES 模块）</strong>：支持 JavaScript 代码模块化。</li>
+</ol>
+<p>本文档将重点探讨 <strong>Custom Elements</strong>，特别是通过扩展 <code>HTMLElement</code> 创建自定义组件。</p>
+<hr>
+<h2>二、扩展 <code>HTMLElement</code></h2>
+<p>要创建自定义组件，您需要定义一个继承 <code>HTMLElement</code>（或内置元素）的类，并在其中实现组件的行为和属性。</p>
+<h3>1. 基本结构</h3>
+<pre><code class="language-javascript">class MyCustomElement extends HTMLElement {
+  constructor() {
+    super(); // 必须调用父类构造函数
+    // 初始化代码
+  }
+}
+</code></pre>
+<ul>
+<li><strong><code>constructor</code></strong>：组件的构造函数，用于初始化实例。</li>
+<li><strong><code>super()</code></strong>：必须调用，以确保继承 <code>HTMLElement</code> 的功能。</li>
+</ul>
+<h3>2. 注册自定义元素</h3>
+<p>定义类后，使用 <code>customElements.define</code> 方法向浏览器注册自定义元素。</p>
+<pre><code class="language-javascript">customElements.define(&quot;my-custom-element&quot;, MyCustomElement);
+</code></pre>
+<ul>
+<li><strong>第一个参数</strong>：自定义元素的标签名（必须包含连字符 <code>-</code>）。</li>
+<li><strong>第二个参数</strong>：自定义元素的类。</li>
+</ul>
+<h3>3. 生命周期回调</h3>
+<p>自定义元素提供以下生命周期方法，用于在特定时机执行代码：</p>
+<ul>
+<li><strong><code>connectedCallback</code></strong>：元素被添加到文档时调用。</li>
+<li><strong><code>disconnectedCallback</code></strong>：元素从文档移除时调用。</li>
+<li><strong><code>adoptedCallback</code></strong>：元素被移动到新文档时调用。</li>
+<li><strong><code>attributeChangedCallback</code></strong>：观察的属性发生变化时调用。</li>
+</ul>
+<p>示例：</p>
+<pre><code class="language-javascript">class MyCustomElement extends HTMLElement {
+  constructor() {
+    super();
+  }
+
+  connectedCallback() {
+    console.log(&quot;元素已添加到文档&quot;);
+  }
+
+  disconnectedCallback() {
+    console.log(&quot;元素已从文档移除&quot;);
+  }
+
+  static get observedAttributes() {
+    return [&quot;data-example&quot;]; // 观察的属性列表
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    console.log(`属性 ${name} 从 ${oldValue} 变为 ${newValue}`);
+  }
+}
+</code></pre>
+<ul>
+<li><strong><code>observedAttributes</code></strong>：静态方法，返回需要监听的属性数组。</li>
+<li><strong><code>attributeChangedCallback</code></strong>：属性变化时的回调，接收属性名、旧值和新值。</li>
+</ul>
+<h3>4. 属性与方法</h3>
+<p>可以像普通 JavaScript 类一样为自定义元素添加属性和方法。</p>
+<pre><code class="language-javascript">class MyCustomElement extends HTMLElement {
+  constructor() {
+    super();
+    this._exampleProperty = &quot;默认值&quot;; // 私有属性
+  }
+
+  // Getter
+  get exampleProperty() {
+    return this._exampleProperty;
+  }
+
+  // Setter
+  set exampleProperty(value) {
+    this._exampleProperty = value;
+  }
+
+  exampleMethod() {
+    console.log(&quot;方法被调用&quot;);
+  }
+}
+</code></pre>
+<ul>
+<li><strong>属性</strong>：使用 getter 和 setter 管理。</li>
+<li><strong>方法</strong>：定义组件的自定义行为。</li>
+</ul>
+<h3>5. 使用 Shadow DOM</h3>
+<p>Shadow DOM 提供封装性，避免外部样式和脚本干扰组件内部。</p>
+<pre><code class="language-javascript">class MyCustomElement extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: &quot;open&quot; }); // 创建影子 DOM
+    this.shadowRoot.innerHTML = `
+            &lt;style&gt;
+                p { color: blue; }
+            &lt;/style&gt;
+            &lt;p&gt;你好，世界！&lt;/p&gt;
+        `;
+  }
+}
+</code></pre>
+<ul>
+<li><strong><code>attachShadow</code></strong>：附加影子 DOM，<code>mode: &#39;open&#39;</code> 表示外部可访问影子根。</li>
+<li><strong><code>shadowRoot</code></strong>：影子 DOM 的根节点，用于插入内容。</li>
+</ul>
+<h3>6. 扩展内置元素</h3>
+<p>可以扩展内置 HTML 元素（如 <code>&lt;button&gt;</code>）以添加自定义行为。</p>
+<pre><code class="language-javascript">class MyButton extends HTMLButtonElement {
+  constructor() {
+    super();
+    this.addEventListener(&quot;click&quot;, () =&gt; {
+      console.log(&quot;按钮被点击&quot;);
+    });
+  }
+}
+
+customElements.define(&quot;my-button&quot;, MyButton, { extends: &quot;button&quot; });
+</code></pre>
+<p>使用方式：</p>
+<pre><code class="language-html">&lt;button is=&quot;my-button&quot;&gt;点击我&lt;/button&gt;
+</code></pre>
+<ul>
+<li><strong><code>extends</code></strong>：指定扩展的内置元素。</li>
+</ul>
+<hr>
+<h2>三、示例：创建自定义问候组件</h2>
+<p>以下是一个完整的示例，展示如何创建一个显示问候消息的自定义元素，并在属性变化时更新内容。</p>
+<h3>1. 定义类</h3>
+<pre><code class="language-javascript">class GreetingElement extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: &quot;open&quot; });
+    this._name = &quot;世界&quot;; // 默认值
+  }
+
+  static get observedAttributes() {
+    return [&quot;name&quot;];
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (name === &quot;name&quot;) {
+      this._name = newValue;
+      this.render();
+    }
+  }
+
+  connectedCallback() {
+    this.render();
+  }
+
+  render() {
+    this.shadowRoot.innerHTML = `
+            &lt;style&gt;
+                p { font-size: 20px; color: green; }
+            &lt;/style&gt;
+            &lt;p&gt;你好，${this._name}！&lt;/p&gt;
+        `;
+  }
+}
+</code></pre>
+<h3>2. 注册自定义元素</h3>
+<pre><code class="language-javascript">customElements.define(&quot;greeting-element&quot;, GreetingElement);
+</code></pre>
+<h3>3. 在 HTML 中使用</h3>
+<pre><code class="language-html">&lt;greeting-element name=&quot;Alice&quot;&gt;&lt;/greeting-element&gt;
+</code></pre>
+<h3>4. 动态更改属性</h3>
+<pre><code class="language-javascript">const element = document.querySelector(&quot;greeting-element&quot;);
+element.setAttribute(&quot;name&quot;, &quot;Bob&quot;);
+</code></pre>
+<p>运行结果：</p>
+<ul>
+<li>初始显示：<code>你好，Alice！</code></li>
+<li>属性更改后：<code>你好，Bob！</code></li>
+</ul>
+<hr>
+<h2>四、常见问题与解决方法（可能踩的坑）</h2>
+<p>在使用 JavaScript 自定义组件（Web Components）时，开发者可能会遇到一些常见的错误和问题。以下列举了一些“坑”，并提供了相应的解决方案，帮助您避免或解决这些问题。</p>
+<h3>1. 忘记调用 <code>super()</code></h3>
+<p><strong>问题</strong>：在自定义元素的构造函数中，如果忘记调用 <code>super()</code>，会导致错误，因为父类 <code>HTMLElement</code> 的构造函数必须被调用。</p>
+<p><strong>解决方案</strong>：始终在构造函数的第一行调用 <code>super()</code>。</p>
+<pre><code class="language-javascript">constructor() {
+    super(); // 必须调用
+    // 其他初始化代码
+}
+</code></pre>
+<h3>2. 自定义元素标签名不符合规范</h3>
+<p><strong>问题</strong>：自定义元素的标签名必须包含一个连字符 <code>-</code>（例如 <code>my-element</code>），否则注册会失败。</p>
+<p><strong>解决方案</strong>：确保标签名包含连字符。</p>
+<pre><code class="language-javascript">customElements.define(&quot;my-element&quot;, MyCustomElement); // 正确
+customElements.define(&quot;myelement&quot;, MyCustomElement); // 错误
+</code></pre>
+<h3>3. 生命周期回调使用不当</h3>
+<p><strong>问题</strong>：在 <code>connectedCallback</code> 中执行异步操作可能导致问题，因为该回调在元素被添加到文档时同步调用。</p>
+<p><strong>解决方案</strong>：如果需要执行异步操作，可以在 <code>connectedCallback</code> 中启动异步任务，但要确保在元素被移除时清理资源。</p>
+<pre><code class="language-javascript">connectedCallback() {
+    this.timer = setTimeout(() =&gt; {
+        // 异步操作
+    }, 1000);
+}
+
+disconnectedCallback() {
+    clearTimeout(this.timer); // 清理资源
+}
+</code></pre>
+<h3>4. 属性监听配置错误</h3>
+<p><strong>问题</strong>：<code>attributeChangedCallback</code> 仅对在 <code>observedAttributes</code> 中列出的属性生效。</p>
+<p><strong>解决方案</strong>：确保在 <code>observedAttributes</code> 中列出需要监听的属性。</p>
+<pre><code class="language-javascript">static get observedAttributes() {
+    return [&#39;data-example&#39;, &#39;another-attr&#39;];
+}
+</code></pre>
+<h3>5. Shadow DOM 使用不当</h3>
+<p><strong>问题</strong>：Shadow DOM 的 <code>mode</code> 设置为 <code>closed</code> 会阻止外部访问影子根，增加调试难度。</p>
+<p><strong>解决方案</strong>：除非有特殊需求，建议使用 <code>open</code> 模式。</p>
+<pre><code class="language-javascript">this.attachShadow({ mode: &quot;open&quot; });
+</code></pre>
+<h3>6. 样式隔离问题</h3>
+<p><strong>问题</strong>：Shadow DOM 隔离样式，外部样式不会影响组件内部，反之亦然。</p>
+<p><strong>解决方案</strong>：在 Shadow DOM 内部定义样式，确保组件的样式独立。</p>
+<pre><code class="language-javascript">this.shadowRoot.innerHTML = `
+    &lt;style&gt;
+        /* 组件样式 */
+    &lt;/style&gt;
+    &lt;!-- 元素 --&gt;
+`;
+</code></pre>
+<h3>7. 事件处理不当</h3>
+<p><strong>问题</strong>：事件在 Shadow DOM 中的冒泡和捕获行为可能与预期不符。</p>
+<p><strong>解决方案</strong>：了解事件在 Shadow DOM 中的传播规则，必要时使用 <code>event.composedPath()</code> 获取事件路径。</p>
+<pre><code class="language-javascript">this.shadowRoot.addEventListener(&quot;click&quot;, (event) =&gt; {
+  console.log(event.composedPath()); // 查看事件路径
+});
+</code></pre>
+<h3>8. 性能问题</h3>
+<p><strong>问题</strong>：频繁更新 Shadow DOM 可能导致性能下降。</p>
+<p><strong>解决方案</strong>：优化更新逻辑，尽量减少 DOM 操作，例如使用虚拟 DOM 或批量更新。</p>
+<pre><code class="language-javascript">// 例如，使用 requestAnimationFrame 批量更新
+requestAnimationFrame(() =&gt; {
+  this.shadowRoot.innerHTML = &quot;新内容&quot;;
+});
+</code></pre>
+<h2>五、总结</h2>
+<p>通过扩展 <code>HTMLElement</code>，开发者可以创建功能丰富、可重用的自定义组件。核心功能包括：</p>
+<ul>
+<li><strong>生命周期管理</strong>：通过回调函数控制元素行为。</li>
+<li><strong>属性与方法</strong>：定义组件的状态和交互逻辑。</li>
+<li><strong>Shadow DOM</strong>：实现样式和结构的封装。</li>
+<li><strong>内置元素扩展</strong>：增强现有 HTML 元素。</li>
+</ul>
+<p>结合这些特性，Web Components 为现代 Web 开发提供了强大的工具，能够构建模块化、可维护的前端组件。</p>
+<hr>
+<p>以上是完整的中文文档，涵盖了 JavaScript 自定义组件的各个方面。如果您有进一步的需求或问题，请随时告知！</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
