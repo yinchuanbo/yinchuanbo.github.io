@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>页面白屏处理</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>页面白屏处理</h1>
+        <p>疑难问题 | 2025.07.18</p>
+      </header>
+      <h2>白屏原因与排查方法</h2>
+<h3>1. JavaScript 执行错误（最常见）</h3>
+<p><strong>典型场景</strong>：SPA 应用中未捕获的异常导致整个应用崩溃。</p>
+<pre><code class="language-js">// 常见错误类型
+// 1. 空值引用
+const userInfo = null;
+console.log(userInfo.name); // TypeError: Cannot read property &#39;name&#39; of null
+
+// 2. 异步错误未捕获
+async function loadData() {
+  const response = await fetch(&quot;/api/user&quot;);
+  const data = await response.json();
+  // 如果接口返回格式异常，下面代码会报错
+  document.getElementById(&quot;username&quot;).textContent = data.user.name;
+}
+</code></pre>
+<p><strong>排查方法</strong>：</p>
+<ul>
+<li>打开 Console 面板，查看错误信息和堆栈跟踪</li>
+<li>错误信息通常直接指向问题代码行</li>
+<li>关注 TypeError、ReferenceError 等常见错误类型</li>
+</ul>
+<h3>2. 资源加载失败</h3>
+<p><strong>典型场景</strong>：CDN 故障、网络不稳定导致关键 CSS/JS 文件加载失败。</p>
+<p><strong>排查方法</strong>：</p>
+<ul>
+<li>Network 面板查看资源加载状态</li>
+<li>重点关注状态码为 4xx、5xx 的失败请求</li>
+<li>检查关键资源：主 CSS 文件、JavaScript 入口文件</li>
+</ul>
+<p><strong>预防方案</strong>：</p>
+<pre><code class="language-js">// 资源加载容错
+function loadCriticalResource(primaryUrl, fallbackUrl) {
+  return new Promise((resolve, reject) =&gt; {
+    const link = document.createElement(&quot;link&quot;);
+    link.rel = &quot;stylesheet&quot;;
+    link.href = primaryUrl;
+
+    link.onload = resolve;
+    link.onerror = () =&gt; {
+      // 主资源失败，加载备用资源
+      link.href = fallbackUrl;
+      link.onerror = reject;
+    };
+
+    document.head.appendChild(link);
+  });
+}
+</code></pre>
+<h3>3. 接口异常</h3>
+<p><strong>典型场景</strong>：关键数据接口超时或返回异常，页面无法获取必要数据。</p>
+<p><strong>排查方法</strong>：</p>
+<ul>
+<li>Network 面板检查接口请求状态</li>
+<li>Console 面板查看接口错误信息</li>
+<li>确认接口返回数据格式是否符合预期</li>
+</ul>
+<p><strong>预防方案</strong>：</p>
+<pre><code class="language-js">// 统一接口错误处理
+async function apiRequest(url, options = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() =&gt; controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error.name === &quot;AbortError&quot;) {
+      throw new Error(&quot;请求超时，请稍后重试&quot;);
+    }
+    throw error;
+  }
+}
+</code></pre>
+<h3>4. CSS 样式问题</h3>
+<p><strong>典型场景</strong>：样式异常导致内容不可见，造成视觉白屏。</p>
+<pre><code class="language-css">/* 可能导致白屏的CSS */
+.content {
+  color: white;
+  background: white; /* 白色文字配白色背景 */
+}
+
+.container {
+  position: absolute;
+  left: -9999px; /* 内容移出可视区域 */
+}
+</code></pre>
+<p><strong>排查方法</strong>：</p>
+<ul>
+<li>Elements 面板检查 DOM 结构是否正常</li>
+<li>查看元素的 Computed 样式</li>
+<li>确认关键元素的 display、visibility、opacity 等属性</li>
+</ul>
+<h3>5. 移动端特殊问题</h3>
+<p><strong>排查工具</strong>：</p>
+<ul>
+<li><strong>vConsole</strong>：移动端调试面板</li>
+<li><strong>真机调试</strong>：Chrome DevTools 远程调试</li>
+<li><strong>抓包工具</strong>：Charles、Fiddler 分析网络请求</li>
+</ul>
+<pre><code class="language-js">// 移动端vConsole集成
+import VConsole from &quot;vconsole&quot;;
+
+if (
+  process.env.NODE_ENV === &quot;development&quot; ||
+  window.location.search.includes(&quot;debug=1&quot;)
+) {
+  new VConsole();
+}
+</code></pre>
+<h2>预防与监控</h2>
+<h3>1. 错误边界处理</h3>
+<pre><code class="language-js">// React错误边界
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // 上报错误
+    console.error(&quot;页面错误:&quot;, error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return &lt;div className=&quot;error-fallback&quot;&gt;页面出现错误，请刷新重试&lt;/div&gt;;
+    }
+    return this.props.children;
+  }
+}
+</code></pre>
+<h3>2. 错误监控系统</h3>
+<pre><code class="language-js">// Sentry错误监控
+import * as Sentry from &quot;@sentry/browser&quot;;
+
+Sentry.init({
+  dsn: &quot;YOUR_DSN_HERE&quot;,
+  environment: process.env.NODE_ENV,
+});
+
+// 全局错误捕获
+window.addEventListener(&quot;error&quot;, (event) =&gt; {
+  Sentry.captureException(event.error);
+});
+
+window.addEventListener(&quot;unhandledrejection&quot;, (event) =&gt; {
+  Sentry.captureException(event.reason);
+});
+</code></pre>
+<h3>3. 兼容性检测</h3>
+<pre><code class="language-js">// 关键特性检测
+function checkCompatibility() {
+  const requiredFeatures = [
+    () =&gt; typeof Promise !== &quot;undefined&quot;,
+    () =&gt; typeof fetch !== &quot;undefined&quot;,
+    () =&gt; typeof Object.assign !== &quot;undefined&quot;,
+  ];
+
+  const unsupported = requiredFeatures.filter((check) =&gt; !check());
+
+  if (unsupported.length &gt; 0) {
+    document.body.innerHTML = `
+      &lt;div style=&quot;text-align: center; padding: 50px;&quot;&gt;
+        &lt;h2&gt;浏览器版本过低&lt;/h2&gt;
+        &lt;p&gt;请升级浏览器以获得最佳体验&lt;/p&gt;
+      &lt;/div&gt;
+    `;
+    return false;
+  }
+
+  return true;
+}
+</code></pre>
+<h2>面试回答技巧</h2>
+<h3>标准回答模板</h3>
+<p><strong>第一步：快速分类（30 秒）</strong>&quot;页面白屏主要有五种原因：JavaScript 执行错误、资源加载失败、CSS 样式问题、接口异常和浏览器兼容性。其中 JavaScript 错误最常见，特别是 SPA 应用中的未捕获异常。&quot;</p>
+<p><strong>第二步：排查方法（1 分钟）</strong>&quot;我的排查步骤是：首先查看 Console 面板的错误信息，这能快速定位 JS 异常；然后检查 Network 面板确认资源加载状态；接着用 Elements 面板验证 DOM 和样式；移动端问题会用 vConsole 或真机调试。生产环境结合 Sentry 等监控系统分析。&quot;</p>
+<p><strong>第三步：预防措施（30 秒）</strong>&quot;预防方面建立错误边界、资源容错机制、统一接口异常处理、兼容性检测，同时搭建监控告警体系。&quot;</p>
+<h3>高频追问及回答要点</h3>
+<p><strong>Q: 如何区分 JS 错误和资源加载失败？</strong></p>
+<ul>
+<li>A: JS 错误在 Console 有明确报错信息和堆栈，资源失败在 Network 显示红色状态码。可以先看 Console，无报错再查 Network。</li>
+</ul>
+<p><strong>Q: 生产环境白屏如何快速定位？</strong></p>
+<ul>
+<li>A: 依赖监控系统收集错误信息，结合用户反馈确定影响范围，通过错误堆栈和用户环境信息快速定位。必要时可以灰度回滚。</li>
+</ul>
+<p><strong>Q: 移动端白屏有什么特殊性？</strong></p>
+<ul>
+<li>A: 移动端调试困难，需要 vConsole 或真机调试。还要考虑内存限制、网络环境、浏览器内核差异等因素。</li>
+</ul>
+<h2>总结</h2>
+<p>白屏问题排查需要系统性方法：从 Console 错误信息入手，结合 Network 资源状态，通过 Elements 验证渲染结果。关键是建立完善的错误处理和监控体系，将问题消灭在萌芽状态。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

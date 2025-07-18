@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>告别白屏！首屏加载（FCP）优化实战</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>告别白屏！首屏加载（FCP）优化实战</h1>
+        <p>性能优化 | 2025.07.18</p>
+      </header>
+      <h2>引言：当用户在你的网站上看到“一片空白”时，他们心里在想什么？</h2>
+<p>嘿，各位驰骋在代码世界的骑士们！想象一个场景：你精心打造的网站终于上线，你激动地把链接发给朋友、发到用户群，期待着如潮的好评。然而，你收到的第一条反馈却是：“你这网站咋打不开啊，一直白屏？”</p>
+<p>“打不开”？“白屏”？这两个词像两把利剑，瞬间刺穿了你作为前端工程师的骄傲。你赶紧打开网站，发现它只是加载得慢了一点点……好吧，是慢了亿点点。在那几秒钟的白屏时间里，用户可能已经经历了从“满怀期待”到“有点不耐烦”再到“这啥破玩意儿，关了！”的心路历程。</p>
+<p>在这个“快”字当头的时代，用户的耐心比金子还珍贵。Google 的研究表明，页面加载时间从 1 秒增加到 3 秒，用户跳出的概率会增加 32%。白屏，就是扼杀用户兴趣和业务转化率的头号杀手。它就像一场糟糕的初次约会，还没等你说上话，对方就已经把你拉黑了。</p>
+<p>那么，作为追求极致用户体验的前端开发者，我们该如何向这该死的“白屏”宣战呢？答案就藏在一个关键的性能指标里——<strong>FCP（First Contentful Paint，首次内容绘制）</strong>。</p>
+<p>这篇“檄文”，我们将一起深入探讨 FCP 的奥秘，并祭出三大“法宝”——资源优化、传输优化，以及一系列实战代码，让你彻底告别白屏，让你的网站快到飞起，让用户体验如丝般顺滑！准备好了吗？让我们一起踏上这场“前端性能优化极限挑战”之旅吧！</p>
+<hr>
+<h2>第一章：性能指标大揭秘：FCP、LCP、TTI，到底该听谁的？</h2>
+<p>在开始优化之前，我们得先学会“看病”。性能优化就像给网站做体检，而 FCP、LCP、TTI 这些指标就是体检报告上的关键数据。看不懂它们，优化就无从谈起。</p>
+<h3>什么是 FCP (First Contentful Paint)？</h3>
+<p><strong>FCP（首次内容绘制）</strong>，顾名思义，就是浏览器在屏幕上<strong>第一次绘制出“有内容”的东西</strong>的时间点。这个“内容”可以是文本、图片（包括背景图）、<code>&lt;svg&gt;</code>元素，或者是非白色的<code>&lt;canvas&gt;</code>元素。简单来说，就是从用户输入网址按下回车，到页面上出现第一个可见元素的耗时。它是用户感知到“页面活了”的第一个信号。</p>
+<p>打个比方，你点了一份外卖。从下单到外卖小哥把餐送到你手上，这个过程就是整个页面的加载过程。而 FCP，就相当于你第一次从猫眼里看到外卖小哥的身影。虽然你还没拿到外卖，但你知道，它来了！你的焦虑感会大大降低。</p>
+<p>一个优秀的 FCP 时间应该控制在<strong>1.8 秒</strong>以内。如果超过这个时间，用户就可能开始变得不耐烦了。</p>
+<p><strong>如何测量 FCP？</strong></p>
+<p>现代浏览器提供了  <code>PerformanceObserver</code> API，让我们可以轻松地在代码中监控 FCP。</p>
+<pre><code class="language-js">// 创建一个 PerformanceObserver 实例来观察 &#39;paint&#39; 类型的性能条目
+const observer = new PerformanceObserver((list) =&gt; {
+  for (const entry of list.getEntries()) {
+    // 我们只关心 &#39;first-contentful-paint&#39;
+    if (entry.name === &quot;first-contentful-paint&quot;) {
+      console.log(`FCP time: ${entry.startTime}ms`);
+    }
+  }
+});
+
+// 开始观察，buffered: true 表示我们也可以获取在观察开始前就已经发生的 paint 事件
+observer.observe({ type: &quot;paint&quot;, buffered: true });
+</code></pre>
+<p>这段代码就像在你家门口装了个监控，专门等着外卖小哥出现，一出现就立刻告诉你。</p>
+<h3>FCP 的“兄弟们”：LCP 和 TTI</h3>
+<p>当然，只看到外卖小哥的身影还不够，我们还关心什么时候能吃到嘴里，以及这个外卖是不是“货不对板”。这就引出了 FCP 的两个重要兄弟：LCP 和 TTI。</p>
+<ul>
+<li><strong>LCP (Largest Contentful Paint，最大内容绘制)</strong>: 如果说 FCP 是开胃菜，那 LCP 就是主菜。它测量的是视口内<strong>最大的图片或文本块</strong>完成渲染的时间。LCP 告诉我们页面的主要内容大概什么时候对用户可见。一个好的 LCP 时间应该在<strong>2.5 秒</strong>以内。</li>
+<li><strong>TTI (Time to Interactive，可交互时间)</strong>: 这个指标衡量的是页面何时<strong>完全具备交互能力</strong>。也就是说，不仅内容都显示出来了，而且主线程也已经空闲，可以随时响应用户的点击、滚动等操作了。TTI 就像你不仅拿到了外卖，还拆开了包装，拿起了筷子，准备开吃的那一刻。</li>
+</ul>
+<h3>灵魂拷问：我们应该关注哪个？</h3>
+<p>FCP、LCP、TTI，它们从不同维度衡量了页面的加载体验。FCP 关注“有没有”，LCP 关注“主要内容有没有”，而 TTI 关注“能不能用”。</p>
+<p>对于优化来说，<strong>FCP 是我们打响的第一枪</strong>。因为它是用户体验的起点，一个糟糕的 FCP 会直接导致用户流失。优化了 FCP，通常也会对 LCP 和 TTI 产生积极的影响。所以，我们的策略是: <strong>以 FCP 为突破口，全面提升页面加载性能！</strong></p>
+<hr>
+<h2>第二章：资源优化“瘦身”计划：让你的代码“轻”装上阵</h2>
+<p>知道了要优化 FCP，那具体该怎么做呢？首当其冲的就是给我们的资源“瘦身”。请求的资源越小、越少，浏览器就能越快地下载和解析它们，FCP 自然就快了。</p>
+<h3>代码分割 (Code Splitting)：别把所有“家当”一次性搬出来</h3>
+<p>想象一下搬家，你是会把所有东西——无论常用不常用——都打包进一个巨大的箱子，然后费力地一次性搬过去？还是会把东西分门别类，先搬必需品，其他的以后再说？</p>
+<p>代码分割就是这个道理。传统的打包方式（比如早期的 Webpack）会把所有 JavaScript 代码打包成一个巨大的<code>bundle.js</code>文件。用户打开首页，就必须下载整个文件，哪怕其中 90% 的代码是其他页面才用得到的。这无疑大大拖慢了 FCP。</p>
+<p>现代前端框架和打包工具都原生支持代码分割。核心思想就是：<strong>按需加载</strong>。</p>
+<p><strong>实战：使用动态<code>import()</code></strong></p>
+<p>ESM（ES 模块）规范中的动态<code>import()</code>语法是实现代码分割的利器。它返回一个 Promise，让我们可以异步地加载模块。</p>
+<pre><code class="language-js">// 假设我们有一个按钮，点击后才需要加载一个比较大的图表库
+const chartButton = document.getElementById(&quot;show-chart-btn&quot;);
+
+chartButton.addEventListener(&quot;click&quot;, () =&gt; {
+  // 在用户点击时，才去加载 &#39;chart-library.js&#39;
+  import(&quot;./chart-library.js&quot;)
+    .then((module) =&gt; {
+      constChart = module.default;
+      const myChart = newChart(/* ... */);
+      myChart.draw();
+    })
+    .catch((err) =&gt; {
+      console.error(&quot;Failed to load the chart library.&quot;, err);
+    });
+});
+</code></pre>
+<p>在 Vue 中，你可以使用异步组件；在 React 中，你可以使用<code>React.lazy</code>和<code>Suspense</code>，它们的底层原理都离不开动态导入。</p>
+<h3>图片优化：不只是压缩那么简单</h3>
+<p>图片往往是网页中最大的资源，也是 FCP 优化的重点对象。</p>
+<p><strong>1. 图片懒加载 (Lazy Loading)</strong></p>
+<p>懒加载的思路是：只加载视口内（或即将进入视口）的图片，视口外的图片等用户滚动到附近时再加载。这能极大地减少首屏需要加载的图片数量。</p>
+<p>过去我们可能需要监听<code>scroll</code>事件，计算元素位置，比较麻烦且性能不佳。现在，我们有了神器<code>IntersectionObserver</code>！</p>
+<pre><code class="language-html">&lt;img data-src=&quot;real-image.jpg&quot; src=&quot;placeholder.jpg&quot; alt=&quot;An amazing image&quot; /&gt;
+</code></pre>
+<pre><code class="language-javascript">const lazyImages = document.querySelectorAll(&quot;img[data-src]&quot;);
+
+const observer = newIntersectionObserver((entries, observer) =&gt; {
+  entries.forEach((entry) =&gt; {
+    // 如果图片进入了视口
+    if (entry.isIntersecting) {
+      const img = entry.target;
+      // 将真实的图片地址放到 src 属性上
+      img.src = img.dataset.src;
+      // 移除 data-src，防止重复加载
+      img.removeAttribute(&quot;data-src&quot;);
+      // 停止观察这张图片
+      observer.unobserve(img);
+    }
+  });
+});
+
+lazyImages.forEach((img) =&gt; {
+  observer.observe(img);
+});
+</code></pre>
+<p><strong>2. 现代图片格式 (WebP/AVIF)</strong></p>
+<p>别再抱着 JPEG 和 PNG 不放了！WebP 格式在同等画质下，体积比 JPEG 小 25%-35%。而更新的 AVIF 格式则更加优秀。使用<code>&lt;picture&gt;</code>元素，我们可以优雅地向后兼容：</p>
+<pre><code class="language-html">&lt;picture&gt;
+  &lt;source srcset=&quot;image.avif&quot; type=&quot;image/avif&quot; /&gt;
+  &lt;source srcset=&quot;image.webp&quot; type=&quot;image/webp&quot; /&gt;
+  &lt;img src=&quot;image.jpg&quot; alt=&quot;description&quot; /&gt;
+&lt;/picture&gt;
+</code></pre>
+<p>浏览器会从上到下检查，选择第一个它支持的格式进行加载。</p>
+<h3>字体优化：让文字不再“跳动”</h3>
+<p>自定义字体虽然好看，但如果处理不当，会导致 FOUT (Flash of Unstyled Text，无样式文本闪烁) 或 FOIT (Flash of Invisible Text，不可见文本闪烁)，这都会影响用户体验和布局稳定性。</p>
+<p><strong>font-display: swap;</strong>  是一个简单有效的解决方案。在你的<code>@font-face</code>规则中加入它：</p>
+<pre><code class="language-css">@font-face {
+  font-family: &quot;MyAwesomeFont&quot;;
+  src: url(&quot;/fonts/my-awesome-font.woff2&quot;) format(&quot;woff2&quot;);
+  font-display: swap;
+}
+</code></pre>
+<p><code>swap</code>的作用是，让浏览器先用系统默认字体渲染文本，等自定义字体下载完成后再替换掉。这样用户可以第一时间看到内容，避免了 FOIT。</p>
+<p>另外，<strong>字体子集化 (Subsetting)</strong>  也是一个大杀器。如果你的网站只需要用到几百个汉字，就完全没必要加载包含数万个汉字的全量字体包。可以使用<code>font-spider</code>等工具，根据你的页面内容，生成一个只包含你用到的字符的迷你字体包，体积能减少 90% 以上！</p>
+<hr>
+<h2>第三章：传输优化“高速公路”：让资源“飞”到浏览器</h2>
+<p>资源“瘦身”后，我们还要为它们铺设一条高速公路，让它们能以最快的速度到达浏览器。</p>
+<h3>预加载资源：preload vs prefetch</h3>
+<p>浏览器在解析 HTML 时，会按顺序发现并下载资源。但有时我们比浏览器更清楚哪些资源是关键的。这时就可以使用<code>preload</code>和<code>prefetch</code>来“指点”浏览器。</p>
+<ul>
+<li><strong><code>&lt;link rel=&quot;preload&quot;&gt;</code></strong>: 告诉浏览器：“这个资源非常重要，是当前页面马上就要用到的，请你<strong>立刻以高优先级</strong>下载它，但先别执行。” 它常用于预加载 CSS、字体文件，或者页面后半部分才会发现的关键 JS。</li>
+</ul>
+<pre><code class="language-html">&lt;!-- 预加载关键的 CSS 文件 --&gt;
+&lt;link rel=&quot;preload&quot; href=&quot;critical.css&quot; as=&quot;style&quot; /&gt;
+
+&lt;!-- 预加载字体文件，注意 crossorigin 属性 --&gt;
+&lt;link
+  rel=&quot;preload&quot;
+  href=&quot;/fonts/my-font.woff2&quot;
+  as=&quot;font&quot;
+  type=&quot;font/woff2&quot;
+  crossorigin
+/&gt;
+</code></pre>
+<ul>
+<li><strong><code>&lt;link rel=&quot;prefetch&quot;&gt;</code></strong>: 告诉浏览器：“这个资源当前页面用不到，但是<strong>下一个页面很可能会用到</strong>，你可以在空闲的时候，以低优先级去下载它。” 它非常适合用在预加载用户下一步可能访问的页面的资源。</li>
+</ul>
+<pre><code class="language-html">&lt;!-- 用户在看产品列表页，我们可以预取产品详情页的 JS --&gt;
+&lt;link rel=&quot;prefetch&quot; href=&quot;product-detail.js&quot; as=&quot;script&quot; /&gt;
+</code></pre>
+<p>两者的区别就像：<code>preload</code>是你做饭前，先把要用的葱姜蒜都准备好；而<code>prefetch</code>是你猜明天可能要吃饺子，就提前把肉馅给解冻了。</p>
+<h3>HTTP/2 的“超能力”</h3>
+<p>如果你的网站还在用 HTTP/1.1，那 FCP 优化就输在了起跑线上。HTTP/2 带来了几个革命性的特性，对性能提升巨大：</p>
+<ul>
+<li><strong>多路复用 (Multiplexing)</strong>: HTTP/1.1 时代，浏览器对同一个域名下的并发请求数量有限制（通常是 6 个）。请求需要排队，这就是“队头阻塞”。而 HTTP/2 可以在一个 TCP 连接上同时发送和接收多个请求和响应，彻底告别排队！这意味着我们可以放心地把 CSS 和 JS 拆分成更多的小文件，配合代码分割，效果更佳。</li>
+<li><strong>头部压缩 (Header Compression)</strong>: 使用 HPACK 算法压缩请求头，减少了传输的数据量。</li>
+</ul>
+<p>现在，主流的服务器和 CDN 都已支持 HTTP/2，开启它通常只是一个配置开关的问题，是性价比极高的优化手段。</p>
+<h3>CDN：你的“全球快递网络”</h3>
+<p>CDN (Content Delivery Network，内容分发网络) 的原理很简单：把你的静态资源（JS, CSS, 图片等）复制到全球各地的服务器节点上。当用户访问时，会自动从离他 <strong>物理距离最近</strong> 的节点加载资源，大大减少了网络延迟。</p>
+<p>这就像你在北京，想买一本只在广州卖的书。没有 CDN，就得等书从广州慢慢寄过来。有了 CDN，这本书在北京的仓库就有存货，你下单后，同城配送，速度不可同日而语。</p>
+<p>将静态资源部署到 CDN 是 FCP 优化的基础操作，效果立竿见影。</p>
+<hr>
+<h2>总结：告别白屏，从我做起</h2>
+<p>好了，今天的“屠龙之术”就传授到这里。我们来快速回顾一下：</p>
+<ol>
+<li><strong>理解指标</strong>：FCP 是我们向白屏宣战的号角，它衡量的是用户看到第一个内容的时刻。</li>
+<li><strong>资源瘦身</strong>：通过<strong>代码分割</strong>、<strong>图片懒加载</strong>和<strong>现代格式</strong>、<strong>字体优化</strong>，从源头上减少资源的体积和数量。</li>
+<li><strong>传输加速</strong>：利用<strong>preload</strong>预加载关键资源，拥抱<strong>HTTP/2</strong>的多路复用，并借助<strong>CDN</strong>将资源部署到用户身边。</li>
+</ol>
+<p>性能优化不是一蹴而就的，它是一个持续的过程。现在，就打开你自己的网站，按下 F12，打开 Lighthouse 或 Performance 面板，给它做一次全面的“体检”吧！看看你的 FCP 是多少，然后运用今天学到的知识，开始你的优化之旅。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
