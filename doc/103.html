@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>解锁 JavaScript 中 Proxy 与 AOP 的强大用法：原理、场景与实战</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>解锁 JavaScript 中 Proxy 与 AOP 的强大用法：原理、场景与实战</h1>
+        <p>JavaScript | 2025.07.22</p>
+      </header>
+      <h2>前言</h2>
+<p>在现代 JavaScript 开发中，我们常常希望“在不入侵原始逻辑的前提下”，给某些操作加上一些附加功能，比如：</p>
+<ul>
+<li>给方法调用打日志、做埋点</li>
+<li>拦截和校验属性的读取与修改</li>
+<li>在函数执行前后做增强（AOP）</li>
+</ul>
+<p>这正是 <code>Proxy</code> 与 <code>Reflect</code> 的组合大展拳脚的舞台。</p>
+<hr>
+<h2>一、什么是 Proxy？</h2>
+<p><code>Proxy</code> 是 ES6 引入的元编程工具，允许你“代理”一个对象，对其属性访问、设置、函数调用、构造行为等进行<strong>全面拦截</strong>。</p>
+<h3>基本使用</h3>
+<h4>1. Proxy 代理普通对象</h4>
+<pre><code class="language-javascript">const user = { name: &quot;Alice&quot;, age: 25 };
+
+const proxyUser = new Proxy(user, {
+  get(target, prop) {
+    console.log(`读取了属性 ${prop}`);
+    return Reflect.get(target, prop);
+  },
+  set(target, prop, value) {
+    console.log(`设置了属性 ${prop} = ${value}`);
+    return Reflect.set(target, prop, value);
+  },
+});
+
+console.log(proxyUser.name); // 读取了属性 name
+proxyUser.age = 26; // 设置了属性 age = 26
+</code></pre>
+<p><strong>场景</strong>：数据校验、数据绑定、调试埋点等。</p>
+<hr>
+<h4>2. Proxy 代理函数</h4>
+<p>函数其实也是对象，我们可以通过 Proxy 拦截函数调用、构造行为（构造函数才可以拦截构造行为）。</p>
+<pre><code class="language-javascript">function greet(name) {
+  return `Hello, ${name}!`;
+}
+
+const proxyGreet = new Proxy(greet, {
+  apply(target, thisArg, args) {
+    console.log(`调用函数 greet，参数：${args}`);
+    return Reflect.apply(target, thisArg, args);
+  },
+  construct(target, args) {
+    console.log(`通过 new 构造函数调用 greet，参数：${args}`);
+    return Reflect.construct(target, args);
+  },
+});
+
+console.log(proxyGreet(&quot;Bob&quot;)); // 调用函数 greet，参数：Bob -&gt; Hello, Bob!
+// new proxyGreet(&quot;Alice&quot;);       // 如果 greet 不是构造函数，这行会抛错
+</code></pre>
+<p><strong>应用</strong>：日志记录、参数校验、权限控制等。</p>
+<hr>
+<h4>3. Proxy 代理类</h4>
+<p>类本质上是构造函数，可以拦截实例化操作。</p>
+<pre><code class="language-javascript">class Person {
+  constructor(name) {
+    this.name = name;
+  }
+  sayHi() {
+    return `Hi, I am ${this.name}`;
+  }
+}
+
+const ProxyPerson = new Proxy(Person, {
+  construct(target, args) {
+    console.log(`实例化 Person，参数：${args}`);
+    return Reflect.construct(target, args);
+  },
+});
+
+const p = new ProxyPerson(&quot;Charlie&quot;); // 实例化 Person，参数：Charlie
+console.log(p.sayHi()); // Hi, I am Charlie
+</code></pre>
+<p><strong>适用</strong>：实例化控制、日志收集、权限管理等。</p>
+<hr>
+<h2>二、与 Reflect 的配合（保持语义）</h2>
+<p><code>Reflect</code> 是 ES6 提供的工具对象，它将原本可能隐式完成的底层操作变成显式函数调用，用于<strong>安全、语义明确地代理目标对象</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>Reflect 方法</th>
+<th>用途</th>
+<th>参数说明</th>
+<th>返回值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Reflect.get(target, prop, receiver)</code></td>
+<td>获取对象属性</td>
+<td>目标对象，属性名，访问器上下文</td>
+<td>属性值</td>
+</tr>
+<tr>
+<td><code>Reflect.set(target, prop, value, receiver)</code></td>
+<td>设置对象属性</td>
+<td>目标对象，属性名，属性值，赋值上下文</td>
+<td>布尔值，是否设置成功</td>
+</tr>
+<tr>
+<td><code>Reflect.apply(targetFn, thisArg, args)</code></td>
+<td>调用函数</td>
+<td>目标函数，this 绑定，参数列表</td>
+<td>函数调用结果</td>
+</tr>
+<tr>
+<td><code>Reflect.construct(targetConstructor, args, newTarget)</code></td>
+<td>构造函数调用</td>
+<td>构造函数，参数列表，new.target（可选）</td>
+<td>新实例对象</td>
+</tr>
+</tbody></table>
+<h3>示例：Reflect.apply 调用函数</h3>
+<pre><code class="language-javascript">function sum(a, b) {
+  return a + b;
+}
+
+console.log(Reflect.apply(sum, null, [3, 4])); // 7
+</code></pre>
+<h3>示例：Reflect.construct 实例化对象</h3>
+<pre><code class="language-typescript">function Animal(type) {
+  this.type = type;
+}
+
+const dog = Reflect.construct(Animal, [&quot;dog&quot;]);
+console.log(dog.type); // dog
+</code></pre>
+<hr>
+<h2>三、AOP（面向切面编程）简介</h2>
+<p>AOP 是一种编程范式，它将“横切关注点”从主逻辑中解耦，如：</p>
+<ul>
+<li>日志记录</li>
+<li>性能监控</li>
+<li>权限校验</li>
+<li>异常捕获</li>
+</ul>
+<p>在 JavaScript 中，我们可通过 <code>Proxy + Reflect</code> 轻松实现 AOP 功能！</p>
+<hr>
+<h2>四、封装通用 AOP 工具</h2>
+<p>下面封装一个通用 AOP 工具，支持对象实例、函数和类的代理，自动在调用前后执行自定义逻辑：</p>
+<pre><code class="language-javascript">function withAOP(target, { before, after, error }) {
+  if (typeof target === &quot;function&quot;) {
+    // 代理函数或类
+    return new Proxy(target, {
+      apply(fn, thisArg, args) {
+        try {
+          before?.(fn.name, args);
+          const result = Reflect.apply(fn, thisArg, args);
+          after?.(fn.name, result, args);
+          return result;
+        } catch (err) {
+          error?.(fn.name, err, args);
+          throw err;
+        }
+      },
+      construct(fn, args) {
+        try {
+          before?.(fn.name, args);
+          const instance = Reflect.construct(fn, args);
+          after?.(fn.name, instance, args);
+          return instance;
+        } catch (err) {
+          error?.(fn.name, err, args);
+          throw err;
+        }
+      },
+    });
+  } else if (typeof target === &quot;object&quot;) {
+    // 代理对象实例
+    return new Proxy(target, {
+      get(obj, prop, receiver) {
+        const value = Reflect.get(obj, prop, receiver);
+        if (typeof value === &quot;function&quot;) {
+          return new Proxy(value, {
+            apply(fn, thisArg, args) {
+              try {
+                before?.(prop, args);
+                const result = Reflect.apply(fn, thisArg, args);
+                after?.(prop, result, args);
+                return result;
+              } catch (err) {
+                error?.(prop, err, args);
+                throw err;
+              }
+            },
+          });
+        }
+        return value;
+      },
+    });
+  }
+}
+</code></pre>
+<hr>
+<h2>五、实际应用场景</h2>
+<h3>1. 日志埋点</h3>
+<pre><code class="language-javascript">const service = {
+  fetchData(id) {
+    return `data-${id}`;
+  },
+};
+
+const wrapped = withAOP(service, {
+  before: (method, args) =&gt; console.log(`[调用] ${method}(${args})`),
+  after: (method, result) =&gt; console.log(`[结果] ${method} =&gt; ${result}`),
+});
+
+wrapped.fetchData(123);
+</code></pre>
+<h3>2. 表单数据拦截验证</h3>
+<pre><code class="language-javascript">const form = {};
+
+const proxyForm = new Proxy(form, {
+  set(target, prop, value) {
+    if (prop === &quot;email&quot; &amp;&amp; !/^\S+@\S+.\S+$/.test(value)) {
+      throw new Error(&quot;邮箱格式不合法&quot;);
+    }
+    return Reflect.set(target, prop, value);
+  },
+});
+
+proxyForm.email = &quot;test@example.com&quot;; // ✅
+proxyForm.email = &quot;invalid&quot;; // ❌ 抛出异常
+</code></pre>
+<h3>3. 权限控制</h3>
+<pre><code class="language-javascript">function withAdminCheck(obj) {
+  return new Proxy(obj, {
+    get(target, prop) {
+      if (prop === &quot;deleteUser&quot;) {
+        throw new Error(&quot;你没有权限执行该操作&quot;);
+      }
+      return Reflect.get(target, prop);
+    },
+  });
+}
+</code></pre>
+<hr>
+<h2>六、Proxy 的性能与限制</h2>
+<ul>
+<li>会略微降低性能，尤其在高频调用、大量属性的对象上</li>
+<li>无法代理 <code>JSON.stringify</code>、<code>Object.keys</code> 的默认行为（需手动处理）</li>
+<li>不兼容 IE11，需 polyfill 或降级方案</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>✔ 用于核心功能外的“横切逻辑”</li>
+<li>✔ 用于开发阶段调试增强（埋点、日志）</li>
+<li>✔ Reflect 保持操作语义，建议代理内部使用 Reflect 来确保行为一致性</li>
+<li>❌ 避免在性能关键路径大量使用（如每个数据行都用 Proxy）</li>
+</ul>
+<hr>
+<h2>七、延伸阅读</h2>
+<ul>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy">MDN Proxy 文档</a></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Reflect">Reflect 官方文档</a></li>
+</ul>
+<hr>
+<h2>总结</h2>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Proxy</td>
+<td>拦截对象所有行为（访问、赋值、调用等）</td>
+</tr>
+<tr>
+<td>Reflect</td>
+<td>标准、安全地执行默认行为</td>
+</tr>
+<tr>
+<td>AOP</td>
+<td>在函数调用前后插入日志/校验/埋点等横切逻辑</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>结语</h2>
+<p>随着前端应用逻辑日趋复杂，模块化、解耦、透明增强变得越来越重要。掌握 <code>Proxy + Reflect + AOP</code> 这套组合拳，将极大提升你的架构能力和代码可维护性。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
