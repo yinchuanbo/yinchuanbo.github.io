@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React 19 新特性详解</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail line-numbers" >
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>React 19 新特性详解</h1>
+        <p>React | 2025.07.21</p>
+      </header>
+      <p>React 19 引入了一系列新的功能和改进，旨在简化开发者的工作并提升应用性能。这些改进包括全新的编译器、无需手动优化的 Memoization、简化 Ref 处理的新方法，以及一个新推出的多功能 <code>use()</code> Hook。</p>
+<h2>React Compiler: 幕后魔法</h2>
+<p>React 19 的明星功能是它的新编译器。这个编译器将你的 React 代码转换成纯 JavaScript，提升性能，并且免去手动优化的麻烦。</p>
+<p><img src="../images/94243079c2363393e60ddd4b26386a71.awebp" alt="这是图片"></p>
+<h3>示例代码：</h3>
+<pre><code class="language-javascript">// 不再需要 useCallback 或 useMemo
+function Component() {
+  return &lt;div&gt;优化啦!&lt;/div&gt;;
+}
+</code></pre>
+<p>解释：新的编译器将 React 代码转化为优化过的 JavaScript，不再需要手动优化（比如使用 memoization）。</p>
+<h2>告别 Memoization Hooks</h2>
+<p>使用 <code>useCallback</code>、<code>useMemo</code> 和 <code>memo</code> 进行手动优化的日子已经结束。新的编译器会在后台优化你的代码，因此你可以专注于编写清晰优雅的 React 组件。</p>
+<h3>旧版本代码：</h3>
+<pre><code class="language-javascript">// React 18
+import React, { useState, useMemo } from &quot;react&quot;;
+
+const ExpensiveComponent = () =&gt; {
+  const [count, setCount] = useState(0);
+  const [input, setInput] = useState(&quot;&quot;);
+
+  // 对开销大的计算进行 memoize
+  const expensiveCalculation = useMemo(() =&gt; {
+    console.log(&quot;Calculating...&quot;);
+    let sum = 0;
+    for (let i = 0; i &lt; 1000000000; i++) {
+      sum += i;
+    }
+    return sum;
+  }, [count]);
+
+  return (
+    &lt;div&gt;
+      &lt;h1&gt;Expensive Calculation: {expensiveCalculation}&lt;/h1&gt;
+      &lt;button onClick={() =&gt; setCount(count + 1)}&gt;
+        Increment Count ({count})
+      &lt;/button&gt;
+      &lt;input
+        type=&quot;text&quot;
+        value={input}
+        onChange={(e) =&gt; setInput(e.target.value)}
+        placeholder=&quot;Type something&quot;
+      /&gt;
+    &lt;/div&gt;
+  );
+};
+
+export default ExpensiveComponent;
+</code></pre>
+<h3>新版本代码：</h3>
+<pre><code class="language-javascript">// 无需手动 memoization React 19
+function Component({ children }) {
+  return &lt;div&gt;{children}&lt;/div&gt;;
+}
+</code></pre>
+<p>解释：你不再需要使用 <code>useCallback</code> 或 <code>useMemo</code>，React 19 会自动处理优化。</p>
+<h2>无需 forwardRef: 简化 Ref 处理</h2>
+<p>过去使用 <code>forwardRef</code> 传递 refs 有点麻烦，但在 React 19 中，你可以像传递其他 props 一样传递 refs。</p>
+<h3>示例代码：</h3>
+<pre><code class="language-javascript">function Child({ innerRef }) {
+  return &lt;input ref={innerRef} /&gt;;
+}
+</code></pre>
+<p>解释：不再需要 <code>forwardRef</code>，refs 现在像普通的 props 一样传递。</p>
+<h2>新的 <code>use()</code> Hook: 改变游戏规则</h2>
+<p>新的 <code>use()</code> Hook 取代了多种 hooks，比如用于数据获取的 <code>useEffect</code> 以及用于消耗 Context 数据的 <code>useContext</code> 和 <code>useState</code>。它通过处理 promises 和 context 使你的代码更为简洁优雅。</p>
+<h3>旧版本代码：</h3>
+<pre><code class="language-javascript">import React, { useState, useEffect } from &quot;react&quot;;
+
+const DataFetchingComponent = () =&gt; {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() =&gt; {
+    const fetchData = async () =&gt; {
+      try {
+        const response = await fetch(&quot;https://api.example.com/data&quot;);
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) return &lt;p&gt;加载中...&lt;/p&gt;;
+  if (error) return &lt;p&gt;错误: {error}&lt;/p&gt;;
+
+  return (
+    &lt;div&gt;
+      &lt;h1&gt;数据:&lt;/h1&gt;
+      &lt;pre&gt;{JSON.stringify(data, null, 2)}&lt;/pre&gt;
+    &lt;/div&gt;
+  );
+};
+
+export default DataFetchingComponent;
+</code></pre>
+<h3>新版本代码：</h3>
+<pre><code class="language-javascript">import React, { use } from &quot;react&quot;;
+
+// 用于获取数据的函数
+async function fetchData() {
+  const response = await fetch(&quot;https://api.example.com/data&quot;);
+  if (!response.ok) {
+    throw new Error(&quot;获取数据失败&quot;);
+  }
+  return response.json();
+}
+
+const DataFetchingComponent = () =&gt; {
+  // `use()` 会在 promise 解析之前挂起组件
+  const data = use(fetchData());
+
+  return (
+    &lt;div&gt;
+      &lt;h1&gt;数据:&lt;/h1&gt;
+      &lt;pre&gt;{JSON.stringify(data, null, 2)}&lt;/pre&gt;
+    &lt;/div&gt;
+  );
+};
+
+export default DataFetchingComponent;
+</code></pre>
+<p>解释：使用 <code>use()</code> 时，它会在 promise 解析前挂起组件。如果发生错误，它同样可以触发 <code>Suspense</code> 错误边界。你不再需要手动管理数据获取的副作用，React 会在后台处理这些。</p>
+<h2>Directives: 新的实现方式</h2>
+<p>如果你使用过 Next.js，可能已经见过 directives。React 19 引入了 directives 来简化组件配置。使用 <code>use client</code> 标记客户端组件，使用 <code>use server</code> 标记服务器端组件。只需在文件顶部添加一行字符串即可。</p>
+<h3>示例代码：</h3>
+<pre><code class="language-javascript">&quot;use client&quot;;
+function ClientComponent() {
+  return &lt;div&gt;客户端渲染&lt;/div&gt;;
+}
+</code></pre>
+<p>解释：使用 <code>use client</code> 和 <code>use server</code> 来声明客户端或服务器端组件。</p>
+<h2>Actions: 精简表单处理</h2>
+<p>表单处理获得了重大升级。Actions 是连接到表单提交的函数，可以在服务器或客户端运行。这意味着代码更加简洁，表单处理过程更加流畅。</p>
+<h3>示例代码：</h3>
+<pre><code class="language-javascript">async function action(formData) {
+  return await handleSubmit(formData);
+}
+</code></pre>
+<p>解释：Actions 处理表单提交，可以在客户端或服务器上运行。</p>
+<h2><code>useFormStatus()</code> : 管理表单状态</h2>
+<p>使用 <code>useFormStatus()</code> Hook 来跟踪表单提交状态，例如在表单提交时禁用提交按钮。这对于提供流畅的用户体验非常重要。</p>
+<h3>示例代码：</h3>
+<pre><code class="language-javascript">const { pending } = useFormStatus();
+return &lt;button disabled={pending}&gt;提交&lt;/button&gt;;
+</code></pre>
+<p>解释： <code>useFormStatus()</code> 跟踪表单提交状态，比如在提交时禁用按钮。</p>
+<h2><code>useFormState()</code> : 有状态的表单操作</h2>
+<p><code>useFormState()</code> 是一个用于管理表单状态的新 hook。它类似于 <code>useState</code> ，但它与表单操作一起使用，允许你访问之前的状态和提交的数据。</p>
+<h3>示例代码：</h3>
+<pre><code class="language-javascript">import React from &quot;react&quot;;
+import { useForm, useFormState } from &quot;react-hook-form&quot;;
+
+const MyForm = () =&gt; {
+  const { register, handleSubmit, control } = useForm();
+  const { isSubmitting, isDirty, isValid } = useFormState({ control });
+
+  const onSubmit = (data) =&gt; {
+    console.log(data);
+  };
+
+  return (
+    &lt;form onSubmit={handleSubmit(onSubmit)}&gt;
+      &lt;div&gt;
+        &lt;label htmlFor=&quot;firstName&quot;&gt;First Name:&lt;/label&gt;
+        &lt;input {...register(&quot;firstName&quot;, { required: true })} /&gt;
+      &lt;/div&gt;
+      &lt;div&gt;
+        &lt;label htmlFor=&quot;lastName&quot;&gt;Last Name:&lt;/label&gt;
+        &lt;input {...register(&quot;lastName&quot;, { required: true })} /&gt;
+      &lt;/div&gt;
+      &lt;button type=&quot;submit&quot; disabled={isSubmitting || !isValid}&gt;
+        提交
+      &lt;/button&gt;
+      &lt;div&gt;
+        &lt;p&gt;表单状态: {isDirty ? &quot;已修改&quot; : &quot;未修改&quot;}&lt;/p&gt;
+        &lt;p&gt;提交中: {isSubmitting ? &quot;是&quot; : &quot;否&quot;}&lt;/p&gt;
+      &lt;/div&gt;
+    &lt;/form&gt;
+  );
+};
+
+export default MyForm;
+</code></pre>
+<p>解释：<code>useFormState</code> 仅在它监视的特定字段更改时重新渲染，使其高效。你可以轻松管理和观察表单状态，而无需编写处理更改和验证的样板代码。</p>
+<h2><code>useOptimistic()</code> : 提升用户体验</h2>
+<p>对于实时应用，<code>useOptimistic()</code> Hook 非常有用。它允许乐观更新，使你的应用感觉更流畅，通过立即更新 UI 并在后台与服务器同步来提升用户体验。</p>
+<h3>示例代码：</h3>
+<pre><code class="language-jsx">const [optimisticState, setOptimistic] = useOptimistic(initialState);
+</code></pre>
+<p>解释：在与服务器同步之前启用乐观 UI 更新。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

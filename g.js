@@ -4,6 +4,7 @@ const https = require('https');
 const http = require('http');
 const crypto = require('crypto');
 
+
 // 下载图片并返回保存的文件名，支持重定向
 async function downloadImage(url, outputDir, redirects = 0, maxRedirects = 5) {
   const protocol = url.startsWith('https') ? https : http;
@@ -98,7 +99,7 @@ async function processMarkdownFile(mdFileName) {
 }
 
 // 示例：处理指定的 Markdown 文件
-const mdFileName = '75.md'; // 替换为目标文件名
+const mdFileName = `${process.argv[2] || '90'}.md`; // 替换为目标文件名
 processMarkdownFile(mdFileName)
   .then(() => console.log('处理完成'))
   .catch(error => console.error('错误:', error));

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>兼容低版本浏览器</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail line-numbers" >
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>兼容低版本浏览器</h1>
+        <p>解决方案 | 2025.07.21</p>
+      </header>
+      <h2>一、需求背景</h2>
+<p>低版本浏览器（如 IE、旧版 Chrome/Firefox 等）对现代 JavaScript 特性（Promise、fetch、async/await、ES6+ 语法）和 CSS 新特性支持不足，需通过 <strong>Polyfill 补充特性、Babel 转译语法、PostCSS 补全前缀</strong> 实现兼容，结合 Vite 需用官方插件适配。</p>
+<h2>二、配置步骤</h2>
+<h3>（一）Polyfill 与 Babel 转码（JavaScript 兼容）</h3>
+<h4>1. 安装依赖</h4>
+<pre><code class="language-bash"># 核心依赖
+npm install --save-dev @vitejs/plugin-legacy @babel/preset-env
+# Polyfill 按需引入（可选，若需手动补充）
+npm install --save core-js regenerator-runtime
+</code></pre>
+<h4>2. 配置 <code>vite.config.js</code></h4>
+<pre><code class="language-javascript">import { defineConfig } from &quot;vite&quot;;
+import legacy from &quot;@vitejs/plugin-legacy&quot;;
+
+export default defineConfig({
+  plugins: [
+    // 适配低版本浏览器
+    legacy({
+      targets: [&quot;ie &gt;= 11&quot;], // 按需设置目标浏览器，如覆盖 IE 11 及以上
+      additionalLegacyPolyfills: [&quot;regenerator-runtime/runtime&quot;], // 手动补充 Polyfill
+    }),
+  ],
+  // 配置 Babel 转译规则
+  build: {
+    target: [&quot;es2015&quot;], // 转译为 ES2015 语法（覆盖更多旧浏览器）
+  },
+});
+</code></pre>
+<h4>3. 配置 Babel（<code>babel.config.json</code> 或 <code>.babelrc</code>）</h4>
+<pre><code class="language-json">{
+  &quot;presets&quot;: [
+    [
+      &quot;@babel/preset-env&quot;,
+      {
+        &quot;useBuiltIns&quot;: &quot;usage&quot;, // 按需引入 Polyfill（根据代码自动检测）
+        &quot;corejs&quot;: 3, // 指定 core-js 版本
+        &quot;targets&quot;: {
+          &quot;browsers&quot;: [&quot;ie &gt;= 11&quot;] // 目标浏览器范围
+        }
+      }
+    ]
+  ]
+}
+</code></pre>
+<h3>（二）CSS 兼容性处理（PostCSS + Autoprefixer）</h3>
+<h4>1. 安装依赖</h4>
+<pre><code class="language-css">npm install --save-dev postcss autoprefixer
+</code></pre>
+<h4>2. 配置 PostCSS（<code>postcss.config.js</code>）</h4>
+<pre><code class="language-javascript">module.exports = {
+  plugins: {
+    // 自动补全 CSS 前缀
+    autoprefixer: {
+      overrideBrowserslist: [&#39;ie &gt;= 11&#39;, &#39;last 2 versions&#39;] // 适配浏览器范围
+    }
+  }
+}
+</code></pre>
+<h4>3. 验证效果</h4>
+<p>编写现代 CSS 语法（如 <code>display: grid</code>），构建后检查输出文件，应自动补全 <code>-ms-grid</code> 等前缀。</p>
+<h3>（三）Vite 核心配置说明</h3>
+<table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>作用</th>
+<th>关键参数示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@vitejs/plugin-legacy</code></td>
+<td>生成兼容旧浏览器的产物（自动注入 Polyfill、转译语法）</td>
+<td><code>targets: [&#39;ie &gt;= 11&#39;]</code></td>
+</tr>
+<tr>
+<td><code>build.target</code></td>
+<td>指定 Vite 构建的语法目标（影响转译范围）</td>
+<td><code>&#39;es2015&#39;</code>（覆盖 ES5 基础特性）</td>
+</tr>
+<tr>
+<td><code>@babel/preset-env</code></td>
+<td>智能转译语法 + 按需 Polyfill</td>
+<td><code>useBuiltIns: &#39;usage&#39;</code>（按需加载）</td>
+</tr>
+<tr>
+<td><code>autoprefixer</code></td>
+<td>自动补全 CSS 前缀（适配不同浏览器内核）</td>
+<td><code>overrideBrowserslist</code>（浏览器范围）</td>
+</tr>
+</tbody></table>
+<h2>三、验证流程</h2>
+<ol>
+<li><strong>本地构建</strong>：运行 <code>npm run build</code>，检查输出目录（如 <code>dist</code>），应生成 <code>legacy</code> 产物（适配旧浏览器）。</li>
+<li><strong>低版本浏览器测试</strong>：<ul>
+<li>在 IE 11 或旧版浏览器打开构建后的页面。</li>
+<li>验证 <code>Promise</code>、<code>async/await</code> 等特性是否可用，CSS 新特性（如 <code>flex</code>）是否正常渲染。</li>
+</ul>
+</li>
+<li><strong>调试工具</strong>：<ul>
+<li>浏览器开发者工具 → <strong>Console</strong>：检查是否有语法报错。</li>
+<li><strong>Sources</strong>：查看转译后的代码，确认 ES6+ 语法已转为 ES5。</li>
+</ul>
+</li>
+</ol>
+<h2>四、注意事项</h2>
+<ol>
+<li><strong>Polyfill 体积问题</strong>：<ul>
+<li><code>useBuiltIns: &#39;usage&#39;</code> 会按需加载，但仍可能增大包体积。可手动精简 <code>targets</code> 范围，减少不必要的 Polyfill。</li>
+</ul>
+</li>
+<li><strong>动态语法兼容</strong>：<ul>
+<li>若代码中使用 <code>eval</code>、<code>new Function</code> 等动态语法，Babel 无法转译，需手动处理。</li>
+</ul>
+</li>
+<li><strong>浏览器版本覆盖</strong>：<ul>
+<li>通过 <code>browserslist</code> 或 <code>targets</code> 精准控制适配范围，避免过度兼容导致包体积膨胀。</li>
+</ul>
+</li>
+</ol>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
