@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>深入理解前端缓存：从原理到完整实战案例</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>深入理解前端缓存：从原理到完整实战案例</h1>
+        <p>缓存 | 2025.07.21</p>
+      </header>
+      <p>在现代 Web 开发中，缓存机制是提升页面性能、减少服务器负载的关键技术。合理的缓存策略能将页面加载速度提升 50%以上，同时降低 40%-60% 的服务器请求压力。本文将系统讲解前端缓存的工作原理，并通过一个完整的实战项目，展示不同缓存策略的实现方式与应用场景。</p>
+<h2>一、前端缓存基础概念</h2>
+<p>前端缓存指的是浏览器或代理服务器对已请求资源的本地存储机制，其核心目标是<strong>避免重复请求相同资源</strong>。</p>
+<p>根据缓存验证方式的不同，可分为三大类：</p>
+<ul>
+<li><strong>无缓存</strong>：强制每次请求都获取完整资源</li>
+<li><strong>强缓存</strong>：在有效期内直接使用本地缓存，不发起请求</li>
+<li><strong>协商缓存</strong>：通过服务器验证后决定是否使用缓存</li>
+</ul>
+<h2>二、实战项目搭建</h2>
+<p>我们将通过一个完整的 Node.js 项目，实际演示不同缓存策略的效果。</p>
+<h3>1. 项目结构</h3>
+<pre><code class="language-bash">.
+|-- package-lock.json    # 依赖版本锁定文件
+|-- package.json         # 项目依赖配置
+|-- public               # 静态资源目录
+|   |-- images           # 图片资源（用于缓存演示）
+|   |   |-- 00.jpg       # 无缓存示例图片
+|   |   |-- 01.png       # Expires强缓存示例
+|   |   |-- 02.png       # Cache-Control强缓存示例
+|   |   |-- 03.png       # Last-Modified协商缓存示例
+|   |   `-- 04.png       # ETag协商缓存示例
+|   `-- index.html       # 主页面，展示所有示例图片
+|-- src
+|   `-- app.ts           # 服务器代码，实现不同缓存策略
+`-- tsconfig.json        # TypeScript配置文件
+</code></pre>
+<h3>2. 环境配置</h3>
+<ol>
+<li>安装依赖</li>
+</ol>
+<pre><code class="language-bash">npm i -D @types/node nodemon ts-node typescript
+</code></pre>
+<ul>
+<li><code>@types/node</code>：Node.js 的 TypeScript 类型定义</li>
+<li><code>nodemon</code>：开发时自动重启服务器</li>
+<li><code>ts-node</code>：直接运行 TypeScript 代码</li>
+<li><code>typescript</code>：TypeScript 编译器</li>
+</ul>
+<ol start="2">
+<li>TypeScript 配置（tsconfig.json）</li>
+</ol>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;ES2016&quot;, // 编译目标为ES2016
+    &quot;module&quot;: &quot;commonjs&quot;, // 模块系统使用commonjs
+    &quot;esModuleInterop&quot;: true, // 允许ES模块与CommonJS互操作
+    &quot;strict&quot;: true, // 启用严格类型检查
+    &quot;skipLibCheck&quot;: true // 跳过库文件类型检查
+  },
+  &quot;exclude&quot;: [&quot;node_modules&quot;] // 排除node_modules目录
+}
+</code></pre>
+<ol start="3">
+<li>创建演示页面（public/index.html）</li>
+</ol>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;title&gt;前端缓存演示&lt;/title&gt;
+    &lt;style&gt;
+      body {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h2 {
+        color: #2c3e50;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 8px;
+      }
+      .example {
+        margin: 20px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 4px;
+      }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;前端缓存策略演示&lt;/h1&gt;
+
+    &lt;div class=&quot;example&quot;&gt;
+      &lt;h2&gt;1. 无缓存策略&lt;/h2&gt;
+      &lt;p&gt;每次刷新都会重新请求资源&lt;/p&gt;
+      &lt;img width=&quot;200&quot; src=&quot;/images/00.jpg&quot; alt=&quot;无缓存示例图&quot; /&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;example&quot;&gt;
+      &lt;h2&gt;2. 强缓存策略&lt;/h2&gt;
+      &lt;p&gt;Expires（HTTP/1.0）- 3秒内不重新请求&lt;/p&gt;
+      &lt;img width=&quot;200&quot; src=&quot;/images/01.png&quot; alt=&quot;Expires缓存示例图&quot; /&gt;
+      &lt;p&gt;Cache-Control（HTTP/1.1）- 5秒内不重新请求&lt;/p&gt;
+      &lt;img width=&quot;200&quot; src=&quot;/images/02.png&quot; alt=&quot;Cache-Control缓存示例图&quot; /&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;example&quot;&gt;
+      &lt;h2&gt;3. 协商缓存策略&lt;/h2&gt;
+      &lt;p&gt;Last-Modified + If-Modified-Since - 基于修改时间验证&lt;/p&gt;
+      &lt;img width=&quot;200&quot; src=&quot;/images/03.png&quot; alt=&quot;Last-Modified缓存示例图&quot; /&gt;
+      &lt;p&gt;ETag + If-None-Match - 基于内容哈希验证&lt;/p&gt;
+      &lt;img width=&quot;200&quot; src=&quot;/images/04.png&quot; alt=&quot;ETag缓存示例图&quot; /&gt;
+    &lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h2>三、缓存策略详解与实现</h2>
+<p>接下来，我们将在<code>src/app.ts</code>中实现不同的缓存策略，通过代码展示其工作原理。</p>
+<h3>1. 服务器基础配置</h3>
+<p>首先搭建基础的 HTTP 服务器框架：</p>
+<pre><code class="language-typescript">import http from &quot;http&quot;;
+import path from &quot;path&quot;;
+import fs from &quot;fs/promises&quot;;
+import crypto from &quot;crypto&quot;;
+
+// 配置服务器端口和静态资源目录
+const PORT = 3000;
+const publicDir = path.join(__dirname, &quot;../public&quot;);
+
+// 创建HTTP服务器
+const server = http.createServer(async (req, res) =&gt; {
+  try {
+    const pathname = req.url;
+
+    // 处理根路径请求，返回index.html
+    if (pathname === &quot;/&quot;) {
+      const data = await fs.readFile(
+        path.join(publicDir, &quot;index.html&quot;),
+        &quot;utf8&quot;
+      );
+      res.writeHead(200, { &quot;Content-Type&quot;: &quot;text/html; charset=utf-8&quot; });
+      return res.end(data);
+    }
+
+    // 各种缓存策略的实现将在这里添加...
+
+    // 未匹配到任何路由
+    res.writeHead(404);
+    res.end(&quot;404 Not Found&quot;);
+  } catch (err: any) {
+    // 错误处理
+    if (err.code === &quot;ENOENT&quot;) {
+      res.writeHead(404);
+      return res.end(&quot;File not found&quot;);
+    }
+    console.error(&quot;Server error:&quot;, err);
+    res.writeHead(500);
+    res.end(&quot;500 Internal Server Error&quot;);
+  }
+});
+
+// 启动服务器
+server.listen(PORT, () =&gt; {
+  console.log(`服务器已启动，访问: http://localhost:${PORT}`);
+});
+</code></pre>
+<h3>2. 无缓存策略</h3>
+<p>无缓存策略强制浏览器每次都从服务器获取完整资源，不存储任何本地副本。</p>
+<p><strong>工作原理：</strong></p>
+<ul>
+<li>不设置缓存相关响应头，或显式声明禁止缓存</li>
+<li>浏览器每次请求都会发送完整的 HTTP 请求</li>
+<li>服务器始终返回 200 状态码和完整资源内容</li>
+</ul>
+<p><strong>无缓存请求流程图：</strong></p>
+<pre><code>┌─────────┐      ┌─────────┐
+│ 浏览器   │       │ 服务器   │
+└────┬────┘      └────┬────┘
+     │                 │
+     │   发起请求      │
+     ├────────────────&gt;│
+     │                 │
+     │   返回200 + 资源 │
+     │&lt;────────────────│
+     │                 │
+</code></pre>
+<p><strong>代码实现：</strong></p>
+<pre><code class="language-js">// 处理00.jpg - 无缓存示例
+if (pathname === &quot;/images/00.jpg&quot;) {
+  const imagePath = path.join(publicDir, &quot;images/00.jpg&quot;);
+  const data = await fs.readFile(imagePath);
+
+  // 方式1：隐式无缓存（不设置缓存头）
+  // res.writeHead(200, { &quot;Content-Type&quot;: &quot;image/jpeg&quot; });
+
+  // 方式2：显式声明不缓存（推荐生产环境使用）
+  res.writeHead(200, {
+    &quot;Content-Type&quot;: &quot;image/jpeg&quot;,
+    &quot;Cache-Control&quot;: &quot;no-store, no-cache&quot;, // 禁止缓存存储和使用
+    Pragma: &quot;no-cache&quot;, // 兼容HTTP/1.0
+    Expires: &quot;0&quot;, // 告知代理服务器不缓存
+  });
+
+  return res.end(data);
+}
+</code></pre>
+<p><strong>适用场景：</strong></p>
+<ul>
+<li>实时性要求极高的资源（如股票行情、实时监控数据）</li>
+<li>支付信息、订单状态等敏感数据</li>
+<li>频繁变动且必须显示最新版本的内容</li>
+</ul>
+<h3>3. 强缓存策略</h3>
+<p>强缓存允许浏览器在一定时间内直接使用本地缓存，不向服务器发起请求，是性能最优的缓存策略。</p>
+<ol>
+<li>Expires（<code>HTTP/1.0</code>）</li>
+</ol>
+<p>Expires 是 <code>HTTP/1.0</code> 定义的强缓存头，通过设置<strong>绝对时间</strong>指定缓存过期时间。</p>
+<p><strong>工作原理：</strong></p>
+<ul>
+<li>服务器返回资源时，通过 Expires 头指定缓存过期的具体时间</li>
+<li>浏览器将资源缓存至该时间点</li>
+<li>过期前的请求直接使用本地缓存，不发送网络请求</li>
+</ul>
+<p><strong>强缓存（Expires）流程图：</strong></p>
+<pre><code class="language-makefile">首次请求:
+┌─────────┐      ┌─────────┐
+│ 浏览器  │      │ 服务器  │
+└────┬────┘      └────┬────┘
+     │                │
+     │   发起请求      │
+     ├────────────────&gt;│
+     │                 │
+     │ 200 + 资源 + Expires │
+     │&lt;────────────────│
+     │                 │
+
+有效期内再次请求:
+┌─────────┐      ┌─────────┐
+│ 浏览器  │      │ 服务器  │
+└────┬────┘      └────┬────┘
+     │                 │
+     │  检查Expires   │
+     │  缓存未过期    │
+     │                 │
+     │ 直接使用缓存   │
+     │                 │
+</code></pre>
+<p><strong>代码实现：</strong></p>
+<pre><code class="language-javascript">// 处理01.png - Expires强缓存示例
+if (pathname === &quot;/images/01.png&quot;) {
+  const imagePath = path.join(publicDir, &quot;images/01.png&quot;);
+  const data = await fs.readFile(imagePath);
+
+  // 计算缓存过期时间：当前时间 + 3秒
+  const expiresTime = new Date(Date.now() + 3000).toUTCString();
+
+  res.writeHead(200, {
+    &quot;Content-Type&quot;: &quot;image/png&quot;,
+    Expires: expiresTime, // 格式必须为GMT时间：&quot;Wed, 21 Oct 2023 07:28:00 GMT&quot;
+  });
+
+  return res.end(data);
+}
+</code></pre>
+<p><strong>特点：</strong></p>
+<ul>
+<li>优点：实现简单，兼容性好</li>
+<li>缺点：依赖客户端时钟准确性，时间精度为秒级</li>
+<li>注意：在 HTTP/1.1 中，Expires 会被 Cache-Control 覆盖</li>
+</ul>
+<ol start="2">
+<li>Cache-Control（HTTP/1.1）</li>
+</ol>
+<p>Cache-Control 是 HTTP/1.1 推出的现代缓存头，通过<strong>相对时间（秒）</strong> 控制缓存，优先级高于 Expires。</p>
+<p><strong>工作原理：</strong></p>
+<ul>
+<li>使用 max-age 指定缓存有效时长（秒）</li>
+<li>从浏览器接收响应时开始计时</li>
+<li>有效期内直接使用本地缓存，不发起网络请求</li>
+</ul>
+<p><strong>Cache-Control 常用指令对比：</strong></p>
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>含义描述</th>
+<th>作用范围</th>
+<th>核心特点</th>
+<th>典型适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>max-age=3600</td>
+<td>缓存有效期为 3600 秒（1 小时）</td>
+<td>私有缓存（浏览器本地）</td>
+<td>过期前直接使用缓存，不发起请求</td>
+<td>版本化静态资源（JS/CSS/ 图片）</td>
+</tr>
+<tr>
+<td>s-maxage=3600</td>
+<td>共享缓存有效期为 3600 秒</td>
+<td>共享缓存（CDN / 代理服务器）</td>
+<td>优先级高于 max-age，仅作用于共享缓存</td>
+<td>CDN 分发资源，平衡带宽与更新频率</td>
+</tr>
+<tr>
+<td>public</td>
+<td>允许任何缓存（浏览器 / CDN 等）存储资源</td>
+<td>所有类型缓存</td>
+<td>打破默认的私有缓存限制</td>
+<td>公共静态资源（首页图片、通用 JS）</td>
+</tr>
+<tr>
+<td>private</td>
+<td>仅限私有缓存存储，禁止共享缓存存储</td>
+<td>仅私有缓存</td>
+<td>保护用户个性化数据，避免跨用户泄露</td>
+<td>用户个人中心、购物车等私有内容</td>
+</tr>
+<tr>
+<td>immutable</td>
+<td>声明资源永不变更，忽略同 URL 的验证请求</td>
+<td>私有缓存</td>
+<td>阻止浏览器对未过期资源的冗余验证</td>
+<td>带内容哈希的资源（如 style.5a7b.css）</td>
+</tr>
+<tr>
+<td>no-store</td>
+<td>禁止任何缓存存储资源</td>
+<td>所有类型缓存</td>
+<td>每次请求必须从服务器获取完整资源</td>
+<td>支付页面、验证码、实时监控数据</td>
+</tr>
+<tr>
+<td>no-cache</td>
+<td>允许缓存存储，但使用前必须服务器验证</td>
+<td>所有类型缓存</td>
+<td>触发协商缓存（需配合 ETag/Last-Modified）</td>
+<td>频繁更新的动态内容（新闻列表、商品详情）</td>
+</tr>
+</tbody></table>
+<p><strong>代码实现：</strong></p>
+<pre><code class="language-js">// 处理02.png - Cache-Control强缓存示例
+if (pathname === &quot;/images/02.png&quot;) {
+  const imagePath = path.join(publicDir, &quot;images/02.png&quot;);
+  const data = await fs.readFile(imagePath);
+
+  res.writeHead(200, {
+    &quot;Content-Type&quot;: &quot;image/png&quot;,
+    &quot;Cache-Control&quot;: &quot;max-age=5&quot;, // 缓存5秒（从接收响应开始计算）
+  });
+
+  return res.end(data);
+}
+</code></pre>
+<p><strong>特点：</strong></p>
+<ul>
+<li>优点：时间计算精确，不依赖客户端时钟，控制粒度细</li>
+<li>缺点：不兼容非常老旧的浏览器（如 IE6 及以下）</li>
+<li>最佳实践：结合版本化资源（如<code>logo.v2.png</code>）使用长期缓存</li>
+</ul>
+<h3>4. 协商缓存策略</h3>
+<p>协商缓存通过服务器验证资源是否修改，决定是否复用缓存，既能保证资源新鲜度，又能减少不必要的传输。</p>
+<ol>
+<li>Last-Modified + If-Modified-Since</li>
+</ol>
+<p>基于资源最后修改时间进行验证，适用于低频更新的资源。</p>
+<p><strong>工作原理：</strong></p>
+<ol>
+<li>首次请求：服务器返回资源最后修改时间（Last-Modified 头）</li>
+<li>后续请求：浏览器携带该时间（If-Modified-Since 头）</li>
+<li>服务器比对时间：<ul>
+<li>未修改 → 返回 304（无响应体），浏览器复用缓存</li>
+<li>已修改 → 返回 200 及新资源，浏览器更新缓存</li>
+</ul>
+</li>
+</ol>
+<p><strong>协商缓存（Last-Modified）流程图：</strong></p>
+<pre><code class="language-makefile">首次请求:
+┌─────────┐      ┌─────────┐
+│ 浏览器  │      │ 服务器  │
+└────┬────┘      └────┬────┘
+     │                 │
+     │   发起请求      │
+     ├────────────────&gt;│
+     │                 │
+     │200 + 资源 + Last-Modified│
+     │&lt;────────────────│
+     │                 │
+
+后续请求:
+┌─────────┐      ┌─────────┐
+│ 浏览器  │      │ 服务器  │
+└────┬────┘      └────┬────┘
+     │                 │
+     │请求 + If-Modified-Since│
+     ├────────────────&gt;│
+     │                 │
+     │   比对时间      │
+     │                 │
+     │      未修改     │
+     │      304响应    │
+     │&lt;────────────────│
+     │                 │
+     │   使用缓存      │
+     │                 │
+</code></pre>
+<p><strong>代码实现：</strong></p>
+<pre><code class="language-javascript">// 处理03.png - Last-Modified协商缓存示例
+if (pathname === &quot;/images/03.png&quot;) {
+  const imagePath = path.join(publicDir, &quot;images/03.png&quot;);
+
+  // 获取文件信息（包括修改时间）
+  const fileStats = await fs.stat(imagePath);
+  const fileData = await fs.readFile(imagePath);
+
+  // 格式化最后修改时间（必须为GMT格式）
+  const lastModified = fileStats.mtime.toUTCString();
+
+  // 获取浏览器发送的If-Modified-Since头
+  const ifModifiedSince = req.headers[&quot;if-modified-since&quot;];
+
+  if (ifModifiedSince) {
+    // 转换为秒级时间戳进行比较（HTTP时间仅精确到秒）
+    const clientTime = Math.floor(new Date(ifModifiedSince).getTime() / 1000);
+    const serverTime = Math.floor(fileStats.mtime.getTime() / 1000);
+
+    // 如果客户端缓存时间 &gt;= 服务器修改时间，说明资源未修改
+    if (clientTime &gt;= serverTime) {
+      res.writeHead(304, {
+        &quot;Last-Modified&quot;: lastModified, // 保持头信息一致
+        &quot;Cache-Control&quot;: &quot;no-cache&quot;, // 强制每次验证
+      });
+      return res.end(); // 304响应无响应体
+    }
+  }
+
+  // 资源已修改，返回新资源和新的Last-Modified
+  res.writeHead(200, {
+    &quot;Content-Type&quot;: &quot;image/png&quot;,
+    &quot;Last-Modified&quot;: lastModified,
+    &quot;Cache-Control&quot;: &quot;no-cache&quot;, // 强制每次请求都进行验证
+  });
+  return res.end(fileData);
+}
+</code></pre>
+<p><strong>特点：</strong></p>
+<ul>
+<li>优点：实现简单，性能开销小</li>
+<li>缺点：时间精度仅到秒级，无法识别 1 秒内的多次修改</li>
+<li>注意：需确保服务器时间准确（建议使用 NTP 同步）</li>
+</ul>
+<ol start="2">
+<li>ETag + If-None-Match</li>
+</ol>
+<p>基于资源内容哈希进行验证，精度更高，适用于高频更新或时间戳不可靠的场景。</p>
+<p><strong>工作原理：</strong></p>
+<ol>
+<li>首次请求：服务器生成资源内容哈希（ETag 头）</li>
+<li>后续请求：浏览器携带该哈希（If-None-Match 头）</li>
+<li>服务器比对哈希：<ul>
+<li>未修改 → 返回 304，浏览器复用缓存</li>
+<li>已修改 → 返回 200 及新资源，浏览器更新缓存</li>
+</ul>
+</li>
+</ol>
+<p><strong>协商缓存（ETag）流程图：</strong></p>
+<pre><code class="language-makefile">首次请求:
+┌─────────┐      ┌─────────┐
+│ 浏览器  │      │ 服务器  │
+└────┬────┘      └────┬────┘
+     │                 │
+     │   发起请求      │
+     ├────────────────&gt;│
+     │                 │
+     │ 200 + 资源 + ETag │
+     │&lt;────────────────│
+     │                 │
+
+后续请求:
+┌─────────┐      ┌─────────┐
+│ 浏览器  │      │ 服务器  │
+└────┬────┘      └────┬────┘
+     │                 │
+     │ 请求 + If-None-Match │
+     ├────────────────&gt;│
+     │                 │
+     │   比对哈希      │
+     │                 │
+     │      未修改     │
+     │      304响应    │
+     │&lt;────────────────│
+     │                 │
+     │   使用缓存      │
+     │                 │
+</code></pre>
+<p><strong>代码实现：</strong></p>
+<pre><code class="language-js">// 处理04.png - ETag协商缓存示例
+if (pathname === &quot;/images/04.png&quot;) {
+  const imagePath = path.join(publicDir, &quot;images/04.png&quot;);
+  const fileData = await fs.readFile(imagePath);
+
+  // 生成资源内容哈希（ETag）
+  // 使用MD5算法生成16进制哈希值
+  const fileHash = crypto.createHash(&quot;md5&quot;).update(fileData).digest(&quot;hex&quot;);
+
+  // 强ETag必须包含在双引号中
+  const etag = `&quot;${fileHash}&quot;`;
+
+  // 获取浏览器发送的If-None-Match头
+  const ifNoneMatch = req.headers[&quot;if-none-match&quot;];
+
+  // 比对ETag
+  if (ifNoneMatch === etag) {
+    // ETag匹配，资源未修改
+    res.writeHead(304, {
+      ETag: etag, // 保持ETag一致
+      &quot;Cache-Control&quot;: &quot;no-cache&quot;, // 强制每次验证
+    });
+    return res.end(); // 304响应无响应体
+  }
+
+  // 资源已修改，返回新资源和新ETag
+  res.writeHead(200, {
+    &quot;Content-Type&quot;: &quot;image/png&quot;,
+    ETag: etag,
+    &quot;Cache-Control&quot;: &quot;no-cache&quot;,
+  });
+  return res.end(fileData);
+}
+</code></pre>
+<p><strong>特点：</strong></p>
+<ul>
+<li>优点：精度极高（基于内容哈希），不受时钟影响</li>
+<li>缺点：计算哈希有一定性能开销，集群环境需统一哈希算法</li>
+<li>注意：ETag 分为强验证器（精确匹配）和弱验证器（前缀 W/，语义匹配）</li>
+</ul>
+<h2>四、缓存策略对比与最佳实践</h2>
+<p>不同缓存策略各有优劣，实际开发中需根据资源特性选择合适的方案：</p>
+<table>
+<thead>
+<tr>
+<th>缓存类型</th>
+<th>核心优势</th>
+<th>性能影响</th>
+<th>适用场景</th>
+<th>典型状态码</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无缓存</td>
+<td>实时性 100%</td>
+<td>性能损耗高</td>
+<td>实时数据、支付信息</td>
+<td>200</td>
+</tr>
+<tr>
+<td>强缓存（Expires）</td>
+<td>实现简单，兼容性好</td>
+<td>性能最优</td>
+<td>需兼容旧浏览器的静态资源</td>
+<td>200(from cache)</td>
+</tr>
+<tr>
+<td>强缓存（Cache-Control）</td>
+<td>控制精确，现代标准</td>
+<td>性能最优</td>
+<td>版本化静态资源（JS/CSS/图片）</td>
+<td>200(from cache)</td>
+</tr>
+<tr>
+<td>协商缓存（Last-Modified）</td>
+<td>实现简单，开销小</td>
+<td>中等性能</td>
+<td>低频更新的文档、网页</td>
+<td>304</td>
+</tr>
+<tr>
+<td>协商缓存（ETag）</td>
+<td>精度高，可靠</td>
+<td>中等性能</td>
+<td>用户头像、高频更新资源</td>
+<td>304</td>
+</tr>
+</tbody></table>
+<h3>浏览器缓存状态标识说明：</h3>
+<ul>
+<li><strong>200 OK</strong>：从服务器获取完整资源</li>
+<li><strong>200 OK (from cache)</strong>：强缓存生效，使用本地缓存</li>
+<li><strong>304 Not Modified</strong>：协商缓存生效，使用本地缓存</li>
+<li><strong>(from memory cache)</strong>：使用内存缓存（临时存储）</li>
+<li><strong>(from disk cache)</strong>：使用磁盘缓存（持久存储）</li>
+</ul>
+<h3>最佳实践建议：</h3>
+<ol>
+<li><p><strong>静态资源（JS/CSS/图片）</strong>：</p>
+<ul>
+<li>使用 Cache-Control 设置长期缓存（如 1 年）</li>
+<li>配合资源版本化（如<code>app.8f3d.js</code>）确保更新</li>
+<li>示例配置：<code>Cache-Control: public, max-age=31536000, immutable</code></li>
+</ul>
+</li>
+<li><p><strong>API 数据</strong>：</p>
+<ul>
+<li>对频繁变化数据使用协商缓存</li>
+<li>对稳定数据结合强缓存和协商缓存</li>
+<li>示例配置：<code>Cache-Control: no-cache</code> + ETag/Last-Modified</li>
+</ul>
+</li>
+<li><p><strong>调试技巧</strong>：</p>
+<ul>
+<li>使用浏览器 Network 面板观察缓存状态</li>
+<li>注意&quot;Disable cache&quot;选项对调试的影响</li>
+<li>304 状态码表示协商缓存生效，200(from cache)表示强缓存生效</li>
+</ul>
+</li>
+</ol>
+<h2>五、运行与验证</h2>
+<ol>
+<li>在<code>package.json</code>中添加启动脚本：</li>
+</ol>
+<pre><code class="language-json">&quot;scripts&quot;: {
+  &quot;dev&quot;: &quot;nodemon --exec ts-node src/app.ts&quot;
+}
+</code></pre>
+<ol start="2">
+<li>启动服务器：</li>
+</ol>
+<pre><code class="language-bash">npm run dev
+</code></pre>
+<ol start="3">
+<li>访问<code>http://localhost:3000</code>，打开浏览器开发者工具（F12）的 Network 面板：<ul>
+<li>观察不同图片的请求状态和响应头</li>
+<li>刷新页面，查看缓存策略的实际效果</li>
+<li>修改图片内容后再次刷新，观察缓存更新情况</li>
+</ul>
+</li>
+</ol>
+<p>通过这个实战项目，我们系统学习了前端缓存的工作原理和实现方式。合理运用缓存策略，能显著提升 Web 应用性能，改善用户体验。在实际开发中，需根据具体业务场景，灵活组合不同的缓存策略，找到性能与新鲜度的最佳平衡点。</p>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
