@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端架构三要素：模块化、工程化、平台化</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-detail line-numbers" >
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    <main>
+      <header>
+        <h1>前端架构三要素：模块化、工程化、平台化</h1>
+        <p>架构 | 2025.07.21</p>
+      </header>
+      <h3>写在前面</h3>
+<p>架构不是玄学，也不是 PPT，它的三个核心基石是：</p>
+<ul>
+<li><strong>模块化</strong>：管理复杂代码的边界与职责</li>
+<li><strong>工程化</strong>：提升团队效率的工具与流程</li>
+<li><strong>平台化</strong>：打造可复用、可配置、可扩展的系统能力</li>
+</ul>
+<p>这一篇，我们通过具体代码与场景实战，逐一讲清楚这三个维度如何落地，避免空谈架构理念。</p>
+<hr>
+<h2>一、模块化：对复杂性的第一道防线</h2>
+<h3>1.1 合理划分模块边界（以“用户中心”为例）</h3>
+<pre><code class="language-bash">src/
+├── modules/
+│   ├── user/
+│   │   ├── api.ts          # 用户相关接口
+│   │   ├── store.ts        # 用户状态管理
+│   │   ├── views/          # 用户页面
+│   │   ├── components/     # 用户组件
+│   │   └── utils.ts        # 用户领域工具函数
+</code></pre>
+<p>这样做的好处：</p>
+<ul>
+<li>所有用户相关代码归拢</li>
+<li>高内聚、低耦合</li>
+<li>支持模块级独立发布（未来微前端）</li>
+</ul>
+<hr>
+<h3>1.2 实战演示：模块级 service 封装</h3>
+<pre><code class="language-typescript">// modules/user/api.ts
+import { request } from &quot;@/utils/request&quot;;
+
+export const getUserInfo = (id: string) =&gt; {
+  return request.get(`/api/user/${id}`);
+};
+</code></pre>
+<pre><code class="language-javascript">// modules/user/views/Profile.vue
+setup() {
+  const route = useRoute()
+  const { data } = useAsync(() =&gt; getUserInfo(route.params.id))
+  return { data }
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li><code>api</code> 层清晰可复用</li>
+<li>页面只管“使用”，不管“怎么请求”</li>
+</ul>
+<hr>
+<h2>二、工程化：让系统跑得更快、更稳</h2>
+<h3>2.1 脚手架：项目创建统一化</h3>
+<pre><code class="language-bash">npx create-my-app my-project
+# 可选功能：
+# - Vue/React
+# - TypeScript
+# - 是否集成表单系统
+# - 是否使用微前端架构
+</code></pre>
+<p>脚手架能统一：</p>
+<ul>
+<li>目录结构</li>
+<li>依赖版本</li>
+<li>linter/prettier/husky 规则</li>
+<li>测试框架（Jest + RTL / Vitest + Vue Test Utils）</li>
+</ul>
+<h3>2.2 ESLint + Prettier + Husky 实战配置</h3>
+<pre><code class="language-bash">npm i -D eslint prettier eslint-config-prettier husky lint-staged
+</code></pre>
+<p><code>.eslintrc.js</code>:</p>
+<pre><code class="language-javascript">module.exports = {
+  extends: [&quot;eslint:recommended&quot;, &quot;plugin:vue/vue3-recommended&quot;, &quot;prettier&quot;],
+};
+</code></pre>
+<p><code>.husky/pre-commit</code>:</p>
+<pre><code class="language-bash">#!/bin/sh
+npx lint-staged
+</code></pre>
+<p><code>package.json</code>:</p>
+<pre><code class="language-json">&quot;lint-staged&quot;: {
+  &quot;*.{js,vue,ts}&quot;: &quot;eslint --fix&quot;
+}
+</code></pre>
+<p>结果：每次 commit 自动修复代码 + 提高团队协作效率。</p>
+<hr>
+<h3>2.3 CI/CD + 自动部署</h3>
+<pre><code class="language-yaml"># GitHub Actions
+name: Deploy
+on:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm install
+      - run: npm run build
+      - run: scp -r dist/ root@xx.xx.xx:/usr/share/nginx/html
+</code></pre>
+<p>工程化目标是：<strong>任何人 clone 项目，都能一键启动开发 / 构建 / 发布</strong>。</p>
+<hr>
+<h2>三、平台化：真正的架构师战场</h2>
+<p>当你团队项目越来越多，下面这些问题开始频繁出现：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>平台化解法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>各项目权限不一致</td>
+<td>做权限平台，角色-权限统一管理</td>
+</tr>
+<tr>
+<td>各项目 UI 风格不同</td>
+<td>做统一组件库平台（如 Naive-UI/TT-PF）</td>
+</tr>
+<tr>
+<td>重复开发导出、表格、表单功能</td>
+<td>抽象平台模块，按需接入</td>
+</tr>
+<tr>
+<td>多项目无法联动</td>
+<td>微前端 or 模块联邦平台化统一发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h3>实战：构建统一权限平台</h3>
+<pre><code class="language-javascript">// usePermission.ts
+export function usePermission(permissionCode: string) {
+  const userPermissions = getUserInfo().permissions;
+  return userPermissions.includes(permissionCode);
+}
+</code></pre>
+<pre><code class="language-html">&lt;!-- 业务组件中统一判断权限 --&gt;
+&lt;pf-button v-if=&quot;usePermission(&#39;user.delete&#39;)&quot;&gt;删除&lt;/pf-button&gt;
+</code></pre>
+<p>这样做的好处：</p>
+<ul>
+<li>权限配置集中化管理（权限系统后台控制）</li>
+<li>所有项目使用统一逻辑</li>
+<li>日后支持 AB 测试、灰度权限控制更容易</li>
+</ul>
+<hr>
+<h3>平台化工具建设建议：</h3>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>推荐方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>UI 组件库</td>
+<td>TT-PF、Naive-UI 二次封装</td>
+</tr>
+<tr>
+<td>表单平台</td>
+<td>JSON Schema 驱动的动态表单</td>
+</tr>
+<tr>
+<td>权限管理</td>
+<td>RBAC + 前端权限钩子封装</td>
+</tr>
+<tr>
+<td>多项目联动</td>
+<td>Module Federation + Vite Plugin Federation</td>
+</tr>
+<tr>
+<td>配置管理</td>
+<td>配置中台 + JSON 配置托管服务</td>
+</tr>
+<tr>
+<td>埋点系统</td>
+<td>页面级自动采集 + 手动打点 Hook</td>
+</tr>
+<tr>
+<td>API 文档</td>
+<td>Swagger/OpenAPI 联动接口平台</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>总结一句话</h2>
+<blockquote>
+<p>模块化负责“代码边界”，工程化解决“效率稳定”，平台化决定“团队规模化复制能力”。</p>
+</blockquote>
+
+    </main>
+    <aside class="toc-container">
+      <h3>目录</h3>
+      <div class="toc"></div>
+    </aside>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
