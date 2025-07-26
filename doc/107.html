@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>基于 vite 实现基本的浏览器兼容解决方案</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    
+    <div class="article-container">
+      <main class="article-main">
+        <header>
+          <h1>基于 vite 实现基本的浏览器兼容解决方案</h1>
+          <p>解决方案 | 2025.07.26</p>
+        </header>
+        <h2>浏览器兼容性解决方案</h2>
+<h3>一、JS 兼容</h3>
+<p><strong>推荐使用 legacy</strong></p>
+<p>推荐原因：<strong>为打包后的文件提供传统浏览器兼容性支持</strong>（不支持 esm 的浏览器），同时还有<strong>语法降级处理</strong></p>
+<p>缺点：打包时间较长</p>
+<p><strong>注意：</strong> vite4 的 legacy 插件最高目前是 4.1.1，再高的版本只支持 vite5 了，这里以 vite5 为例。</p>
+<p><strong>集成</strong></p>
+<ol>
+<li>安装依赖</li>
+</ol>
+<p><strong>使用 npm</strong></p>
+<pre><code class="language-bash">npm i @vitejs/plugin-legacy -D
+npm i terser -D
+</code></pre>
+<p><strong>使用 yarn</strong></p>
+<pre><code class="language-bash">yarn add @vitejs/plugin-legacy -D
+yarn add terser -D
+</code></pre>
+<p><strong>使用 pnpm</strong></p>
+<pre><code class="language-bash">pnpm add @vitejs/plugin-legacy -D
+pnpm add terser -D
+</code></pre>
+<ol start="2">
+<li>配置<code>vite.config.ts</code>文件</li>
+</ol>
+<pre><code class="language-javascript">// vite.config.ts
+import { defineConfig } from &quot;vite&quot;;
+import vue from &quot;@vitejs/plugin-vue&quot;;
+import legacy from &quot;@vitejs/plugin-legacy&quot;;
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [
+    vue(),
+    legacy({
+      targets: [&quot;defaults&quot;, &quot;Chrome &gt;= 64&quot;], // 指定需要支持的浏览器版本
+      additionalLegacyPolyfills: [&quot;regenerator-runtime/runtime&quot;], // 可选， 额外的 polyfill 需要安装
+      renderLegacyChunks: true, // 可选，是否生成传统版本的 chunk，默认true // 可选，不配置使用默认。具体的 polyfill 列表
+      polyfills: [
+        &quot;es.symbol&quot;,
+        &quot;es.array.filter&quot;,
+        &quot;es.promise&quot;,
+        &quot;es.promise.finally&quot;,
+        &quot;es.object.assign&quot;,
+        &quot;es.map&quot;,
+        &quot;es.set&quot;,
+        &quot;es.array.for-each&quot;,
+        &quot;es.object.define-properties&quot;,
+        &quot;es.object.define-property&quot;,
+        &quot;es.object.get-own-property-descriptor&quot;,
+        &quot;es.object.get-own-property-descriptors&quot;,
+        &quot;es.object.keys&quot;,
+        &quot;es.object.to-string&quot;,
+        &quot;web.dom-collections.for-each&quot;,
+        &quot;esnext.global-this&quot;,
+        &quot;esnext.string.match-all&quot;,
+        &quot;es.array.iterator&quot;,
+        &quot;es.string.includes&quot;,
+        &quot;es.string.starts-with&quot;,
+        &quot;es.object.values&quot;,
+      ],
+    }),
+  ], // 配置打包后的目标esm的版本
+  build: {
+    minify: &quot;terser&quot;, // 使用 terser 进行压缩
+  },
+});
+</code></pre>
+<p>legacy 插件中如果我们没有指定<code>targets</code>参数时，插件会默认的取项目中的支持的浏览器范围的文件 <code>.browserslistrc</code>，个人对此进行了一个大概的配置</p>
+<pre><code class="language-bash">Chrome &gt;= 51
+Edge &gt;= 15
+Safari &gt;= 10
+Firefox &gt;= 54
+Opera &gt;= 38
+iOS &gt;= 10
+not ie &lt;= 11
+Android &gt;= 5
+not IE &lt;= 11
+</code></pre>
+<p>更多配置请参考 <a href="https://github.com/vitejs/vite/tree/main/packages/plugin-legacy">legacy 官方文档</a></p>
+<ol start="3">
+<li>构建</li>
+</ol>
+<p>通过<code>npm run build</code>打包可以看到 script 发生了变化，除了<code>type=&quot;module&quot;</code>还有一个<code>nomodule</code>脚本，<code>nomodule</code>这个属性表示在支持 esm 的浏览器不运行里面的代码，而不支持 esm 的浏览器又无法识别<code>type=&quot;module&quot;</code>，反而会去运行 nomodule 的 script，从而实现了降级区分。而降级的脚本都会携带一个<code>legacy</code>文本。</p>
+<p>大概效果如下：</p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+     
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+     
+    &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot; /&gt;
+     
+    &lt;link
+      rel=&quot;stylesheet&quot;
+      href=&quot;https://printjs-4de6.kxcdn.com/print.min.css&quot;
+    /&gt;
+     
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+     
+    &lt;title&gt;Vite App&lt;/title&gt;
+     
+    &lt;script type=&quot;module&quot; crossorigin src=&quot;/assets/index-BUwO137t.js&quot;&gt;&lt;/script&gt;
+     
+    &lt;link rel=&quot;stylesheet&quot; crossorigin href=&quot;/assets/index-BsmRYvi8.css&quot; /&gt;
+     
+    &lt;script type=&quot;module&quot;&gt;
+      import.meta.url;
+      import(&quot;_&quot;).catch(() =&gt; 1);
+      (async function* () {})().next();
+      if (location.protocol != &quot;file:&quot;) {
+        window.__vite_is_modern_browser = true;
+      }
+    &lt;/script&gt;
+     
+    &lt;script type=&quot;module&quot;&gt;
+      !(function () {
+        if (window.__vite_is_modern_browser) return;
+        console.warn(
+          &quot;vite: loading legacy chunks, syntax error above and the same error below should be ignored&quot;
+        );
+        var e = document.getElementById(&quot;vite-legacy-polyfill&quot;),
+          n = document.createElement(&quot;script&quot;);
+        (n.src = e.src),
+          (n.onload = function () {
+            System.import(
+              document
+                .getElementById(&quot;vite-legacy-entry&quot;)
+                .getAttribute(&quot;data-src&quot;)
+            );
+          }),
+          document.body.appendChild(n);
+      })();
+    &lt;/script&gt;
+  &lt;/head&gt;
+
+  &lt;body&gt;
+     
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+     
+    &lt;script src=&quot;https://printjs-4de6.kxcdn.com/print.min.js&quot;&gt;&lt;/script&gt;
+         &lt;!-- 这里是legacy处理后的 --&gt;
+     
+    &lt;script nomodule&gt;
+      !(function () {
+        var e = document,
+          t = e.createElement(&quot;script&quot;);
+        if (!(&quot;noModule&quot; in t) &amp;&amp; &quot;onbeforeload&quot; in t) {
+          var n = !1;
+          e.addEventListener(
+            &quot;beforeload&quot;,
+            function (e) {
+              if (e.target === t) n = !0;
+              else if (!e.target.hasAttribute(&quot;nomodule&quot;) || !n) return;
+              e.preventDefault();
+            },
+            !0
+          ),
+            (t.type = &quot;module&quot;),
+            (t.src = &quot;.&quot;),
+            e.head.appendChild(t),
+            t.remove();
+        }
+      })();
+    &lt;/script&gt;
+     
+    &lt;script
+      nomodule
+      crossorigin
+      id=&quot;vite-legacy-polyfill&quot;
+      src=&quot;assets/polyfills-legacy-BuMl3xCl.js&quot;
+    &gt;&lt;/script&gt;
+     
+    &lt;script
+      nomodule
+      crossorigin
+      id=&quot;vite-legacy-entry&quot;
+      data-src=&quot;assets/index-legacy-BrIJujGY.js&quot;
+    &gt;
+      System.import(
+        document.getElementById(&quot;vite-legacy-entry&quot;).getAttribute(&quot;data-src&quot;)
+      );
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h3>二、CSS 兼容</h3>
+<hr>
+<p>推荐使用 <code>postcss-preset-env</code> 插件</p>
+<p>推荐原因：</p>
+<ul>
+<li><strong>自动添加浏览器前缀</strong></li>
+<li><strong>减少手动工作</strong></li>
+<li><strong>无缝集成</strong></li>
+<li><strong>提高兼容性和性能</strong></li>
+</ul>
+<p><a href="https://preset-env.cssdb.org/">官方地址</a></p>
+<p><a href="https://github.com/csstools/postcss-plugins/tree/main/plugin-packs/postcss-preset-env#options">项目地址</a></p>
+<p><strong>集成</strong></p>
+<ol>
+<li>安装依赖</li>
+</ol>
+<p><strong>使用 npm</strong></p>
+<pre><code class="language-bash">npm i postcss-preset-env -D
+</code></pre>
+<p><strong>使用 yarn</strong></p>
+<pre><code class="language-bash">yarn add postcss-preset-env -D
+</code></pre>
+<p><strong>使用 pnpm</strong></p>
+<pre><code class="language-bash">pnpm add postcss-preset-env -D
+</code></pre>
+<ol start="2">
+<li>配置文件<code>vite.config.ts</code></li>
+</ol>
+<pre><code class="language-javascript">import { defineConfig } from &quot;vite&quot;;
+import vue from &quot;@vitejs/plugin-vue&quot;;
+import poscssPresetEnv from &quot;postcss-preset-env&quot;;
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [vue()],
+  css: {
+    postcss: {
+      // ⚠️关键代码
+      plugins: [
+        poscssPresetEnv({
+          stage: 1, // 配置阶段，1 表示启用大多数新特性
+          features: {
+            &quot;nesting-rules&quot;: true, // 启用嵌套规则
+            &quot;custom-properties&quot;: true, // 启用自定义属性 // 其他特性配置
+          }, // 启用 autoprefixer
+          autoprefixer: {
+            grid: true,
+          }, // 一定要指定浏览器版本，否则autoprefixer将无法正确处理
+          browsers: [&quot;last 2 versions&quot;, &quot;ie &gt;= 11&quot;],
+        }),
+      ],
+    },
+  },
+});
+</code></pre>
+<ol start="3">
+<li>构建</li>
+</ol>
+<p><strong>打包前：</strong></p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+     
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+     
+    &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot; /&gt;
+     
+    &lt;link
+      rel=&quot;stylesheet&quot;
+      href=&quot;https://printjs-4de6.kxcdn.com/print.min.css&quot;
+    /&gt;
+     
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+     
+    &lt;title&gt;Vite App&lt;/title&gt;
+  &lt;/head&gt;
+
+  &lt;body&gt;
+     
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+  &lt;/body&gt;
+
+  &lt;style&gt;
+     :root {
+       --main-color: &#39;#fef&#39;
+     }
+
+     .card {
+       width: 240px;
+       margin: 10px;
+       border: 1px solid #ccc;
+       box-shadow: 2px 2px 6px 0px rgba(0, 0, 0, 0.3);
+       border-radius: 10px;
+       padding: 10px;
+       transition: all .3s;
+       display: grid;
+
+       &amp;:hover {
+         color: var(--main-color);
+
+       }
+     }
+
+     .buttom {
+       display: flex;
+       align-items: center;
+       justify-content: center;
+     }
+  &lt;/style&gt;
+&lt;/html&gt;
+</code></pre>
+<p><strong>打包后：</strong></p>
+<p>可以看到对自定义属性 <code>--main-color</code> 的使用，会多一种兼容写法；对<code>box-shadow transition flex</code> 等属性，自动添加了浏览器的内核的前缀</p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+     
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+     
+    &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot; /&gt;
+     
+    &lt;link
+      rel=&quot;stylesheet&quot;
+      href=&quot;https://printjs-4de6.kxcdn.com/print.min.css&quot;
+    /&gt;
+     
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+     
+    &lt;title&gt;Vite App&lt;/title&gt;
+  &lt;/head&gt;
+
+  &lt;body&gt;
+     
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+  &lt;/body&gt;
+
+  &lt;style&gt;
+     :root {
+       --main-color: &#39;#fef&#39;
+     }
+
+     .card {
+       width: 240px;
+       margin: 10px;
+       border: 1px solid #ccc;
+       -webkit-box-shadow: 2px 2px 6px 0px rgba(0, 0, 0, 0.3);
+       box-shadow: 2px 2px 6px 0px rgba(0, 0, 0, 0.3);
+       border-radius: 10px;
+       padding: 10px;
+       -webkit-transition: all .3s;
+       transition: all .3s;
+       display: grid;
+     }
+
+     .card:hover {
+         color: &#39;#fef&#39;;
+         color: var(--main-color);
+       }
+
+     .buttom {
+       display: -webkit-box;
+       display: -ms-flexbox;
+       display: flex;
+       -webkit-box-align: center;
+       -ms-flex-align: center;
+       align-items: center;
+       -webkit-box-pack: center;
+       -ms-flex-pack: center;
+       justify-content: center;
+     }
+  &lt;/style&gt;
+&lt;/html&gt;
+</code></pre>
+<h3>三、CSS 原子化插件</h3>
+<hr>
+<p>推荐使用 <strong><code>unocss</code></strong></p>
+<p><strong>推荐原因</strong>：unocss 是一个 css 引擎，unocss 本身不提供任何类名 css，它只是解决 Tailwind 以及 Windi 的编译和打包的某些问题，也就是它可以配合 Tailwind 或者 windi 使用，以提供更快的编译打包速度。可以在开发中尽可能的减少自定义样式的编写。</p>
+<p>参考页面：<a href="https://link.juejin.cn/?target=https%3A%2F%2Funocss.dev%2Fguide%2F" title="https://unocss.dev/guide/">unocss.dev/guide/</a></p>
+<p><strong>集成</strong></p>
+<ol>
+<li>安装依赖</li>
+</ol>
+<p><strong>使用 npm</strong></p>
+<pre><code class="language-bash">npm i unocss -D
+</code></pre>
+<p><strong>使用 yarn</strong></p>
+<pre><code class="language-bash">yarn add unocss -D
+</code></pre>
+<p><strong>使用 pnpm</strong></p>
+<pre><code class="language-bash">pnpm add unocss -D
+</code></pre>
+<ol start="2">
+<li>配置文件</li>
+</ol>
+<ul>
+<li>创建一个 <code>uno.config.ts</code> 文件</li>
+</ul>
+<pre><code class="language-javascript">// uno.config.ts
+import { defineConfig } from &quot;unocss&quot;;
+
+export default defineConfig({
+  // ...UnoCSS options
+});
+</code></pre>
+<ul>
+<li>配置 <code>vite.config.ts</code> 文件</li>
+</ul>
+<pre><code class="language-javascript">// vite.config.ts
+import UnoCSS from &quot;unocss/vite&quot;;
+import { defineConfig } from &quot;vite&quot;;
+
+export default defineConfig({
+  plugins: [UnoCSS()],
+});
+</code></pre>
+<ul>
+<li>在入口页面导入，一般为 <code>main.ts</code></li>
+</ul>
+<pre><code class="language-js">import &quot;virtual:uno.css&quot;;
+</code></pre>
+<ol start="3">
+<li>额外配置：</li>
+</ol>
+<p>推荐 VSCode 下载一个扩展 <strong>UnoCSS</strong> 可以在开发过程中有很好的提示效果。</p>
+
+      </main>
+      
+      <aside class="toc-container">
+        <h3>目录</h3>
+        <div class="toc"></div>
+      </aside>
+    </div>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>
