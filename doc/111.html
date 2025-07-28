@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>用 rust 来写 canvas</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    
+    <div class="article-container">
+      <main class="article-main">
+        <header>
+          <h1>用 rust 来写 canvas</h1>
+          <p>Rust | 2025.07.29</p>
+        </header>
+        <h2>一. 前言</h2>
+<p>以前一直有一些高性能的渲染问题困扰着我，比如 canvas 渲染百万、千万级数据，以及一些图片像素的操作等。虽然现在的 js 也给了很多优化的方案（比如 web workers）。但是说到底还是有语言方面的局限性，直到我看到了 wasm（WebAssembly），可以在客户端处理二进制程序。</p>
+<p><img src="../images/06f38ca963b17d77930ec6fa6b65d1cf.awebp" alt="u=3346620304,3360992001&amp;fm=253&amp;fmt=auto&amp;app=138&amp;f=JPEG.webp"></p>
+<h2>二. wasm 介绍</h2>
+<h3>2.1 什么是 wasm</h3>
+<p>简单来说<code>是一种为网络而生的新型代码格式,旨在提供一种比传统 JavaScript 更快的执行速度</code>，可以大大的提升网络的性能，这个提升不是传统意义上的优化，而是真正意义上的从根本上完成代码运行质的飞跃。</p>
+<h3>2.2 wasm 的优点</h3>
+<ul>
+<li><strong><code>提高性能</code></strong> wasm 允许浏览器中运行高性能代码，其运行速度接近原生。当我们前端需要进行处理大型密集的计算工作，以及实时图片处理等。</li>
+<li><strong><code>跨语言支持</code></strong> wasm 并不是什么特定的编译语言，而是一种平台。开发者可以使用<code>C</code>，<code>C++</code>，<code>Rust</code>，<code>go</code> 等编写代码，然后转为 wasm，最后在浏览器中运行。</li>
+<li><strong><code>与js功能互补</code></strong> wasm 出现并不是为了取代 js，而是为了更好的为 js 提供服务。在一些特定的环境（比如可视化等）js 可以做为交互，wasm 可以做为密集计算。</li>
+<li><strong><code>优化资源占用</code></strong> wasm 的设计是为了占用较少的内存，这使得它非常适合资源有限的设备，如手机等移动设备。通过减少内存占用，Wasm 可以帮助前端应用在各种类型的设备上都能顺利运行，提升用户体验。</li>
+</ul>
+<h3>2.3 如何在前端中使用</h3>
+<p>现代浏览器是支持直接兼容<code>.wasm文件</code>的。所以我们就是通过<code>go</code>、<code>Rust</code> 等语言去编写 wasm 文件，然后通过编译器转为为.wasm 文件在前端调用。</p>
+<p><img src="../images/8767756c1eb01173ac85890c46533aa1.awebp" alt="image-20241128142733526.png"></p>
+<h2>三. Rust 的使用</h2>
+<p>简单的介绍一下 Rust 的使用吧。</p>
+<h3>3.1 rust 安装</h3>
+<p>按照官网的安装流程来就好。</p>
+<pre><code class="language-bash">curl https://sh.rustup.rs -sSf | sh
+</code></pre>
+<p>安装完成之后，我们在终端输入：</p>
+<pre><code class="language-bash">rustc --version
+cargo --version
+</code></pre>
+<p><img src="../images/5562f48a50f92f8151252ab4a6bdabef.awebp" alt="image-20241129094157617.png"></p>
+<p>出现这两个版本，表示安装成功！</p>
+<p>这里面要注意一下：<code>rustc</code>和<code>cargo</code>都是 Rust 的编程工具，但是功能不同。</p>
+<ul>
+<li><strong><code>rustc</code></strong> 是<code>Rust</code>的源代码编译器，把<code>Rust</code>源码编译成可执行文件或库。</li>
+<li><strong><code>cargo</code></strong> 是<code>Rust</code>包管理工具（可以理解为 npm）。主要目的就是管理<code>Rust</code>的项目依赖，自动生成构建脚本等。</li>
+</ul>
+<h3>3.2 rust 项目结构分析</h3>
+<p>完成安装之后，我们可以试一下新建一个<code>Rust</code>项目。</p>
+<pre><code class="language-bash">cargo new my_project --lib
+</code></pre>
+<p><code>--lib</code> 是 <code>cargo</code> 命令行工具的一个选项，用于指示 Cargo 创建一个新的库（library）项目。</p>
+<p>我们看一下文件目录：</p>
+<p><img src="../images/739f246b67c2b0613cf017962da0ea34.awebp" alt="image-20241129095548168.png"></p>
+<p>主要核心是这两个<code>lib.rs</code>、<code>Cargo.toml</code>。</p>
+<ul>
+<li><strong><code>lib.ts</code></strong> 源码的入口地方。</li>
+<li><strong><code>Cargo.toml</code></strong> 项目的依赖管理文件。</li>
+</ul>
+<h2>四. Rust 转为 wasm</h2>
+<p>简单了解了一下<code>Rust</code>之后，就有个疑问？<code>Rust</code>如何编译为可以执行的<code>wasm</code>文件？答案就是：<code>wasm-bindgen</code></p>
+<h3>4.1 wasm-bindgen</h3>
+<p>是一个强大的工具链，旨在简化<a href="https://www.baidu.com/s?rsv_dl=re_dqa_generate&sa=re_dqa_generate&wd=WebAssembly&rsv_pq=beb100350046d954&oq=wasm-bindgen&rsv_t=e8460VA4iYVxL4FD9F1UECc3j6QPorDrZmOOXIW4kWpRfGWvzj6bRTjzHis&tn=baidu&ie=utf-8">WebAssembly</a>（WASM）模块与<a href="https://www.baidu.com/s?rsv_dl=re_dqa_generate&sa=re_dqa_generate&wd=JavaScript&rsv_pq=beb100350046d954&oq=wasm-bindgen&rsv_t=e8460VA4iYVxL4FD9F1UECc3j6QPorDrZmOOXIW4kWpRfGWvzj6bRTjzHis&tn=baidu&ie=utf-8">JavaScript</a>之间的交互。主要目的是将 Rust 的性能优势引入 Web 开发中，并实现与 JavaScript 的无缝集成。</p>
+<p>主要功能就是自动生成可以必要的绑定和胶水代码，确保 Rust 和 js 之间可以正常的平滑通信。</p>
+<p>简单来说，<code>wasm-bindgen</code>就是一个桥梁，沟通<code>Rust</code>和<code>js</code>之间运行的桥梁。</p>
+<p>通过<code>wasm-bindgen</code>编译的代码可以在 js 中使用。</p>
+<h3>4.2 wasm-bindgen 使用</h3>
+<p>如何在 rust 中使用呢？这就要用到我们之前说的<code>Cargo.toml</code>文件了。把 wasm-bindgen 的依赖声明到对应的文件中:</p>
+<pre><code class="language-ini">[package]
+name = &quot;my_wasm_project&quot;
+version = &quot;0.1.0&quot;
+edition = &quot;els&quot;
+
+[lib]
+crate-type = [&quot;cdylib&quot;]
+
+[dependencies]
+wasm-bindgen = &quot;0.2&quot;
+</code></pre>
+<ul>
+<li><strong><code>[dependencies]</code></strong> 指定依赖和依赖的版本。 比如： <code>wasm-bindgen</code>的版本为<code>0.2</code>。</li>
+<li><strong><code>[package]</code></strong> 生成的这个包的一些基本信息。</li>
+<li><strong><code>[crate-type]</code></strong> 是一个配置项，用于指定当你构建项目时生成的输出类型 。</li>
+</ul>
+<h2>五. 使用 Rust 生成一个 canvas 文件</h2>
+<h3>5.1 代码</h3>
+<p>简单介绍了 Rust 的一些基本使用，那下面我们用一个案例来看一下 Rust 如何生成<code>wasm</code>文件的。 这里用一个简单的例子，通过传入一个<code>canvas</code>实例，然后绘制一个圆。</p>
+<p>我们新建一个项目，然后先安装依赖，回到<code>Cargo.toml</code>文件中：</p>
+<pre><code class="language-ini">[package]
+name = &quot;my_wasm_project&quot;
+version = &quot;0.1.0&quot;
+edition = &quot;2021&quot;
+
+[lib]
+crate-type = [&quot;cdylib&quot;]
+
+[dependencies]
+wasm-bindgen = &quot;0.2&quot;
+web-sys = { version = &quot;0.3&quot;, features = [&quot;Window&quot;, &quot;Document&quot;, &quot;HtmlCanvasElement&quot;, &quot;CanvasRenderingContext2d&quot;] }
+</code></pre>
+<p>主要是看一下<code>dependencies</code>。</p>
+<ul>
+<li><strong><code>wasm-bindgen</code></strong> 就是前面说的编译 Rust 代码的桥梁。</li>
+<li><strong><code>web-sys</code></strong> 是一个<code>Rust</code>的标准库，它提供了对<code>Web API</code>的绑定。包括 <code>DOM、HTML、CSS、XMLHttpRequest、Fetch API、WebSocket</code> 等等。 使得你可以使用 Rust 语言来编写与浏览器环境交互的代码。</li>
+<li><strong><code>features</code></strong> 字段指定了你要启用的 Web API 特性。<code>web-sys</code> 默认并不包含所有的 Web API，你需要显式地指定你想要使用的那些特性。比如这里我们需要用 canvas 绘图，就需要显示的指定<code>Document</code>，<code>HtmlCanvasElement</code>，<code>CanvasRenderingContext2d</code>等 canvs 的特性。</li>
+</ul>
+<p>完成配置之后，我们回到<code>lib.rs</code>：编写一段代码。</p>
+<pre><code class="language-rust">use wasm_bindgen::prelude::*;
+use web_sys::{window, Document, HtmlCanvasElement, CanvasRenderingContext2d};
+
+#[wasm_bindgen]
+pub fn draw_circle(canvas_id: &amp;str) -&gt; Result&lt;(), JsValue&gt; {
+    // 获取全局window对象
+    let window = window().expect(&quot;no global `window` exists&quot;);
+ //获取document
+    let document = window.document().expect(&quot;window should have a document&quot;);
+    // 通过 ID 获取 canvas 元素
+    let canvas = document.get_element_by_id(canvas_id)
+        .and_then(|e| e.dyn_into::&lt;HtmlCanvasElement&gt;().ok())
+        .expect(&quot;canvas element not found&quot;);
+    // 设置 canvas 尺寸
+    canvas.set_width(500);
+    canvas.set_height(500);
+    // 获取 2D 渲染上下文
+    let context = canvas
+        .get_context(&quot;2d&quot;)
+        .expect(&quot;failed to get context&quot;)
+        .unwrap()
+        .dyn_into::&lt;CanvasRenderingContext2d&gt;()
+        .expect(&quot;context is not of type 2d&quot;);
+    // 开始路径
+    context.begin_path();
+    // 绘制圆
+    context.arc(250.0, 250.0, 100.0, 0.0, std::f64::consts::PI * 2.0)?;
+    // 设置填充颜色
+    context.set_fill_style(&amp;JsValue::from_str(&quot;blue&quot;));
+    // 填充圆
+    context.fill();
+    // 设置描边颜色
+    context.set_stroke_style(&amp;JsValue::from_str(&quot;black&quot;));
+    // 描边圆
+    context.stroke();
+    Ok(())
+}
+</code></pre>
+<p>实现了一个<code>draw_circle</code>方法，然后可以提供在 web 端使用。</p>
+<h3>5.2 代码解析</h3>
+<p>看起来上面代码有点懵逼，没关系我们可以一行一行分析一下，确实很难！！！！</p>
+<h4>5.2.1 use 关键字</h4>
+<p><code>use</code>是把模块，项，或者路径导入当前的目录中。这使得你可以在代码中直接使用这些导入的名称，<code>而不需要每次都写完整的路径</code>。</p>
+<pre><code class="language-rust">use std::io;
+</code></pre>
+<p>这个意思就是把<code>std</code>下面的<code>io模块</code>导出，就可以直接使用了。</p>
+<pre><code class="language-rust">use co::*;
+</code></pre>
+<p>这个意思就是把 co 模块下的全部方法、定义等导出。</p>
+<p><strong><code>use wasm_bindgen::prelude::*;</code></strong> 意思就是从<code>【wasm_bindgen】</code>的模块<code>【prelude】</code>中导入所有的内容。</p>
+<h4>5.2.2 ::操作符</h4>
+<p>在 rust 中<code>::</code>是一个很重要的操作符，主要用于访问模块、结构体、枚举、函数、常量等的命名空间中的成员。</p>
+<p>如下例子：</p>
+<p>引用模块中的函数:</p>
+<pre><code class="language-rust">mod math {
+  pub fn add(a: i32, b: i32) -&gt; i32 {
+    a + b
+  }
+}
+
+fn main() {
+  let result = math::add(1, 2); // 使用 :: 引用模块中的函数
+  println(&quot;{}&quot;, result);
+}
+</code></pre>
+<pre><code class="language-rust">// 引用枚举中的类型
+enum Color {
+  Red = &#39;red&#39;,
+  Blue =&#39;blue&#39;
+}
+
+fn main() {
+  let color = Color::Red; // 使用 :: 引用枚举中的类型
+}
+</code></pre>
+<p><strong><code>use web_sys::{window, Document, HtmlCanvasElement, CanvasRenderingContext2d}</code></strong> 意思就是：引用 web_sys 模块中的 window， Document， HtmlCanvasElement， CanvasRenderingContext2d 使用。</p>
+<h4>5.2.3 pub 关键字</h4>
+<p><strong><code>pub</code></strong> 是访问修饰符，表示“公共”的意思，fn 是函数的关键字。通过 pub fn 定义的函数可以在模块外部被访问和调用。</p>
+<p><code>pub fn draw_circle</code> 声明的函数就可以在外部引入使用。</p>
+<h4>5.2.4 #[wasm_bindgen]</h4>
+<p>使用<code>#[wasm_bindgen]</code>定义的函数，可以使得 Rust 代码能够与 JavaScript 无缝交互。通过使用这个属性，你可以轻松地将 Rust 函数导出给 JavaScript 使用，或者从 Rust 代码中调用 JavaScript 函数。</p>
+<h4>5.2.5 #[wasm_bindgen(start)]</h4>
+<p>表示当前的函数在 js 中导入使用是自动执行的。</p>
+<h4>5.2.6 JsValue 类型</h4>
+<p><code>JsValue</code> 是 wasm-bindgen 库中的一个类型，用于表示 JavaScript 中的值。它可以表示任何 JavaScript 值，如数字、字符串、对象等。在 Wasm 环境中，JsValue 用于在 Rust 和 JavaScript 之间传递数据。</p>
+<h4>5.2.7 dyn_into</h4>
+<p>将 JavaScript 对象转换为特定的 Rust 类型。这个函数通常用于处理从 JavaScript 传递过来的对象，这些对象可能需要被转换成更具体的 Rust 类型，以便你可以调用该类型特有的方法或访问其属性。</p>
+<p>由于 WebAssembly 和 JavaScript 之间的交互是通过接口定义来进行的，有时候你从 JavaScript 接收到的对象可能是通用的类型（如 <code>JsValue</code>），但你需要将其转换为特定的 Rust 类型（如 <code>HtmlElement</code> 或 <code>Document</code>）来使用。<code>dyn_into</code> 函数提供了这种转换能力，并且它会进行类型检查，确保转换是安全的。</p>
+<pre><code class="language-rust">// 尝试将 Node 转换为 HtmlElement
+let element: HtmlElement = node.dyn_into().map_err(|_| {
+  console_error!(&quot;Failed to convert Node to HtmlElement&quot;);
+}).unwrap();
+</code></pre>
+<h4>5.2.8 expect</h4>
+<p>通常用于 <code>Option</code> 和 <code>Result</code> 类型。它的主要作用是当值为 <code>None</code> 或 <code>Err</code> 时提供自定义的错误消息，并触发 <code>panic!</code> 宏，从而终止程序。说白了，就是 Rust 的错误处理机制。这也是<code>Rust</code>为什么很安全的原因，每一句话都会有对应的错误处理。</p>
+<p>OK，大概了解了一下上面的语法之后，再去看这个方法就很简单了，其实就是一个简单的 canvas 绘制，只不过函数的写法和一些异常处理变多了。</p>
+<h3>5.3 项目编译</h3>
+<p>完成代码之后，我们把<code>Rust</code>代码编译为<code>wasm</code>。</p>
+<pre><code class="language-bash">wasm-pack build --target pkg
+</code></pre>
+<p>我们会发现在文件夹中多出了几个包：</p>
+<p><img src="../images/d47c30e96e83fa37349b0fb08f675c72.awebp" alt="image-20241129142939303.png"></p>
+<p>这个<code>pkg</code>就是在 client 的运行内容。</p>
+<h2>六. 在项目中使用</h2>
+<p>我们准备把<code>Rust</code>生成的<code>wasm</code>文件放到 vue3.0 项目中使用。</p>
+<p>新建一个 vue3.0 项目：</p>
+<pre><code class="language-bash">npm init vite
+</code></pre>
+<p>然后我们把<code>Rust</code>这个包放到对应的文件夹下面。</p>
+<p><img src="../images/7a6c2f641b5f469a9bc2fb2ba88ae4a5.awebp" alt="image-20241129141749366.png"></p>
+<p>完成之后，我们可以在<code>node_modules</code>里面关联一下<code>my_wasm_project</code>下面的 pkg 包。</p>
+<pre><code class="language-bash">pnpm i ./my_wasm_project/pkg
+</code></pre>
+<p>就可以在<code>node_modules</code>完成关联。</p>
+<p><img src="../images/0564c3dd6d89c8fa29e5dfd5d8c55fd1.awebp" alt="image-20241129142334454.png"></p>
+<p>为了可以自动编译，然后同步更新<code>node_modules</code>里面内容，我们在<code>package.json</code>里面写一个脚步执行。</p>
+<pre><code class="language-json">&quot;scripts&quot;: {
+    &quot;wasm&quot;: &quot;cd ./my_wasm_project &amp;&amp; wasm-pack build --target web &amp;&amp; cd .. &amp;&amp; pnpm install ./my_wasm_project/pkg&quot;
+  },
+</code></pre>
+<ul>
+<li><strong><code>cd ./my_wasm_project</code></strong> 进入到<code>my_wasm_project</code>包中。</li>
+<li><strong><code>wasm-pack build --target web</code></strong> 编译一下。</li>
+<li><strong><code>cd .. &amp;&amp; pnpm install ./my_wasm_project/pkg</code></strong> 回到根目录，然后 install 一下对应的包。</li>
+</ul>
+<p>然后在组件里面使用一下：</p>
+<pre><code class="language-js">import init, { draw_circle } from &quot;my_wasm_project/my_wasm_project&quot;;
+
+onMounted(async () =&gt; {
+  await init();
+  draw_circle(&quot;my_canvas&quot;);
+});
+</code></pre>
+<p>这里要注意一下，需要把引入一个 init 函数先执行，这个目的是为了先构建 wasm 的运行环境。</p>
+<p>然后执行一下<code>draw_circle</code>方法。</p>
+<p><img src="../images/9f28e6be2e0325db6a84834ad9ac75d1.awebp" alt="image-20241129150824750.png"></p>
+<p>ok，完成啦，一个最简单的 canvas 在页面中使用。</p>
+
+      </main>
+      
+      <aside class="toc-container">
+        <h3>目录</h3>
+        <div class="toc"></div>
+      </aside>
+    </div>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>

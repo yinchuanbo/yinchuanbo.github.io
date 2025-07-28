@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rust vs JavaScript 使用 WebAssembly 实现 76% 的性能提升</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    
+    <div class="article-container">
+      <main class="article-main">
+        <header>
+          <h1>Rust vs JavaScript 使用 WebAssembly 实现 76% 的性能提升</h1>
+          <p>Rust | 2025.07.29</p>
+        </header>
+        <blockquote>
+<p>了解如何通过 <code>Web Workers</code> 和 <code>WebAssembly</code> 显著提升 <code>JavaScript</code> 应用的性能，并使用斐波那契算法作为案例分析。</p>
+</blockquote>
+<p><code>JavaScript</code> 通常运行在单线程上，通常称为“主线程”。这意味着 <code>JavaScript</code> 以同步方式一次执行一个任务。主线程还负责渲染任务，例如页面绘制和布局，以及处理用户交互，这也意味着长时间运行的 <code>JavaScript</code> 任务会导致浏览器变得无响应。这就是为什么当一个耗时的 <code>JavaScript</code> 函数运行时，网页可能会“卡住”，阻碍用户的正常操作。</p>
+<p>我们将通过模拟斐波那契算法的繁重计算来演示如何阻塞主线程，并将通过以下几种方法来解决主线程阻塞的问题：</p>
+<ul>
+<li>多线程（<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API/Using_web_workers">Web Worker</a>）</li>
+<li>使用 <a href="https://www.assemblyscript.org/">AssemblyScript</a> 的 <code>WebAssembly</code></li>
+<li>使用 <a href="https://www.rust-lang.org/zh-CN/what/wasm">Rust</a> 的 <code>WebAssembly</code></li>
+</ul>
+<h3>斐波那契算法</h3>
+<p>在本文的所有案例研究中，我们将使用一个简单且非常常见的斐波那契算法，其时间复杂度为 <code>O(2^n)</code>。</p>
+<pre><code class="language-ts">const calculateFibonacci = (n: number): number =&gt; {
+  if (n &lt;= 1) return n;
+  return calculateFibonacci(n - 1) + calculateFibonacci(n - 2);
+};
+</code></pre>
+<h3>单线程</h3>
+<p>现在，让我们直接在主线程上实现斐波那契算法。当按钮被点击时，简单地调用斐波那契函数。</p>
+<p>子组件 <code>Spinner.vue</code>：</p>
+<pre><code class="language-html">&lt;template&gt;
+   
+  &lt;div class=&quot;flex justify-center items-center&quot;&gt;
+       
+    &lt;div
+      class=&quot;animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500&quot;
+    &gt;&lt;/div&gt;
+     
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script lang=&quot;ts&quot; setup&gt;&lt;/script&gt;
+
+&lt;style scoped&gt;&lt;/style&gt;
+</code></pre>
+<p>父组件 <code>WebAssemblySingle.vue</code>：</p>
+<pre><code class="language-html">&lt;template&gt;
+   
+  &lt;div
+    class=&quot;flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white&quot;
+  &gt;
+       &lt;button
+      @click=&quot;handleCalculate&quot;
+      class=&quot;mb-8 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition&quot;
+    &gt;
+          计算斐波那契数列    
+    &lt;/button&gt;
+       &lt;Spinner v-if=&quot;isLoading&quot; /&gt;    
+    &lt;p v-else class=&quot;text-xl&quot;&gt;结果: {{ result }}&lt;/p&gt;
+     
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script lang=&quot;ts&quot; setup&gt;
+  import Spinner from &quot;@/components/Spinner.vue&quot;;
+  import { ref } from &quot;vue&quot;;
+
+  const result = ref&lt;number | null&gt;(null);
+  const isLoading = ref(false);
+
+  const calculateFibonacci = (n: number): number =&gt; {
+    if (n &lt;= 1) return n;
+    return calculateFibonacci(n - 1) + calculateFibonacci(n - 2);
+  };
+
+  const handleCalculate = () =&gt; {
+    isLoading.value = true;
+    const fibonacciResult = calculateFibonacci(42);
+    result.value = fibonacciResult;
+    isLoading.value = false;
+  };
+&lt;/script&gt;
+
+&lt;style scoped&gt;&lt;/style&gt;
+</code></pre>
+<p>现在，让我们尝试点击 &quot;<strong>计算斐波那契数列</strong>&quot; 按钮，同时测量性能。要测量代码的性能，我们可以使用 <code>Chrome DevTools</code> 中的性能工具。</p>
+<p><img src="../images/8d9db6efbed9de49a6f98c9951a54887.awebp" alt="单线程"></p>
+<p>如您在界面中所见，我们的加载动画按钮甚至没有出现，取而代之的是突然显示了计算结果。从性能工具中我们也可以看到，由于斐波那契算法在主线程上的繁重计算，旋转动画被阻塞了大约 2.11 秒。</p>
+<p><img src="../images/136d43af2889e788967ed625fe4bb15d.awebp" alt="单线程"></p>
+<h3>多线程（<code>Web Worker</code>）</h3>
+<p>将繁重的计算从主线程移开的常用方法是使用 <code>Web Worker</code>。</p>
+<pre><code class="language-javascript">/**
+ * 将斐波那契算法移到 Web Worker 中
+ */
+self.addEventListener(&quot;message&quot;, function (e) {
+  const n = e.data;
+
+  const fibonacci = (n) =&gt; {
+    if (n &lt;= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+  };
+
+  const result = fibonacci(n);
+  self.postMessage(result);
+});
+</code></pre>
+<p>子组件 <code>Spinner.vue</code> 保持不变，父组件为 <code>WebAssemblyWorker.vue</code>：</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div
+    class=&quot;flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white&quot;
+  &gt;
+    &lt;button
+      @click=&quot;handleCalculate&quot;
+      class=&quot;mb-8 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition&quot;
+    &gt;
+      计算斐波那契数列
+    &lt;/button&gt;
+    &lt;Spinner v-if=&quot;isLoading&quot; /&gt;
+    &lt;p v-else class=&quot;text-xl&quot;&gt;结果: {{ result }}&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script lang=&quot;ts&quot; setup&gt;
+  import Spinner from &quot;@/components/Spinner.vue&quot;;
+  import { ref } from &quot;vue&quot;;
+
+  const result = ref&lt;number | null&gt;(null);
+  const isLoading = ref(false);
+
+  const calculateFibonacci = (n: number): number =&gt; {
+    if (n &lt;= 1) return n;
+    return calculateFibonacci(n - 1) + calculateFibonacci(n - 2);
+  };
+
+  const handleCalculate = () =&gt; {
+    isLoading.value = true;
+    const fibonacciResult = calculateFibonacci(42);
+    result.value = fibonacciResult;
+    isLoading.value = false;
+  };
+&lt;/script&gt;
+
+&lt;style scoped&gt;&lt;/style&gt;
+</code></pre>
+<p>现在，如果我们进行性能测试，可以看到加载动画平稳运行。这是因为我们将繁重的计算任务移到了工作线程，避免了阻塞主线程。</p>
+<p><img src="../images/1167a38494ba36f5fa39adb82cbe512a.awebp" alt="Worker"></p>
+<p>可以看到，单线程和工作线程的计算时间都大约是 2 秒。那么问题来了，我们如何进一步优化呢？答案是使用 <code>WebAssembly</code>。</p>
+<p><img src="../images/09b2ea403f60a984546f84239603f3c7.awebp" alt="Worker"></p>
+<p><strong>图解说明</strong>：动画正在正常运行，此时斐波那契算法已在另一个线程上执行，有效避免了主线程的阻塞。</p>
+<h3>WebAssembly — AssemblyScript</h3>
+<p>作为一名前端工程师，若在其他语言上的经验有限并想尝试 <code>WebAssembly</code>，我们通常会选择 <code>AssemblyScript</code>，因为它的开发体验最接近 <code>TypeScript</code>。</p>
+<p>以下是用 <code>AssemblyScript</code> 编写的等效斐波那契代码。</p>
+<pre><code class="language-js">export function fibonacci(n: i32): i32 {
+  if (n &lt;= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+</code></pre>
+<p>编译该代码后，会生成一个 <code>release.wasm</code> 文件。然后我们可以在 <code>JavaScript</code> 代码中使用这个 <code>Wasm</code> 文件。</p>
+<p>子组件 <code>Spinner.vue</code> 保持不变，父组件为 <code>AssemblyScript.vue</code>：</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div
+    class=&quot;flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white&quot;
+  &gt;
+    &lt;button
+      @click=&quot;handleCalculate&quot;
+      class=&quot;mb-8 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition&quot;
+    &gt;
+      计算斐波那契数列
+    &lt;/button&gt;
+    &lt;Spinner v-if=&quot;isLoading&quot; /&gt;
+    &lt;p v-else class=&quot;text-xl&quot;&gt;结果: {{ result }}&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script lang=&quot;ts&quot; setup&gt;
+  import Spinner from &quot;@/components/Spinner.vue&quot;;
+
+  import { ref } from &quot;vue&quot;;
+
+  const result = ref&lt;number | null&gt;(null);
+  const isLoading = ref(false);
+
+  const handleCalculate = async () =&gt; {
+    isLoading.value = true;
+
+    const wasmUrl = new URL(&quot;@/assembly/release.wasm&quot;, import.meta.url);
+    const wasmModule = await fetch(wasmUrl);
+    const buffer = await wasmModule.arrayBuffer();
+    const module = await WebAssembly.instantiate(buffer);
+    const wasm = module.instance.exports;
+
+    result.value = wasm.fibonacci(42);
+    isLoading.value = false;
+  };
+&lt;/script&gt;
+
+&lt;style scoped&gt;&lt;/style&gt;
+</code></pre>
+<p>现在，如果我们再次测量性能，尽管仍在主线程上，但加载动画出现了，并且没有被繁重的计算阻塞。斐波那契算法现在大约耗时 830 毫秒，比仅使用 <code>JavaScript</code> 快了约 60%。</p>
+<p><img src="../images/a336f2c07adf5b02f4e7539390186248.awebp" alt="AssemblyScript"></p>
+<p><img src="../images/253118816287f062e32639bf96e90bae.awebp" alt="AssemblyScript"></p>
+<h3>WebAssembly — Rust</h3>
+<p><code>Rust</code> 是 <code>WebAssembly</code> 的热门选择之一，<code>Mozilla</code> 的官方文档也推荐了它。让我们尝试用 <code>Rust</code> 实现相同的斐波那契算法。</p>
+<pre><code class="language-rust">use wasm_bindgen::prelude::*;
+
+// 通过 WebAssembly 将函数暴露给 JavaScript
+#[wasm_bindgen]
+pub fn fibonacci(n: u32) -&gt; u32 {
+    match n {
+        0 =&gt; 0,
+        1 =&gt; 1,
+        _ =&gt; fibonacci(n - 1) + fibonacci(n - 2),
+    }
+}
+</code></pre>
+<p>子组件 <code>Spinner.vue</code> 保持不变，父组件为 <code>AssemblyScript.vue</code>：</p>
+<pre><code class="language-html">&lt;template&gt;
+  &lt;div
+    class=&quot;flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white&quot;
+  &gt;
+    &lt;button
+      @click=&quot;handleCalculate&quot;
+      class=&quot;mb-8 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition&quot;
+    &gt;
+      计算斐波那契数列
+    &lt;/button&gt;
+    &lt;Spinner v-if=&quot;isLoading&quot; /&gt;
+    &lt;p v-else class=&quot;text-xl&quot;&gt;结果: {{ result }}&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script lang=&quot;ts&quot; setup&gt;
+  import Spinner from &quot;@/components/Spinner.vue&quot;;
+
+  import { ref } from &quot;vue&quot;;
+  import init, { fibonacci } from &quot;@/assembly/pkg/hello_wasm.js&quot;;
+
+  const result = ref&lt;number | null&gt;(null);
+  const isLoading = ref(false);
+
+  const handleCalculate = async () =&gt; {
+    isLoading.value = true;
+
+    await init();
+    result.value = fibonacci(42);
+
+    isLoading.value = false;
+  };
+&lt;/script&gt;
+
+&lt;style scoped&gt;&lt;/style&gt;
+</code></pre>
+<p>现在，让我们看看使用 <code>Rust</code> 编写的 <code>WebAssembly</code> 的效果。我们仍然在主线程上运行，但使用了 <code>Wasm</code>。和 <code>AssemblyScript</code> 类似，即使在主线程上运行 <code>Wasm</code>，加载动画仍然可以正常显示，不会被阻塞。令人惊讶的是，这个繁重的计算现在仅耗时 490 毫秒，比仅使用 <code>JavaScript</code> 快了 76%。</p>
+<p><img src="../images/e98de3f53c3966e4b58123db5ba6142e.awebp" alt="Rust.gif"></p>
+<p><img src="../images/84b343d6e7147cc36a5b5678eb65472f.awebp" alt="Rust.png"></p>
+<h3>总结</h3>
+<ul>
+<li>繁重的计算会阻塞主线程并停止所有动画。</li>
+<li>可以使用 <code>Web Worker</code> 将繁重计算移到后台线程。</li>
+<li>通过将计算逻辑重写为 <code>WebAssembly</code> 可以进一步提升性能。使用斐波那契算法作为案例，我们获得了以下结果：</li>
+</ul>
+<ol>
+<li><code>JavaScript</code>: 2 秒</li>
+<li><code>WebAssembly</code> — <code>AssemblyScript</code>：830 毫秒（比 <code>JavaScript</code> 快 60%）</li>
+<li><code>WebAssembly</code> — <code>Rust</code>：490 毫秒（比 <code>JavaScript</code> 快 76%）</li>
+</ol>
+
+      </main>
+      
+      <aside class="toc-container">
+        <h3>目录</h3>
+        <div class="toc"></div>
+      </aside>
+    </div>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>

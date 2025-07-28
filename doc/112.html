@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rust 视频抽帧</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    
+    <div class="article-container">
+      <main class="article-main">
+        <header>
+          <h1>Rust 视频抽帧</h1>
+          <p>Rust | 2025.07.29</p>
+        </header>
+        <p><strong>此篇文章所涉及到的技术有</strong></p>
+<ol>
+<li><code>WebAssembly</code></li>
+<li><code>Rust</code></li>
+<li><code>wasm-bindgen</code></li>
+<li><code>线程池</code></li>
+<li><code>Vite+React/Vue</code>(下面的内容，在各种前端框架中都用)</li>
+</ol>
+<p>因为，行文字数所限，有些概念可能会一带而过亦或者提供对应的学习资料。请大家酌情观看。</p>
+<hr>
+<h2>前言</h2>
+<p>老粉都知道，我之前接手了一个<strong>内容审读</strong>的开发需求。它是个啥呢，它需要对<strong>各种文档资源</strong>进行<code>解析</code>和<code>展示</code>。</p>
+<p>在上周呢，我们写了一篇<a href="https://mp.weixin.qq.com/s/fgDBUwYd87z4ovl28LzJ1w">Rust 赋能前端：PDF 分页/关键词标注/转图片/抽取文本/抽取图片/翻转...</a>，在里面介绍如何在前端环境中(<code>React/Vue</code>)中使用<code>Mupdf</code>，用于执行各种<code>PDF</code>的操作。</p>
+<p>在我们系统中，有一个需求就是<strong>视频抽帧</strong>。也就是对一个视频资源基于某些特征将其关键帧抽离成图片信息。然后对其进行<code>OCR</code>识别，并且基于关键字标注处理。</p>
+<p>我们今天就来讲讲如何使用<code>WebAssembly</code>对视频资源进行抽帧处理。对于<code>OCR</code>部分我们会单开一篇。</p>
+<h3>效果展示</h3>
+<p><img src="../images/e5c5d83675d9c2ad7ebf7b8d0526bcc8.awebp" alt=""></p>
+<p>可以看到，我们将一个时长快<code>5</code>分多的视频，仅用时 8 秒(波动在 5-9 秒之间)就将其抽成<code>69</code>个关键帧。</p>
+<p><img src="../images/7089d6724bd1b5a7969fd0a4f19bc672.awebp" alt=""></p>
+<h4>我们能所学到的知识点</h4>
+<ol>
+<li>项目初始化</li>
+<li>技术选择的初衷</li>
+<li>Rust + WebAssembly 抽帧处理</li>
+</ol>
+<hr>
+<h2>1. 项目初始化</h2>
+<p>还是一样的套路，我们还是基于<a href="https://www.npmjs.com/package/f_cli_f">f_cli_f</a>来构建的前端<code>Vite+React+TS</code>项目。</p>
+<p>当我们通过<code>yarn/npm</code>安装好对应的包时。我们就可以在<code>pages</code>新建一个<code>Video2Img</code>的目录,然后直接构建一个<code>index.tsx</code>即可。</p>
+<p>随后，我们在<code>src</code>目录下构建一个<code>wasm</code>目录来存放在前端项目中要用到的各种<code>wasm</code>。针对这个例子，我们构建一个<code>video2Img</code>的目录，用于存放<code>Rust</code>编译后的文件。</p>
+<hr>
+<h2>2. 技术选择的初衷</h2>
+<p>其实呢，针对<strong>视频抽帧</strong>的需求，我们可以不用<code>WebAssembly</code>来处理。直接使用浏览器原生<code>API</code>就可以实现。</p>
+<h3>用原生 API 实现视频抽帧</h3>
+<pre><code class="language-typescript">const extractFrames = async (file: File) =&gt; {
+  const video = document.createElement(&quot;video&quot;);
+  const src = URL.createObjectURL(file);
+  video.src = src;
+  await video.play();
+  video.pause(); // 暂停播放以进行逐帧处理
+
+  const canvas = document.createElement(&quot;canvas&quot;);
+  const ctx = canvas.getContext(&quot;2d&quot;);
+
+  if (!ctx) return;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const frameArray: string[] = [];
+  const totalFrames = Math.floor(video.duration * frameRate);
+
+  for (let i = 0; i &lt; totalFrames; i++) {
+    video.currentTime = i / frameRate; // 设置视频当前时间
+
+    await new Promise&lt;void&gt;((resolve) =&gt; {
+      video.onseeked = () =&gt; {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        frameArray.push(canvas.toDataURL(&quot;image/jpeg&quot;));
+        resolve();
+      };
+    });
+  }
+};
+</code></pre>
+<p>上面的代码就是利用原生 API 实现视频抽帧的简单版本。</p>
+<p>它的主要核心点就是</p>
+<ol>
+<li><p><strong>创建视频和画布元素</strong>：使用 <code>&lt;video&gt;</code> 元素加载视频文件，并创建 <code>&lt;canvas&gt;</code> 用于捕获视频帧。</p>
+</li>
+<li><p><strong>逐帧提取图像</strong>：</p>
+<ul>
+<li>通过 <code>video.currentTime</code> 设置视频的播放时间。</li>
+<li>使用 <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/seeked_event">onseeked 事件</a>在视频跳转到特定时间后，捕获当前帧。</li>
+</ul>
+</li>
+<li><p><strong>渲染帧到画布</strong>：将视频帧绘制到画布中，然后使用 <code>canvas.toDataURL</code> 将帧转换为 [Base64 编码]( &quot;Base64 编码&quot;)的 <a href="https://mp.weixin.qq.com/s/0294b6lM0Fb86mO4QNjvjQ">JPEG 图像</a>。</p>
+</li>
+<li><p><strong>异步处理</strong>：使用 <code>await</code> 和 <code>Promise</code> 确保每帧的提取和处理按顺序进行。</p>
+</li>
+</ol>
+<p>当然，上面的代码只是一个简单版本，其实还有很多的优化空间。</p>
+<p>例如：上面的代码在直接调用 <code>video.play()</code> 后暂停并逐帧处理，但没有等待<a href="https://wistia.com/learn/marketing/video-metadata">视频元数据</a>（如时长、帧率、宽高等）加载完成。如果不等元数据加载，视频可能还没有完全准备好，导致一些延迟。</p>
+<p>通过监听视频的 <a href="loadedmetadata_event">loadedmetadata 事件</a>，可以确保在开始处理之前，所有必要的元数据（如视频时长、宽度、高度）都已加载完成。这能<strong>避免因元数据未加载完而导致的时间跳转缓慢或帧提取卡顿</strong>，从而提升整体处理效率。</p>
+<h3>选择使用 Rust+WebAssembly 的原因</h3>
+<p>大家从上面的代码核心点可知。在处理过程中，出现了几种数据类型。</p>
+<ul>
+<li>视频资源</li>
+<li>video 元素</li>
+<li>canvas</li>
+<li>image</li>
+</ul>
+<p>还记得之前我们写过<a href="https://mp.weixin.qq.com/s/QaXCok33zOgog0effiSbzA">宝贝，带上 WebAssembly，换个姿势来优化你的前端应用</a>其中有一节就是讲到，如果在前端绘制内容比较复杂的图片资源时，可以往<code>Rust+WebAssembly</code>上靠。</p>
+<p>还记得这两张图吗？ <img src="../images/a06107e3b62d39c169aac4541cf5b1a5.awebp" alt=""></p>
+<p><img src="../images/5593042f8e1d2e520b16d2a524f895f8.awebp" alt=""></p>
+<p>上面的示例，可能在有些同学眼中有点牵强。然后，我们继续来说另外一个我选择使用<code>Rust+WebAssembly</code>处理<strong>视频抽帧</strong>的。</p>
+<p>如果大家写过<code>Rust+WebAssembly</code>的程序的话，想必肯定听说过大名鼎鼎的 - <a href="https://rustwasm.github.io/wasm-bindgen/introduction.html">wasm-bindgen</a>。如果想在<code>Rust</code>使用浏览器的一些<code>API</code>例如(<code>Document/Window</code>等)还离不开它 - <a href="https://rustwasm.github.io/wasm-bindgen/examples/dom.html">web-sys</a></p>
+<p>然后，不知道大家注意过这个例子不 - <a href="https://rustwasm.github.io/wasm-bindgen/examples/raytrace.html">Parallel Raytracing</a>。它是利用<a href="https://docs.rs/threadpool/latest/threadpool/">Rust 的多线程</a>操作同一份数据并将这些数据信息绘制到一个<code>canvas</code>中。(强烈建议大家在浏览器实操一下)</p>
+<p>下面是它的效果图</p>
+<p><img src="../images/244ccf5673f075c2522dc777eb731532.awebp" alt="单线程绘制，耗时1.2秒"></p>
+<p><img src="../images/a576d2d2e65973492cbf3c014d3d5a7e.awebp" alt="多线程，耗时0.8秒"></p>
+<p>上面的绘制时间，其实远远不是这个比例。</p>
+<p>看到上面的两个的示例，这就在心底埋下了种子 - 使用<code>Rust+WebAssembly+多线程</code> 进行视频抽帧。</p>
+<blockquote>
+<p>至于是否能成功，你不试试咋知道成不成功呢。</p>
+</blockquote>
+<p>下面，我们来尝试用<code>Rust+WebAssembly</code>实现抽帧的逻辑。</p>
+<hr>
+<h2>3. Rust + WebAssembly 抽帧处理</h2>
+<h3>Rust 项目初始化</h3>
+<p>使用<code>cargo new --lib audio2img</code>的<code>Rust</code>的项目。</p>
+<p>然后，使用<code>cargo install</code> 安装对应的<code>wasm-bindgen/js-sys/web-sys</code>等包。</p>
+<p>因为，我们在<code>Rust</code>中需要用到<code>Document/HtmlCanvasElement</code>等信息，我们还需要对<code>web-sys</code>做一些配置。</p>
+<p>最后在<code>Cargo.toml</code>中有如下的安装信息。</p>
+<pre><code class="language-ini">[package]
+name = &quot;audio2img&quot;
+version = &quot;0.1.0&quot;
+edition = &quot;2021&quot;
+
+[dependencies]
+futures = &quot;0.3.30&quot;
+js-sys = &quot;0.3.69&quot;
+serde-wasm-bindgen = &quot;0.6.5&quot;
+wasm-bindgen = &quot;0.2.92&quot;
+wasm-bindgen-futures = &quot;0.4.42&quot;
+[lib]
+crate-type = [&quot;cdylib&quot;]
+
+[dependencies.web-sys]
+version = &quot;0.3&quot;
+features = [
+    &#39;Window&#39;,
+    &#39;Document&#39;,
+    &#39;Element&#39;,
+    &#39;HtmlCanvasElement&#39;,
+    &#39;CanvasRenderingContext2d&#39;,
+    &#39;HtmlVideoElement&#39;,
+    &#39;Event&#39;
+    ]
+</code></pre>
+<h3>实现 JS 版本的平替版本(简单版本)</h3>
+<p>在上一节中我们介绍过，我们完全可以用原生 js 来实现抽帧处理。那么，我们所要做的就是，实现一个最简单版本的<code>Rust</code>视频抽帧版本。</p>
+<p>话不多说，我们直接上代码。在<code>src/lib.rs</code>中直接操作。</p>
+<pre><code class="language-rust">use futures::channel::oneshot;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{ window, HtmlVideoElement, HtmlCanvasElement, CanvasRenderingContext2d };
+use js_sys::Promise;
+use serde_wasm_bindgen::to_value;
+use std::rc::Rc;
+use std::cell::RefCell;
+
+#[wasm_bindgen]
+pub async fn extract_frames_from_url(video_url: &amp;str, frame_rate: f64) -&gt; Result&lt;JsValue, JsValue&gt; {
+    // 创建 video 元素
+    let document = window().unwrap().document().unwrap();
+    let video_element = document.create_element(&quot;video&quot;)?.dyn_into::&lt;HtmlVideoElement&gt;()?;
+
+    // 设置视频来源
+    video_element.set_src(video_url);
+    video_element.set_cross_origin(Some(&quot;anonymous&quot;));
+
+    // 加载视频元数据
+    let loaded_metadata_promise = Promise::new(
+        &amp;mut (|resolve, _| {
+            let resolve = Rc::new(RefCell::new(Some(resolve)));
+            let onloadedmetadata_closure = Closure::wrap(
+                Box::new(move || {
+                    if let Some(resolve) = resolve.borrow_mut().take() {
+                        resolve.call0(&amp;JsValue::NULL).unwrap();
+                    }
+                }) as Box&lt;dyn FnMut()&gt;
+            );
+            video_element.set_onloadedmetadata(
+                Some(onloadedmetadata_closure.as_ref().unchecked_ref())
+            );
+            onloadedmetadata_closure.forget();
+        })
+    );
+    JsFuture::from(loaded_metadata_promise).await?;
+
+    // 暂停视频
+    video_element.pause()?;
+
+    // 创建 canvas 元素
+    let canvas_element = document.create_element(&quot;canvas&quot;)?.dyn_into::&lt;HtmlCanvasElement&gt;()?;
+    canvas_element.set_width(video_element.video_width() as u32);
+    canvas_element.set_height(video_element.video_height() as u32);
+
+    // 获取 canvas 上下文
+    let ctx = canvas_element.get_context(&quot;2d&quot;)?.unwrap().dyn_into::&lt;CanvasRenderingContext2d&gt;()?;
+
+    let mut frame_array = Vec::new();
+    let total_frames = (video_element.duration() * frame_rate) as i32;
+
+    for i in 0..total_frames {
+        video_element.set_current_time((i as f64) / frame_rate);
+
+        // 通过监听 onseeked 事件同步获取帧
+        let (sender, receiver) = oneshot::channel();
+        let sender = Rc::new(RefCell::new(Some(sender)));
+        let onseeked_closure = Closure::wrap(
+            Box::new(move || {
+                if let Some(sender) = sender.borrow_mut().take() {
+                    let _ = sender.send(());
+                }
+            }) as Box&lt;dyn FnMut()&gt;
+        );
+        video_element.set_onseeked(Some(onseeked_closure.as_ref().unchecked_ref()));
+        onseeked_closure.forget();
+
+        // 等待 onseeked 事件触发
+        receiver.await.unwrap();
+
+        ctx.draw_image_with_html_video_element(&amp;video_element, 0.0, 0.0).unwrap();
+        let frame_data = canvas_element.to_data_url().unwrap();
+        frame_array.push(frame_data);
+    }
+
+    Ok(to_value(&amp;frame_array).unwrap())
+}
+</code></pre>
+<p>由于这段代码比较简单，同时呢为了兼顾不同同学的<code>Rust</code>审读能力。我们就对这段代码做一下比较详细的讲解。</p>
+<h4>主要逻辑总结</h4>
+<ol>
+<li><strong>创建并配置 HTML 元素</strong>：创建 <code>video</code> 和 <code>canvas</code> 元素，设置视频源并调整 <code>canvas</code> 尺寸。</li>
+<li><strong>等待视频元数据加载</strong>：通过 <code>onloadedmetadata</code> 确保视频元数据加载完成，避免提前操作视频。</li>
+<li><strong>逐帧跳转并捕获帧</strong>：<ul>
+<li>使用 <code>set_current_time</code> 来逐帧调整视频的当前时间。</li>
+<li>通过监听 <code>onseeked</code> 事件确保每次时间跳转后处理帧。</li>
+</ul>
+</li>
+<li><strong>绘制帧到 canvas</strong>：将每一帧绘制到 <code>canvas</code>，然后转换为 Base64 格式的图像数据。</li>
+<li><strong>返回帧数据</strong>：将帧数据数组通过 <code>WebAssembly</code> 和 <code>Rust</code> 返回给 <code>JavaScript</code>。</li>
+</ol>
+<p>可以看到，我们除了第 5 步和之前的<code>JS</code>逻辑不同，其他的代码思路都和之前的出奇的一致。</p>
+<h4>代码逻辑</h4>
+<p>然后，我们再对<code>Rust</code>的代码做一次较为详细的解读。</p>
+<ol>
+<li><strong>创建 <code>video</code> 元素</strong>：</li>
+</ol>
+<pre><code class="language-rust">let document = window().unwrap().document().unwrap();
+let video_element = document.create_element(&quot;video&quot;)?.dyn_into::&lt;HtmlVideoElement&gt;()?;
+</code></pre>
+<ul>
+<li>通过 <code>window()</code> 和 <code>document()</code>，在浏览器环境下创建一个 HTML <code>video</code> 元素，用于加载和播放视频。</li>
+</ul>
+<ol start="2">
+<li><strong>设置视频来源</strong>：</li>
+</ol>
+<pre><code class="language-rust">video_element.set_src(video_url);
+video_element.set_cross_origin(Some(&quot;anonymous&quot;));
+</code></pre>
+<ul>
+<li>设置视频的 <code>src</code>，从传入的 <code>video_url</code> 加载视频。</li>
+<li>设置 <code>cross_origin</code> 为 <code>&quot;anonymous&quot;</code>，用于跨域加载资源，确保视频可以被绘制到 canvas 中。</li>
+</ul>
+<ol start="3">
+<li><strong>等待视频元数据加载完成</strong>：</li>
+</ol>
+<pre><code class="language-rust">let loaded_metadata_promise = Promise::new(
+    &amp;mut (|resolve, _| {
+        let resolve = Rc::new(RefCell::new(Some(resolve)));
+        let onloadedmetadata_closure = Closure::wrap(
+            Box::new(move || {
+                if let Some(resolve) = resolve.borrow_mut().take() {
+                    resolve.call0(&amp;JsValue::NULL).unwrap();
+                }
+            }) as Box&lt;dyn FnMut()&gt;
+        );
+        video_element.set_onloadedmetadata(
+            Some(onloadedmetadata_closure.as_ref().unchecked_ref())
+        );
+        onloadedmetadata_closure.forget();
+    })
+);
+JsFuture::from(loaded_metadata_promise).await?;
+</code></pre>
+<ul>
+<li>创建一个 JavaScript <code>Promise</code>，并监听 <code>video</code> 元素的 <code>onloadedmetadata</code> 事件。</li>
+<li>只有当视频元数据（例如时长、尺寸等）加载完成后，才能开始进一步操作。</li>
+<li><code>Promise</code> 是异步的，等到 <code>onloadedmetadata</code> 事件触发后继续代码执行。</li>
+</ul>
+<ol start="4">
+<li><strong>暂停视频播放</strong>：</li>
+</ol>
+<pre><code class="language-rust">video_element.pause()?;
+</code></pre>
+<ul>
+<li>暂停视频，防止自动播放，确保可以逐帧处理视频。</li>
+</ul>
+<ol start="5">
+<li><strong>创建 <code>canvas</code> 元素并设置大小</strong>：</li>
+</ol>
+<pre><code class="language-rust">let canvas_element = document.create_element(&quot;canvas&quot;)?.dyn_into::&lt;HtmlCanvasElement&gt;()?;
+canvas_element.set_width(video_element.video_width() as u32);
+canvas_element.set_height(video_element.video_height() as u32);
+</code></pre>
+<ul>
+<li>创建一个 HTML <code>canvas</code> 元素，并设置其宽高与视频的宽高一致，以便绘制视频帧。</li>
+</ul>
+<ol start="6">
+<li><strong>获取 canvas 的绘图上下文</strong>：</li>
+</ol>
+<pre><code class="language-rust">let ctx = canvas_element.get_context(&quot;2d&quot;)?.unwrap().dyn_into::&lt;CanvasRenderingContext2d&gt;()?;
+</code></pre>
+<ul>
+<li>获取 <code>canvas</code> 的 2D 绘图上下文 (<code>CanvasRenderingContext2d</code>)，用于在 canvas 上绘制视频帧。</li>
+</ul>
+<ol start="7">
+<li><strong>逐帧处理视频</strong>：</li>
+</ol>
+<pre><code class="language-rust">let total_frames = (video_element.duration() * frame_rate) as i32;
+
+for i in 0..total_frames {
+    video_element.set_current_time((i as f64) / frame_rate);
+
+    let (sender, receiver) = oneshot::channel();
+    let sender = Rc::new(RefCell::new(Some(sender)));
+    let onseeked_closure = Closure::wrap(
+        Box::new(move || {
+            if let Some(sender) = sender.borrow_mut().take() {
+                let _ = sender.send(());
+            }
+        }) as Box&lt;dyn FnMut()&gt;
+    );
+    video_element.set_onseeked(Some(onseeked_closure.as_ref().unchecked_ref()));
+    onseeked_closure.forget();
+    receiver.await.unwrap();
+
+    ctx.draw_image_with_html_video_element(&amp;video_element, 0.0, 0.0).unwrap();
+    let frame_data = canvas_element.to_data_url().unwrap();
+    frame_array.push(frame_data);
+}
+</code></pre>
+<ul>
+<li>计算总帧数 <code>total_frames</code>。</li>
+<li>每次循环设置 <code>video_element.set_current_time</code> 调整视频的当前时间。</li>
+<li>使用 <code>oneshot::channel()</code> 实现同步等待 <code>onseeked</code> 事件触发，确保在时间跳转完毕后再进行下一步操作。</li>
+<li>使用 <code>ctx.draw_image_with_html_video_element</code> 绘制视频帧到 <code>canvas</code>。</li>
+<li>使用 <code>canvas_element.to_data_url()</code> 将当前帧转换为 Base64 编码的图像数据，保存到 <code>frame_array</code> 数组中。</li>
+</ul>
+<ol start="8">
+<li><strong>返回帧数组</strong>：</li>
+</ol>
+<pre><code class="language-rust">Ok(to_value(&amp;frame_array).unwrap())
+</code></pre>
+<ul>
+<li>使用 <code>serde_wasm_bindgen::to_value</code> 将 <code>frame_array</code> 转换为 JavaScript 值 <code>JsValue</code>，并返回帧数据数组。</li>
+</ul>
+<hr>
+<h4>涉及的重要 Rust 概念</h4>
+<ol>
+<li><strong>wasm_bindgen</strong>：</li>
+</ol>
+<ul>
+<li>宏和工具，用于在 <code>Rust</code> 中与 <code>JavaScript</code> 交互，特别是在 <code>WebAssembly</code> 中调用 <code>JavaScript</code> API。</li>
+<li>如 <code>#[wasm_bindgen]</code> 标记的函数可以被 <code>JavaScript</code> 调用。</li>
+</ul>
+<ol start="2">
+<li><strong>futures::channel::oneshot</strong>：</li>
+</ol>
+<ul>
+<li><code>Rust</code> 的异步工具，提供了一个简单的 <code>oneshot</code> 通道，用于线程间或异步任务之间进行一次性消息传递。在这里用于同步等待 <code>onseeked</code> 事件触发。</li>
+</ul>
+<ol start="3">
+<li><strong>Closure::wrap</strong>：</li>
+</ol>
+<ul>
+<li>将 <code>Rust</code> 的闭包转换为 <code>JavaScript</code> 的闭包，并传递给 DOM 事件处理器。在处理 <code>onloadedmetadata</code> 和 <code>onseeked</code> 时使用。</li>
+</ul>
+<ol start="4">
+<li><strong>Rc 和 RefCell</strong>：</li>
+</ol>
+<ul>
+<li><code>Rc</code>（<code>Reference Counted</code>）是引用计数智能指针，用于在多个地方共享数据。</li>
+<li><code>RefCell</code> 允许在运行时进行可变借用，配合 <code>Rc</code> 使用，解决共享状态下的可变性问题。</li>
+</ul>
+<ol start="5">
+<li>JsFuture::from(Promise)：</li>
+</ol>
+<ul>
+<li>将 <code>JavaScript</code> 的 <code>Promise</code> 转换为 <code>Rust</code> 的 <code>Future</code>，以便在异步代码中使用 <code>await</code>。</li>
+</ul>
+<p>有些概念，例如<code>Closure::wrap</code>和<code>Rc</code> 和 <code>RefCell</code>在我们之前的<a href="https://mp.weixin.qq.com/mp/appmsgalbum?__biz=Mzg3NjU2OTE1Mw==&action=getalbum&album_id=2653052954631061505&uin=&key=&devicetype=iMac+MacBookPro15%2C2+OSX+OSX+13.3.1+build(22E261)&version=13080813&lang=zh_CN&nettype=WIFI&ascene=7&session_us=gh_55719559acc0&fontScale=100">Rust 学习笔记</a>中都有涉猎。</p>
+<h4>运行效果</h4>
+<p><img src="../images/b0e4c8b2f779dfe92cd1b878701b7730.awebp" alt=""></p>
+<p>上面的效果就是我们把编译好的<code>Rust</code>代码在前端环境执行的效果。能达到抽帧的效果，但是有几点瑕疵。</p>
+<ol>
+<li>只有在视频解析完成后，我们才会拿到最后的数据信息，也就是我们页面中有很长的一段空窗期。这很不好，我们要那种抽离出一个页面就像前端返回，要有及时性</li>
+<li>处理的时间过长，对比文章刚开始，相同的视频，抽离 69 张图片，需要耗时 13 秒。这也是我们不能容忍的。</li>
+</ol>
+<p>所以接下来，我们来优化上面的代码</p>
+<hr>
+<h3>新增 callback</h3>
+<p>首先，我们来解决上面的第一个问题，我们不要在视频处理完后才向前端返回信息，我们要的是没处理完一批数据，前端就可以先渲染。也就是在文章刚开始的那个效果。</p>
+<p>话不多说，我们直接上代码。</p>
+<pre><code class="language-rust">use futures::channel::oneshot;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{ window, HtmlVideoElement, HtmlCanvasElement, CanvasRenderingContext2d };
+use js_sys::{ Function, Promise };
+use std::rc::Rc;
+use std::cell::RefCell;
+
+#[wasm_bindgen]
+pub async fn extract_frames_from_url(
+    video_url: &amp;str,
+    frame_rate: f64,
+    callback: &amp;JsValue
+) -&gt; Result&lt;(), JsValue&gt; {
+    let document = window().unwrap().document().unwrap();
+    let video_element = document.create_element(&quot;video&quot;)?.dyn_into::&lt;HtmlVideoElement&gt;()?;
+
+    video_element.set_src(video_url);
+    video_element.set_cross_origin(Some(&quot;anonymous&quot;));
+
+    let loaded_metadata_promise = Promise::new(
+        &amp;mut (|resolve, _| {
+            let resolve = Rc::new(RefCell::new(Some(resolve)));
+            let onloadedmetadata_closure = Closure::wrap(
+                Box::new(move || {
+                    if let Some(resolve) = resolve.borrow_mut().take() {
+                        resolve.call0(&amp;JsValue::NULL).unwrap();
+                    }
+                }) as Box&lt;dyn FnMut()&gt;
+            );
+            video_element.set_onloadedmetadata(
+                Some(onloadedmetadata_closure.as_ref().unchecked_ref())
+            );
+            onloadedmetadata_closure.forget();
+        })
+    );
+    JsFuture::from(loaded_metadata_promise).await?;
+
+    video_element.pause()?;
+
+    let canvas_element = document.create_element(&quot;canvas&quot;)?.dyn_into::&lt;HtmlCanvasElement&gt;()?;
+    canvas_element.set_width(video_element.video_width() as u32);
+    canvas_element.set_height(video_element.video_height() as u32);
+
+    let ctx = canvas_element.get_context(&quot;2d&quot;)?.unwrap().dyn_into::&lt;CanvasRenderingContext2d&gt;()?;
+
+    let total_frames = (video_element.duration() * frame_rate) as i32;
+
+    let onseeked_closure = Rc::new(RefCell::new(None));
+    let video_element_clone = video_element.clone();
+
+    // 将 JsValue 转换为 JavaScript 的回调函数
+    let callback_function = callback.dyn_ref::&lt;Function&gt;().ok_or(&quot;callback function is not valid&quot;)?;
+
+    for i in 0..total_frames {
+        let (sender, receiver) = oneshot::channel();
+        let sender = Rc::new(RefCell::new(Some(sender)));
+
+        *onseeked_closure.borrow_mut() = Some(
+            Closure::wrap(
+                Box::new({
+                    let sender = sender.clone();
+                    move || {
+                        if let Some(sender) = sender.borrow_mut().take() {
+                            let _ = sender.send(());
+                        }
+                    }
+                }) as Box&lt;dyn FnMut()&gt;
+            )
+        );
+
+        video_element_clone.set_onseeked(
+            Some(onseeked_closure.borrow().as_ref().unwrap().as_ref().unchecked_ref())
+        );
+        video_element_clone.set_current_time((i as f64) / frame_rate);
+
+        receiver.await.unwrap();
+
+        ctx.draw_image_with_html_video_element(&amp;video_element_clone, 0.0, 0.0).unwrap();
+        let frame_data = canvas_element.to_data_url().unwrap();
+
+        // 每次生成frame_data后，立即调用回调函数，将frame_data传递给前端
+        let js_frame_data = JsValue::from_str(&amp;frame_data);
+        callback_function.call1(&amp;JsValue::NULL, &amp;js_frame_data)?;
+    }
+
+    video_element.set_onseeked(None);
+
+    Ok(())
+}
+</code></pre>
+<h4>对比之前代码的改变</h4>
+<ol>
+<li><p><strong>添加了 callback 参数</strong>：</p>
+<ul>
+<li>新增了 <code>callback: &amp;JsValue</code> 参数，允许调用 JavaScript 回调函数将每一帧的图像数据实时传递给前端，而不是像之前那样返回整个帧数组。</li>
+<li>通过 <code>callback_function.call1()</code> 方法，在每一帧生成后立即将帧数据传递给回调函数。</li>
+</ul>
+</li>
+<li><p><strong>去除了 frame_array</strong>：</p>
+<ul>
+<li>之前的代码将所有帧数据保存到一个数组 <code>frame_array</code> 中，最后一次性返回整个数组。</li>
+<li>新代码去掉了 <code>frame_array</code>，改为每次生成帧数据后立即调用回调函数，因此不需要在 Rust 端保存全部帧数据。</li>
+</ul>
+</li>
+<li><p><strong>优化 onseeked 事件处理</strong>：</p>
+<ul>
+<li>原代码每次生成帧时都创建一个新的 <code>Closure</code> 监听 <code>onseeked</code> 事件。</li>
+<li>优化后，<code>onseeked_closure</code> 是通过 <code>Rc&lt;RefCell&lt;&gt;&gt;</code> 来缓存的，因此可以在循环中复用它，避免每次都生成新的闭包对象。</li>
+<li>这一优化减少了闭包的创建和内存分配，提升了代码的性能。</li>
+</ul>
+</li>
+<li><p><strong>JsValue 转 Function</strong>：</p>
+<ul>
+<li>在新代码中，通过 <code>callback.dyn_ref::&lt;Function&gt;()</code> 将传入的 <code>JsValue</code> 转换为 JavaScript 回调函数 (<code>Function</code>)，并在每一帧处理完后调用该回调。</li>
+<li>这一点增强了 Rust 端与 JavaScript 端的交互，提供了实时处理的能力。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h4>优点</h4>
+<ol>
+<li><p><strong>实时传递帧数据</strong>：</p>
+<ul>
+<li><strong>提升了内存效率</strong>：不再需要将所有帧数据存入一个大数组，而是每处理一帧立即发送给前端。这样减少了内存占用，尤其是对于处理长视频时，帧数据不再需要在 Rust 端缓存。</li>
+<li><strong>更流畅的用户体验</strong>：帧数据可以实时传递给前端，这意味着视频的帧捕获和渲染可以并行进行，不必等待所有帧处理完毕后再返回结果。用户可以立即看到处理中的帧。</li>
+</ul>
+</li>
+<li><p><strong>复用闭包，减少性能开销</strong>：</p>
+<ul>
+<li>通过 <code>Rc&lt;RefCell&lt;&gt;&gt;</code> 复用 <code>onseeked_closure</code>，减少了闭包的创建和销毁，降低了闭包生成的开销，提高了代码的性能。</li>
+</ul>
+</li>
+<li><p><strong>灵活性增强</strong>：</p>
+<ul>
+<li>新的 <code>callback</code> 参数使得这段代码更加灵活，用户可以自定义如何处理帧数据（例如显示在页面上，存储到服务器，或者进行其他操作）。通过回调机制，处理每帧数据的逻辑可以完全在前端控制。</li>
+</ul>
+</li>
+<li><p><strong>更简洁的结构</strong>：</p>
+<ul>
+<li>由于去掉了帧数据数组 <code>frame_array</code>，整个代码逻辑更加清晰，减少了无用的变量管理，提升了可读性。</li>
+</ul>
+</li>
+</ol>
+<h4>效果展示</h4>
+<p><img src="../images/5a4942409564bc69d4fc2cd4d32f6dea.awebp" alt=""></p>
+<p>可以看到，我们通过加入了<code>callback</code>后，不仅在页面交互上有所优化，在渲染速度上也有一定的提升。</p>
+<p>也就是说，我们通过上面的改动，都解决了上面的两个顽疾。</p>
+<hr>
+<h3>使用多线程</h3>
+<p>其实吧，在经过优化后，上面的代码已经能够达成我们的需求了。之前文章也写了，我们之所以选用<code>Rust</code>来处理<strong>视频抽帧</strong>，是看中了它的<strong>多线程</strong>能力。</p>
+<p>然后，我们就尝试往这边靠。具体实现思路呢，还是和<a href="https://wasm-bindgen.netlify.app/exbuild/raytrace-parallel/">raytrace-parallel</a>一致。</p>
+<p>所幸，它也有完整的代码实现。然后，咱也照猫画虎实现一遍，然后如果有性能不可靠的地方，我们在见招拆招。</p>
+<blockquote>
+<p>先说结果,本来我们想使用<a href="https://github.com/rayon-rs/rayon">rayon</a>来初始化多个线程，并且实例化多个 video 实例，每个 video 处理一部分视频的解析处理，从而达到缩短处理时间的目的，但是呢由于<code>document/video</code>的实例无法在多线程中共享数据，然后达不到这种效果，后来不了了之。</p>
+</blockquote>
+<p>部分代码如下所示：(这是一个不成功的案例，但是我们的思路就是<strong>分而治之</strong>)</p>
+<pre><code class="language-rust">use futures::channel::oneshot;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{window, HtmlVideoElement, HtmlCanvasElement, CanvasRenderingContext2d};
+use js_sys::{Function, Promise};
+use std::rc::Rc;
+use std::cell::RefCell;
+use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
+use wasm_bindgen_rayon::init_thread_pool;
+
+#[wasm_bindgen]
+pub async fn extract_frames_from_url(
+    video_url: &amp;str,
+    frame_rate: f64,
+    callback: &amp;JsValue
+) -&gt; Result&lt;(), JsValue&gt; {
+    init_thread_pool(8).expect(&quot;Failed to initialize thread pool&quot;);
+
+    let document = Arc::new(window().unwrap().document().unwrap());
+
+    let video_element1 = document.create_element(&quot;video&quot;)?.dyn_into::&lt;HtmlVideoElement&gt;()?;
+    let video_element2 = document.create_element(&quot;video&quot;)?.dyn_into::&lt;HtmlVideoElement&gt;()?;
+
+    video_element1.set_src(video_url);
+    video_element2.set_src(video_url);
+
+    video_element1.set_cross_origin(Some(&quot;anonymous&quot;));
+    video_element2.set_cross_origin(Some(&quot;anonymous&quot;));
+
+    // 省略部分代码
+
+    video_element1.pause()?;
+    video_element2.pause()?;
+
+    let total_frames = (video_element1.duration() * frame_rate) as i32;
+    let midpoint = total_frames / 2;
+
+    let document_clone1 = Arc::clone(&amp;document);
+    let document_clone2 = Arc::clone(&amp;document);
+
+    let process_frames = move |
+        video_element: HtmlVideoElement,
+        start_frame: i32,
+        end_frame: i32,
+        document: Arc&lt;web_sys::Document&gt;
+    | {
+        let video_element_arc = Arc::new(Mutex::new(video_element));
+        let ctx = {
+            let canvas_element = document.create_element(&quot;canvas&quot;).unwrap().dyn_into::&lt;HtmlCanvasElement&gt;().unwrap();
+            canvas_element.set_width(video_element_arc.lock().unwrap().video_width() as u32);
+            canvas_element.set_height(video_element_arc.lock().unwrap().video_height() as u32);
+            canvas_element.get_context(&quot;2d&quot;).unwrap().unwrap().dyn_into::&lt;CanvasRenderingContext2d&gt;().unwrap()
+        };
+
+        let callback_function = Arc::new(callback.dyn_ref::&lt;Function&gt;().unwrap().clone());
+
+        (start_frame..end_frame).into_par_iter().for_each(|i| {
+            let video_element = Arc::clone(&amp;video_element_arc);
+            let callback_function = Arc::clone(&amp;callback_function);
+
+            let mut video_element = video_element.lock().unwrap();
+
+            let (sender, receiver) = oneshot::channel();
+            let sender = Rc::new(RefCell::new(Some(sender)));
+
+            let onseeked_closure = Closure::wrap(
+                Box::new({
+                    let sender = sender.clone();
+                    move || {
+                        if let Some(sender) = sender.borrow_mut().take() {
+                            let _ = sender.send(());
+                            web_sys::console::log_1(&amp;format!(&quot;Frame {} processed&quot;, i).into());
+                        }
+                    }
+                }) as Box&lt;dyn FnMut()&gt;
+            );
+
+            video_element.set_onseeked(Some(onseeked_closure.as_ref().unchecked_ref()));
+            video_element.set_current_time((i as f64) / frame_rate);
+
+            receiver.await.unwrap();
+
+            ctx.draw_image_with_html_video_element(&amp;*video_element, 0.0, 0.0).unwrap();
+            let frame_data = ctx.canvas().unwrap().to_data_url().unwrap();
+
+            let js_frame_data = JsValue::from_str(&amp;frame_data);
+            callback_function.call1(&amp;JsValue::NULL, &amp;js_frame_data).unwrap();
+        });
+    };
+
+    let task1 = process_frames(video_element1, 0, midpoint, document_clone1);
+    let task2 = process_frames(video_element2, midpoint, total_frames, document_clone2);
+
+    futures::join!(task1, task2);
+
+    Ok(())
+}
+</code></pre>
+<p>虽然，结果很无奈，但是其实也是给了我们很多思路，就像<code>raytrace-parallel</code>利用多线程实现对一批数据实现多线程处理，并且将结果返回的思路。</p>
+<p>当后面我们遇到类似的功能，我们也是可以往这边靠拢的。</p>
+<h4>创建一个 web worker 池</h4>
+<p>下面的代码，我们是从<code>raytrace-parallel</code>中<code>cv</code>下来的，但是也是一个完成的代码片段，以后如果有需要，我们可以直接使用。</p>
+<pre><code class="language-rust">// 关闭编译器警告：当目标架构不是 wasm 时，忽略 Work.func 和 child_entry_point 未使用的警告
+#![cfg_attr(not(target_arch = &quot;wasm32&quot;), allow(dead_code))]
+
+// 演示了如何创建一个 web worker 池，以便执行类似于 `rayon` 的任务。
+
+use std::cell::RefCell;
+use std::rc::Rc;
+use wasm_bindgen::prelude::*;
+use web_sys::{ DedicatedWorkerGlobalScope, MessageEvent, WorkerOptions };
+use web_sys::{ ErrorEvent, Event, Worker, WorkerType };
+
+#[wasm_bindgen]
+pub struct WorkerPool {
+    state: Rc&lt;PoolState&gt;,
+    worker_path: String,
+}
+
+struct PoolState {
+    workers: RefCell&lt;Vec&lt;Worker&gt;&gt;,
+    callback: Closure&lt;dyn FnMut(Event)&gt;,
+}
+
+struct Work {
+    func: Box&lt;dyn FnOnce() + Send&gt;,
+}
+
+#[wasm_bindgen]
+impl WorkerPool {
+    /// 创建一个新的 `WorkerPool`，该池立即创建 `initial` 个 worker。
+    ///
+    /// 该池可以长期使用，并且会初始填充 `initial` 个 worker。
+    /// 目前，除非整个池被销毁，否则不会释放或回收 worker。
+    ///
+    /// # 错误
+    ///
+    /// 如果在创建 JS web worker 或发送消息时发生任何错误，将返回该错误。
+    #[wasm_bindgen(constructor)]
+    pub fn new(initial: usize, worker_path: String) -&gt; Result&lt;WorkerPool, JsValue&gt; {
+        let pool = WorkerPool {
+            state: Rc::new(PoolState {
+                workers: RefCell::new(Vec::with_capacity(initial)),
+                callback: Closure::new(|event: Event| {
+                    console_log!(&quot;未处理的事件: {}&quot;, event.type_());
+                    crate::logv(&amp;event);
+                }),
+            }),
+            worker_path: worker_path.to_string(),
+        };
+        for _ in 0..initial {
+            let worker = pool.spawn(worker_path.clone())?;
+            pool.state.push(worker);
+        }
+
+        Ok(pool)
+    }
+
+    /// 无条件地生成一个新的 worker
+    ///
+    /// 该 worker 不会被注册到此 `WorkerPool`，但能够为此 wasm 模块执行任务。
+    ///
+    /// # 错误
+    ///
+    /// 如果在创建 JS web worker 或发送消息时发生任何错误，将返回该错误。
+    fn spawn(&amp;self, worker_path: String) -&gt; Result&lt;Worker, JsValue&gt; {
+        console_log!(&quot;生成新 worker&quot;);
+        /// 通过在调用处，传人worker_path，来构建一个module 类型的worker
+        let mut opts = WorkerOptions::new();
+        opts.set_type(WorkerType::Module);
+        // 创建 Worker
+        let worker = Worker::new_with_options(&amp;worker_path, &amp;opts).map_err(|err|
+            JsValue::from(err)
+        )?;
+
+        // 在生成 worker 后，发送模块/内存以便它可以开始实例化 wasm 模块。
+        // 稍后，它可能会收到有关在 wasm 模块上运行代码的进一步消息。
+        let array = js_sys::Array::new();
+        array.push(&amp;wasm_bindgen::module());
+        array.push(&amp;wasm_bindgen::memory());
+        worker.post_message(&amp;array)?;
+
+        Ok(worker)
+    }
+
+    /// 从此池中获取一个 worker，必要时生成一个新的。
+    ///
+    /// 如果有可用的已生成的 web worker，这将尝试从缓存中提取一个，否则将生成一个新的 worker 并返回新生成的 worker。
+    ///
+    /// # 错误
+    ///
+    /// 如果在创建 JS web worker 或发送消息时发生任何错误，将返回该错误。
+    fn worker(&amp;self) -&gt; Result&lt;Worker, JsValue&gt; {
+        match self.state.workers.borrow_mut().pop() {
+            Some(worker) =&gt; Ok(worker),
+            None =&gt; self.spawn(self.worker_path.clone()),
+        }
+    }
+
+    /// 在 web worker 中执行任务 `f`，必要时生成 web worker。
+    ///
+    /// 这将获取一个 web worker，然后将闭包 `f` 发送给 worker 执行。在 `f` 执行期间，该 worker 将不可用于其他任务，且不会为 worker 完成时注册回调。
+    ///
+    /// # 错误
+    ///
+    /// 如果在创建 JS web worker 或发送消息时发生任何错误，将返回该错误。
+    fn execute(&amp;self, f: impl FnOnce() + Send + &#39;static) -&gt; Result&lt;Worker, JsValue&gt; {
+        let worker = self.worker()?;
+        let work = Box::new(Work { func: Box::new(f) });
+        let ptr = Box::into_raw(work);
+        match worker.post_message(&amp;JsValue::from(ptr as u32)) {
+            Ok(()) =&gt; Ok(worker),
+            Err(e) =&gt; {
+                unsafe {
+                    drop(Box::from_raw(ptr));
+                }
+                Err(e)
+            }
+        }
+    }
+
+    /// 为指定的 `worker` 配置一个 `onmessage` 回调，以便在收到消息时回收并重新插入此池。
+    ///
+    /// 当前，此 `WorkerPool` 抽象用于执行一次性任务，其中任务本身不会发送任何通知，任务完成后 worker 准备执行更多任务。
+    /// 此方法用于所有生成的 worker，以确保任务完成后 worker 被回收到此池中。
+    fn reclaim_on_message(&amp;self, worker: Worker) {
+        let state = Rc::downgrade(&amp;self.state);
+        let worker2 = worker.clone();
+        let reclaim_slot = Rc::new(RefCell::new(None));
+        let slot2 = reclaim_slot.clone();
+        let reclaim = Closure::&lt;dyn FnMut(_)&gt;::new(move |event: Event| {
+            if let Some(error) = event.dyn_ref::&lt;ErrorEvent&gt;() {
+                console_log!(&quot;worker 中的错误: {}&quot;, error.message());
+                // TODO: 这可能会导致内存泄漏？目前尚不清楚如何处理 worker 中的错误。
+                return;
+            }
+
+            // 如果这是一个完成事件，可以通过清空 `slot2` 来释放自己的回调，其中包含我们的闭包。
+            if let Some(_msg) = event.dyn_ref::&lt;MessageEvent&gt;() {
+                if let Some(state) = state.upgrade() {
+                    state.push(worker2.clone());
+                }
+                *slot2.borrow_mut() = None;
+                return;
+            }
+
+            console_log!(&quot;未处理的事件: {}&quot;, event.type_());
+            crate::logv(&amp;event);
+            // TODO: 与上面类似，这里可能也存在内存泄漏？
+        });
+        worker.set_onmessage(Some(reclaim.as_ref().unchecked_ref()));
+        *reclaim_slot.borrow_mut() = Some(reclaim);
+    }
+}
+
+impl WorkerPool {
+    /// 在 web worker 中执行 `f`。
+    ///
+    /// 此池管理一组可供使用的 web worker，如果 worker 空闲，`f` 将被快速分配给一个 worker。如果没有空闲的 worker 可用，则会生成一个新的 web worker。
+    ///
+    /// 一旦 `f` 返回，分配给 `f` 的 worker 将自动被此 `WorkerPool` 回收。此方法不提供了解 `f` 何时完成的方法，对于此类需求，你需要使用 `run_notify`。
+    ///
+    /// # 错误
+    ///
+    /// 如果在生成 web worker 或向其发送消息时发生错误，将返回该错误。
+    pub fn run(&amp;self, f: impl FnOnce() + Send + &#39;static) -&gt; Result&lt;(), JsValue&gt; {
+        let worker = self.execute(f)?;
+        self.reclaim_on_message(worker);
+        Ok(())
+    }
+}
+
+impl PoolState {
+    fn push(&amp;self, worker: Worker) {
+        worker.set_onmessage(Some(self.callback.as_ref().unchecked_ref()));
+        worker.set_onerror(Some(self.callback.as_ref().unchecked_ref()));
+        let mut workers = self.workers.borrow_mut();
+        for prev in workers.iter() {
+            let prev: &amp;JsValue = prev;
+            let worker: &amp;JsValue = &amp;worker;
+            assert!(prev != worker);
+        }
+        workers.push(worker);
+    }
+}
+
+/// 由 `worker.js` 调用的入口点
+#[wasm_bindgen(js_name = childEntryPoint)]
+pub fn child_entry_point(ptr: u32) -&gt; Result&lt;(), JsValue&gt; {
+    let ptr = unsafe { Box::from_raw(ptr as *mut Work) };
+    let global = js_sys::global().unchecked_into::&lt;DedicatedWorkerGlobalScope&gt;();
+    (ptr.func)();
+    global.post_message(&amp;JsValue::undefined())?;
+    Ok(())
+}
+</code></pre>
+
+      </main>
+      
+      <aside class="toc-container">
+        <h3>目录</h3>
+        <div class="toc"></div>
+      </aside>
+    </div>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>

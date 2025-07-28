@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端基建：SSE 客户端封装，打造流畅的 AI 对话体验</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    
+    <div class="article-container">
+      <main class="article-main">
+        <header>
+          <h1>前端基建：SSE 客户端封装，打造流畅的 AI 对话体验</h1>
+          <p>JavaScript | 2025.07.29</p>
+        </header>
+        <h2>1. 功能背景</h2>
+<p>最近上线了 AI 对话功能，需要使用 SSE 来实现流式响应，所以需要一个 SSE 客户端封装组件。</p>
+<p><strong>Server-Sent Events (SSE)</strong> 作为 HTML5 标准的一部分，提供了一种简单、高效的服务器到客户端的单向实时数据推送解决方案。它具有以下优势：</p>
+<ul>
+<li><strong>轻量级</strong>：基于 HTTP 协议，无需额外握手</li>
+<li><strong>自动重连</strong>：浏览器原生支持断线重连</li>
+<li><strong>跨域支持</strong>：支持 CORS 跨域请求</li>
+<li><strong>简单易用</strong>：API 简洁，学习成本低</li>
+<li><strong>服务器推送</strong>：适配 AI 对话等流式数据场景</li>
+</ul>
+<h2>2. 功能介绍</h2>
+<p>模块主要提供以下核心功能：</p>
+<h3>2.1 核心特性</h3>
+<ul>
+<li>✅ <strong>多实例管理</strong>：支持同时创建多个 SSE 连接实例</li>
+<li>✅ <strong>自动重连机制</strong>：网络异常时自动重试连接</li>
+<li>✅ <strong>连接池管理</strong>：统一管理所有活跃连接</li>
+<li>✅ <strong>超时控制</strong>：可配置连接超时时间</li>
+<li>✅ <strong>错误处理</strong>：完善的错误捕获和处理机制</li>
+<li>✅ <strong>生命周期管理</strong>：支持连接打开、消息接收、错误处理、连接关闭等完整生命周期</li>
+<li>✅ <strong>状态监控</strong>：实时监控连接状态和数量</li>
+</ul>
+<h3>2.2 API 接口</h3>
+<table>
+<thead>
+<tr>
+<th>方法名</th>
+<th>说明</th>
+<th>参数</th>
+<th>返回值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>createSseConnection</code></td>
+<td>创建新的 SSE 连接</td>
+<td>url, options</td>
+<td>Promise<SseClient></td>
+</tr>
+<tr>
+<td><code>closeSseConnection</code></td>
+<td>关闭指定 SSE 连接</td>
+<td>client</td>
+<td>void</td>
+</tr>
+<tr>
+<td><code>closeAllSseConnections</code></td>
+<td>关闭所有 SSE 连接</td>
+<td>-</td>
+<td>void</td>
+</tr>
+<tr>
+<td><code>isSseConnectionOpen</code></td>
+<td>检查连接是否打开</td>
+<td>client</td>
+<td>Boolean</td>
+</tr>
+<tr>
+<td><code>getAllSseConnections</code></td>
+<td>获取所有活跃连接</td>
+<td>-</td>
+<td>Array<SseClient></td>
+</tr>
+<tr>
+<td><code>getSseConnectionCount</code></td>
+<td>获取连接数量</td>
+<td>-</td>
+<td>Number</td>
+</tr>
+</tbody></table>
+<h2>3. 设计思路</h2>
+<h3>3.1 架构设计</h3>
+<h3>3.2 设计思路</h3>
+<h4>3.2.1 多实例模式</h4>
+<ul>
+<li>每次调用 <code>createSseConnection</code> 都创建新的独立实例</li>
+<li>使用 Map 结构管理所有连接实例</li>
+<li>自动生成唯一 ID 标识每个连接</li>
+</ul>
+<h4>3.2.2 错误恢复机制</h4>
+<ul>
+<li><strong>分层错误处理</strong>：连接层、解析层、业务层分级处理</li>
+<li><strong>智能重试</strong>：可配置重试次数和间隔</li>
+<li><strong>超时保护</strong>：防止连接长时间无响应</li>
+</ul>
+<h4>3.2.3 生命周期管理</h4>
+<pre><code>创建连接 → 连接建立 → 消息接收 → 连接关闭
+    ↓         ↓         ↓         ↓
+  初始化   onOpen回调  onMessage  onComplete
+    ↓         ↓         ↓         ↓
+  设置超时   清除超时   数据处理   资源清理
+</code></pre>
+<h4>3.2.4 状态管理</h4>
+<ul>
+<li><strong>连接状态</strong>：isConnected 标识连接状态</li>
+<li><strong>重试计数</strong>：retryCount 追踪重试次数</li>
+<li><strong>URL 保存</strong>：lastUrl 用于重连时复用</li>
+</ul>
+<h3>3.3 关键要点</h3>
+<h4>3.3.1 EventSource 封装</h4>
+<pre><code class="language-javascript">this.eventSource = new EventSource(url);
+this.eventSource.onopen = (event) =&gt; {
+  /* 连接成功处理 */
+};
+this.eventSource.onmessage = (event) =&gt; {
+  /* 消息处理 */
+};
+this.eventSource.onerror = (error) =&gt; {
+  /* 错误处理 */
+};
+</code></pre>
+<h4>3.3.2 消息解析机制</h4>
+<ul>
+<li>JSON 格式消息自动解析</li>
+<li>状态码识别（默认 88 为完成状态）</li>
+<li>错误消息容错处理</li>
+</ul>
+<h4>3.3.3 连接池设计</h4>
+<ul>
+<li>使用 Map 存储所有连接：<code>connections = new Map()</code></li>
+<li>唯一 ID 策略：<code>时间戳 + 计数器</code></li>
+<li>自动清理：连接关闭时从连接池移除</li>
+</ul>
+<h2>4. 使用方法案例</h2>
+<h3>4.1 基础使用</h3>
+<pre><code class="language-javascript">import { createSseConnection } from &quot;@/common/sseClient&quot;;
+
+// 创建SSE连接
+const sseConnection = await createSseConnection(&quot;/api/chat_stream&quot;, {
+  onMessage: (data) =&gt; {
+    console.log(&quot;收到消息:&quot;, data);
+    // 处理流式数据
+    if (data.data) {
+      appendMessage(data.data);
+    }
+  },
+  onOpen: (event) =&gt; {
+    console.log(&quot;连接已建立&quot;);
+  },
+  onError: (error) =&gt; {
+    console.error(&quot;连接错误:&quot;, error);
+  },
+  onComplete: () =&gt; {
+    console.log(&quot;数据传输完成&quot;);
+  },
+});
+</code></pre>
+<h3>4.2 AI 对话流式响应（实际项目案例）</h3>
+<pre><code class="language-javascript">// AI欢迎消息流式加载
+activateWelcomeMsg() {
+  const messageObj = {
+    message: &quot;&quot;,
+    user_type: 2, // AI回复
+    message_type: 1,
+    create_time: new Date().toString(),
+  };
+
+  this.sendMessage(messageObj);
+  const lastIndex = this.messages.length - 1;
+
+  createSseConnection(`/ai_stream/*******?digest=${this.digest}`, {
+    onMessage: (data) =&gt; {
+      const { data: sseData } = data ?? {};
+      if (sseData) {
+        // 实时更新消息内容
+        const updatedMessage = { ...this.messages[lastIndex] };
+        updatedMessage.message += sseData;
+        this.$set(this.messages, lastIndex, updatedMessage);
+
+        // 自动滚动到底部
+        this.$nextTick(() =&gt; {
+          if (!this.userScrolled) {
+            this.scrollToBottom();
+          }
+        });
+      }
+    },
+    onError: (error) =&gt; {
+      console.error(&quot;SSE连接错误:&quot;, error);
+      this.readOnly = false;
+    },
+    onComplete: () =&gt; {
+      console.log(&quot;SSE请求完成&quot;);
+      this.readOnly = false;
+    },
+  });
+}
+</code></pre>
+<h3>4.3 高级配置使用</h3>
+<pre><code class="language-javascript">// 自定义配置的SSE连接
+const connection = await createSseConnection(&quot;/api/realtime-data&quot;, {
+  // 消息处理
+  onMessage: (data) =&gt; handleRealtimeData(data),
+
+  // 连接配置
+  timeout: 30000, // 30秒超时
+  maxRetry: 5, // 最多重试5次
+  statusCode: 200, // 自定义完成状态码
+
+  // 重试逻辑
+  shouldRetry: (error) =&gt; {
+    // 仅在网络错误时重试
+    return error.type === &quot;error&quot;;
+  },
+
+  // 生命周期回调
+  onOpen: () =&gt; console.log(&quot;实时数据连接已建立&quot;),
+  onError: (error) =&gt; logError(&quot;SSE Error&quot;, error),
+  onComplete: () =&gt; cleanup(),
+});
+</code></pre>
+<h3>4.4 连接管理</h3>
+<pre><code class="language-javascript">import {
+  getAllSseConnections,
+  getSseConnectionCount,
+  closeAllSseConnections
+} from &#39;@/common/sseClient&#39;;
+
+// 监控连接状态
+console.log(&#39;活跃连接数:&#39;, getSseConnectionCount());
+console.log(&#39;所有连接:&#39;, getAllSseConnections());
+
+// 页面卸载时清理所有连接
+beforeDestroy() {
+  closeAllSseConnections();
+}
+</code></pre>
+<h2>5. 完整代码</h2>
+<pre><code class="language-js">/**
+ * SSE客户端封装
+ * 用于处理服务器发送事件(Server-Sent Events)的请求与响应
+ * 默认使用多例模式，每次调用createSseConnection都会创建一个新的连接实例
+ */
+
+// 存储所有活跃的SSE连接实例
+const connections = new Map();
+// 用于生成唯一ID的计数器
+let connectionCounter = 0;
+
+class SseClient {
+  constructor() {
+    this.id = `sse_${Date.now()}_${connectionCounter++}`; // 自动生成唯一ID
+    this.eventSource = null;
+    this.retryCount = 0;
+    this.maxRetry = 3;
+    this.retryInterval = 2000; // 2秒重试间隔
+    this.options = {};
+    this.isConnected = false;
+    this.connectionTimeout = null;
+    this.lastUrl = &quot;&quot;; // 保存最后一次连接的URL
+  }
+
+  /**
+   * 建立SSE连接
+   * @param {String} url SSE请求地址
+   * @param {Object} options 配置选项
+   * @param {Function} options.onMessage 消息处理函数 (data) =&gt; {}
+   * @param {Function} options.onOpen 连接成功回调 (event) =&gt; {}
+   * @param {Function} options.onError 错误处理回调 (error) =&gt; {}
+   * @param {Function} options.onComplete 完成回调函数 () =&gt; {}
+   * @param {Number} options.timeout 连接超时时间(毫秒)，默认15000ms
+   * @param {Number} options.maxRetry 最大重试次数，默认3次
+   * @param {Function} options.shouldRetry 是否应该重试的函数 (error) =&gt; Boolean
+   * @param {Number} options.statusCode 完成状态码，默认88
+   * @returns {Promise} 返回Promise对象
+   */
+  connect(url, options = {}) {
+    const baseUrl = process.env.VUE_APP_API;
+    // 如果url开头四位是http，则不拼接baseUrl
+    if (!url.startsWith(&quot;http&quot;)) {
+      url = `${baseUrl}${url}`;
+    }
+
+    // 保存URL以便重试
+    this.lastUrl = url;
+
+    // 合并选项
+    this.options = {
+      onMessage: () =&gt; {},
+      onOpen: () =&gt; {},
+      onError: () =&gt; {},
+      onComplete: () =&gt; {},
+      timeout: 15000,
+      maxRetry: this.maxRetry,
+      shouldRetry: () =&gt; true,
+      statusCode: 88,
+      ...options,
+    };
+
+    return new Promise((resolve, reject) =&gt; {
+      // 关闭已有连接
+      this.close();
+
+      try {
+        // 设置连接超时
+        this.connectionTimeout = setTimeout(() =&gt; {
+          if (!this.isConnected) {
+            const error = new Error(&quot;SSE连接超时&quot;);
+            this._handleError(error);
+            reject(error);
+          }
+        }, this.options.timeout);
+
+        // 创建EventSource对象
+        this.eventSource = new EventSource(url);
+
+        // 连接打开事件
+        this.eventSource.onopen = (event) =&gt; {
+          this.isConnected = true;
+          clearTimeout(this.connectionTimeout);
+          this.options.onOpen(event);
+          resolve(this);
+        };
+
+        // 接收消息事件
+        this.eventSource.onmessage = (event) =&gt; {
+          try {
+            const data = JSON.parse(event.data);
+
+            // 检查是否是最终消息
+            if (data.status === this.options.statusCode) {
+              this.options.onComplete();
+              this.close();
+              return;
+            }
+
+            // 处理消息数据
+            this.options.onMessage(data);
+          } catch (error) {
+            console.error(&quot;SSE消息解析错误:&quot;, error);
+            this._handleError(error);
+          }
+        };
+
+        // 错误处理事件
+        this.eventSource.onerror = (error) =&gt; {
+          this._handleError(error);
+          if (this.retryCount &gt;= this.maxRetry) {
+            reject(error);
+          }
+        };
+      } catch (error) {
+        console.error(&quot;创建SSE连接失败:&quot;, error);
+        this._handleError(error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * 处理错误
+   * @private
+   * @param {Error} error 错误对象
+   */
+  _handleError(error) {
+    this.options.onError(error);
+
+    // 清除超时计时器
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
+
+    // 检查是否应该重试
+    if (this.retryCount &lt; this.maxRetry &amp;&amp; this.options.shouldRetry(error)) {
+      this.retryCount++;
+      console.log(
+        `SSE连接失败，${this.retryInterval / 1000}秒后进行第${
+          this.retryCount
+        }次重试`
+      );
+
+      // 关闭当前连接
+      this.close();
+
+      // 延迟重试
+      setTimeout(() =&gt; {
+        this.connect(this.lastUrl, this.options).catch((err) =&gt;
+          console.error(&quot;SSE重试连接失败:&quot;, err)
+        );
+      }, this.retryInterval);
+    } else {
+      this.close();
+    }
+  }
+
+  /**
+   * 关闭SSE连接
+   */
+  close() {
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
+
+    this.isConnected = false;
+
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
+
+    // 从连接池中移除
+    connections.delete(this.id);
+  }
+
+  /**
+   * 检查连接是否打开
+   * @returns {Boolean} 连接状态
+   */
+  isOpen() {
+    return (
+      this.isConnected &amp;&amp; this.eventSource &amp;&amp; this.eventSource.readyState === 1
+    );
+  }
+}
+
+/**
+ * 创建新的SSE连接
+ * @param {String} url SSE请求地址
+ * @param {Object} options 配置选项
+ * @returns {Promise&lt;SseClient&gt;} 返回Promise，解析为SSE客户端实例
+ */
+export const createSseConnection = (url, options = {}) =&gt; {
+  const client = new SseClient();
+
+  // 添加到连接池
+  connections.set(client.id, client);
+
+  return client.connect(url, options).then(() =&gt; client);
+};
+
+/**
+ * 关闭指定的SSE连接
+ * @param {SseClient} client SSE客户端实例
+ */
+export const closeSseConnection = (client) =&gt; {
+  if (client &amp;&amp; typeof client.close === &quot;function&quot;) {
+    client.close();
+  }
+};
+
+/**
+ * 关闭所有SSE连接
+ */
+export const closeAllSseConnections = () =&gt; {
+  connections.forEach((client) =&gt; client.close());
+  connections.clear();
+};
+
+/**
+ * 检查指定的SSE连接是否打开
+ * @param {SseClient} client SSE客户端实例
+ * @returns {Boolean} 连接状态
+ */
+export const isSseConnectionOpen = (client) =&gt; {
+  return client &amp;&amp; typeof client.isOpen === &quot;function&quot; &amp;&amp; client.isOpen();
+};
+
+/**
+ * 获取当前所有活跃的SSE连接
+ * @returns {Array&lt;SseClient&gt;} 连接实例数组
+ */
+export const getAllSseConnections = () =&gt; {
+  return Array.from(connections.values());
+};
+
+/**
+ * 获取活跃连接数量
+ * @returns {Number} 连接数量
+ */
+export const getSseConnectionCount = () =&gt; {
+  return connections.size;
+};
+
+export default {
+  createSseConnection,
+  closeSseConnection,
+  closeAllSseConnections,
+  isSseConnectionOpen,
+  getAllSseConnections,
+  getSseConnectionCount,
+};
+</code></pre>
+<h2>8. 注意事项</h2>
+<ol>
+<li><strong>浏览器兼容性</strong>：IE 不支持 EventSource，需要 polyfill</li>
+<li><strong>连接数限制</strong>：浏览器对同域 SSE 连接有数量限制（通常 6 个）</li>
+<li><strong>内存泄漏</strong>：组件销毁时务必调用 <code>closeAllSseConnections()</code></li>
+<li><strong>网络环境</strong>：移动网络下注意连接稳定性</li>
+<li><strong>服务端配置</strong>：需要服务端正确设置 CORS 和 SSE headers</li>
+</ol>
+
+      </main>
+      
+      <aside class="toc-container">
+        <h3>目录</h3>
+        <div class="toc"></div>
+      </aside>
+    </div>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
