@@ -1,0 +1,610 @@
+
+        <header>
+          <h1>SCSS高级选择器技巧</h1>
+          <p>SCSS | 2025.07.30</p>
+        </header>
+        <h1>SCSS高级选择器技巧</h1>
+<p>SCSS提供了强大的选择器功能，包括父选择器引用、选择器函数、动态选择器生成等高级技巧。</p>
+<h2>父选择器(&amp;)的高级用法</h2>
+<h3>选择器修饰</h3>
+<pre><code class="language-scss">.button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  
+  // 基本伪类
+  &amp;:hover {
+    transform: translateY(-1px);
+  }
+  
+  &amp;:active {
+    transform: translateY(0);
+  }
+  
+  &amp;:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+  }
+  
+  // 组合伪类
+  &amp;:not(:disabled):hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  // 属性选择器
+  &amp;[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  // 数据属性
+  &amp;[data-loading=&quot;true&quot;] {
+    position: relative;
+    color: transparent;
+    
+    &amp;::after {
+      content: &#39;&#39;;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1rem;
+      height: 1rem;
+      margin: -0.5rem 0 0 -0.5rem;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+</code></pre>
+<h3>父选择器拼接</h3>
+<pre><code class="language-scss">// BEM命名约定
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  
+  // 元素
+  &amp;__header {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    font-weight: bold;
+  }
+  
+  &amp;__body {
+    padding: 1rem;
+  }
+  
+  &amp;__footer {
+    padding: 1rem;
+    border-top: 1px solid #eee;
+    background-color: #f8f9fa;
+  }
+  
+  // 修饰符
+  &amp;--large {
+    .card__header,
+    .card__body,
+    .card__footer {
+      padding: 2rem;
+    }
+  }
+  
+  &amp;--compact {
+    .card__header,
+    .card__body,
+    .card__footer {
+      padding: 0.5rem;
+    }
+  }
+  
+  // 状态
+  &amp;--loading {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+}
+
+// 生成的CSS类名：
+// .card, .card__header, .card__body, .card__footer
+// .card--large, .card--compact, .card--loading
+</code></pre>
+<h3>上下文选择器</h3>
+<pre><code class="language-scss">.theme-dark {
+  background-color: #1a1a1a;
+  color: white;
+}
+
+.button {
+  background-color: #007bff;
+  color: white;
+  
+  // 在深色主题下的样式
+  .theme-dark &amp; {
+    background-color: #0d6efd;
+    border: 1px solid #495057;
+  }
+  
+  // 在表单中的样式
+  .form &amp; {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  
+  // 在导航栏中的样式
+  .navbar &amp; {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  // 组合上下文
+  .theme-dark .navbar &amp; {
+    background-color: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    
+    &amp;:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+  }
+}
+</code></pre>
+<h2>选择器函数</h2>
+<h3>selector-nest()函数</h3>
+<pre><code class="language-scss">// 动态嵌套选择器
+@function create-nested-selector($parent, $child) {
+  @return selector-nest($parent, $child);
+}
+
+$base-selector: &#39;.component&#39;;
+$hover-selector: create-nested-selector($base-selector, &#39;&amp;:hover&#39;);
+
+#{$hover-selector} {
+  background-color: #f0f0f0;
+}
+
+// 复杂选择器嵌套
+@mixin create-state-selectors($base) {
+  $states: hover, focus, active, disabled;
+  
+  @each $state in $states {
+    $selector: selector-nest($base, &#39;&amp;:#{$state}&#39;);
+    
+    #{$selector} {
+      @if $state == hover {
+        background-color: lighten(#007bff, 10%);
+      } @else if $state == focus {
+        outline: 2px solid #007bff;
+      } @else if $state == active {
+        background-color: darken(#007bff, 10%);
+      } @else if $state == disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.my-button {
+  background-color: #007bff;
+  @include create-state-selectors(&amp;);
+}
+</code></pre>
+<h3>selector-append()函数</h3>
+<pre><code class="language-scss">// 追加选择器
+@function append-modifier($selector, $modifier) {
+  @return selector-append($selector, &#39;--#{$modifier}&#39;);
+}
+
+$button-selector: &#39;.btn&#39;;
+$primary-selector: append-modifier($button-selector, &#39;primary&#39;);
+
+#{$primary-selector} {
+  background-color: #007bff;
+  color: white;
+}
+
+// 批量生成修饰符
+@mixin generate-modifiers($base, $modifiers) {
+  @each $modifier, $styles in $modifiers {
+    $selector: selector-append($base, &#39;--#{$modifier}&#39;);
+    
+    #{$selector} {
+      @each $property, $value in $styles {
+        #{$property}: #{$value};
+      }
+    }
+  }
+}
+
+$button-modifiers: (
+  primary: (background-color: #007bff, color: white),
+  secondary: (background-color: #6c757d, color: white),
+  success: (background-color: #28a745, color: white)
+);
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  
+  @include generate-modifiers(&amp;, $button-modifiers);
+}
+</code></pre>
+<h3>selector-replace()函数</h3>
+<pre><code class="language-scss">// 替换选择器部分
+@function replace-component($selector, $old, $new) {
+  @return selector-replace($selector, $old, $new);
+}
+
+// 主题切换
+@mixin theme-variant($base-selector, $theme-name) {
+  $themed-selector: selector-replace($base-selector, &#39;.component&#39;, &#39;.component--#{$theme-name}&#39;);
+  
+  #{$themed-selector} {
+    @content;
+  }
+}
+
+.component {
+  background-color: white;
+  color: #333;
+  
+  @include theme-variant(&amp;, &#39;dark&#39;) {
+    background-color: #333;
+    color: white;
+  }
+  
+  @include theme-variant(&amp;, &#39;blue&#39;) {
+    background-color: #007bff;
+    color: white;
+  }
+}
+</code></pre>
+<h2>动态选择器生成</h2>
+<h3>基于数据的选择器</h3>
+<pre><code class="language-scss">// 状态选择器生成器
+@mixin generate-state-classes($states) {
+  @each $state, $styles in $states {
+    &amp;.is-#{$state},
+    &amp;[data-state=&quot;#{$state}&quot;] {
+      @each $property, $value in $styles {
+        #{$property}: #{$value};
+      }
+    }
+  }
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  
+  @include generate-state-classes((
+    success: (
+      background-color: #d4edda,
+      border-color: #c3e6cb,
+      color: #155724
+    ),
+    warning: (
+      background-color: #fff3cd,
+      border-color: #ffeaa7,
+      color: #856404
+    ),
+    error: (
+      background-color: #f8d7da,
+      border-color: #f5c6cb,
+      color: #721c24
+    )
+  ));
+}
+</code></pre>
+<h3>响应式选择器生成</h3>
+<pre><code class="language-scss">$breakpoints: (
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1200px
+);
+
+// 响应式工具类生成器
+@mixin generate-responsive-utilities($utilities) {
+  @each $utility, $config in $utilities {
+    $property: map-get($config, property);
+    $values: map-get($config, values);
+    
+    // 基础类
+    @each $key, $value in $values {
+      .#{$utility}-#{$key} {
+        #{$property}: #{$value};
+      }
+    }
+    
+    // 响应式类
+    @each $bp-name, $bp-size in $breakpoints {
+      @media (min-width: #{$bp-size}) {
+        @each $key, $value in $values {
+          .#{$utility}-#{$bp-name}-#{$key} {
+            #{$property}: #{$value};
+          }
+        }
+      }
+    }
+  }
+}
+
+// 使用响应式工具类生成器
+@include generate-responsive-utilities((
+  text: (
+    property: text-align,
+    values: (
+      left: left,
+      center: center,
+      right: right
+    )
+  ),
+  d: (
+    property: display,
+    values: (
+      none: none,
+      block: block,
+      flex: flex,
+      grid: grid
+    )
+  )
+));
+</code></pre>
+<h3>组合选择器生成</h3>
+<pre><code class="language-scss">// 组合选择器生成器
+@mixin generate-combinations($base, $modifiers, $states: ()) {
+  #{$base} {
+    @content;
+  }
+  
+  // 修饰符
+  @each $modifier, $modifier-styles in $modifiers {
+    #{$base}--#{$modifier} {
+      @each $property, $value in $modifier-styles {
+        #{$property}: #{$value};
+      }
+    }
+    
+    // 修饰符 + 状态组合
+    @each $state, $state-styles in $states {
+      #{$base}--#{$modifier}.is-#{$state} {
+        @each $property, $value in $state-styles {
+          #{$property}: #{$value};
+        }
+      }
+    }
+  }
+  
+  // 纯状态
+  @each $state, $state-styles in $states {
+    #{$base}.is-#{$state} {
+      @each $property, $value in $state-styles {
+        #{$property}: #{$value};
+      }
+    }
+  }
+}
+
+// 使用组合生成器
+@include generate-combinations(
+  &#39;.btn&#39;,
+  (
+    primary: (background-color: #007bff, color: white),
+    secondary: (background-color: #6c757d, color: white)
+  ),
+  (
+    loading: (opacity: 0.7, pointer-events: none),
+    disabled: (opacity: 0.5, cursor: not-allowed)
+  )
+) {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+</code></pre>
+<h2>高级选择器模式</h2>
+<h3>选择器工厂</h3>
+<pre><code class="language-scss">// 选择器工厂函数
+@function create-selector($type, $name, $modifier: null, $state: null) {
+  $selector: &#39;.#{$type}-#{$name}&#39;;
+  
+  @if $modifier {
+    $selector: $selector + &#39;--#{$modifier}&#39;;
+  }
+  
+  @if $state {
+    $selector: $selector + &#39;.is-#{$state}&#39;;
+  }
+  
+  @return $selector;
+}
+
+// 使用选择器工厂
+$button-primary: create-selector(&#39;btn&#39;, &#39;primary&#39;);
+$button-primary-loading: create-selector(&#39;btn&#39;, &#39;primary&#39;, null, &#39;loading&#39;);
+$card-large: create-selector(&#39;card&#39;, &#39;default&#39;, &#39;large&#39;);
+
+#{$button-primary} {
+  background-color: #007bff;
+  color: white;
+}
+
+#{$button-primary-loading} {
+  opacity: 0.7;
+}
+
+#{$card-large} {
+  padding: 2rem;
+}
+</code></pre>
+<h3>条件选择器</h3>
+<pre><code class="language-scss">// 条件选择器混合器
+@mixin conditional-selector($condition, $selector) {
+  @if $condition {
+    #{$selector} {
+      @content;
+    }
+  }
+}
+
+$enable-dark-theme: true;
+$enable-animations: false;
+
+.component {
+  background-color: white;
+  
+  @include conditional-selector($enable-dark-theme, &#39;.theme-dark &amp;&#39;) {
+    background-color: #333;
+    color: white;
+  }
+  
+  @include conditional-selector($enable-animations, &#39;&amp;.animated&#39;) {
+    transition: all 0.3s ease;
+  }
+}
+</code></pre>
+<h3>选择器继承链</h3>
+<pre><code class="language-scss">// 选择器继承链
+@mixin selector-chain($selectors...) {
+  $current: nth($selectors, 1);
+  
+  #{$current} {
+    @content;
+  }
+  
+  @if length($selectors) &gt; 1 {
+    $rest: ();
+    @for $i from 2 through length($selectors) {
+      $rest: append($rest, nth($selectors, $i));
+    }
+    
+    @each $selector in $rest {
+      #{$current}#{$selector} {
+        @content;
+      }
+    }
+  }
+}
+
+// 使用选择器链
+@include selector-chain(&#39;.btn&#39;, &#39;.btn--primary&#39;, &#39;.btn--large&#39;) {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+}
+</code></pre>
+<h3>智能选择器优化</h3>
+<pre><code class="language-scss">// 选择器优化器
+@function optimize-selector($selector) {
+  // 移除重复的类名
+  $parts: str-split($selector, &#39; &#39;);
+  $unique-parts: ();
+  
+  @each $part in $parts {
+    @if not index($unique-parts, $part) {
+      $unique-parts: append($unique-parts, $part);
+    }
+  }
+  
+  @return str-join($unique-parts, &#39; &#39;);
+}
+
+// 智能组合选择器
+@mixin smart-selector($base, $modifiers: (), $pseudo: null) {
+  $selector: $base;
+  
+  @each $modifier in $modifiers {
+    $selector: $selector + &#39;.#{$modifier}&#39;;
+  }
+  
+  @if $pseudo {
+    $selector: $selector + &#39;:#{$pseudo}&#39;;
+  }
+  
+  $selector: optimize-selector($selector);
+  
+  #{$selector} {
+    @content;
+  }
+}
+
+// 使用智能选择器
+@include smart-selector(&#39;.btn&#39;, (&#39;primary&#39;, &#39;large&#39;), &#39;hover&#39;) {
+  background-color: darken(#007bff, 10%);
+}
+</code></pre>
+<h2>实际应用案例</h2>
+<h3>组件库选择器系统</h3>
+<pre><code class="language-scss">// 组件库选择器系统
+$component-prefix: &#39;ui&#39; !default;
+
+@function component-selector($component, $element: null, $modifier: null) {
+  $selector: &#39;.#{$component-prefix}-#{$component}&#39;;
+  
+  @if $element {
+    $selector: $selector + &#39;__#{$element}&#39;;
+  }
+  
+  @if $modifier {
+    $selector: $selector + &#39;--#{$modifier}&#39;;
+  }
+  
+  @return $selector;
+}
+
+// 组件定义
+@mixin define-component($name, $elements: (), $modifiers: ()) {
+  $base: component-selector($name);
+  
+  #{$base} {
+    @content;
+  }
+  
+  // 元素
+  @each $element, $styles in $elements {
+    $element-selector: component-selector($name, $element);
+    
+    #{$element-selector} {
+      @each $property, $value in $styles {
+        #{$property}: #{$value};
+      }
+    }
+  }
+  
+  // 修饰符
+  @each $modifier, $styles in $modifiers {
+    $modifier-selector: component-selector($name, null, $modifier);
+    
+    #{$modifier-selector} {
+      @each $property, $value in $styles {
+        #{$property}: #{$value};
+      }
+    }
+  }
+}
+
+// 使用组件定义
+@include define-component(
+  &#39;card&#39;,
+  (
+    header: (padding: 1rem, border-bottom: 1px solid #eee),
+    body: (padding: 1rem),
+    footer: (padding: 1rem, border-top: 1px solid #eee)
+  ),
+  (
+    large: (padding: 2rem),
+    compact: (padding: 0.5rem)
+  )
+) {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</code></pre>
+
+      

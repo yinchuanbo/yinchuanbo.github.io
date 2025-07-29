@@ -1,0 +1,439 @@
+
+        <header>
+          <h1>SCSS错误处理和调试</h1>
+          <p>SCSS | 2025.07.30</p>
+        </header>
+        <h1>SCSS错误处理和调试</h1>
+<p>SCSS提供了多种错误处理和调试工具，帮助开发者编写更健壮的样式代码。</p>
+<h2>@error指令</h2>
+<h3>基本错误处理</h3>
+<pre><code class="language-scss">// 参数验证
+@mixin button($size: medium) {
+  $valid-sizes: small, medium, large;
+  
+  @if not index($valid-sizes, $size) {
+    @error &quot;Invalid button size &#39;#{$size}&#39;. Valid sizes are: #{$valid-sizes}&quot;;
+  }
+  
+  @if $size == small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  } @else if $size == medium {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  } @else if $size == large {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.125rem;
+  }
+}
+
+// 使用示例
+.btn {
+  @include button(medium); // ✅ 正确
+  // @include button(extra-large); // ❌ 会抛出错误
+}
+</code></pre>
+<h3>类型检查</h3>
+<pre><code class="language-scss">// 类型验证函数
+@function validate-type($value, $expected-type, $name: &#39;value&#39;) {
+  $actual-type: type-of($value);
+  
+  @if $actual-type != $expected-type {
+    @error &quot;#{$name} must be of type #{$expected-type}, got #{$actual-type}&quot;;
+  }
+  
+  @return $value;
+}
+
+// 数值范围验证
+@function validate-range($value, $min, $max, $name: &#39;value&#39;) {
+  @if type-of($value) != number {
+    @error &quot;#{$name} must be a number&quot;;
+  }
+  
+  @if $value &lt; $min or $value &gt; $max {
+    @error &quot;#{$name} must be between #{$min} and #{$max}, got #{$value}&quot;;
+  }
+  
+  @return $value;
+}
+
+// 使用验证函数
+@mixin opacity($value) {
+  $value: validate-type($value, number, &#39;opacity&#39;);
+  $value: validate-range($value, 0, 1, &#39;opacity&#39;);
+  
+  opacity: $value;
+}
+
+.transparent {
+  @include opacity(0.5); // ✅ 正确
+  // @include opacity(1.5); // ❌ 会抛出错误
+  // @include opacity(&#39;half&#39;); // ❌ 会抛出错误
+}
+</code></pre>
+<h3>依赖检查</h3>
+<pre><code class="language-scss">// 检查必需的变量
+@function require-variable($variable-name) {
+  @if not variable-exists($variable-name) {
+    @error &quot;Required variable &#39;#{$variable-name}&#39; is not defined&quot;;
+  }
+}
+
+// 检查必需的混合器
+@function require-mixin($mixin-name) {
+  @if not mixin-exists($mixin-name) {
+    @error &quot;Required mixin &#39;#{$mixin-name}&#39; is not defined&quot;;
+  }
+}
+
+// 使用依赖检查
+@mixin themed-component {
+  @if not variable-exists(&#39;theme-colors&#39;) {
+    @error &quot;themed-component requires $theme-colors map to be defined&quot;;
+  }
+  
+  @if not map-has-key($theme-colors, primary) {
+    @error &quot;$theme-colors map must contain &#39;primary&#39; key&quot;;
+  }
+  
+  background-color: map-get($theme-colors, primary);
+}
+</code></pre>
+<h2>@warn指令</h2>
+<h3>弃用警告</h3>
+<pre><code class="language-scss">// 弃用的混合器
+@mixin old-button($color) {
+  @warn &quot;old-button mixin is deprecated. Use button-style mixin instead.&quot;;
+  
+  background-color: $color;
+  padding: 0.5rem 1rem;
+  border: none;
+}
+
+// 新的混合器
+@mixin button-style($variant: primary) {
+  $colors: (
+    primary: #007bff,
+    secondary: #6c757d,
+    success: #28a745
+  );
+  
+  background-color: map-get($colors, $variant);
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+}
+</code></pre>
+<h3>配置警告</h3>
+<pre><code class="language-scss">$enable-flex: true !default;
+$enable-grid: false !default;
+
+@mixin layout-container {
+  @if not $enable-flex and not $enable-grid {
+    @warn &quot;Neither flexbox nor grid is enabled. Layout may not work as expected.&quot;;
+  }
+  
+  @if $enable-flex and $enable-grid {
+    @warn &quot;Both flexbox and grid are enabled. This may cause conflicts.&quot;;
+  }
+  
+  @if $enable-flex {
+    display: flex;
+  } @else if $enable-grid {
+    display: grid;
+  } @else {
+    display: block;
+  }
+}
+</code></pre>
+<h3>浏览器兼容性警告</h3>
+<pre><code class="language-scss">$support-ie11: false !default;
+
+@mixin css-grid($columns: 1fr) {
+  @if $support-ie11 {
+    @warn &quot;CSS Grid has limited support in IE11. Consider using flexbox fallback.&quot;;
+  }
+  
+  display: grid;
+  grid-template-columns: $columns;
+  
+  @if $support-ie11 {
+    // IE11 fallback
+    display: -ms-grid;
+    -ms-grid-columns: $columns;
+  }
+}
+</code></pre>
+<h2>@debug指令</h2>
+<h3>变量调试</h3>
+<pre><code class="language-scss">$primary-color: #007bff;
+$secondary-color: #6c757d;
+
+@debug &quot;Primary color: #{$primary-color}&quot;;
+@debug &quot;Secondary color: #{$secondary-color}&quot;;
+
+// 调试复杂数据结构
+$theme-config: (
+  colors: (
+    primary: $primary-color,
+    secondary: $secondary-color
+  ),
+  typography: (
+    base-size: 1rem,
+    scale: 1.25
+  )
+);
+
+@debug &quot;Theme config: #{$theme-config}&quot;;
+</code></pre>
+<h3>函数调试</h3>
+<pre><code class="language-scss">@function calculate-spacing($base, $multiplier) {
+  @debug &quot;Calculating spacing: #{$base} * #{$multiplier}&quot;;
+  
+  $result: $base * $multiplier;
+  
+  @debug &quot;Result: #{$result}&quot;;
+  
+  @return $result;
+}
+
+.component {
+  margin: calculate-spacing(1rem, 2);
+}
+</code></pre>
+<h3>循环调试</h3>
+<pre><code class="language-scss">$breakpoints: (
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1200px
+);
+
+@each $name, $size in $breakpoints {
+  @debug &quot;Processing breakpoint: #{$name} = #{$size}&quot;;
+  
+  @media (min-width: #{$size}) {
+    .container-#{$name} {
+      max-width: $size - 20px;
+    }
+  }
+}
+</code></pre>
+<h2>高级调试技巧</h2>
+<h3>调试混合器</h3>
+<pre><code class="language-scss">@mixin debug-mixin($name, $params: ()) {
+  @debug &quot;=== Mixin: #{$name} ===&quot;;
+  @debug &quot;Parameters: #{$params}&quot;;
+  @debug &quot;======================&quot;;
+}
+
+@mixin button($variant: primary, $size: medium) {
+  @include debug-mixin(&#39;button&#39;, (variant: $variant, size: $size));
+  
+  // 混合器逻辑
+  @if $variant == primary {
+    background-color: #007bff;
+  } @else if $variant == secondary {
+    background-color: #6c757d;
+  }
+  
+  @if $size == small {
+    padding: 0.25rem 0.5rem;
+  } @else if $size == medium {
+    padding: 0.5rem 1rem;
+  } @else if $size == large {
+    padding: 0.75rem 1.5rem;
+  }
+}
+</code></pre>
+<h3>条件调试</h3>
+<pre><code class="language-scss">$debug-mode: false !default;
+
+@mixin debug-log($message) {
+  @if $debug-mode {
+    @debug $message;
+  }
+}
+
+@function get-color($name) {
+  @include debug-log(&quot;Getting color: #{$name}&quot;);
+  
+  $colors: (
+    primary: #007bff,
+    secondary: #6c757d,
+    success: #28a745
+  );
+  
+  @if not map-has-key($colors, $name) {
+    @include debug-log(&quot;Color &#39;#{$name}&#39; not found, using default&quot;);
+    @return #333;
+  }
+  
+  $color: map-get($colors, $name);
+  @include debug-log(&quot;Returning color: #{$color}&quot;);
+  
+  @return $color;
+}
+</code></pre>
+<h3>性能调试</h3>
+<pre><code class="language-scss">@function benchmark($name) {
+  @debug &quot;Starting benchmark: #{$name}&quot;;
+  // 在实际应用中，这里可能会有时间戳逻辑
+  @return $name;
+}
+
+@function end-benchmark($name) {
+  @debug &quot;Ending benchmark: #{$name}&quot;;
+  @return $name;
+}
+
+// 使用性能调试
+@mixin expensive-calculation($iterations: 100) {
+  $benchmark: benchmark(&#39;expensive-calculation&#39;);
+  
+  $result: 0;
+  @for $i from 1 through $iterations {
+    $result: $result + ($i * 2);
+  }
+  
+  $end: end-benchmark($benchmark);
+  
+  // 使用计算结果
+  width: #{$result}px;
+}
+</code></pre>
+<h2>错误恢复策略</h2>
+<h3>默认值策略</h3>
+<pre><code class="language-scss">@function safe-get($map, $key, $default: null) {
+  @if type-of($map) != map {
+    @warn &quot;Expected map, got #{type-of($map)}. Using default value.&quot;;
+    @return $default;
+  }
+  
+  @if map-has-key($map, $key) {
+    @return map-get($map, $key);
+  } @else {
+    @warn &quot;Key &#39;#{$key}&#39; not found in map. Using default value.&quot;;
+    @return $default;
+  }
+}
+
+// 使用安全获取函数
+$colors: (
+  primary: #007bff,
+  secondary: #6c757d
+);
+
+.component {
+  color: safe-get($colors, primary, #333);
+  background: safe-get($colors, tertiary, #f8f9fa); // 使用默认值
+}
+</code></pre>
+<h3>类型转换策略</h3>
+<pre><code class="language-scss">@function to-number($value) {
+  @if type-of($value) == number {
+    @return $value;
+  }
+  
+  @if type-of($value) == string {
+    // 尝试解析字符串中的数字
+    @if str-index($value, &#39;px&#39;) {
+      @return str-slice($value, 1, str-index($value, &#39;px&#39;) - 1) * 1px;
+    }
+    @if str-index($value, &#39;rem&#39;) {
+      @return str-slice($value, 1, str-index($value, &#39;rem&#39;) - 1) * 1rem;
+    }
+  }
+  
+  @warn &quot;Cannot convert &#39;#{$value}&#39; to number. Using 0.&quot;;
+  @return 0;
+}
+
+@function safe-divide($dividend, $divisor) {
+  $dividend: to-number($dividend);
+  $divisor: to-number($divisor);
+  
+  @if $divisor == 0 {
+    @error &quot;Division by zero is not allowed&quot;;
+  }
+  
+  @return $dividend / $divisor;
+}
+</code></pre>
+<h3>渐进增强策略</h3>
+<pre><code class="language-scss">@mixin progressive-enhancement($feature, $fallback: null) {
+  @if $fallback {
+    #{$fallback};
+  }
+  
+  @supports (#{$feature}) {
+    #{$feature};
+  }
+}
+
+// 使用渐进增强
+.grid-container {
+  @include progressive-enhancement(
+    $feature: (display: grid),
+    $fallback: (display: flex, flex-wrap: wrap)
+  );
+  
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  
+  // Flexbox fallback
+  &amp; &gt; * {
+    flex: 1 1 250px;
+    margin: 0.5rem;
+  }
+}
+</code></pre>
+<h2>测试和验证</h2>
+<h3>单元测试风格的验证</h3>
+<pre><code class="language-scss">@function test-function($function-name, $input, $expected) {
+  $result: call($function-name, $input);
+  
+  @if $result != $expected {
+    @error &quot;Test failed for #{$function-name}: expected #{$expected}, got #{$result}&quot;;
+  } @else {
+    @debug &quot;✓ Test passed for #{$function-name}&quot;;
+  }
+  
+  @return true;
+}
+
+// 测试示例
+@function double($value) {
+  @return $value * 2;
+}
+
+// 运行测试
+$test1: test-function(&#39;double&#39;, 5, 10);
+$test2: test-function(&#39;double&#39;, 2.5, 5);
+</code></pre>
+<h3>集成测试</h3>
+<pre><code class="language-scss">@mixin test-suite($name) {
+  @debug &quot;Running test suite: #{$name}&quot;;
+  @content;
+  @debug &quot;Test suite completed: #{$name}&quot;;
+}
+
+@include test-suite(&#39;Color Functions&#39;) {
+  $test-color: #007bff;
+  
+  @if lightness($test-color) &lt; 50% {
+    @debug &quot;✓ Color is dark&quot;;
+  } @else {
+    @debug &quot;✓ Color is light&quot;;
+  }
+  
+  @if saturation($test-color) &gt; 50% {
+    @debug &quot;✓ Color is saturated&quot;;
+  } @else {
+    @debug &quot;✓ Color is desaturated&quot;;
+  }
+}
+</code></pre>
+
+      

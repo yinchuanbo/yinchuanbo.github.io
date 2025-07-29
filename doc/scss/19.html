@@ -1,0 +1,837 @@
+
+        <header>
+          <h1>SCSS工程化和构建工具</h1>
+          <p>SCSS | 2025.07.30</p>
+        </header>
+        <h1>SCSS工程化和构建工具</h1>
+<p>学习如何在现代前端工程化环境中使用SCSS，包括构建工具配置、自动化流程、代码质量控制等。</p>
+<h2>构建工具集成</h2>
+<h3>Webpack配置</h3>
+<pre><code class="language-javascript">// webpack.config.js
+const path = require(&#39;path&#39;);
+const MiniCssExtractPlugin = require(&#39;mini-css-extract-plugin&#39;);
+const CssMinimizerPlugin = require(&#39;css-minimizer-webpack-plugin&#39;);
+
+module.exports = {
+  entry: &#39;./src/index.js&#39;,
+  output: {
+    path: path.resolve(__dirname, &#39;dist&#39;),
+    filename: &#39;[name].[contenthash].js&#39;,
+    clean: true
+  },
+  module: {
+    rules: [
+      {
+        test: /\.s[ac]ss$/i,
+        use: [
+          // 生产环境提取CSS文件
+          process.env.NODE_ENV === &#39;production&#39; 
+            ? MiniCssExtractPlugin.loader 
+            : &#39;style-loader&#39;,
+          {
+            loader: &#39;css-loader&#39;,
+            options: {
+              sourceMap: true,
+              modules: {
+                auto: true,
+                localIdentName: &#39;[name]__[local]--[hash:base64:5]&#39;
+              }
+            }
+          },
+          {
+            loader: &#39;postcss-loader&#39;,
+            options: {
+              sourceMap: true,
+              postcssOptions: {
+                plugins: [
+                  [&#39;autoprefixer&#39;],
+                  [&#39;cssnano&#39;, { preset: &#39;default&#39; }]
+                ]
+              }
+            }
+          },
+          {
+            loader: &#39;sass-loader&#39;,
+            options: {
+              sourceMap: true,
+              sassOptions: {
+                includePaths: [
+                  path.resolve(__dirname, &#39;src/styles&#39;),
+                  path.resolve(__dirname, &#39;node_modules&#39;)
+                ],
+                outputStyle: &#39;expanded&#39;
+              },
+              additionalData: `
+                @import &quot;abstracts/variables&quot;;
+                @import &quot;abstracts/mixins&quot;;
+              `
+            }
+          }
+        ]
+      }
+    ]
+  },
+  plugins: [
+    new MiniCssExtractPlugin({
+      filename: &#39;[name].[contenthash].css&#39;,
+      chunkFilename: &#39;[id].[contenthash].css&#39;
+    })
+  ],
+  optimization: {
+    minimizer: [
+      new CssMinimizerPlugin({
+        minimizerOptions: {
+          preset: [
+            &#39;default&#39;,
+            {
+              discardComments: { removeAll: true },
+              normalizeWhitespace: true,
+              colormin: true,
+              convertValues: true,
+              discardDuplicates: true,
+              discardEmpty: true,
+              mergeRules: true,
+              minifyFontValues: true,
+              minifySelectors: true
+            }
+          ]
+        }
+      })
+    ]
+  }
+};
+</code></pre>
+<h3>Vite配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;;
+import { resolve } from &#39;path&#39;;
+
+export default defineConfig({
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // 全局导入
+        additionalData: `
+          @import &quot;@/styles/abstracts/variables&quot;;
+          @import &quot;@/styles/abstracts/mixins&quot;;
+        `,
+        // 包含路径
+        includePaths: [
+          resolve(__dirname, &#39;src/styles&#39;),
+          resolve(__dirname, &#39;node_modules&#39;)
+        ]
+      }
+    },
+    // PostCSS配置
+    postcss: {
+      plugins: [
+        require(&#39;autoprefixer&#39;),
+        require(&#39;cssnano&#39;)({
+          preset: &#39;default&#39;
+        })
+      ]
+    },
+    // 开发时的源映射
+    devSourcemap: true
+  },
+  resolve: {
+    alias: {
+      &#39;@&#39;: resolve(__dirname, &#39;src&#39;),
+      &#39;@styles&#39;: resolve(__dirname, &#39;src/styles&#39;)
+    }
+  },
+  build: {
+    // CSS代码分割
+    cssCodeSplit: true,
+    // 生成源映射
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        // CSS文件命名
+        assetFileNames: (assetInfo) =&gt; {
+          if (assetInfo.name.endsWith(&#39;.css&#39;)) {
+            return &#39;css/[name].[hash][extname]&#39;;
+          }
+          return &#39;assets/[name].[hash][extname]&#39;;
+        }
+      }
+    }
+  }
+});
+</code></pre>
+<h3>Gulp工作流</h3>
+<pre><code class="language-javascript">// gulpfile.js
+const gulp = require(&#39;gulp&#39;);
+const sass = require(&#39;gulp-sass&#39;)(require(&#39;sass&#39;));
+const postcss = require(&#39;gulp-postcss&#39;);
+const autoprefixer = require(&#39;autoprefixer&#39;);
+const cssnano = require(&#39;cssnano&#39;);
+const sourcemaps = require(&#39;gulp-sourcemaps&#39;);
+const rename = require(&#39;gulp-rename&#39;);
+const browserSync = require(&#39;browser-sync&#39;).create();
+const del = require(&#39;del&#39;);
+
+// 路径配置
+const paths = {
+  styles: {
+    src: &#39;src/styles/**/*.scss&#39;,
+    dest: &#39;dist/css/&#39;,
+    main: &#39;src/styles/main.scss&#39;
+  },
+  html: {
+    src: &#39;src/**/*.html&#39;,
+    dest: &#39;dist/&#39;
+  }
+};
+
+// 清理任务
+function clean() {
+  return del([&#39;dist&#39;]);
+}
+
+// SCSS编译任务
+function styles() {
+  return gulp.src(paths.styles.main)
+    .pipe(sourcemaps.init())
+    .pipe(sass({
+      includePaths: [&#39;node_modules&#39;],
+      outputStyle: &#39;expanded&#39;
+    }).on(&#39;error&#39;, sass.logError))
+    .pipe(postcss([
+      autoprefixer(),
+      cssnano()
+    ]))
+    .pipe(sourcemaps.write(&#39;.&#39;))
+    .pipe(gulp.dest(paths.styles.dest))
+    .pipe(browserSync.stream());
+}
+
+// 生产环境样式任务
+function stylesProd() {
+  return gulp.src(paths.styles.main)
+    .pipe(sass({
+      includePaths: [&#39;node_modules&#39;],
+      outputStyle: &#39;compressed&#39;
+    }).on(&#39;error&#39;, sass.logError))
+    .pipe(postcss([
+      autoprefixer(),
+      cssnano({
+        preset: [&#39;default&#39;, {
+          discardComments: { removeAll: true }
+        }]
+      })
+    ]))
+    .pipe(rename({ suffix: &#39;.min&#39; }))
+    .pipe(gulp.dest(paths.styles.dest));
+}
+
+// HTML任务
+function html() {
+  return gulp.src(paths.html.src)
+    .pipe(gulp.dest(paths.html.dest))
+    .pipe(browserSync.stream());
+}
+
+// 监听任务
+function watch() {
+  browserSync.init({
+    server: {
+      baseDir: &#39;./dist&#39;
+    }
+  });
+  
+  gulp.watch(paths.styles.src, styles);
+  gulp.watch(paths.html.src, html);
+}
+
+// 任务导出
+exports.clean = clean;
+exports.styles = styles;
+exports.stylesProd = stylesProd;
+exports.html = html;
+exports.watch = watch;
+exports.build = gulp.series(clean, gulp.parallel(stylesProd, html));
+exports.dev = gulp.series(clean, gulp.parallel(styles, html), watch);
+exports.default = exports.dev;
+</code></pre>
+<h2>代码质量控制</h2>
+<h3>Stylelint配置</h3>
+<pre><code class="language-json">// .stylelintrc.json
+{
+  &quot;extends&quot;: [
+    &quot;stylelint-config-standard-scss&quot;,
+    &quot;stylelint-config-prettier-scss&quot;
+  ],
+  &quot;plugins&quot;: [
+    &quot;stylelint-scss&quot;,
+    &quot;stylelint-order&quot;
+  ],
+  &quot;rules&quot;: {
+    // SCSS特定规则
+    &quot;scss/at-extend-no-missing-placeholder&quot;: true,
+    &quot;scss/at-function-pattern&quot;: &quot;^[a-z]+([a-z0-9-]+[a-z0-9]+)?$&quot;,
+    &quot;scss/at-import-no-partial-leading-underscore&quot;: true,
+    &quot;scss/at-import-partial-extension-blacklist&quot;: [&quot;scss&quot;],
+    &quot;scss/at-mixin-pattern&quot;: &quot;^[a-z]+([a-z0-9-]+[a-z0-9]+)?$&quot;,
+    &quot;scss/dollar-variable-pattern&quot;: &quot;^[a-z]+([a-z0-9-]+[a-z0-9]+)?$&quot;,
+    &quot;scss/percent-placeholder-pattern&quot;: &quot;^[a-z]+([a-z0-9-]+[a-z0-9]+)?$&quot;,
+    
+    // 通用规则
+    &quot;max-nesting-depth&quot;: 4,
+    &quot;selector-max-compound-selectors&quot;: 4,
+    &quot;selector-max-id&quot;: 0,
+    &quot;declaration-no-important&quot;: true,
+    &quot;selector-no-qualifying-type&quot;: [true, {
+      &quot;ignore&quot;: [&quot;attribute&quot;, &quot;class&quot;]
+    }],
+    
+    // 属性顺序
+    &quot;order/properties-order&quot;: [
+      &quot;position&quot;,
+      &quot;top&quot;,
+      &quot;right&quot;,
+      &quot;bottom&quot;,
+      &quot;left&quot;,
+      &quot;z-index&quot;,
+      &quot;display&quot;,
+      &quot;flex&quot;,
+      &quot;flex-grow&quot;,
+      &quot;flex-shrink&quot;,
+      &quot;flex-basis&quot;,
+      &quot;flex-direction&quot;,
+      &quot;flex-wrap&quot;,
+      &quot;justify-content&quot;,
+      &quot;align-items&quot;,
+      &quot;align-content&quot;,
+      &quot;align-self&quot;,
+      &quot;order&quot;,
+      &quot;grid&quot;,
+      &quot;grid-area&quot;,
+      &quot;grid-template&quot;,
+      &quot;grid-template-areas&quot;,
+      &quot;grid-template-rows&quot;,
+      &quot;grid-template-columns&quot;,
+      &quot;grid-row&quot;,
+      &quot;grid-row-start&quot;,
+      &quot;grid-row-end&quot;,
+      &quot;grid-column&quot;,
+      &quot;grid-column-start&quot;,
+      &quot;grid-column-end&quot;,
+      &quot;grid-auto-rows&quot;,
+      &quot;grid-auto-columns&quot;,
+      &quot;grid-auto-flow&quot;,
+      &quot;grid-gap&quot;,
+      &quot;grid-row-gap&quot;,
+      &quot;grid-column-gap&quot;,
+      &quot;gap&quot;,
+      &quot;row-gap&quot;,
+      &quot;column-gap&quot;,
+      &quot;float&quot;,
+      &quot;clear&quot;,
+      &quot;box-sizing&quot;,
+      &quot;width&quot;,
+      &quot;min-width&quot;,
+      &quot;max-width&quot;,
+      &quot;height&quot;,
+      &quot;min-height&quot;,
+      &quot;max-height&quot;,
+      &quot;margin&quot;,
+      &quot;margin-top&quot;,
+      &quot;margin-right&quot;,
+      &quot;margin-bottom&quot;,
+      &quot;margin-left&quot;,
+      &quot;padding&quot;,
+      &quot;padding-top&quot;,
+      &quot;padding-right&quot;,
+      &quot;padding-bottom&quot;,
+      &quot;padding-left&quot;,
+      &quot;overflow&quot;,
+      &quot;overflow-x&quot;,
+      &quot;overflow-y&quot;,
+      &quot;clip&quot;,
+      &quot;clip-path&quot;,
+      &quot;visibility&quot;,
+      &quot;opacity&quot;,
+      &quot;vertical-align&quot;,
+      &quot;border&quot;,
+      &quot;border-width&quot;,
+      &quot;border-style&quot;,
+      &quot;border-color&quot;,
+      &quot;border-top&quot;,
+      &quot;border-right&quot;,
+      &quot;border-bottom&quot;,
+      &quot;border-left&quot;,
+      &quot;border-radius&quot;,
+      &quot;outline&quot;,
+      &quot;outline-width&quot;,
+      &quot;outline-style&quot;,
+      &quot;outline-color&quot;,
+      &quot;outline-offset&quot;,
+      &quot;background&quot;,
+      &quot;background-color&quot;,
+      &quot;background-image&quot;,
+      &quot;background-repeat&quot;,
+      &quot;background-attachment&quot;,
+      &quot;background-position&quot;,
+      &quot;background-position-x&quot;,
+      &quot;background-position-y&quot;,
+      &quot;background-clip&quot;,
+      &quot;background-origin&quot;,
+      &quot;background-size&quot;,
+      &quot;box-shadow&quot;,
+      &quot;color&quot;,
+      &quot;font&quot;,
+      &quot;font-family&quot;,
+      &quot;font-size&quot;,
+      &quot;font-weight&quot;,
+      &quot;font-style&quot;,
+      &quot;font-variant&quot;,
+      &quot;font-size-adjust&quot;,
+      &quot;font-stretch&quot;,
+      &quot;font-effect&quot;,
+      &quot;font-emphasize&quot;,
+      &quot;font-emphasize-position&quot;,
+      &quot;font-emphasize-style&quot;,
+      &quot;font-smooth&quot;,
+      &quot;line-height&quot;,
+      &quot;direction&quot;,
+      &quot;letter-spacing&quot;,
+      &quot;white-space&quot;,
+      &quot;text-align&quot;,
+      &quot;text-align-last&quot;,
+      &quot;text-transform&quot;,
+      &quot;text-decoration&quot;,
+      &quot;text-emphasis&quot;,
+      &quot;text-emphasis-color&quot;,
+      &quot;text-emphasis-style&quot;,
+      &quot;text-emphasis-position&quot;,
+      &quot;text-indent&quot;,
+      &quot;text-justify&quot;,
+      &quot;text-outline&quot;,
+      &quot;text-wrap&quot;,
+      &quot;text-overflow&quot;,
+      &quot;text-overflow-ellipsis&quot;,
+      &quot;text-overflow-mode&quot;,
+      &quot;text-shadow&quot;,
+      &quot;word-spacing&quot;,
+      &quot;word-wrap&quot;,
+      &quot;word-break&quot;,
+      &quot;tab-size&quot;,
+      &quot;hyphens&quot;,
+      &quot;list-style&quot;,
+      &quot;list-style-position&quot;,
+      &quot;list-style-type&quot;,
+      &quot;list-style-image&quot;,
+      &quot;table-layout&quot;,
+      &quot;empty-cells&quot;,
+      &quot;caption-side&quot;,
+      &quot;border-spacing&quot;,
+      &quot;border-collapse&quot;,
+      &quot;content&quot;,
+      &quot;quotes&quot;,
+      &quot;counter-reset&quot;,
+      &quot;counter-increment&quot;,
+      &quot;resize&quot;,
+      &quot;cursor&quot;,
+      &quot;user-select&quot;,
+      &quot;nav-index&quot;,
+      &quot;nav-up&quot;,
+      &quot;nav-right&quot;,
+      &quot;nav-down&quot;,
+      &quot;nav-left&quot;,
+      &quot;transition&quot;,
+      &quot;transition-delay&quot;,
+      &quot;transition-timing-function&quot;,
+      &quot;transition-duration&quot;,
+      &quot;transition-property&quot;,
+      &quot;transform&quot;,
+      &quot;transform-origin&quot;,
+      &quot;animation&quot;,
+      &quot;animation-name&quot;,
+      &quot;animation-duration&quot;,
+      &quot;animation-play-state&quot;,
+      &quot;animation-timing-function&quot;,
+      &quot;animation-delay&quot;,
+      &quot;animation-iteration-count&quot;,
+      &quot;animation-direction&quot;,
+      &quot;animation-fill-mode&quot;,
+      &quot;pointer-events&quot;,
+      &quot;unicode-bidi&quot;
+    ]
+  },
+  &quot;ignoreFiles&quot;: [
+    &quot;dist/**/*&quot;,
+    &quot;node_modules/**/*&quot;
+  ]
+}
+</code></pre>
+<h3>Prettier配置</h3>
+<pre><code class="language-json">// .prettierrc
+{
+  &quot;printWidth&quot;: 80,
+  &quot;tabWidth&quot;: 2,
+  &quot;useTabs&quot;: false,
+  &quot;semi&quot;: true,
+  &quot;singleQuote&quot;: true,
+  &quot;quoteProps&quot;: &quot;as-needed&quot;,
+  &quot;trailingComma&quot;: &quot;es5&quot;,
+  &quot;bracketSpacing&quot;: true,
+  &quot;bracketSameLine&quot;: false,
+  &quot;arrowParens&quot;: &quot;avoid&quot;,
+  &quot;endOfLine&quot;: &quot;lf&quot;,
+  &quot;overrides&quot;: [
+    {
+      &quot;files&quot;: &quot;*.scss&quot;,
+      &quot;options&quot;: {
+        &quot;singleQuote&quot;: false,
+        &quot;printWidth&quot;: 100
+      }
+    }
+  ]
+}
+</code></pre>
+<h3>EditorConfig配置</h3>
+<pre><code class="language-ini"># .editorconfig
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.scss]
+indent_size = 2
+max_line_length = 100
+
+[*.md]
+trim_trailing_whitespace = false
+</code></pre>
+<h2>自动化工作流</h2>
+<h3>GitHub Actions CI/CD</h3>
+<pre><code class="language-yaml"># .github/workflows/ci.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: &#39;18&#39;
+        cache: &#39;npm&#39;
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Lint SCSS
+      run: npm run lint:scss
+      
+    - name: Run tests
+      run: npm run test
+      
+    - name: Build project
+      run: npm run build
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-files
+        path: dist/
+        
+  deploy:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == &#39;refs/heads/main&#39;
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-files
+        path: dist/
+        
+    - name: Deploy to production
+      run: |
+        # 部署脚本
+        echo &quot;Deploying to production...&quot;
+</code></pre>
+<h3>Package.json脚本</h3>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;scss-project&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;scripts&quot;: {
+    &quot;dev&quot;: &quot;vite&quot;,
+    &quot;build&quot;: &quot;vite build&quot;,
+    &quot;preview&quot;: &quot;vite preview&quot;,
+    &quot;lint&quot;: &quot;npm run lint:scss &amp;&amp; npm run lint:js&quot;,
+    &quot;lint:scss&quot;: &quot;stylelint &#39;src/**/*.scss&#39; --fix&quot;,
+    &quot;lint:js&quot;: &quot;eslint &#39;src/**/*.js&#39; --fix&quot;,
+    &quot;format&quot;: &quot;prettier --write &#39;src/**/*.{scss,js,html}&#39;&quot;,
+    &quot;test&quot;: &quot;jest&quot;,
+    &quot;test:watch&quot;: &quot;jest --watch&quot;,
+    &quot;analyze&quot;: &quot;npm run build &amp;&amp; npx webpack-bundle-analyzer dist/stats.json&quot;,
+    &quot;clean&quot;: &quot;rimraf dist&quot;,
+    &quot;prepare&quot;: &quot;husky install&quot;
+  },
+  &quot;devDependencies&quot;: {
+    &quot;@types/node&quot;: &quot;^18.0.0&quot;,
+    &quot;autoprefixer&quot;: &quot;^10.4.0&quot;,
+    &quot;cssnano&quot;: &quot;^5.1.0&quot;,
+    &quot;eslint&quot;: &quot;^8.0.0&quot;,
+    &quot;husky&quot;: &quot;^8.0.0&quot;,
+    &quot;jest&quot;: &quot;^29.0.0&quot;,
+    &quot;lint-staged&quot;: &quot;^13.0.0&quot;,
+    &quot;postcss&quot;: &quot;^8.4.0&quot;,
+    &quot;prettier&quot;: &quot;^2.8.0&quot;,
+    &quot;rimraf&quot;: &quot;^3.0.0&quot;,
+    &quot;sass&quot;: &quot;^1.56.0&quot;,
+    &quot;stylelint&quot;: &quot;^14.16.0&quot;,
+    &quot;stylelint-config-prettier-scss&quot;: &quot;^0.0.1&quot;,
+    &quot;stylelint-config-standard-scss&quot;: &quot;^6.1.0&quot;,
+    &quot;stylelint-order&quot;: &quot;^5.0.0&quot;,
+    &quot;stylelint-scss&quot;: &quot;^4.3.0&quot;,
+    &quot;vite&quot;: &quot;^4.0.0&quot;,
+    &quot;webpack-bundle-analyzer&quot;: &quot;^4.7.0&quot;
+  },
+  &quot;lint-staged&quot;: {
+    &quot;*.scss&quot;: [
+      &quot;stylelint --fix&quot;,
+      &quot;prettier --write&quot;
+    ],
+    &quot;*.js&quot;: [
+      &quot;eslint --fix&quot;,
+      &quot;prettier --write&quot;
+    ]
+  }
+}
+</code></pre>
+<h3>Husky Git钩子</h3>
+<pre><code class="language-bash">#!/bin/sh
+# .husky/pre-commit
+. &quot;$(dirname &quot;$0&quot;)/_/husky.sh&quot;
+
+npx lint-staged
+</code></pre>
+<pre><code class="language-bash">#!/bin/sh
+# .husky/commit-msg
+. &quot;$(dirname &quot;$0&quot;)/_/husky.sh&quot;
+
+npx commitlint --edit $1
+</code></pre>
+<h2>性能优化</h2>
+<h3>CSS优化配置</h3>
+<pre><code class="language-javascript">// postcss.config.js
+module.exports = {
+  plugins: [
+    require(&#39;autoprefixer&#39;),
+    require(&#39;postcss-preset-env&#39;)({
+      stage: 1,
+      features: {
+        &#39;nesting-rules&#39;: true,
+        &#39;custom-media-queries&#39;: true,
+        &#39;custom-properties&#39;: true
+      }
+    }),
+    require(&#39;cssnano&#39;)({
+      preset: [&#39;advanced&#39;, {
+        discardComments: { removeAll: true },
+        normalizeWhitespace: true,
+        colormin: true,
+        convertValues: true,
+        discardDuplicates: true,
+        discardEmpty: true,
+        mergeRules: true,
+        minifyFontValues: true,
+        minifySelectors: true,
+        reduceIdents: false,
+        zindex: false
+      }]
+    }),
+    require(&#39;postcss-purgecss&#39;)({
+      content: [&#39;./src/**/*.html&#39;, &#39;./src/**/*.js&#39;],
+      safelist: {
+        standard: [/^is-/, /^has-/, /^js-/],
+        deep: [/modal/, /dropdown/],
+        greedy: [/tooltip$/]
+      }
+    })
+  ]
+};
+</code></pre>
+<h3>关键CSS提取</h3>
+<pre><code class="language-javascript">// critical-css.js
+const critical = require(&#39;critical&#39;);
+const path = require(&#39;path&#39;);
+
+critical.generate({
+  inline: true,
+  base: &#39;dist/&#39;,
+  src: &#39;index.html&#39;,
+  dest: &#39;index-critical.html&#39;,
+  width: 1300,
+  height: 900,
+  minify: true,
+  extract: true,
+  ignore: {
+    atrule: [&#39;@font-face&#39;],
+    rule: [/some-unused-class/],
+    decl: (node, value) =&gt; /url\(/.test(value)
+  }
+});
+</code></pre>
+<h3>Bundle分析</h3>
+<pre><code class="language-javascript">// webpack-analyzer.js
+const BundleAnalyzerPlugin = require(&#39;webpack-bundle-analyzer&#39;).BundleAnalyzerPlugin;
+
+module.exports = {
+  plugins: [
+    new BundleAnalyzerPlugin({
+      analyzerMode: &#39;static&#39;,
+      openAnalyzer: false,
+      reportFilename: &#39;bundle-report.html&#39;
+    })
+  ]
+};
+</code></pre>
+<h2>测试和文档</h2>
+<h3>SCSS测试</h3>
+<pre><code class="language-scss">// tests/_test-functions.scss
+@import &#39;true&#39;;
+
+@include test-module(&#39;Color Functions&#39;) {
+  @include test(&#39;should lighten color correctly&#39;) {
+    @include assert-equal(lighten(#000, 50%), #808080);
+  }
+  
+  @include test(&#39;should darken color correctly&#39;) {
+    @include assert-equal(darken(#fff, 50%), #808080);
+  }
+  
+  @include test(&#39;should mix colors correctly&#39;) {
+    @include assert-equal(mix(#ff0000, #0000ff, 50%), #800080);
+  }
+}
+
+@include test-module(&#39;Spacing Functions&#39;) {
+  @include test(&#39;should calculate rem correctly&#39;) {
+    @include assert-equal(rem(16px), 1rem);
+    @include assert-equal(rem(32px), 2rem);
+  }
+  
+  @include test(&#39;should handle edge cases&#39;) {
+    @include assert-equal(rem(0), 0);
+    @include assert-equal(rem(1px), 0.0625rem);
+  }
+}
+</code></pre>
+<h3>样式指南生成</h3>
+<pre><code class="language-javascript">// styleguide.config.js
+module.exports = {
+  title: &#39;Design System Style Guide&#39;,
+  sections: [
+    {
+      name: &#39;Colors&#39;,
+      content: &#39;docs/colors.md&#39;,
+      components: &#39;src/components/colors/*.scss&#39;
+    },
+    {
+      name: &#39;Typography&#39;,
+      content: &#39;docs/typography.md&#39;,
+      components: &#39;src/components/typography/*.scss&#39;
+    },
+    {
+      name: &#39;Components&#39;,
+      content: &#39;docs/components.md&#39;,
+      components: &#39;src/components/**/*.scss&#39;,
+      sections: [
+        {
+          name: &#39;Buttons&#39;,
+          components: &#39;src/components/buttons/*.scss&#39;
+        },
+        {
+          name: &#39;Forms&#39;,
+          components: &#39;src/components/forms/*.scss&#39;
+        }
+      ]
+    }
+  ],
+  styleguideDir: &#39;styleguide&#39;,
+  assetsDir: &#39;src/assets&#39;,
+  template: {
+    head: {
+      links: [
+        {
+          rel: &#39;stylesheet&#39;,
+          href: &#39;dist/css/main.css&#39;
+        }
+      ]
+    }
+  }
+};
+</code></pre>
+<h3>文档生成</h3>
+<pre><code class="language-markdown">&lt;!-- docs/README.md --&gt;
+# SCSS Design System
+
+## 项目结构
+</code></pre>
+<p>src/styles/
+├── abstracts/          # 变量、函数、混合器
+├── base/              # 重置、基础样式
+├── components/        # 组件样式
+├── layout/           # 布局样式
+├── pages/            # 页面特定样式
+├── themes/           # 主题样式
+└── main.scss         # 主入口文件</p>
+<pre><code>
+## 使用指南
+
+### 变量命名约定
+
+- 使用kebab-case命名
+- 使用语义化名称
+- 提供默认值
+
+```scss
+$primary-color: #007bff !default;
+$font-size-base: 1rem !default;
+$border-radius-sm: 0.25rem !default;
+</code></pre>
+<h3>混合器使用</h3>
+<pre><code class="language-scss">// 响应式混合器
+@include respond-to(md) {
+  font-size: 1.125rem;
+}
+
+// 按钮样式混合器
+@include button-variant(primary, large);
+</code></pre>
+<h2>构建和部署</h2>
+<h3>开发环境</h3>
+<pre><code class="language-bash">npm run dev
+</code></pre>
+<h3>生产构建</h3>
+<pre><code class="language-bash">npm run build
+</code></pre>
+<h3>代码检查</h3>
+<pre><code class="language-bash">npm run lint
+</code></pre>
+<pre><code>
+这些工程化配置可以大大提升SCSS项目的开发效率、代码质量和维护性。
+</code></pre>
+
+      

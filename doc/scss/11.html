@@ -1,0 +1,434 @@
+
+        <header>
+          <h1>SCSS模块系统(@use和@forward)</h1>
+          <p>SCSS | 2025.07.30</p>
+        </header>
+        <h1>SCSS模块系统(@use和@forward)</h1>
+<p>SCSS的新模块系统使用@use和@forward替代@import，提供更好的命名空间管理和依赖控制。</p>
+<h2>@use基本语法</h2>
+<pre><code class="language-scss">@use &#39;path/to/module&#39;;
+@use &#39;path/to/module&#39; as alias;
+@use &#39;path/to/module&#39; as *; // 全局导入
+@use &#39;path/to/module&#39; with ($variable: value);
+</code></pre>
+<h2>实例演示</h2>
+<h3>基本模块使用</h3>
+<h4>_colors.scss</h4>
+<pre><code class="language-scss">// 颜色变量
+$primary: #007bff !default;
+$secondary: #6c757d !default;
+$success: #28a745 !default;
+$danger: #dc3545 !default;
+
+// 颜色函数
+@function get-color($name) {
+  $colors: (
+    primary: $primary,
+    secondary: $secondary,
+    success: $success,
+    danger: $danger
+  );
+  @return map-get($colors, $name);
+}
+
+// 颜色混合器
+@mixin color-variant($color, $background: false) {
+  @if $background {
+    background-color: $color;
+    color: if(lightness($color) &gt; 50%, #333, white);
+  } @else {
+    color: $color;
+  }
+}
+</code></pre>
+<h4>_typography.scss</h4>
+<pre><code class="language-scss">// 字体变量
+$font-family-base: &#39;Helvetica Neue&#39;, Arial, sans-serif !default;
+$font-size-base: 1rem !default;
+$line-height-base: 1.5 !default;
+
+// 字体大小映射
+$font-sizes: (
+  xs: 0.75rem,
+  sm: 0.875rem,
+  base: 1rem,
+  lg: 1.125rem,
+  xl: 1.25rem,
+  2xl: 1.5rem,
+  3xl: 1.875rem,
+  4xl: 2.25rem
+) !default;
+
+// 字体混合器
+@mixin font-size($size) {
+  @if map-has-key($font-sizes, $size) {
+    font-size: map-get($font-sizes, $size);
+  } @else {
+    font-size: $size;
+  }
+}
+
+@mixin heading($level: 1) {
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+  
+  @if $level == 1 {
+    @include font-size(3xl);
+  } @else if $level == 2 {
+    @include font-size(2xl);
+  } @else if $level == 3 {
+    @include font-size(xl);
+  } @else {
+    @include font-size(lg);
+  }
+}
+</code></pre>
+<h4>main.scss（使用模块）</h4>
+<pre><code class="language-scss">// 使用命名空间导入
+@use &#39;colors&#39;;
+@use &#39;typography&#39; as typo;
+
+// 使用模块中的变量和函数
+.button {
+  background-color: colors.get-color(primary);
+  @include colors.color-variant(colors.$primary, true);
+  @include typo.font-size(base);
+  
+  &amp;:hover {
+    background-color: darken(colors.$primary, 10%);
+  }
+}
+
+.heading {
+  @include typo.heading(1);
+  color: colors.$secondary;
+}
+</code></pre>
+<h3>配置模块变量</h3>
+<h4>_config.scss</h4>
+<pre><code class="language-scss">// 默认配置
+$enable-rounded: true !default;
+$enable-shadows: true !default;
+$enable-gradients: false !default;
+$enable-transitions: true !default;
+
+$border-radius: 0.375rem !default;
+$border-radius-sm: 0.25rem !default;
+$border-radius-lg: 0.5rem !default;
+
+$box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !default;
+$box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !default;
+$box-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175) !default;
+</code></pre>
+<h4>_components.scss</h4>
+<pre><code class="language-scss">@use &#39;config&#39;;
+
+@mixin card($shadow: true, $rounded: true) {
+  background-color: white;
+  padding: 1rem;
+  
+  @if $rounded and config.$enable-rounded {
+    border-radius: config.$border-radius;
+  }
+  
+  @if $shadow and config.$enable-shadows {
+    box-shadow: config.$box-shadow;
+  }
+}
+
+@mixin button($variant: primary) {
+  padding: 0.5rem 1rem;
+  border: none;
+  cursor: pointer;
+  
+  @if config.$enable-rounded {
+    border-radius: config.$border-radius-sm;
+  }
+  
+  @if config.$enable-transitions {
+    transition: all 0.15s ease-in-out;
+  }
+}
+</code></pre>
+<h4>app.scss（配置并使用）</h4>
+<pre><code class="language-scss">// 配置模块变量
+@use &#39;components&#39; with (
+  $enable-rounded: false,
+  $enable-shadows: true,
+  $border-radius: 8px
+);
+
+.my-card {
+  @include components.card;
+}
+
+.my-button {
+  @include components.button;
+}
+</code></pre>
+<h2>@forward转发模块</h2>
+<h3>创建统一入口</h3>
+<h4>_index.scss（转发多个模块）</h4>
+<pre><code class="language-scss">// 转发所有模块
+@forward &#39;colors&#39;;
+@forward &#39;typography&#39;;
+@forward &#39;components&#39;;
+
+// 转发时添加前缀
+@forward &#39;utilities&#39; as util-*;
+
+// 转发时隐藏某些成员
+@forward &#39;internal&#39; hide $private-var, private-mixin;
+
+// 转发时只显示某些成员
+@forward &#39;helpers&#39; show get-spacing, spacing-mixin;
+</code></pre>
+<h4>使用统一入口</h4>
+<pre><code class="language-scss">@use &#39;index&#39; as *; // 导入所有转发的模块
+
+.component {
+  color: $primary; // 来自colors模块
+  @include heading(2); // 来自typography模块
+  @include card; // 来自components模块
+}
+</code></pre>
+<h3>模块重新导出</h3>
+<h4>_theme.scss</h4>
+<pre><code class="language-scss">// 重新导出并配置
+@forward &#39;colors&#39; with (
+  $primary: #e91e63,
+  $secondary: #9c27b0
+);
+
+@forward &#39;typography&#39; with (
+  $font-family-base: &#39;Roboto&#39;, sans-serif,
+  $font-size-base: 1.125rem
+);
+
+// 添加主题特定的样式
+$theme-name: &#39;material&#39; !default;
+
+@mixin apply-theme {
+  &amp;.theme-#{$theme-name} {
+    @content;
+  }
+}
+</code></pre>
+<h2>高级模块模式</h2>
+<h3>插件系统</h3>
+<h4>_plugin-base.scss</h4>
+<pre><code class="language-scss">// 插件基础接口
+@mixin plugin-init($config: ()) {
+  @error &quot;plugin-init mixin must be implemented&quot;;
+}
+
+@function plugin-get($key) {
+  @error &quot;plugin-get function must be implemented&quot;;
+}
+</code></pre>
+<h4>_animation-plugin.scss</h4>
+<pre><code class="language-scss">@use &#39;plugin-base&#39;;
+
+// 动画插件配置
+$config: () !default;
+$default-config: (
+  duration: 0.3s,
+  timing: ease,
+  delay: 0s
+);
+
+@mixin plugin-init($user-config: ()) {
+  $config: map-merge($default-config, $user-config) !global;
+}
+
+@function plugin-get($key) {
+  @return map-get($config, $key);
+}
+
+// 动画混合器
+@mixin animate($name, $duration: null, $timing: null) {
+  $duration: if($duration, $duration, plugin-get(duration));
+  $timing: if($timing, $timing, plugin-get(timing));
+  
+  animation: #{$name} #{$duration} #{$timing};
+}
+
+@mixin fade-in($duration: null) {
+  @include animate(fadeIn, $duration);
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+</code></pre>
+<h4>使用插件</h4>
+<pre><code class="language-scss">@use &#39;animation-plugin&#39; with (
+  $config: (
+    duration: 0.5s,
+    timing: ease-out
+  )
+);
+
+.modal {
+  @include animation-plugin.fade-in;
+}
+</code></pre>
+<h3>条件模块加载</h3>
+<h4>_responsive.scss</h4>
+<pre><code class="language-scss">$breakpoints: (
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1200px
+) !default;
+
+$enable-responsive: true !default;
+
+@mixin respond-above($breakpoint) {
+  @if $enable-responsive {
+    $size: map-get($breakpoints, $breakpoint);
+    @if $size {
+      @media (min-width: #{$size}) {
+        @content;
+      }
+    }
+  } @else {
+    @content;
+  }
+}
+</code></pre>
+<h4>_layout.scss</h4>
+<pre><code class="language-scss">@use &#39;responsive&#39;;
+
+.container {
+  width: 100%;
+  padding: 0 1rem;
+  
+  @include responsive.respond-above(sm) {
+    max-width: 540px;
+    margin: 0 auto;
+  }
+  
+  @include responsive.respond-above(md) {
+    max-width: 720px;
+  }
+  
+  @include responsive.respond-above(lg) {
+    max-width: 960px;
+  }
+  
+  @include responsive.respond-above(xl) {
+    max-width: 1140px;
+  }
+}
+</code></pre>
+<h3>模块版本控制</h3>
+<h4>_version.scss</h4>
+<pre><code class="language-scss">$version: &#39;2.1.0&#39; !default;
+$api-version: 2 !default;
+
+@function check-version($required-version) {
+  // 简单的版本检查逻辑
+  @return $version == $required-version;
+}
+
+@function check-api-version($required-api) {
+  @return $api-version &gt;= $required-api;
+}
+
+@mixin require-version($version) {
+  @if not check-version($version) {
+    @error &quot;This code requires version #{$version}, but #{$version} is loaded.&quot;;
+  }
+}
+
+@mixin require-api($api) {
+  @if not check-api-version($api) {
+    @error &quot;This code requires API version #{$api} or higher.&quot;;
+  }
+}
+</code></pre>
+<h4>使用版本控制</h4>
+<pre><code class="language-scss">@use &#39;version&#39;;
+
+// 检查版本兼容性
+@include version.require-api(2);
+
+.new-feature {
+  @if version.check-api-version(2) {
+    // 使用新API
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  } @else {
+    // 降级到旧API
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+</code></pre>
+<h2>最佳实践</h2>
+<h3>1. 模块组织结构</h3>
+<pre><code>styles/
+├── abstracts/
+│   ├── _variables.scss
+│   ├── _functions.scss
+│   ├── _mixins.scss
+│   └── _index.scss
+├── base/
+│   ├── _reset.scss
+│   ├── _typography.scss
+│   └── _index.scss
+├── components/
+│   ├── _buttons.scss
+│   ├── _cards.scss
+│   └── _index.scss
+├── layout/
+│   ├── _grid.scss
+│   ├── _header.scss
+│   └── _index.scss
+└── main.scss
+</code></pre>
+<h3>2. 命名约定</h3>
+<pre><code class="language-scss">// 使用有意义的命名空间
+@use &#39;abstracts/variables&#39; as vars;
+@use &#39;abstracts/mixins&#39; as mix;
+@use &#39;components/buttons&#39; as btn;
+
+.my-component {
+  color: vars.$primary-color;
+  @include mix.center-content;
+  @include btn.style(primary);
+}
+</code></pre>
+<h3>3. 避免循环依赖</h3>
+<pre><code class="language-scss">// ❌ 错误：循环依赖
+// _a.scss
+@use &#39;b&#39;;
+
+// _b.scss  
+@use &#39;a&#39;; // 循环依赖
+
+// ✅ 正确：提取共同依赖
+// _shared.scss
+$shared-variable: value;
+
+// _a.scss
+@use &#39;shared&#39;;
+
+// _b.scss
+@use &#39;shared&#39;;
+</code></pre>
+<h3>4. 合理使用@forward</h3>
+<pre><code class="language-scss">// 创建主题包
+// themes/dark/_index.scss
+@forward &#39;variables&#39;;
+@forward &#39;components&#39;;
+@forward &#39;utilities&#39;;
+
+// 使用主题包
+@use &#39;themes/dark&#39; as *;
+</code></pre>
+
+      

@@ -1,0 +1,763 @@
+
+        <header>
+          <h1>SCSS响应式设计进阶</h1>
+          <p>SCSS | 2025.07.30</p>
+        </header>
+        <h1>SCSS响应式设计进阶</h1>
+<p>深入学习使用SCSS创建复杂的响应式设计，包括流体布局、容器查询、现代CSS Grid和Flexbox技巧。</p>
+<h2>高级断点系统</h2>
+<h3>多维断点管理</h3>
+<pre><code class="language-scss">// 复杂断点系统
+$breakpoints: (
+  // 移动设备
+  mobile: (
+    portrait: (min-width: 320px, max-width: 479px, orientation: portrait),
+    landscape: (min-width: 480px, max-width: 767px, orientation: landscape)
+  ),
+  // 平板设备
+  tablet: (
+    portrait: (min-width: 768px, max-width: 1023px, orientation: portrait),
+    landscape: (min-width: 1024px, max-width: 1199px, orientation: landscape)
+  ),
+  // 桌面设备
+  desktop: (
+    small: (min-width: 1200px, max-width: 1399px),
+    medium: (min-width: 1400px, max-width: 1799px),
+    large: (min-width: 1800px)
+  ),
+  // 特殊设备
+  watch: (max-width: 319px),
+  tv: (min-width: 1920px)
+);
+
+// 高级响应式混合器
+@mixin respond-to($device, $variant: null) {
+  $device-map: map-get($breakpoints, $device);
+  
+  @if not $device-map {
+    @error &quot;Device &#39;#{$device}&#39; not found in breakpoints map.&quot;;
+  }
+  
+  @if $variant {
+    $variant-map: map-get($device-map, $variant);
+    @if not $variant-map {
+      @error &quot;Variant &#39;#{$variant}&#39; not found for device &#39;#{$device}&#39;.&quot;;
+    }
+    $device-map: $variant-map;
+  }
+  
+  $query: &#39;&#39;;
+  @each $property, $value in $device-map {
+    @if $query != &#39;&#39; {
+      $query: $query + &#39; and &#39;;
+    }
+    $query: $query + &#39;(#{$property}: #{$value})&#39;;
+  }
+  
+  @media #{$query} {
+    @content;
+  }
+}
+
+// 使用示例
+.responsive-component {
+  padding: 1rem;
+  
+  @include respond-to(mobile, portrait) {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  @include respond-to(tablet, landscape) {
+    padding: 1.5rem;
+    display: flex;
+  }
+  
+  @include respond-to(desktop, large) {
+    padding: 3rem;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+}
+</code></pre>
+<h3>基于特性的响应式设计</h3>
+<pre><code class="language-scss">// 特性检测混合器
+@mixin supports($feature) {
+  @supports #{$feature} {
+    @content;
+  }
+}
+
+@mixin supports-not($feature) {
+  @supports not #{$feature} {
+    @content;
+  }
+}
+
+// 基于特性的响应式组件
+.modern-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  
+  // 支持CSS Grid时使用Grid布局
+  @include supports((display: grid)) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    
+    // 支持subgrid时使用子网格
+    @include supports((grid-template-rows: subgrid)) {
+      .grid-item {
+        display: grid;
+        grid-template-rows: subgrid;
+      }
+    }
+  }
+  
+  // 支持容器查询时使用容器查询
+  @include supports((container-type: inline-size)) {
+    container-type: inline-size;
+    
+    .grid-item {
+      @container (min-width: 400px) {
+        display: flex;
+        align-items: center;
+      }
+    }
+  }
+}
+
+// 渐进增强的按钮
+.enhanced-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #007bff;
+  background: #007bff;
+  color: white;
+  border-radius: 4px;
+  
+  // 支持CSS变量时使用主题色
+  @include supports((color: var(--primary))) {
+    background: var(--primary, #007bff);
+    border-color: var(--primary, #007bff);
+  }
+  
+  // 支持backdrop-filter时添加毛玻璃效果
+  @include supports((backdrop-filter: blur(10px))) {
+    background: rgba(0, 123, 255, 0.8);
+    backdrop-filter: blur(10px);
+  }
+  
+  // 支持clip-path时添加特殊形状
+  @include supports((clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%))) {
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 10px 100%);
+  }
+}
+</code></pre>
+<h2>流体设计系统</h2>
+<h3>流体字体和间距</h3>
+<pre><code class="language-scss">// 流体计算函数
+@function fluid-size($min-size, $max-size, $min-width: 320px, $max-width: 1200px) {
+  $slope: ($max-size - $min-size) / ($max-width - $min-width);
+  $intersection: (-$min-width * $slope) + $min-size;
+  
+  @return clamp(#{$min-size}, #{$intersection} + #{$slope * 100vw}, #{$max-size});
+}
+
+// 流体间距系统
+$fluid-spacing: (
+  xs: (min: 0.5rem, max: 1rem),
+  sm: (min: 1rem, max: 1.5rem),
+  md: (min: 1.5rem, max: 2.5rem),
+  lg: (min: 2rem, max: 4rem),
+  xl: (min: 3rem, max: 6rem),
+  2xl: (min: 4rem, max: 8rem)
+);
+
+@function fluid-space($size) {
+  $space-map: map-get($fluid-spacing, $size);
+  $min: map-get($space-map, min);
+  $max: map-get($space-map, max);
+  
+  @return fluid-size($min, $max);
+}
+
+// 流体字体系统
+$fluid-typography: (
+  xs: (min: 0.75rem, max: 0.875rem),
+  sm: (min: 0.875rem, max: 1rem),
+  base: (min: 1rem, max: 1.125rem),
+  lg: (min: 1.125rem, max: 1.25rem),
+  xl: (min: 1.25rem, max: 1.5rem),
+  2xl: (min: 1.5rem, max: 2rem),
+  3xl: (min: 1.875rem, max: 2.5rem),
+  4xl: (min: 2.25rem, max: 3rem),
+  5xl: (min: 3rem, max: 4rem)
+);
+
+@function fluid-font($size) {
+  $font-map: map-get($fluid-typography, $size);
+  $min: map-get($font-map, min);
+  $max: map-get($font-map, max);
+  
+  @return fluid-size($min, $max);
+}
+
+// 流体组件
+.fluid-hero {
+  padding: fluid-space(xl) fluid-space(md);
+  
+  h1 {
+    font-size: fluid-font(5xl);
+    line-height: 1.1;
+    margin-bottom: fluid-space(lg);
+  }
+  
+  p {
+    font-size: fluid-font(lg);
+    line-height: 1.6;
+    margin-bottom: fluid-space(xl);
+  }
+}
+
+.fluid-card {
+  padding: fluid-space(md);
+  margin-bottom: fluid-space(lg);
+  border-radius: clamp(8px, 2vw, 16px);
+  
+  .card-title {
+    font-size: fluid-font(2xl);
+    margin-bottom: fluid-space(sm);
+  }
+  
+  .card-content {
+    font-size: fluid-font(base);
+    line-height: 1.6;
+  }
+}
+</code></pre>
+<h3>流体网格系统</h3>
+<pre><code class="language-scss">// 流体网格配置
+$grid-config: (
+  columns: 12,
+  min-column-width: 250px,
+  max-column-width: 1fr,
+  gap: (min: 1rem, max: 2rem)
+);
+
+// 流体网格混合器
+@mixin fluid-grid($columns: null, $min-width: 250px, $gap: null) {
+  display: grid;
+  
+  @if $columns {
+    grid-template-columns: repeat($columns, 1fr);
+  } @else {
+    grid-template-columns: repeat(auto-fit, minmax($min-width, 1fr));
+  }
+  
+  @if $gap {
+    gap: $gap;
+  } @else {
+    gap: fluid-space(md);
+  }
+}
+
+// 自适应网格
+.adaptive-grid {
+  @include fluid-grid;
+  
+  // 在小屏幕上强制单列
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+  
+  // 在大屏幕上限制最大列数
+  @media (min-width: 1400px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+// 复杂的响应式网格
+.complex-grid {
+  display: grid;
+  gap: fluid-space(md);
+  
+  // 移动端：单列
+  grid-template-columns: 1fr;
+  grid-template-areas: 
+    &quot;header&quot;
+    &quot;main&quot;
+    &quot;sidebar&quot;
+    &quot;footer&quot;;
+  
+  // 平板端：两列
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 300px;
+    grid-template-areas: 
+      &quot;header header&quot;
+      &quot;main sidebar&quot;
+      &quot;footer footer&quot;;
+  }
+  
+  // 桌面端：三列
+  @media (min-width: 1200px) {
+    grid-template-columns: 250px 1fr 300px;
+    grid-template-areas: 
+      &quot;nav header header&quot;
+      &quot;nav main sidebar&quot;
+      &quot;nav footer footer&quot;;
+  }
+  
+  .header { grid-area: header; }
+  .nav { grid-area: nav; }
+  .main { grid-area: main; }
+  .sidebar { grid-area: sidebar; }
+  .footer { grid-area: footer; }
+}
+</code></pre>
+<h2>容器查询模拟</h2>
+<h3>基于JavaScript的容器查询</h3>
+<pre><code class="language-scss">// 容器查询类生成器
+$container-sizes: (
+  xs: 0px,
+  sm: 400px,
+  md: 600px,
+  lg: 800px,
+  xl: 1000px
+);
+
+@mixin container-query($size) {
+  $min-width: map-get($container-sizes, $size);
+  
+  @if not $min-width {
+    @error &quot;Container size &#39;#{$size}&#39; not found.&quot;;
+  }
+  
+  // 生成基于类名的容器查询
+  &amp;.container-#{$size} {
+    @content;
+  }
+}
+
+// 使用容器查询的组件
+.responsive-card {
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  
+  .card-content {
+    display: block;
+    
+    @include container-query(md) {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+  }
+  
+  .card-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    margin-bottom: 1rem;
+    
+    @include container-query(md) {
+      width: 150px;
+      height: 100px;
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+    
+    @include container-query(lg) {
+      width: 200px;
+      height: 120px;
+    }
+  }
+  
+  .card-text {
+    @include container-query(sm) {
+      font-size: 0.875rem;
+    }
+    
+    @include container-query(lg) {
+      font-size: 1.125rem;
+    }
+  }
+}
+</code></pre>
+<h3>基于CSS自定义属性的响应式</h3>
+<pre><code class="language-scss">// 响应式属性系统
+:root {
+  // 基础间距
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  
+  // 基础字体大小
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  
+  // 响应式调整
+  @media (min-width: 768px) {
+    --space-xs: 0.75rem;
+    --space-sm: 1.25rem;
+    --space-md: 2rem;
+    --space-lg: 2.5rem;
+    --space-xl: 4rem;
+    
+    --text-xs: 0.875rem;
+    --text-sm: 1rem;
+    --text-base: 1.125rem;
+    --text-lg: 1.25rem;
+    --text-xl: 1.5rem;
+  }
+  
+  @media (min-width: 1200px) {
+    --space-xs: 1rem;
+    --space-sm: 1.5rem;
+    --space-md: 2.5rem;
+    --space-lg: 3rem;
+    --space-xl: 5rem;
+    
+    --text-xs: 1rem;
+    --text-sm: 1.125rem;
+    --text-base: 1.25rem;
+    --text-lg: 1.5rem;
+    --text-xl: 1.875rem;
+  }
+}
+
+// 使用响应式属性的组件
+.variable-component {
+  padding: var(--space-md);
+  font-size: var(--text-base);
+  
+  h2 {
+    font-size: var(--text-xl);
+    margin-bottom: var(--space-sm);
+  }
+  
+  p {
+    margin-bottom: var(--space-md);
+    line-height: 1.6;
+  }
+  
+  .button {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-sm);
+  }
+}
+</code></pre>
+<h2>高级布局技巧</h2>
+<h3>内在网格布局</h3>
+<pre><code class="language-scss">// 内在网格系统
+.intrinsic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 1rem;
+  
+  // 处理单个项目时的居中
+  &amp;:has(.grid-item:only-child) {
+    place-items: center;
+    
+    .grid-item {
+      max-width: 600px;
+    }
+  }
+  
+  // 处理两个项目时的布局
+  &amp;:has(.grid-item:nth-child(2):last-child) {
+    grid-template-columns: repeat(2, 1fr);
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// 自适应卡片网格
+.card-grid {
+  display: grid;
+  gap: 2rem;
+  
+  // 基于内容自适应列数
+  grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
+  
+  // 确保最后一行的项目不会过度拉伸
+  &amp;::after {
+    content: &#39;&#39;;
+    grid-column: 1 / -1;
+    height: 0;
+  }
+  
+  .card {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    
+    .card-image {
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+    
+    .card-content {
+      padding: 1.5rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .card-description {
+      flex: 1;
+      color: #666;
+      line-height: 1.6;
+    }
+    
+    .card-actions {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #eee;
+    }
+  }
+}
+</code></pre>
+<h3>弹性盒子高级技巧</h3>
+<pre><code class="language-scss">// 智能弹性布局
+.smart-flex {
+  display: flex;
+  gap: 1rem;
+  
+  // 自动换行，但保持合理的项目大小
+  flex-wrap: wrap;
+  
+  &gt; * {
+    // 最小宽度确保可读性
+    min-width: min(250px, 100%);
+    // 允许增长但有最大限制
+    flex: 1 1 auto;
+    max-width: 400px;
+  }
+  
+  // 当只有一个或两个项目时的特殊处理
+  &amp;:has(&gt; :nth-child(1):last-child) {
+    justify-content: center;
+    
+    &gt; * {
+      max-width: 600px;
+    }
+  }
+  
+  &amp;:has(&gt; :nth-child(2):last-child) {
+    &gt; * {
+      flex-basis: calc(50% - 0.5rem);
+    }
+    
+    @media (max-width: 600px) {
+      flex-direction: column;
+      
+      &gt; * {
+        flex-basis: auto;
+      }
+    }
+  }
+}
+
+// 等高列布局
+.equal-height-columns {
+  display: flex;
+  gap: 2rem;
+  align-items: stretch;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+  
+  .column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    
+    .column-header {
+      margin-bottom: 1rem;
+    }
+    
+    .column-content {
+      flex: 1;
+      margin-bottom: 1rem;
+    }
+    
+    .column-footer {
+      margin-top: auto;
+    }
+  }
+}
+</code></pre>
+<h2>响应式图片和媒体</h2>
+<h3>高级图片响应式</h3>
+<pre><code class="language-scss">// 响应式图片容器
+.responsive-image {
+  position: relative;
+  overflow: hidden;
+  
+  // 默认宽高比
+  aspect-ratio: 16 / 9;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+  
+  // 不同断点的宽高比
+  @media (max-width: 768px) {
+    aspect-ratio: 4 / 3;
+  }
+  
+  @media (max-width: 480px) {
+    aspect-ratio: 1 / 1;
+  }
+  
+  // 悬停效果
+  &amp;:hover img {
+    transform: scale(1.05);
+  }
+  
+  // 图片加载状态
+  &amp;.loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+  }
+  
+  @keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}
+
+// 艺术指导的响应式图片
+.art-directed-image {
+  img {
+    width: 100%;
+    height: auto;
+  }
+  
+  // 移动端：显示裁剪的正方形版本
+  @media (max-width: 768px) {
+    img[src*=&quot;desktop&quot;] {
+      display: none;
+    }
+    
+    img[src*=&quot;mobile&quot;] {
+      display: block;
+    }
+  }
+  
+  // 桌面端：显示完整的横向版本
+  @media (min-width: 769px) {
+    img[src*=&quot;mobile&quot;] {
+      display: none;
+    }
+    
+    img[src*=&quot;desktop&quot;] {
+      display: block;
+    }
+  }
+}
+</code></pre>
+<h3>响应式视频</h3>
+<pre><code class="language-scss">// 响应式视频容器
+.responsive-video {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%; // 16:9 宽高比
+  overflow: hidden;
+  
+  iframe,
+  video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  
+  // 不同宽高比的变体
+  &amp;.ratio-4-3 {
+    padding-bottom: 75%; // 4:3
+  }
+  
+  &amp;.ratio-1-1 {
+    padding-bottom: 100%; // 1:1
+  }
+  
+  &amp;.ratio-21-9 {
+    padding-bottom: 42.86%; // 21:9
+  }
+  
+  // 响应式宽高比调整
+  @media (max-width: 768px) {
+    padding-bottom: 75%; // 在移动端使用4:3
+  }
+}
+
+// 自适应视频播放器
+.adaptive-video-player {
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  
+  video {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  
+  .video-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    padding: 1rem;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+  }
+  
+  &amp;:hover .video-controls {
+    transform: translateY(0);
+  }
+  
+  // 移动端始终显示控件
+  @media (max-width: 768px) {
+    .video-controls {
+      transform: translateY(0);
+      position: static;
+      background: rgba(0, 0, 0, 0.8);
+    }
+  }
+}
+</code></pre>
+<p>这些高级响应式技巧可以帮助创建更加灵活和用户友好的界面，适应各种设备和使用场景。</p>
+
+      
