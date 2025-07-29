@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>开机自动启动前端项目脚本</title>
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <a href="/" class="home-button"
+      ><svg t="1752584065927" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5005" width="30" height="30"><path d="M895.312594 461.010699 311.722092 461.010699 579.522348 193.20942l-67.7398-67.783803L128.202359 508.999666l383.580189 383.575072 67.7398-67.783803L311.722092 556.902676l583.590502 0L895.312594 461.010699z" p-id="5006" fill="currentColor"></path></svg></a>
+    
+    <div class="article-container">
+      <main class="article-main">
+        <header>
+          <h1>开机自动启动前端项目脚本</h1>
+          <p>解决方案 | 2025.07.29</p>
+        </header>
+        <h2>前言</h2>
+<p>在公司中可能会有启动多个前端的需求，如果早晨到公司之后每个项目都运行一遍命令很麻烦。或者是周末的时候后端同事来加班，但是需要你的前端。你不能专门跑到公司给后端同事启动一个前端项目吧，这样太麻烦了。于是我就写了一个专属于 windows 上的脚本。</p>
+<h2>1. 脚本</h2>
+<p>在 widnwos 系统中，<code>C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup</code>存放在该目录下面的<code>.bat</code>脚本会自动执行，但是<code>.ps1</code>脚本并不会自动执行。本片文章用<code>.ps1</code>脚本进行演示。</p>
+<p>脚本(<code>start_chuming_plm6_project.ps1</code>)：</p>
+<pre><code class="language-bash"># 定义要搜索的根目录
+$rootDir = &quot;G:\xxxx&quot;
+
+# node版本
+$nodeVersion = 14.20.0
+
+# 获取所有以 &quot;xxx&quot; 开头的目录
+$plm6Dirs = Get-ChildItem -Path $rootDir -Directory | Where-Object { $_.Name -like &quot;xxx*&quot; }
+
+# 遍历每个目录
+foreach ($dir in $plm6Dirs) {
+    $projectDir = Join-Path $rootDir $dir.Name
+
+    # 检查是否有 package.json 文件，确认是一个前端项目
+    if (Test-Path (Join-Path $projectDir &quot;package.json&quot;)) {
+        Write-Host &quot;start_project: $projectDir&quot;
+
+        # 使用 cmd /c 执行多个命令，并将窗口最小化
+        Start-Process cmd.exe -ArgumentList &quot;/c `&quot;$env:ProgramFiles\nodejs\nvm\nvm.exe` use $nodeVersion &amp;&amp; cd `&quot;$projectDir`&quot; &amp;&amp; npm run dev&quot; -WindowStyle Minimized
+
+    } else {
+        Write-Host &quot;$projectDir not is project because package.json is not exist&quot;
+    }
+}
+</code></pre>
+<p><img src="../images/99fc62bc86c5039c642158129acb9f5a.awebp" alt="image.png"></p>
+<h2>2. 设置开机自启</h2>
+<h3>2.1 通过 bat 脚本去运行 ps1 脚本</h3>
+<ol>
+<li>在 <code>C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup</code> 中创建一个新的 <code>.bat</code> 文件，比如 <code>RunMyScript.bat</code>。</li>
+<li>在 <code>.bat</code> 文件中添加以下内容：</li>
+</ol>
+<pre><code class="language-bash">powershell -ExecutionPolicy Bypass -File &quot;C:\path\to\your\script.ps1&quot;
+</code></pre>
+<p>其中，将 <code>C:\path\to\your\script.ps1</code> 替换为实际的 PowerShell 脚本路径。</p>
+<ol start="3">
+<li>保存并关闭文件。这样，Windows 会在启动时自动运行 <code>.bat</code> 文件，从而间接启动你的 PowerShell 脚本。</li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> <code>.bat</code>脚本只有在输入开机密码，登录之后才会开始运行。</p>
+</blockquote>
+<h3>2.2 使用任务计划程序来启动 PowerShell 脚本</h3>
+<ol>
+<li>打开任务计划程序（可以在开始菜单中搜索 “Task Scheduler”）。</li>
+<li>点击 <strong>创建任务</strong>。</li>
+</ol>
+<p><img src="../images/437fa0eb8fe618864ec494009093ccd1.awebp" alt="image.png"></p>
+<ol start="3">
+<li>在“常规”选项卡中，命名任务并选择 <strong>使用最高权限运行</strong>。</li>
+</ol>
+<p><img src="../images/e52fe6a81777ff9605be1c9019129859.awebp" alt="image.png"></p>
+<ol start="4">
+<li>在“触发器”选项卡中，点击 <strong>新建</strong>，将触发器设置为 <strong>在系统启动时</strong>。</li>
+</ol>
+<p><img src="../images/5e20ab3667a2d6504a344c02b9f8c48e.awebp" alt="image.png"></p>
+<ol start="5">
+<li>在“操作”选项卡中，选择 <strong>启动程序</strong>，在“程序或脚本”中输入：</li>
+</ol>
+<pre><code class="language-bash">powershell
+</code></pre>
+<ol start="6">
+<li>在“添加参数”栏中，输入以下内容：</li>
+</ol>
+<pre><code class="language-bash">-ExecutionPolicy Bypass -File &quot;C:\path\to\your\script.ps1&quot;
+</code></pre>
+<p>将 <code>C:\path\to\your\script.ps1</code> 替换为实际脚本路径。</p>
+<p><img src="../images/4ca1be4327378e17730415f7dd9446e0.awebp" alt="image.png"></p>
+<ol start="7">
+<li>保存任务。这样，系统启动时（即登录前）脚本就会执行，不需要输入密码。</li>
+</ol>
+
+      </main>
+      
+      <aside class="toc-container">
+        <h3>目录</h3>
+        <div class="toc"></div>
+      </aside>
+    </div>
+
+    <button class="home-button to-top">
+      <svg
+        t="1752139321106"
+        class="icon"
+        viewBox="0 0 1024 1024"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+        p-id="4901"
+        width="50"
+        height="50"
+      >
+        <path
+          d="M256 74.666667a53.333333 53.333333 0 1 0 0 106.666666h512a53.333333 53.333333 0 1 0 0-106.666666H256zM549.717333 260.949333a53.333333 53.333333 0 0 0-75.434666 0l-256 256a53.333333 53.333333 0 0 0 75.434666 75.434667l165.12-165.12V896a53.333333 53.333333 0 1 0 106.666667 0V427.605333l164.778667 164.778667a53.333333 53.333333 0 0 0 75.434666-75.434667l-256-256z"
+          fill="currentColor"
+          p-id="4902"
+        ></path>
+      </svg>
+    </button>
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
