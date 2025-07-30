@@ -1,0 +1,670 @@
+
+        <header>
+          <h1>高级类型 (Advanced Types)</h1>
+          <p>TypeScript | 2025.07.30</p>
+        </header>
+        <p>TypeScript 的高级类型系统提供了强大的类型操作和组合能力，包括联合类型、交叉类型、条件类型、映射类型等。这些特性让我们能够创建更精确、更灵活的类型定义。</p>
+<h2>联合类型 (Union Types)</h2>
+<h3>基本联合类型</h3>
+<pre><code class="language-typescript">type StringOrNumber = string | number;
+
+function formatValue(value: StringOrNumber): string {
+    if (typeof value === &#39;string&#39;) {
+        return value.toUpperCase();
+    } else {
+        return value.toString();
+    }
+}
+
+console.log(formatValue(&quot;hello&quot;)); // &quot;HELLO&quot;
+console.log(formatValue(42));      // &quot;42&quot;
+</code></pre>
+<h3>字面量联合类型</h3>
+<pre><code class="language-typescript">type Theme = &#39;light&#39; | &#39;dark&#39; | &#39;auto&#39;;
+type Size = &#39;small&#39; | &#39;medium&#39; | &#39;large&#39;;
+type Status = &#39;pending&#39; | &#39;approved&#39; | &#39;rejected&#39;;
+
+interface Button {
+    text: string;
+    theme: Theme;
+    size: Size;
+    disabled?: boolean;
+}
+
+const button: Button = {
+    text: &#39;Click me&#39;,
+    theme: &#39;dark&#39;,
+    size: &#39;medium&#39;
+};
+</code></pre>
+<h3>可辨识联合类型</h3>
+<pre><code class="language-typescript">interface Square {
+    kind: &#39;square&#39;;
+    size: number;
+}
+
+interface Rectangle {
+    kind: &#39;rectangle&#39;;
+    width: number;
+    height: number;
+}
+
+interface Circle {
+    kind: &#39;circle&#39;;
+    radius: number;
+}
+
+type Shape = Square | Rectangle | Circle;
+
+function calculateArea(shape: Shape): number {
+    switch (shape.kind) {
+        case &#39;square&#39;:
+            return shape.size * shape.size;
+        case &#39;rectangle&#39;:
+            return shape.width * shape.height;
+        case &#39;circle&#39;:
+            return Math.PI * shape.radius * shape.radius;
+        default:
+            // 确保所有情况都被处理
+            const _exhaustiveCheck: never = shape;
+            return _exhaustiveCheck;
+    }
+}
+
+const square: Square = { kind: &#39;square&#39;, size: 10 };
+const rectangle: Rectangle = { kind: &#39;rectangle&#39;, width: 10, height: 5 };
+const circle: Circle = { kind: &#39;circle&#39;, radius: 5 };
+
+console.log(calculateArea(square));    // 100
+console.log(calculateArea(rectangle)); // 50
+console.log(calculateArea(circle));    // 78.54
+</code></pre>
+<h2>交叉类型 (Intersection Types)</h2>
+<h3>基本交叉类型</h3>
+<pre><code class="language-typescript">interface Flyable {
+    fly(): void;
+    altitude: number;
+}
+
+interface Swimmable {
+    swim(): void;
+    depth: number;
+}
+
+type FlyingFish = Flyable &amp; Swimmable;
+
+class Duck implements FlyingFish {
+    altitude: number = 0;
+    depth: number = 0;
+    
+    fly(): void {
+        this.altitude = 100;
+        console.log(`Flying at altitude ${this.altitude}m`);
+    }
+    
+    swim(): void {
+        this.depth = 5;
+        console.log(`Swimming at depth ${this.depth}m`);
+    }
+}
+
+const duck = new Duck();
+duck.fly();  // Flying at altitude 100m
+duck.swim(); // Swimming at depth 5m
+</code></pre>
+<h3>混合对象类型</h3>
+<pre><code class="language-typescript">interface Person {
+    name: string;
+    age: number;
+}
+
+interface Employee {
+    employeeId: string;
+    department: string;
+    salary: number;
+}
+
+type PersonEmployee = Person &amp; Employee;
+
+const employee: PersonEmployee = {
+    name: &#39;Alice&#39;,
+    age: 30,
+    employeeId: &#39;EMP001&#39;,
+    department: &#39;Engineering&#39;,
+    salary: 75000
+};
+
+// 工具函数
+function createEmployee(
+    person: Person,
+    employment: Employee
+): PersonEmployee {
+    return { ...person, ...employment };
+}
+</code></pre>
+<h2>条件类型 (Conditional Types)</h2>
+<h3>基本条件类型</h3>
+<pre><code class="language-typescript">type IsString&lt;T&gt; = T extends string ? true : false;
+
+type Test1 = IsString&lt;string&gt;;  // true
+type Test2 = IsString&lt;number&gt;;  // false
+type Test3 = IsString&lt;&#39;hello&#39;&gt;; // true
+</code></pre>
+<h3>实用条件类型</h3>
+<pre><code class="language-typescript">// 排除 null 和 undefined
+type NonNullable&lt;T&gt; = T extends null | undefined ? never : T;
+
+type Test4 = NonNullable&lt;string | null&gt;;      // string
+type Test5 = NonNullable&lt;number | undefined&gt;; // number
+
+// 获取函数返回类型
+type ReturnType&lt;T&gt; = T extends (...args: any[]) =&gt; infer R ? R : never;
+
+function getString(): string { return &#39;hello&#39;; }
+function getNumber(): number { return 42; }
+
+type StringReturn = ReturnType&lt;typeof getString&gt;; // string
+type NumberReturn = ReturnType&lt;typeof getNumber&gt;; // number
+
+// 获取函数参数类型
+type Parameters&lt;T&gt; = T extends (...args: infer P) =&gt; any ? P : never;
+
+function add(a: number, b: number): number { return a + b; }
+type AddParams = Parameters&lt;typeof add&gt;; // [number, number]
+</code></pre>
+<h3>分布式条件类型</h3>
+<pre><code class="language-typescript">type ToArray&lt;T&gt; = T extends any ? T[] : never;
+
+type Test6 = ToArray&lt;string | number&gt;; // string[] | number[]
+
+// 过滤类型
+type Filter&lt;T, U&gt; = T extends U ? T : never;
+
+type Test7 = Filter&lt;&#39;a&#39; | &#39;b&#39; | &#39;c&#39; | 1 | 2, string&gt;; // &#39;a&#39; | &#39;b&#39; | &#39;c&#39;
+</code></pre>
+<h2>映射类型 (Mapped Types)</h2>
+<h3>基本映射类型</h3>
+<pre><code class="language-typescript">type Readonly&lt;T&gt; = {
+    readonly [P in keyof T]: T[P];
+};
+
+type Partial&lt;T&gt; = {
+    [P in keyof T]?: T[P];
+};
+
+type Required&lt;T&gt; = {
+    [P in keyof T]-?: T[P];
+};
+
+interface User {
+    id: number;
+    name: string;
+    email?: string;
+}
+
+type ReadonlyUser = Readonly&lt;User&gt;;
+// { readonly id: number; readonly name: string; readonly email?: string; }
+
+type PartialUser = Partial&lt;User&gt;;
+// { id?: number; name?: string; email?: string; }
+
+type RequiredUser = Required&lt;User&gt;;
+// { id: number; name: string; email: string; }
+</code></pre>
+<h3>高级映射类型</h3>
+<pre><code class="language-typescript">// 选择特定属性
+type Pick&lt;T, K extends keyof T&gt; = {
+    [P in K]: T[P];
+};
+
+// 排除特定属性
+type Omit&lt;T, K extends keyof T&gt; = Pick&lt;T, Exclude&lt;keyof T, K&gt;&gt;;
+
+// 创建记录类型
+type Record&lt;K extends keyof any, T&gt; = {
+    [P in K]: T;
+};
+
+interface Product {
+    id: string;
+    name: string;
+    price: number;
+    description: string;
+    category: string;
+}
+
+type ProductSummary = Pick&lt;Product, &#39;id&#39; | &#39;name&#39; | &#39;price&#39;&gt;;
+// { id: string; name: string; price: number; }
+
+type CreateProduct = Omit&lt;Product, &#39;id&#39;&gt;;
+// { name: string; price: number; description: string; category: string; }
+
+type ProductCategories = Record&lt;string, Product[]&gt;;
+// { [key: string]: Product[]; }
+</code></pre>
+<h3>键重映射</h3>
+<pre><code class="language-typescript">// TypeScript 4.1+ 特性
+type Getters&lt;T&gt; = {
+    [K in keyof T as `get${Capitalize&lt;string &amp; K&gt;}`]: () =&gt; T[K];
+};
+
+interface Person {
+    name: string;
+    age: number;
+    email: string;
+}
+
+type PersonGetters = Getters&lt;Person&gt;;
+// {
+//     getName: () =&gt; string;
+//     getAge: () =&gt; number;
+//     getEmail: () =&gt; string;
+// }
+
+// 过滤属性
+type PickByType&lt;T, U&gt; = {
+    [K in keyof T as T[K] extends U ? K : never]: T[K];
+};
+
+interface Mixed {
+    id: number;
+    name: string;
+    count: number;
+    active: boolean;
+    tags: string[];
+}
+
+type StringProps = PickByType&lt;Mixed, string&gt;;
+// { name: string; }
+
+type NumberProps = PickByType&lt;Mixed, number&gt;;
+// { id: number; count: number; }
+</code></pre>
+<h2>模板字面量类型</h2>
+<h3>基本模板字面量类型</h3>
+<pre><code class="language-typescript">type World = &#39;world&#39;;
+type Greeting = `hello ${World}`; // &#39;hello world&#39;
+
+type EmailLocaleIDs = &#39;welcome_email&#39; | &#39;email_heading&#39;;
+type FooterLocaleIDs = &#39;footer_title&#39; | &#39;footer_sendoff&#39;;
+
+type AllLocaleIDs = `${EmailLocaleIDs | FooterLocaleIDs}_id`;
+// &#39;welcome_email_id&#39; | &#39;email_heading_id&#39; | &#39;footer_title_id&#39; | &#39;footer_sendoff_id&#39;
+</code></pre>
+<h3>模板字面量类型的实际应用</h3>
+<pre><code class="language-typescript">// 事件系统
+type EventNames = &#39;click&#39; | &#39;focus&#39; | &#39;blur&#39;;
+type EventHandlers = {
+    [K in EventNames as `on${Capitalize&lt;K&gt;}`]: (event: Event) =&gt; void;
+};
+// {
+//     onClick: (event: Event) =&gt; void;
+//     onFocus: (event: Event) =&gt; void;
+//     onBlur: (event: Event) =&gt; void;
+// }
+
+// CSS 属性
+type CSSProperties = &#39;margin&#39; | &#39;padding&#39; | &#39;border&#39;;
+type CSSDirections = &#39;top&#39; | &#39;right&#39; | &#39;bottom&#39; | &#39;left&#39;;
+type DetailedCSSProperties = `${CSSProperties}-${CSSDirections}`;
+// &#39;margin-top&#39; | &#39;margin-right&#39; | ... | &#39;border-left&#39;
+</code></pre>
+<h2>实例演示：类型安全的状态管理系统</h2>
+<pre><code class="language-typescript">// 状态类型定义
+interface AppState {
+    user: {
+        id: string;
+        name: string;
+        email: string;
+        isAuthenticated: boolean;
+    } | null;
+    products: {
+        items: Product[];
+        loading: boolean;
+        error: string | null;
+    };
+    cart: {
+        items: CartItem[];
+        total: number;
+    };
+    ui: {
+        theme: &#39;light&#39; | &#39;dark&#39;;
+        sidebarOpen: boolean;
+        notifications: Notification[];
+    };
+}
+
+interface Product {
+    id: string;
+    name: string;
+    price: number;
+    category: string;
+}
+
+interface CartItem {
+    productId: string;
+    quantity: number;
+    price: number;
+}
+
+interface Notification {
+    id: string;
+    type: &#39;info&#39; | &#39;success&#39; | &#39;warning&#39; | &#39;error&#39;;
+    message: string;
+    timestamp: number;
+}
+
+// 动作类型系统
+type ActionType = 
+    | &#39;SET_USER&#39;
+    | &#39;LOGOUT_USER&#39;
+    | &#39;SET_PRODUCTS&#39;
+    | &#39;SET_PRODUCTS_LOADING&#39;
+    | &#39;SET_PRODUCTS_ERROR&#39;
+    | &#39;ADD_TO_CART&#39;
+    | &#39;REMOVE_FROM_CART&#39;
+    | &#39;UPDATE_CART_QUANTITY&#39;
+    | &#39;CLEAR_CART&#39;
+    | &#39;SET_THEME&#39;
+    | &#39;TOGGLE_SIDEBAR&#39;
+    | &#39;ADD_NOTIFICATION&#39;
+    | &#39;REMOVE_NOTIFICATION&#39;;
+
+// 动作创建器类型
+type ActionCreators = {
+    [K in ActionType as `${Lowercase&lt;K&gt;}`]: K extends &#39;SET_USER&#39;
+        ? (user: AppState[&#39;user&#39;]) =&gt; Action&lt;K, AppState[&#39;user&#39;]&gt;
+        : K extends &#39;SET_PRODUCTS&#39;
+        ? (products: Product[]) =&gt; Action&lt;K, Product[]&gt;
+        : K extends &#39;SET_PRODUCTS_LOADING&#39;
+        ? (loading: boolean) =&gt; Action&lt;K, boolean&gt;
+        : K extends &#39;SET_PRODUCTS_ERROR&#39;
+        ? (error: string | null) =&gt; Action&lt;K, string | null&gt;
+        : K extends &#39;ADD_TO_CART&#39;
+        ? (item: CartItem) =&gt; Action&lt;K, CartItem&gt;
+        : K extends &#39;REMOVE_FROM_CART&#39;
+        ? (productId: string) =&gt; Action&lt;K, string&gt;
+        : K extends &#39;UPDATE_CART_QUANTITY&#39;
+        ? (payload: { productId: string; quantity: number }) =&gt; Action&lt;K, { productId: string; quantity: number }&gt;
+        : K extends &#39;SET_THEME&#39;
+        ? (theme: AppState[&#39;ui&#39;][&#39;theme&#39;]) =&gt; Action&lt;K, AppState[&#39;ui&#39;][&#39;theme&#39;]&gt;
+        : K extends &#39;ADD_NOTIFICATION&#39;
+        ? (notification: Notification) =&gt; Action&lt;K, Notification&gt;
+        : K extends &#39;REMOVE_NOTIFICATION&#39;
+        ? (id: string) =&gt; Action&lt;K, string&gt;
+        : () =&gt; Action&lt;K, undefined&gt;;
+};
+
+// 基础动作接口
+interface Action&lt;T extends ActionType, P = undefined&gt; {
+    type: T;
+    payload: P;
+}
+
+// 所有可能的动作类型
+type AppAction = 
+    | Action&lt;&#39;SET_USER&#39;, AppState[&#39;user&#39;]&gt;
+    | Action&lt;&#39;LOGOUT_USER&#39;, undefined&gt;
+    | Action&lt;&#39;SET_PRODUCTS&#39;, Product[]&gt;
+    | Action&lt;&#39;SET_PRODUCTS_LOADING&#39;, boolean&gt;
+    | Action&lt;&#39;SET_PRODUCTS_ERROR&#39;, string | null&gt;
+    | Action&lt;&#39;ADD_TO_CART&#39;, CartItem&gt;
+    | Action&lt;&#39;REMOVE_FROM_CART&#39;, string&gt;
+    | Action&lt;&#39;UPDATE_CART_QUANTITY&#39;, { productId: string; quantity: number }&gt;
+    | Action&lt;&#39;CLEAR_CART&#39;, undefined&gt;
+    | Action&lt;&#39;SET_THEME&#39;, AppState[&#39;ui&#39;][&#39;theme&#39;]&gt;
+    | Action&lt;&#39;TOGGLE_SIDEBAR&#39;, undefined&gt;
+    | Action&lt;&#39;ADD_NOTIFICATION&#39;, Notification&gt;
+    | Action&lt;&#39;REMOVE_NOTIFICATION&#39;, string&gt;;
+
+// 状态选择器类型
+type StateSelector&lt;T&gt; = (state: AppState) =&gt; T;
+
+// 深度路径类型
+type DeepKeys&lt;T&gt; = T extends object
+    ? {
+        [K in keyof T]: K extends string
+            ? T[K] extends object
+                ? `${K}` | `${K}.${DeepKeys&lt;T[K]&gt;}`
+                : `${K}`
+            : never;
+    }[keyof T]
+    : never;
+
+type AppStateKeys = DeepKeys&lt;AppState&gt;;
+// &#39;user&#39; | &#39;user.id&#39; | &#39;user.name&#39; | &#39;products&#39; | &#39;products.items&#39; | &#39;cart.total&#39; | ...
+
+// 根据路径获取类型
+type GetByPath&lt;T, P extends string&gt; = P extends `${infer K}.${infer Rest}`
+    ? K extends keyof T
+        ? GetByPath&lt;T[K], Rest&gt;
+        : never
+    : P extends keyof T
+    ? T[P]
+    : never;
+
+// 状态管理器实现
+class StateManager {
+    private state: AppState;
+    private listeners: Array&lt;(state: AppState) =&gt; void&gt; = [];
+    
+    constructor(initialState: AppState) {
+        this.state = initialState;
+    }
+    
+    // 获取当前状态
+    getState(): AppState {
+        return this.state;
+    }
+    
+    // 派发动作
+    dispatch(action: AppAction): void {
+        this.state = this.reducer(this.state, action);
+        this.notifyListeners();
+    }
+    
+    // 订阅状态变化
+    subscribe(listener: (state: AppState) =&gt; void): () =&gt; void {
+        this.listeners.push(listener);
+        return () =&gt; {
+            const index = this.listeners.indexOf(listener);
+            if (index &gt; -1) {
+                this.listeners.splice(index, 1);
+            }
+        };
+    }
+    
+    // 选择器
+    select&lt;T&gt;(selector: StateSelector&lt;T&gt;): T {
+        return selector(this.state);
+    }
+    
+    // 根据路径选择状态
+    selectByPath&lt;P extends AppStateKeys&gt;(path: P): GetByPath&lt;AppState, P&gt; {
+        const keys = path.split(&#39;.&#39;);
+        let result: any = this.state;
+        
+        for (const key of keys) {
+            result = result[key];
+            if (result === undefined) break;
+        }
+        
+        return result;
+    }
+    
+    private reducer(state: AppState, action: AppAction): AppState {
+        switch (action.type) {
+            case &#39;SET_USER&#39;:
+                return {
+                    ...state,
+                    user: action.payload
+                };
+                
+            case &#39;LOGOUT_USER&#39;:
+                return {
+                    ...state,
+                    user: null
+                };
+                
+            case &#39;SET_PRODUCTS&#39;:
+                return {
+                    ...state,
+                    products: {
+                        ...state.products,
+                        items: action.payload,
+                        loading: false,
+                        error: null
+                    }
+                };
+                
+            case &#39;SET_PRODUCTS_LOADING&#39;:
+                return {
+                    ...state,
+                    products: {
+                        ...state.products,
+                        loading: action.payload
+                    }
+                };
+                
+            case &#39;ADD_TO_CART&#39;:
+                const existingItem = state.cart.items.find(
+                    item =&gt; item.productId === action.payload.productId
+                );
+                
+                let newItems: CartItem[];
+                if (existingItem) {
+                    newItems = state.cart.items.map(item =&gt;
+                        item.productId === action.payload.productId
+                            ? { ...item, quantity: item.quantity + action.payload.quantity }
+                            : item
+                    );
+                } else {
+                    newItems = [...state.cart.items, action.payload];
+                }
+                
+                return {
+                    ...state,
+                    cart: {
+                        items: newItems,
+                        total: newItems.reduce((sum, item) =&gt; sum + (item.price * item.quantity), 0)
+                    }
+                };
+                
+            case &#39;SET_THEME&#39;:
+                return {
+                    ...state,
+                    ui: {
+                        ...state.ui,
+                        theme: action.payload
+                    }
+                };
+                
+            case &#39;ADD_NOTIFICATION&#39;:
+                return {
+                    ...state,
+                    ui: {
+                        ...state.ui,
+                        notifications: [...state.ui.notifications, action.payload]
+                    }
+                };
+                
+            default:
+                return state;
+        }
+    }
+    
+    private notifyListeners(): void {
+        this.listeners.forEach(listener =&gt; listener(this.state));
+    }
+}
+
+// 动作创建器
+const actionCreators = {
+    setUser: (user: AppState[&#39;user&#39;]): Action&lt;&#39;SET_USER&#39;, AppState[&#39;user&#39;]&gt; =&gt; ({
+        type: &#39;SET_USER&#39;,
+        payload: user
+    }),
+    
+    logoutUser: (): Action&lt;&#39;LOGOUT_USER&#39;, undefined&gt; =&gt; ({
+        type: &#39;LOGOUT_USER&#39;,
+        payload: undefined
+    }),
+    
+    setProducts: (products: Product[]): Action&lt;&#39;SET_PRODUCTS&#39;, Product[]&gt; =&gt; ({
+        type: &#39;SET_PRODUCTS&#39;,
+        payload: products
+    }),
+    
+    addToCart: (item: CartItem): Action&lt;&#39;ADD_TO_CART&#39;, CartItem&gt; =&gt; ({
+        type: &#39;ADD_TO_CART&#39;,
+        payload: item
+    }),
+    
+    setTheme: (theme: AppState[&#39;ui&#39;][&#39;theme&#39;]): Action&lt;&#39;SET_THEME&#39;, AppState[&#39;ui&#39;][&#39;theme&#39;]&gt; =&gt; ({
+        type: &#39;SET_THEME&#39;,
+        payload: theme
+    }),
+    
+    addNotification: (notification: Notification): Action&lt;&#39;ADD_NOTIFICATION&#39;, Notification&gt; =&gt; ({
+        type: &#39;ADD_NOTIFICATION&#39;,
+        payload: notification
+    })
+};
+
+// 使用示例
+const initialState: AppState = {
+    user: null,
+    products: {
+        items: [],
+        loading: false,
+        error: null
+    },
+    cart: {
+        items: [],
+        total: 0
+    },
+    ui: {
+        theme: &#39;light&#39;,
+        sidebarOpen: false,
+        notifications: []
+    }
+};
+
+const stateManager = new StateManager(initialState);
+
+// 订阅状态变化
+const unsubscribe = stateManager.subscribe((state) =&gt; {
+    console.log(&#39;State updated:&#39;, state);
+});
+
+// 派发动作
+stateManager.dispatch(actionCreators.setUser({
+    id: &#39;1&#39;,
+    name: &#39;John Doe&#39;,
+    email: &#39;john@example.com&#39;,
+    isAuthenticated: true
+}));
+
+stateManager.dispatch(actionCreators.addToCart({
+    productId: &#39;prod1&#39;,
+    quantity: 2,
+    price: 29.99
+}));
+
+stateManager.dispatch(actionCreators.setTheme(&#39;dark&#39;));
+
+// 使用选择器
+const currentUser = stateManager.select(state =&gt; state.user);
+const cartTotal = stateManager.selectByPath(&#39;cart.total&#39;);
+const isAuthenticated = stateManager.select(state =&gt; state.user?.isAuthenticated ?? false);
+
+console.log(&#39;Current user:&#39;, currentUser);
+console.log(&#39;Cart total:&#39;, cartTotal);
+console.log(&#39;Is authenticated:&#39;, isAuthenticated);
+
+// 清理
+unsubscribe();
+</code></pre>
+<p>这个例子展示了 TypeScript 高级类型的强大功能，包括联合类型、交叉类型、条件类型、映射类型、模板字面量类型等，构建了一个类型安全的状态管理系统。</p>
+
+      

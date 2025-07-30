@@ -1,0 +1,379 @@
+
+        <header>
+          <h1>接口 (Interface)</h1>
+          <p>TypeScript | 2025.07.30</p>
+        </header>
+        <p>接口是 TypeScript 的核心特性之一，用于定义对象的结构。接口描述了对象应该具有的属性和方法，提供了强大的类型检查和代码提示功能。</p>
+<h2>基本接口定义</h2>
+<h3>简单接口</h3>
+<pre><code class="language-typescript">interface Person {
+    firstName: string;
+    lastName: string;
+}
+
+function greeter(person: Person) {
+    return &quot;Hello, &quot; + person.firstName + &quot; &quot; + person.lastName;
+}
+
+let user = { firstName: &quot;Jane&quot;, lastName: &quot;User&quot; };
+console.log(greeter(user));
+</code></pre>
+<h3>可选属性</h3>
+<pre><code class="language-typescript">interface SquareConfig {
+    color?: string;
+    width?: number;
+}
+
+function createSquare(config: SquareConfig): { color: string; area: number } {
+    let newSquare = { color: &quot;white&quot;, area: 100 };
+    if (config.color) {
+        newSquare.color = config.color;
+    }
+    if (config.width) {
+        newSquare.area = config.width * config.width;
+    }
+    return newSquare;
+}
+
+let mySquare = createSquare({ color: &quot;black&quot; });
+</code></pre>
+<h3>只读属性</h3>
+<pre><code class="language-typescript">interface Point {
+    readonly x: number;
+    readonly y: number;
+}
+
+let p1: Point = { x: 10, y: 20 };
+// p1.x = 5; // 错误！x 是只读的
+
+// 只读数组
+let a: number[] = [1, 2, 3, 4];
+let ro: ReadonlyArray&lt;number&gt; = a;
+// ro[0] = 12; // 错误！
+// ro.push(5); // 错误！
+</code></pre>
+<h2>函数类型接口</h2>
+<h3>函数签名</h3>
+<pre><code class="language-typescript">interface SearchFunc {
+    (source: string, subString: string): boolean;
+}
+
+let mySearch: SearchFunc;
+mySearch = function(source: string, subString: string) {
+    let result = source.search(subString);
+    return result &gt; -1;
+}
+
+// 参数名不需要匹配
+mySearch = function(src: string, sub: string): boolean {
+    let result = src.search(sub);
+    return result &gt; -1;
+}
+</code></pre>
+<h3>可调用接口</h3>
+<pre><code class="language-typescript">interface Counter {
+    (start: number): string;
+    interval: number;
+    reset(): void;
+}
+
+function getCounter(): Counter {
+    let counter = function (start: number) { return start.toString(); } as Counter;
+    counter.interval = 123;
+    counter.reset = function () { };
+    return counter;
+}
+
+let c = getCounter();
+c(10);
+c.reset();
+c.interval = 5.0;
+</code></pre>
+<h2>可索引类型接口</h2>
+<h3>数字索引</h3>
+<pre><code class="language-typescript">interface StringArray {
+    [index: number]: string;
+}
+
+let myArray: StringArray;
+myArray = [&quot;Bob&quot;, &quot;Fred&quot;];
+let myStr: string = myArray[0];
+</code></pre>
+<h3>字符串索引</h3>
+<pre><code class="language-typescript">interface NumberDictionary {
+    [index: string]: number;
+    length: number;    // 可以，length 是 number 类型
+    // name: string;   // 错误，name 的类型与索引类型返回值的类型不匹配
+}
+
+// 混合索引签名
+interface NumberOrStringDictionary {
+    [index: string]: number | string;
+    [index: number]: number;
+}
+</code></pre>
+<h2>类类型接口</h2>
+<h3>实现接口</h3>
+<pre><code class="language-typescript">interface ClockInterface {
+    currentTime: Date;
+    setTime(d: Date): void;
+}
+
+class Clock implements ClockInterface {
+    currentTime: Date = new Date();
+    setTime(d: Date) {
+        this.currentTime = d;
+    }
+    constructor(h: number, m: number) { }
+}
+</code></pre>
+<h3>构造器签名</h3>
+<pre><code class="language-typescript">interface ClockConstructor {
+    new (hour: number, minute: number): ClockInterface;
+}
+
+interface ClockInterface {
+    tick(): void;
+}
+
+function createClock(ctor: ClockConstructor, hour: number, minute: number): ClockInterface {
+    return new ctor(hour, minute);
+}
+
+class DigitalClock implements ClockInterface {
+    constructor(h: number, m: number) { }
+    tick() {
+        console.log(&quot;beep beep&quot;);
+    }
+}
+
+class AnalogClock implements ClockInterface {
+    constructor(h: number, m: number) { }
+    tick() {
+        console.log(&quot;tick tock&quot;);
+    }
+}
+
+let digital = createClock(DigitalClock, 12, 17);
+let analog = createClock(AnalogClock, 7, 32);
+</code></pre>
+<h2>接口继承</h2>
+<h3>单继承</h3>
+<pre><code class="language-typescript">interface Shape {
+    color: string;
+}
+
+interface Square extends Shape {
+    sideLength: number;
+}
+
+let square = {} as Square;
+square.color = &quot;blue&quot;;
+square.sideLength = 10;
+</code></pre>
+<h3>多继承</h3>
+<pre><code class="language-typescript">interface Shape {
+    color: string;
+}
+
+interface PenStroke {
+    penWidth: number;
+}
+
+interface Square extends Shape, PenStroke {
+    sideLength: number;
+}
+
+let square = {} as Square;
+square.color = &quot;blue&quot;;
+square.sideLength = 10;
+square.penWidth = 5.0;
+</code></pre>
+<h2>混合类型</h2>
+<pre><code class="language-typescript">interface Counter {
+    (start: number): string;
+    interval: number;
+    reset(): void;
+}
+
+function getCounter(): Counter {
+    let counter = function (start: number) { return start.toString(); } as Counter;
+    counter.interval = 123;
+    counter.reset = function () { };
+    return counter;
+}
+
+let c = getCounter();
+c(10);
+c.reset();
+c.interval = 5.0;
+</code></pre>
+<h2>实例演示：电商系统接口设计</h2>
+<pre><code class="language-typescript">// 基础接口
+interface BaseEntity {
+    readonly id: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+// 用户接口
+interface User extends BaseEntity {
+    username: string;
+    email: string;
+    profile?: UserProfile;
+}
+
+interface UserProfile {
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+    bio?: string;
+}
+
+// 产品接口
+interface Product extends BaseEntity {
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    tags: string[];
+    inventory: number;
+    images: string[];
+}
+
+// 订单接口
+interface Order extends BaseEntity {
+    userId: string;
+    items: OrderItem[];
+    totalAmount: number;
+    status: OrderStatus;
+    shippingAddress: Address;
+    paymentMethod: PaymentMethod;
+}
+
+interface OrderItem {
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+    subtotal: number;
+}
+
+// 枚举类型
+enum OrderStatus {
+    Pending = &quot;PENDING&quot;,
+    Confirmed = &quot;CONFIRMED&quot;,
+    Shipped = &quot;SHIPPED&quot;,
+    Delivered = &quot;DELIVERED&quot;,
+    Cancelled = &quot;CANCELLED&quot;
+}
+
+enum PaymentMethod {
+    CreditCard = &quot;CREDIT_CARD&quot;,
+    PayPal = &quot;PAYPAL&quot;,
+    BankTransfer = &quot;BANK_TRANSFER&quot;
+}
+
+// 地址接口
+interface Address {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+}
+
+// 服务接口
+interface UserService {
+    createUser(userData: Omit&lt;User, keyof BaseEntity&gt;): Promise&lt;User&gt;;
+    getUserById(id: string): Promise&lt;User | null&gt;;
+    updateUser(id: string, userData: Partial&lt;User&gt;): Promise&lt;User&gt;;
+    deleteUser(id: string): Promise&lt;boolean&gt;;
+}
+
+interface ProductService {
+    createProduct(productData: Omit&lt;Product, keyof BaseEntity&gt;): Promise&lt;Product&gt;;
+    getProducts(filters?: ProductFilters): Promise&lt;Product[]&gt;;
+    updateInventory(productId: string, quantity: number): Promise&lt;void&gt;;
+}
+
+interface ProductFilters {
+    category?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    tags?: string[];
+    inStock?: boolean;
+}
+
+// 可索引接口示例
+interface ProductCatalog {
+    [productId: string]: Product;
+}
+
+// 函数类型接口
+interface PriceCalculator {
+    (items: OrderItem[], discountCode?: string): number;
+}
+
+// 实现示例
+class ECommerceService implements UserService {
+    private users: { [id: string]: User } = {};
+
+    async createUser(userData: Omit&lt;User, keyof BaseEntity&gt;): Promise&lt;User&gt; {
+        const user: User = {
+            ...userData,
+            id: Math.random().toString(36),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        this.users[user.id] = user;
+        return user;
+    }
+
+    async getUserById(id: string): Promise&lt;User | null&gt; {
+        return this.users[id] || null;
+    }
+
+    async updateUser(id: string, userData: Partial&lt;User&gt;): Promise&lt;User&gt; {
+        const existingUser = this.users[id];
+        if (!existingUser) {
+            throw new Error(&quot;User not found&quot;);
+        }
+        
+        const updatedUser: User = {
+            ...existingUser,
+            ...userData,
+            updatedAt: new Date()
+        };
+        
+        this.users[id] = updatedUser;
+        return updatedUser;
+    }
+
+    async deleteUser(id: string): Promise&lt;boolean&gt; {
+        if (this.users[id]) {
+            delete this.users[id];
+            return true;
+        }
+        return false;
+    }
+}
+
+// 使用示例
+const userService = new ECommerceService();
+
+// 创建用户
+const newUser = await userService.createUser({
+    username: &quot;john_doe&quot;,
+    email: &quot;john@example.com&quot;,
+    profile: {
+        firstName: &quot;John&quot;,
+        lastName: &quot;Doe&quot;,
+        bio: &quot;Software developer&quot;
+    }
+});
+
+console.log(&quot;Created user:&quot;, newUser);
+</code></pre>
+<p>这个例子展示了如何使用接口设计一个完整的电商系统，包括接口继承、可选属性、只读属性、枚举类型、泛型工具类型等高级特性。</p>
+
+      

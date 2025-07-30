@@ -1,0 +1,645 @@
+
+        <header>
+          <h1>泛型 (Generics)</h1>
+          <p>TypeScript | 2025.07.30</p>
+        </header>
+        <p>泛型是 TypeScript 中最强大的特性之一，它允许我们创建可重用的组件，这些组件可以支持多种类型而不是单一类型。泛型提供了一种创建灵活、可重用代码的方式。</p>
+<h2>基本泛型概念</h2>
+<h3>泛型函数</h3>
+<pre><code class="language-typescript">// 不使用泛型的版本
+function identityNumber(arg: number): number {
+    return arg;
+}
+
+function identityString(arg: string): string {
+    return arg;
+}
+
+// 使用泛型的版本
+function identity&lt;T&gt;(arg: T): T {
+    return arg;
+}
+
+// 使用方式
+let output1 = identity&lt;string&gt;(&quot;myString&quot;);
+let output2 = identity&lt;number&gt;(100);
+
+// 类型推断
+let output3 = identity(&quot;myString&quot;); // TypeScript 推断 T 为 string
+let output4 = identity(100);        // TypeScript 推断 T 为 number
+</code></pre>
+<h3>泛型数组</h3>
+<pre><code class="language-typescript">function loggingIdentity&lt;T&gt;(arg: T[]): T[] {
+    console.log(arg.length); // 数组有 length 属性
+    return arg;
+}
+
+// 或者使用 Array&lt;T&gt; 语法
+function loggingIdentity2&lt;T&gt;(arg: Array&lt;T&gt;): Array&lt;T&gt; {
+    console.log(arg.length);
+    return arg;
+}
+
+let result = loggingIdentity([1, 2, 3, 4]);
+let result2 = loggingIdentity([&quot;a&quot;, &quot;b&quot;, &quot;c&quot;]);
+</code></pre>
+<h2>泛型类型</h2>
+<h3>泛型接口</h3>
+<pre><code class="language-typescript">interface GenericIdentityFn&lt;T&gt; {
+    (arg: T): T;
+}
+
+function identity&lt;T&gt;(arg: T): T {
+    return arg;
+}
+
+let myIdentity: GenericIdentityFn&lt;number&gt; = identity;
+let myIdentity2: GenericIdentityFn&lt;string&gt; = identity;
+</code></pre>
+<h3>泛型类</h3>
+<pre><code class="language-typescript">class GenericNumber&lt;T&gt; {
+    zeroValue: T;
+    add: (x: T, y: T) =&gt; T;
+    
+    constructor(zeroValue: T, addFn: (x: T, y: T) =&gt; T) {
+        this.zeroValue = zeroValue;
+        this.add = addFn;
+    }
+}
+
+let myGenericNumber = new GenericNumber&lt;number&gt;(0, (x, y) =&gt; x + y);
+console.log(myGenericNumber.add(5, 3)); // 8
+
+let stringNumeric = new GenericNumber&lt;string&gt;(&quot;&quot;, (x, y) =&gt; x + y);
+console.log(stringNumeric.add(&quot;Hello&quot;, &quot; World&quot;)); // &quot;Hello World&quot;
+</code></pre>
+<h2>泛型约束</h2>
+<h3>基本约束</h3>
+<pre><code class="language-typescript">interface Lengthwise {
+    length: number;
+}
+
+function loggingIdentity&lt;T extends Lengthwise&gt;(arg: T): T {
+    console.log(arg.length); // 现在我们知道 arg 有 length 属性
+    return arg;
+}
+
+loggingIdentity(&quot;hello&quot;);        // 正确，string 有 length
+loggingIdentity([1, 2, 3]);      // 正确，array 有 length
+loggingIdentity({ length: 10 }); // 正确，对象有 length 属性
+// loggingIdentity(3);           // 错误，number 没有 length
+</code></pre>
+<h3>在泛型约束中使用类型参数</h3>
+<pre><code class="language-typescript">function getProperty&lt;T, K extends keyof T&gt;(obj: T, key: K): T[K] {
+    return obj[key];
+}
+
+let x = { a: 1, b: 2, c: 3, d: 4 };
+
+let a = getProperty(x, &quot;a&quot;); // 类型为 number
+let b = getProperty(x, &quot;b&quot;); // 类型为 number
+// let m = getProperty(x, &quot;m&quot;); // 错误，&#39;m&#39; 不存在于 x 中
+</code></pre>
+<h3>在泛型中使用类类型</h3>
+<pre><code class="language-typescript">function create&lt;T&gt;(c: new() =&gt; T): T {
+    return new c();
+}
+
+class BeeKeeper {
+    hasMask: boolean = true;
+}
+
+class ZooKeeper {
+    nametag: string = &quot;Mikle&quot;;
+}
+
+class Animal {
+    numLegs: number = 4;
+}
+
+class Bee extends Animal {
+    keeper: BeeKeeper = new BeeKeeper();
+}
+
+class Lion extends Animal {
+    keeper: ZooKeeper = new ZooKeeper();
+}
+
+function createInstance&lt;A extends Animal&gt;(c: new () =&gt; A): A {
+    return new c();
+}
+
+let bee = createInstance(Bee);     // 类型为 Bee
+let lion = createInstance(Lion);   // 类型为 Lion
+</code></pre>
+<h2>高级泛型模式</h2>
+<h3>条件类型</h3>
+<pre><code class="language-typescript">type NonNullable&lt;T&gt; = T extends null | undefined ? never : T;
+
+type A = NonNullable&lt;string | null | undefined&gt;; // string
+type B = NonNullable&lt;string[] | null&gt;;           // string[]
+
+// 更复杂的条件类型
+type TypeName&lt;T&gt; = 
+    T extends string ? &quot;string&quot; :
+    T extends number ? &quot;number&quot; :
+    T extends boolean ? &quot;boolean&quot; :
+    T extends undefined ? &quot;undefined&quot; :
+    T extends Function ? &quot;function&quot; :
+    &quot;object&quot;;
+
+type T0 = TypeName&lt;string&gt;;    // &quot;string&quot;
+type T1 = TypeName&lt;&quot;a&quot;&gt;;       // &quot;string&quot;
+type T2 = TypeName&lt;true&gt;;      // &quot;boolean&quot;
+type T3 = TypeName&lt;() =&gt; void&gt;; // &quot;function&quot;
+type T4 = TypeName&lt;string[]&gt;;   // &quot;object&quot;
+</code></pre>
+<h3>映射类型</h3>
+<pre><code class="language-typescript">type Readonly&lt;T&gt; = {
+    readonly [P in keyof T]: T[P];
+};
+
+type Partial&lt;T&gt; = {
+    [P in keyof T]?: T[P];
+};
+
+type Required&lt;T&gt; = {
+    [P in keyof T]-?: T[P];
+};
+
+interface Person {
+    name: string;
+    age?: number;
+    email: string;
+}
+
+type ReadonlyPerson = Readonly&lt;Person&gt;;
+// { readonly name: string; readonly age?: number; readonly email: string; }
+
+type PartialPerson = Partial&lt;Person&gt;;
+// { name?: string; age?: number; email?: string; }
+
+type RequiredPerson = Required&lt;Person&gt;;
+// { name: string; age: number; email: string; }
+</code></pre>
+<h3>工具类型</h3>
+<pre><code class="language-typescript">interface User {
+    id: number;
+    name: string;
+    email: string;
+    age: number;
+    isActive: boolean;
+}
+
+// Pick - 选择特定属性
+type UserSummary = Pick&lt;User, &#39;id&#39; | &#39;name&#39; | &#39;email&#39;&gt;;
+// { id: number; name: string; email: string; }
+
+// Omit - 排除特定属性
+type CreateUserRequest = Omit&lt;User, &#39;id&#39;&gt;;
+// { name: string; email: string; age: number; isActive: boolean; }
+
+// Record - 创建记录类型
+type UserRoles = Record&lt;string, User&gt;;
+// { [key: string]: User; }
+
+// Exclude - 从联合类型中排除
+type T0 = Exclude&lt;&quot;a&quot; | &quot;b&quot; | &quot;c&quot;, &quot;a&quot;&gt;; // &quot;b&quot; | &quot;c&quot;
+type T1 = Exclude&lt;string | number | (() =&gt; void), Function&gt;; // string | number
+
+// Extract - 从联合类型中提取
+type T2 = Extract&lt;&quot;a&quot; | &quot;b&quot; | &quot;c&quot;, &quot;a&quot; | &quot;f&quot;&gt;; // &quot;a&quot;
+type T3 = Extract&lt;string | number | (() =&gt; void), Function&gt;; // () =&gt; void
+</code></pre>
+<h2>泛型实用工具</h2>
+<h3>响应式数据包装器</h3>
+<pre><code class="language-typescript">interface Observer&lt;T&gt; {
+    update(value: T): void;
+}
+
+class Observable&lt;T&gt; {
+    private value: T;
+    private observers: Observer&lt;T&gt;[] = [];
+    
+    constructor(initialValue: T) {
+        this.value = initialValue;
+    }
+    
+    getValue(): T {
+        return this.value;
+    }
+    
+    setValue(newValue: T): void {
+        this.value = newValue;
+        this.notifyObservers();
+    }
+    
+    subscribe(observer: Observer&lt;T&gt;): void {
+        this.observers.push(observer);
+    }
+    
+    unsubscribe(observer: Observer&lt;T&gt;): void {
+        const index = this.observers.indexOf(observer);
+        if (index &gt; -1) {
+            this.observers.splice(index, 1);
+        }
+    }
+    
+    private notifyObservers(): void {
+        this.observers.forEach(observer =&gt; observer.update(this.value));
+    }
+}
+
+// 使用示例
+const numberObservable = new Observable&lt;number&gt;(0);
+const stringObservable = new Observable&lt;string&gt;(&quot;Hello&quot;);
+
+const numberObserver: Observer&lt;number&gt; = {
+    update(value: number) {
+        console.log(`Number updated: ${value}`);
+    }
+};
+
+numberObservable.subscribe(numberObserver);
+numberObservable.setValue(42); // 输出: Number updated: 42
+</code></pre>
+<h3>泛型缓存系统</h3>
+<pre><code class="language-typescript">interface CacheOptions {
+    ttl?: number; // Time to live in milliseconds
+    maxSize?: number;
+}
+
+class Cache&lt;K, V&gt; {
+    private cache = new Map&lt;K, { value: V; timestamp: number }&gt;();
+    private options: Required&lt;CacheOptions&gt;;
+    
+    constructor(options: CacheOptions = {}) {
+        this.options = {
+            ttl: options.ttl ?? 60000, // 默认 1 分钟
+            maxSize: options.maxSize ?? 100
+        };
+    }
+    
+    set(key: K, value: V): void {
+        // 检查缓存大小限制
+        if (this.cache.size &gt;= this.options.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            this.cache.delete(firstKey);
+        }
+        
+        this.cache.set(key, {
+            value,
+            timestamp: Date.now()
+        });
+    }
+    
+    get(key: K): V | undefined {
+        const item = this.cache.get(key);
+        
+        if (!item) {
+            return undefined;
+        }
+        
+        // 检查是否过期
+        if (Date.now() - item.timestamp &gt; this.options.ttl) {
+            this.cache.delete(key);
+            return undefined;
+        }
+        
+        return item.value;
+    }
+    
+    has(key: K): boolean {
+        return this.get(key) !== undefined;
+    }
+    
+    delete(key: K): boolean {
+        return this.cache.delete(key);
+    }
+    
+    clear(): void {
+        this.cache.clear();
+    }
+    
+    size(): number {
+        // 清理过期项
+        this.cleanup();
+        return this.cache.size;
+    }
+    
+    private cleanup(): void {
+        const now = Date.now();
+        for (const [key, item] of this.cache.entries()) {
+            if (now - item.timestamp &gt; this.options.ttl) {
+                this.cache.delete(key);
+            }
+        }
+    }
+}
+
+// 使用示例
+const userCache = new Cache&lt;string, User&gt;({ ttl: 30000, maxSize: 50 });
+const apiCache = new Cache&lt;string, any&gt;({ ttl: 60000 });
+
+userCache.set(&quot;user1&quot;, { id: 1, name: &quot;Alice&quot;, email: &quot;alice@example.com&quot;, age: 25, isActive: true });
+const user = userCache.get(&quot;user1&quot;);
+console.log(user);
+</code></pre>
+<h2>实例演示：通用数据访问层</h2>
+<pre><code class="language-typescript">// 基础实体接口
+interface BaseEntity {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+// 查询选项
+interface QueryOptions&lt;T&gt; {
+    where?: Partial&lt;T&gt;;
+    orderBy?: {
+        field: keyof T;
+        direction: &#39;asc&#39; | &#39;desc&#39;;
+    };
+    limit?: number;
+    offset?: number;
+}
+
+// 分页结果
+interface PaginatedResult&lt;T&gt; {
+    data: T[];
+    total: number;
+    page: number;
+    pageSize: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+}
+
+// 仓储接口
+interface Repository&lt;T extends BaseEntity&gt; {
+    create(entity: Omit&lt;T, keyof BaseEntity&gt;): Promise&lt;T&gt;;
+    findById(id: string): Promise&lt;T | null&gt;;
+    findAll(options?: QueryOptions&lt;T&gt;): Promise&lt;T[]&gt;;
+    findPaginated(page: number, pageSize: number, options?: QueryOptions&lt;T&gt;): Promise&lt;PaginatedResult&lt;T&gt;&gt;;
+    update(id: string, updates: Partial&lt;Omit&lt;T, keyof BaseEntity&gt;&gt;): Promise&lt;T | null&gt;;
+    delete(id: string): Promise&lt;boolean&gt;;
+    count(options?: QueryOptions&lt;T&gt;): Promise&lt;number&gt;;
+}
+
+// 内存仓储实现
+class InMemoryRepository&lt;T extends BaseEntity&gt; implements Repository&lt;T&gt; {
+    private data: Map&lt;string, T&gt; = new Map();
+    private nextId = 1;
+    
+    async create(entity: Omit&lt;T, keyof BaseEntity&gt;): Promise&lt;T&gt; {
+        const id = this.nextId++.toString();
+        const now = new Date();
+        
+        const newEntity: T = {
+            ...entity,
+            id,
+            createdAt: now,
+            updatedAt: now
+        } as T;
+        
+        this.data.set(id, newEntity);
+        return newEntity;
+    }
+    
+    async findById(id: string): Promise&lt;T | null&gt; {
+        return this.data.get(id) || null;
+    }
+    
+    async findAll(options?: QueryOptions&lt;T&gt;): Promise&lt;T[]&gt; {
+        let results = Array.from(this.data.values());
+        
+        // 应用过滤条件
+        if (options?.where) {
+            results = results.filter(item =&gt; this.matchesWhere(item, options.where!));
+        }
+        
+        // 应用排序
+        if (options?.orderBy) {
+            const { field, direction } = options.orderBy;
+            results.sort((a, b) =&gt; {
+                const aVal = a[field];
+                const bVal = b[field];
+                const comparison = aVal &lt; bVal ? -1 : aVal &gt; bVal ? 1 : 0;
+                return direction === &#39;desc&#39; ? -comparison : comparison;
+            });
+        }
+        
+        // 应用分页
+        if (options?.offset !== undefined) {
+            results = results.slice(options.offset);
+        }
+        
+        if (options?.limit !== undefined) {
+            results = results.slice(0, options.limit);
+        }
+        
+        return results;
+    }
+    
+    async findPaginated(
+        page: number, 
+        pageSize: number, 
+        options?: QueryOptions&lt;T&gt;
+    ): Promise&lt;PaginatedResult&lt;T&gt;&gt; {
+        const offset = (page - 1) * pageSize;
+        const total = await this.count(options);
+        
+        const data = await this.findAll({
+            ...options,
+            offset,
+            limit: pageSize
+        });
+        
+        return {
+            data,
+            total,
+            page,
+            pageSize,
+            hasNext: offset + pageSize &lt; total,
+            hasPrev: page &gt; 1
+        };
+    }
+    
+    async update(id: string, updates: Partial&lt;Omit&lt;T, keyof BaseEntity&gt;&gt;): Promise&lt;T | null&gt; {
+        const existing = this.data.get(id);
+        if (!existing) {
+            return null;
+        }
+        
+        const updated: T = {
+            ...existing,
+            ...updates,
+            updatedAt: new Date()
+        };
+        
+        this.data.set(id, updated);
+        return updated;
+    }
+    
+    async delete(id: string): Promise&lt;boolean&gt; {
+        return this.data.delete(id);
+    }
+    
+    async count(options?: QueryOptions&lt;T&gt;): Promise&lt;number&gt; {
+        const results = await this.findAll(options);
+        return results.length;
+    }
+    
+    private matchesWhere(item: T, where: Partial&lt;T&gt;): boolean {
+        return Object.entries(where).every(([key, value]) =&gt; {
+            return item[key as keyof T] === value;
+        });
+    }
+}
+
+// 服务基类
+abstract class BaseService&lt;T extends BaseEntity&gt; {
+    constructor(protected repository: Repository&lt;T&gt;) {}
+    
+    async create(data: Omit&lt;T, keyof BaseEntity&gt;): Promise&lt;T&gt; {
+        this.validateCreate(data);
+        return await this.repository.create(data);
+    }
+    
+    async getById(id: string): Promise&lt;T&gt; {
+        const entity = await this.repository.findById(id);
+        if (!entity) {
+            throw new Error(`Entity with id ${id} not found`);
+        }
+        return entity;
+    }
+    
+    async getAll(options?: QueryOptions&lt;T&gt;): Promise&lt;T[]&gt; {
+        return await this.repository.findAll(options);
+    }
+    
+    async getPaginated(
+        page: number, 
+        pageSize: number, 
+        options?: QueryOptions&lt;T&gt;
+    ): Promise&lt;PaginatedResult&lt;T&gt;&gt; {
+        return await this.repository.findPaginated(page, pageSize, options);
+    }
+    
+    async update(id: string, updates: Partial&lt;Omit&lt;T, keyof BaseEntity&gt;&gt;): Promise&lt;T&gt; {
+        this.validateUpdate(updates);
+        const updated = await this.repository.update(id, updates);
+        if (!updated) {
+            throw new Error(`Entity with id ${id} not found`);
+        }
+        return updated;
+    }
+    
+    async delete(id: string): Promise&lt;void&gt; {
+        const deleted = await this.repository.delete(id);
+        if (!deleted) {
+            throw new Error(`Entity with id ${id} not found`);
+        }
+    }
+    
+    protected abstract validateCreate(data: Omit&lt;T, keyof BaseEntity&gt;): void;
+    protected abstract validateUpdate(data: Partial&lt;Omit&lt;T, keyof BaseEntity&gt;&gt;): void;
+}
+
+// 具体实体和服务
+interface Product extends BaseEntity {
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    inStock: boolean;
+}
+
+class ProductService extends BaseService&lt;Product&gt; {
+    protected validateCreate(data: Omit&lt;Product, keyof BaseEntity&gt;): void {
+        if (!data.name || data.name.trim().length === 0) {
+            throw new Error(&quot;Product name is required&quot;);
+        }
+        if (data.price &lt;= 0) {
+            throw new Error(&quot;Product price must be positive&quot;);
+        }
+    }
+    
+    protected validateUpdate(data: Partial&lt;Omit&lt;Product, keyof BaseEntity&gt;&gt;): void {
+        if (data.name !== undefined &amp;&amp; data.name.trim().length === 0) {
+            throw new Error(&quot;Product name cannot be empty&quot;);
+        }
+        if (data.price !== undefined &amp;&amp; data.price &lt;= 0) {
+            throw new Error(&quot;Product price must be positive&quot;);
+        }
+    }
+    
+    async findByCategory(category: string): Promise&lt;Product[]&gt; {
+        return await this.repository.findAll({
+            where: { category } as Partial&lt;Product&gt;
+        });
+    }
+    
+    async findInStock(): Promise&lt;Product[]&gt; {
+        return await this.repository.findAll({
+            where: { inStock: true } as Partial&lt;Product&gt;
+        });
+    }
+}
+
+// 使用示例
+async function demonstrateGenericRepository() {
+    const productRepository = new InMemoryRepository&lt;Product&gt;();
+    const productService = new ProductService(productRepository);
+    
+    // 创建产品
+    const product1 = await productService.create({
+        name: &quot;Laptop&quot;,
+        description: &quot;High-performance laptop&quot;,
+        price: 999.99,
+        category: &quot;Electronics&quot;,
+        inStock: true
+    });
+    
+    const product2 = await productService.create({
+        name: &quot;Mouse&quot;,
+        description: &quot;Wireless mouse&quot;,
+        price: 29.99,
+        category: &quot;Electronics&quot;,
+        inStock: false
+    });
+    
+    console.log(&quot;Created products:&quot;, [product1, product2]);
+    
+    // 查询产品
+    const allProducts = await productService.getAll();
+    console.log(&quot;All products:&quot;, allProducts);
+    
+    // 按类别查询
+    const electronics = await productService.findByCategory(&quot;Electronics&quot;);
+    console.log(&quot;Electronics:&quot;, electronics);
+    
+    // 分页查询
+    const paginatedResult = await productService.getPaginated(1, 1);
+    console.log(&quot;Paginated result:&quot;, paginatedResult);
+    
+    // 更新产品
+    const updatedProduct = await productService.update(product1.id, {
+        price: 899.99,
+        inStock: false
+    });
+    console.log(&quot;Updated product:&quot;, updatedProduct);
+    
+    // 删除产品
+    await productService.delete(product2.id);
+    console.log(&quot;Product deleted&quot;);
+    
+    const remainingProducts = await productService.getAll();
+    console.log(&quot;Remaining products:&quot;, remainingProducts);
+}
+
+// 运行示例
+demonstrateGenericRepository().catch(console.error);
+</code></pre>
+<p>这个例子展示了 TypeScript 泛型的强大功能，包括泛型接口、泛型类、泛型约束、条件类型、映射类型等，构建了一个完整的通用数据访问层系统。</p>
+
+      

@@ -1,0 +1,514 @@
+
+        <header>
+          <h1>函数 (Functions)</h1>
+          <p>TypeScript | 2025.07.30</p>
+        </header>
+        <p>TypeScript 中的函数提供了强大的类型检查功能，包括参数类型、返回值类型、可选参数、默认参数、剩余参数等特性。函数是 TypeScript 应用程序的基本构建块。</p>
+<h2>基本函数类型</h2>
+<h3>函数声明</h3>
+<pre><code class="language-typescript">// 具名函数
+function add(x: number, y: number): number {
+    return x + y;
+}
+
+// 匿名函数
+let myAdd = function(x: number, y: number): number {
+    return x + y;
+};
+
+// 箭头函数
+let myAdd2 = (x: number, y: number): number =&gt; {
+    return x + y;
+};
+
+// 简化的箭头函数
+let myAdd3 = (x: number, y: number): number =&gt; x + y;
+</code></pre>
+<h3>完整函数类型</h3>
+<pre><code class="language-typescript">let myAdd: (x: number, y: number) =&gt; number = 
+    function(x: number, y: number): number {
+        return x + y;
+    };
+
+// 类型推断
+let myAdd2 = function(x: number, y: number): number {
+    return x + y;
+}; // TypeScript 可以推断出完整的函数类型
+</code></pre>
+<h2>可选参数和默认参数</h2>
+<h3>可选参数</h3>
+<pre><code class="language-typescript">function buildName(firstName: string, lastName?: string): string {
+    if (lastName) {
+        return firstName + &quot; &quot; + lastName;
+    } else {
+        return firstName;
+    }
+}
+
+let result1 = buildName(&quot;Bob&quot;);                  // 正确
+let result2 = buildName(&quot;Bob&quot;, &quot;Adams&quot;);         // 正确
+// let result3 = buildName(&quot;Bob&quot;, &quot;Adams&quot;, &quot;Sr.&quot;); // 错误，参数过多
+</code></pre>
+<h3>默认参数</h3>
+<pre><code class="language-typescript">function buildName2(firstName: string, lastName = &quot;Smith&quot;): string {
+    return firstName + &quot; &quot; + lastName;
+}
+
+let result1 = buildName2(&quot;Bob&quot;);                  // &quot;Bob Smith&quot;
+let result2 = buildName2(&quot;Bob&quot;, undefined);       // &quot;Bob Smith&quot;
+let result3 = buildName2(&quot;Bob&quot;, &quot;Adams&quot;);         // &quot;Bob Adams&quot;
+
+// 默认参数可以在前面
+function buildName3(firstName = &quot;Will&quot;, lastName: string): string {
+    return firstName + &quot; &quot; + lastName;
+}
+
+// let result4 = buildName3(&quot;Bob&quot;); // 错误，必须提供 lastName
+let result5 = buildName3(&quot;Bob&quot;, &quot;Adams&quot;);         // &quot;Bob Adams&quot;
+let result6 = buildName3(undefined, &quot;Adams&quot;);     // &quot;Will Adams&quot;
+</code></pre>
+<h2>剩余参数</h2>
+<pre><code class="language-typescript">function buildName(firstName: string, ...restOfName: string[]): string {
+    return firstName + &quot; &quot; + restOfName.join(&quot; &quot;);
+}
+
+let employeeName = buildName(&quot;Joseph&quot;, &quot;Samuel&quot;, &quot;Lucas&quot;, &quot;MacKinzie&quot;);
+console.log(employeeName); // &quot;Joseph Samuel Lucas MacKinzie&quot;
+
+// 剩余参数在函数类型中的使用
+let buildNameFun: (fname: string, ...rest: string[]) =&gt; string = buildName;
+</code></pre>
+<h2>函数重载</h2>
+<pre><code class="language-typescript">// 重载签名
+function pickCard(x: { suit: string; card: number }[]): number;
+function pickCard(x: number): { suit: string; card: number };
+
+// 实现签名
+function pickCard(x: any): any {
+    if (typeof x == &quot;object&quot;) {
+        let pickedCard = Math.floor(Math.random() * x.length);
+        return pickedCard;
+    } else if (typeof x == &quot;number&quot;) {
+        let pickedSuit = Math.floor(x / 13);
+        return { suit: suits[pickedSuit], card: x % 13 };
+    }
+}
+
+let suits = [&quot;hearts&quot;, &quot;spades&quot;, &quot;clubs&quot;, &quot;diamonds&quot;];
+
+let myDeck = [
+    { suit: &quot;diamonds&quot;, card: 2 },
+    { suit: &quot;spades&quot;, card: 10 },
+    { suit: &quot;hearts&quot;, card: 4 }
+];
+
+let pickedCard1 = myDeck[pickCard(myDeck)];
+console.log(&quot;card: &quot; + pickedCard1.card + &quot; of &quot; + pickedCard1.suit);
+
+let pickedCard2 = pickCard(15);
+console.log(&quot;card: &quot; + pickedCard2.card + &quot; of &quot; + pickedCard2.suit);
+</code></pre>
+<h3>更复杂的重载示例</h3>
+<pre><code class="language-typescript">interface Calculator {
+    add(a: number, b: number): number;
+    add(a: string, b: string): string;
+    add(a: number[], b: number[]): number[];
+}
+
+class SimpleCalculator implements Calculator {
+    add(a: number, b: number): number;
+    add(a: string, b: string): string;
+    add(a: number[], b: number[]): number[];
+    add(a: any, b: any): any {
+        if (typeof a === &#39;number&#39; &amp;&amp; typeof b === &#39;number&#39;) {
+            return a + b;
+        }
+        if (typeof a === &#39;string&#39; &amp;&amp; typeof b === &#39;string&#39;) {
+            return a + b;
+        }
+        if (Array.isArray(a) &amp;&amp; Array.isArray(b)) {
+            return [...a, ...b];
+        }
+        throw new Error(&#39;Invalid arguments&#39;);
+    }
+}
+
+const calc = new SimpleCalculator();
+console.log(calc.add(1, 2));           // 3
+console.log(calc.add(&quot;Hello&quot;, &quot; World&quot;)); // &quot;Hello World&quot;
+console.log(calc.add([1, 2], [3, 4]));   // [1, 2, 3, 4]
+</code></pre>
+<h2>this 参数</h2>
+<h3>指定 this 类型</h3>
+<pre><code class="language-typescript">interface Card {
+    suit: string;
+    card: number;
+}
+
+interface Deck {
+    suits: string[];
+    cards: number[];
+    createCardPicker(this: Deck): () =&gt; Card;
+}
+
+let deck: Deck = {
+    suits: [&quot;hearts&quot;, &quot;spades&quot;, &quot;clubs&quot;, &quot;diamonds&quot;],
+    cards: Array(52),
+    createCardPicker: function(this: Deck) {
+        return () =&gt; {
+            let pickedCard = Math.floor(Math.random() * 52);
+            let pickedSuit = Math.floor(pickedCard / 13);
+            
+            return { suit: this.suits[pickedSuit], card: pickedCard % 13 };
+        }
+    }
+}
+
+let cardPicker = deck.createCardPicker();
+let pickedCard = cardPicker();
+console.log(&quot;card: &quot; + pickedCard.card + &quot; of &quot; + pickedCard.suit);
+</code></pre>
+<h3>this 参数在回调函数中</h3>
+<pre><code class="language-typescript">interface UIElement {
+    addClickListener(onclick: (this: void, e: Event) =&gt; void): void;
+}
+
+class Handler {
+    info: string = &quot;Handler info&quot;;
+    
+    onClickBad(this: Handler, e: Event) {
+        // 这里使用了 this，但在回调中 this 会是 void
+        this.info = e.type; // 错误！
+    }
+    
+    onClickGood = (e: Event) =&gt; {
+        // 箭头函数不会改变 this 的指向
+        this.info = e.type; // 正确
+    }
+}
+
+let h = new Handler();
+// uiElement.addClickListener(h.onClickBad); // 错误
+// uiElement.addClickListener(h.onClickGood); // 正确
+</code></pre>
+<h2>高阶函数</h2>
+<h3>函数作为参数</h3>
+<pre><code class="language-typescript">function applyOperation(
+    x: number, 
+    y: number, 
+    operation: (a: number, b: number) =&gt; number
+): number {
+    return operation(x, y);
+}
+
+const add = (a: number, b: number): number =&gt; a + b;
+const multiply = (a: number, b: number): number =&gt; a * b;
+
+console.log(applyOperation(5, 3, add));      // 8
+console.log(applyOperation(5, 3, multiply)); // 15
+</code></pre>
+<h3>函数作为返回值</h3>
+<pre><code class="language-typescript">function createMultiplier(multiplier: number): (x: number) =&gt; number {
+    return function(x: number): number {
+        return x * multiplier;
+    };
+}
+
+const double = createMultiplier(2);
+const triple = createMultiplier(3);
+
+console.log(double(5)); // 10
+console.log(triple(5)); // 15
+</code></pre>
+<h3>柯里化函数</h3>
+<pre><code class="language-typescript">function curry&lt;T, U, V&gt;(
+    fn: (arg1: T, arg2: U) =&gt; V
+): (arg1: T) =&gt; (arg2: U) =&gt; V {
+    return function(arg1: T) {
+        return function(arg2: U) {
+            return fn(arg1, arg2);
+        };
+    };
+}
+
+const add = (x: number, y: number): number =&gt; x + y;
+const curriedAdd = curry(add);
+
+const add5 = curriedAdd(5);
+console.log(add5(3)); // 8
+console.log(add5(7)); // 12
+</code></pre>
+<h2>泛型函数</h2>
+<h3>基本泛型函数</h3>
+<pre><code class="language-typescript">function identity&lt;T&gt;(arg: T): T {
+    return arg;
+}
+
+let output1 = identity&lt;string&gt;(&quot;myString&quot;);
+let output2 = identity&lt;number&gt;(100);
+
+// 类型推断
+let output3 = identity(&quot;myString&quot;); // TypeScript 推断 T 为 string
+let output4 = identity(100);        // TypeScript 推断 T 为 number
+</code></pre>
+<h3>泛型约束</h3>
+<pre><code class="language-typescript">interface Lengthwise {
+    length: number;
+}
+
+function loggingIdentity&lt;T extends Lengthwise&gt;(arg: T): T {
+    console.log(arg.length); // 现在我们知道 arg 有 length 属性
+    return arg;
+}
+
+loggingIdentity(&quot;hello&quot;);     // 正确，string 有 length 属性
+loggingIdentity([1, 2, 3]);   // 正确，array 有 length 属性
+// loggingIdentity(3);        // 错误，number 没有 length 属性
+</code></pre>
+<h2>实例演示：数据处理管道</h2>
+<pre><code class="language-typescript">// 定义数据类型
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    age: number;
+    isActive: boolean;
+    tags: string[];
+}
+
+interface ProcessingResult&lt;T&gt; {
+    data: T[];
+    count: number;
+    processingTime: number;
+}
+
+// 过滤器函数类型
+type FilterFunction&lt;T&gt; = (item: T) =&gt; boolean;
+type MapFunction&lt;T, U&gt; = (item: T) =&gt; U;
+type ReduceFunction&lt;T, U&gt; = (accumulator: U, current: T, index: number) =&gt; U;
+
+// 数据处理管道类
+class DataPipeline&lt;T&gt; {
+    private data: T[];
+    
+    constructor(initialData: T[]) {
+        this.data = [...initialData];
+    }
+    
+    // 过滤数据
+    filter(predicate: FilterFunction&lt;T&gt;): DataPipeline&lt;T&gt; {
+        this.data = this.data.filter(predicate);
+        return this;
+    }
+    
+    // 映射数据
+    map&lt;U&gt;(mapper: MapFunction&lt;T, U&gt;): DataPipeline&lt;U&gt; {
+        const mappedData = this.data.map(mapper);
+        return new DataPipeline(mappedData);
+    }
+    
+    // 排序数据
+    sort(compareFn?: (a: T, b: T) =&gt; number): DataPipeline&lt;T&gt; {
+        this.data = [...this.data].sort(compareFn);
+        return this;
+    }
+    
+    // 获取前 n 个元素
+    take(count: number): DataPipeline&lt;T&gt; {
+        this.data = this.data.slice(0, count);
+        return this;
+    }
+    
+    // 跳过前 n 个元素
+    skip(count: number): DataPipeline&lt;T&gt; {
+        this.data = this.data.slice(count);
+        return this;
+    }
+    
+    // 归约操作
+    reduce&lt;U&gt;(reducer: ReduceFunction&lt;T, U&gt;, initialValue: U): U {
+        return this.data.reduce(reducer, initialValue);
+    }
+    
+    // 获取结果
+    toArray(): T[] {
+        return [...this.data];
+    }
+    
+    // 获取处理结果
+    getResult(): ProcessingResult&lt;T&gt; {
+        const startTime = performance.now();
+        const result = this.toArray();
+        const endTime = performance.now();
+        
+        return {
+            data: result,
+            count: result.length,
+            processingTime: endTime - startTime
+        };
+    }
+}
+
+// 工具函数集合
+class DataUtils {
+    // 创建用户过滤器
+    static createUserFilter(options: {
+        minAge?: number;
+        maxAge?: number;
+        isActive?: boolean;
+        hasTag?: string;
+    }): FilterFunction&lt;User&gt; {
+        return (user: User) =&gt; {
+            if (options.minAge !== undefined &amp;&amp; user.age &lt; options.minAge) {
+                return false;
+            }
+            if (options.maxAge !== undefined &amp;&amp; user.age &gt; options.maxAge) {
+                return false;
+            }
+            if (options.isActive !== undefined &amp;&amp; user.isActive !== options.isActive) {
+                return false;
+            }
+            if (options.hasTag &amp;&amp; !user.tags.includes(options.hasTag)) {
+                return false;
+            }
+            return true;
+        };
+    }
+    
+    // 创建排序函数
+    static createSorter&lt;T&gt;(
+        key: keyof T,
+        direction: &#39;asc&#39; | &#39;desc&#39; = &#39;asc&#39;
+    ): (a: T, b: T) =&gt; number {
+        return (a: T, b: T) =&gt; {
+            const aVal = a[key];
+            const bVal = b[key];
+            
+            if (aVal &lt; bVal) return direction === &#39;asc&#39; ? -1 : 1;
+            if (aVal &gt; bVal) return direction === &#39;asc&#39; ? 1 : -1;
+            return 0;
+        };
+    }
+    
+    // 分组函数
+    static groupBy&lt;T, K extends string | number&gt;(
+        array: T[],
+        keySelector: (item: T) =&gt; K
+    ): Record&lt;K, T[]&gt; {
+        return array.reduce((groups, item) =&gt; {
+            const key = keySelector(item);
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+            groups[key].push(item);
+            return groups;
+        }, {} as Record&lt;K, T[]&gt;);
+    }
+    
+    // 统计函数
+    static getStatistics(numbers: number[]): {
+        count: number;
+        sum: number;
+        average: number;
+        min: number;
+        max: number;
+    } {
+        if (numbers.length === 0) {
+            return { count: 0, sum: 0, average: 0, min: 0, max: 0 };
+        }
+        
+        const sum = numbers.reduce((acc, num) =&gt; acc + num, 0);
+        const min = Math.min(...numbers);
+        const max = Math.max(...numbers);
+        
+        return {
+            count: numbers.length,
+            sum,
+            average: sum / numbers.length,
+            min,
+            max
+        };
+    }
+}
+
+// 异步数据处理函数
+async function processDataAsync&lt;T, U&gt;(
+    data: T[],
+    processor: (item: T) =&gt; Promise&lt;U&gt;,
+    batchSize: number = 10
+): Promise&lt;U[]&gt; {
+    const results: U[] = [];
+    
+    for (let i = 0; i &lt; data.length; i += batchSize) {
+        const batch = data.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+            batch.map(item =&gt; processor(item))
+        );
+        results.push(...batchResults);
+    }
+    
+    return results;
+}
+
+// 使用示例
+const users: User[] = [
+    { id: 1, name: &quot;Alice&quot;, email: &quot;alice@example.com&quot;, age: 25, isActive: true, tags: [&quot;developer&quot;, &quot;typescript&quot;] },
+    { id: 2, name: &quot;Bob&quot;, email: &quot;bob@example.com&quot;, age: 30, isActive: false, tags: [&quot;designer&quot;, &quot;ui&quot;] },
+    { id: 3, name: &quot;Charlie&quot;, email: &quot;charlie@example.com&quot;, age: 35, isActive: true, tags: [&quot;developer&quot;, &quot;javascript&quot;] },
+    { id: 4, name: &quot;Diana&quot;, email: &quot;diana@example.com&quot;, age: 28, isActive: true, tags: [&quot;manager&quot;, &quot;typescript&quot;] },
+    { id: 5, name: &quot;Eve&quot;, email: &quot;eve@example.com&quot;, age: 22, isActive: false, tags: [&quot;intern&quot;, &quot;learning&quot;] }
+];
+
+// 数据处理管道示例
+console.log(&quot;=== 数据处理管道示例 ===&quot;);
+
+const activeTypescriptDevelopers = new DataPipeline(users)
+    .filter(DataUtils.createUserFilter({ isActive: true, hasTag: &quot;typescript&quot; }))
+    .sort(DataUtils.createSorter(&#39;age&#39;, &#39;desc&#39;))
+    .map(user =&gt; ({
+        name: user.name,
+        email: user.email,
+        age: user.age,
+        experience: user.age &gt; 30 ? &#39;Senior&#39; : &#39;Junior&#39;
+    }))
+    .getResult();
+
+console.log(&quot;Active TypeScript Developers:&quot;, activeTypescriptDevelopers);
+
+// 统计分析
+const ages = users.map(user =&gt; user.age);
+const ageStats = DataUtils.getStatistics(ages);
+console.log(&quot;Age Statistics:&quot;, ageStats);
+
+// 分组分析
+const usersByStatus = DataUtils.groupBy(users, user =&gt; user.isActive ? &#39;active&#39; : &#39;inactive&#39;);
+console.log(&quot;Users by Status:&quot;, usersByStatus);
+
+// 异步处理示例
+async function enrichUserData(user: User): Promise&lt;User &amp; { enrichedData: string }&gt; {
+    // 模拟异步操作
+    await new Promise(resolve =&gt; setTimeout(resolve, 100));
+    return {
+        ...user,
+        enrichedData: `Processed user ${user.name} at ${new Date().toISOString()}`
+    };
+}
+
+// 异步处理用户数据
+processDataAsync(users.slice(0, 3), enrichUserData, 2)
+    .then(enrichedUsers =&gt; {
+        console.log(&quot;Enriched Users:&quot;, enrichedUsers);
+    });
+
+// 函数组合示例
+const compose = &lt;T, U, V&gt;(f: (x: U) =&gt; V, g: (x: T) =&gt; U) =&gt; (x: T): V =&gt; f(g(x));
+
+const addOne = (x: number): number =&gt; x + 1;
+const double = (x: number): number =&gt; x * 2;
+const addOneThenDouble = compose(double, addOne);
+
+console.log(&quot;Composed function result:&quot;, addOneThenDouble(5)); // (5 + 1) * 2 = 12
+</code></pre>
+<p>这个例子展示了 TypeScript 函数的高级特性，包括泛型函数、高阶函数、函数重载、异步处理等，构建了一个完整的数据处理管道系统。</p>
+
+      
