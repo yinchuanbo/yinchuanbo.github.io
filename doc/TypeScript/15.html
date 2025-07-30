@@ -1,0 +1,610 @@
+
+        <header>
+          <h1>声明文件 (Declaration Files)</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <h1>TypeScript 声明文件 (Declaration Files)</h1>
+<h2>什么是声明文件？</h2>
+<p>声明文件（<code>.d.ts</code>）是 TypeScript 的类型定义文件，用于为 JavaScript 库提供类型信息。它们不包含实际的实现代码，只包含类型声明。</p>
+<h2>声明文件的作用</h2>
+<h3>1. 为 JavaScript 库提供类型支持</h3>
+<pre><code class="language-typescript">// 没有声明文件时
+const $ = require(&#39;jquery&#39;); // any 类型
+$(&#39;#myElement&#39;).fadeIn(); // 没有类型检查和智能提示
+
+// 有声明文件时
+import * as $ from &#39;jquery&#39;; // 有完整的类型信息
+$(&#39;#myElement&#39;).fadeIn(500); // 完整的类型检查和智能提示
+</code></pre>
+<h3>2. 模块增强</h3>
+<pre><code class="language-typescript">// 扩展现有模块的类型
+declare module &#39;express&#39; {
+  interface Request {
+    user?: {
+      id: number;
+      name: string;
+    };
+  }
+}
+
+// 现在可以安全使用扩展的属性
+app.use((req, res, next) =&gt; {
+  if (req.user) {
+    console.log(`User: ${req.user.name}`);
+  }
+  next();
+});
+</code></pre>
+<h2>基本声明语法</h2>
+<h3>变量声明</h3>
+<pre><code class="language-typescript">// 声明全局变量
+declare var myGlobalVar: string;
+declare let myGlobalLet: number;
+declare const myGlobalConst: boolean;
+
+// 使用示例
+console.log(myGlobalVar); // TypeScript 知道这是 string 类型
+</code></pre>
+<h3>函数声明</h3>
+<pre><code class="language-typescript">// 声明全局函数
+declare function myGlobalFunction(param: string): number;
+
+// 函数重载声明
+declare function createElement(tagName: &#39;div&#39;): HTMLDivElement;
+declare function createElement(tagName: &#39;span&#39;): HTMLSpanElement;
+declare function createElement(tagName: string): HTMLElement;
+
+// 使用示例
+const div = createElement(&#39;div&#39;); // 类型为 HTMLDivElement
+const span = createElement(&#39;span&#39;); // 类型为 HTMLSpanElement
+const element = createElement(&#39;p&#39;); // 类型为 HTMLElement
+</code></pre>
+<h3>类声明</h3>
+<pre><code class="language-typescript">// 声明类
+declare class MyClass {
+  constructor(value: string);
+  
+  // 属性声明
+  public property: string;
+  private _privateProperty: number;
+  static staticProperty: boolean;
+  
+  // 方法声明
+  method(param: number): string;
+  static staticMethod(): void;
+}
+
+// 使用示例
+const instance = new MyClass(&#39;hello&#39;);
+console.log(instance.property);
+MyClass.staticMethod();
+</code></pre>
+<h3>接口和类型声明</h3>
+<pre><code class="language-typescript">// 声明接口
+declare interface GlobalInterface {
+  id: number;
+  name: string;
+  optional?: boolean;
+}
+
+// 声明类型别名
+declare type GlobalType = string | number | boolean;
+
+// 声明枚举
+declare enum GlobalEnum {
+  VALUE1,
+  VALUE2,
+  VALUE3
+}
+</code></pre>
+<h2>模块声明</h2>
+<h3>外部模块声明</h3>
+<pre><code class="language-typescript">// 声明整个模块
+declare module &#39;my-library&#39; {
+  export interface Config {
+    apiUrl: string;
+    timeout: number;
+  }
+  
+  export class Client {
+    constructor(config: Config);
+    request(endpoint: string): Promise&lt;any&gt;;
+  }
+  
+  export function createClient(config: Config): Client;
+  
+  // 默认导出
+  export default Client;
+}
+
+// 使用示例
+import MyLibrary, { createClient, Config } from &#39;my-library&#39;;
+
+const config: Config = {
+  apiUrl: &#39;https://api.example.com&#39;,
+  timeout: 5000
+};
+
+const client = createClient(config);
+</code></pre>
+<h3>模块通配符声明</h3>
+<pre><code class="language-typescript">// 声明所有 .json 文件
+declare module &#39;*.json&#39; {
+  const value: any;
+  export default value;
+}
+
+// 声明所有 .css 文件
+declare module &#39;*.css&#39; {
+  const classes: { [key: string]: string };
+  export default classes;
+}
+
+// 声明所有图片文件
+declare module &#39;*.png&#39; {
+  const src: string;
+  export default src;
+}
+
+declare module &#39;*.jpg&#39; {
+  const src: string;
+  export default src;
+}
+
+// 使用示例
+import config from &#39;./config.json&#39;; // 类型为 any
+import styles from &#39;./styles.css&#39;;  // 类型为 { [key: string]: string }
+import logo from &#39;./logo.png&#39;;      // 类型为 string
+</code></pre>
+<h2>命名空间声明</h2>
+<h3>全局命名空间</h3>
+<pre><code class="language-typescript">// 声明全局命名空间
+declare namespace MyGlobalLibrary {
+  interface Options {
+    debug: boolean;
+    version: string;
+  }
+  
+  class Manager {
+    constructor(options: Options);
+    start(): void;
+    stop(): void;
+  }
+  
+  namespace Utils {
+    function formatDate(date: Date): string;
+    function parseJson(json: string): any;
+  }
+  
+  // 常量
+  const VERSION: string;
+  const DEFAULT_OPTIONS: Options;
+}
+
+// 使用示例
+const manager = new MyGlobalLibrary.Manager({
+  debug: true,
+  version: MyGlobalLibrary.VERSION
+});
+
+const formatted = MyGlobalLibrary.Utils.formatDate(new Date());
+</code></pre>
+<h3>嵌套命名空间</h3>
+<pre><code class="language-typescript">// 嵌套命名空间声明
+declare namespace MyLibrary {
+  namespace Core {
+    interface Engine {
+      start(): void;
+      stop(): void;
+    }
+    
+    class DefaultEngine implements Engine {
+      start(): void;
+      stop(): void;
+    }
+  }
+  
+  namespace UI {
+    interface Component {
+      render(): HTMLElement;
+    }
+    
+    class Button implements Component {
+      constructor(text: string);
+      render(): HTMLButtonElement;
+    }
+  }
+}
+
+// 使用示例
+const engine = new MyLibrary.Core.DefaultEngine();
+const button = new MyLibrary.UI.Button(&#39;Click me&#39;);
+</code></pre>
+<h2>高级声明技巧</h2>
+<h3>条件类型声明</h3>
+<pre><code class="language-typescript">// 条件类型声明
+declare module &#39;conditional-library&#39; {
+  export type ApiResponse&lt;T&gt; = T extends string 
+    ? { message: T } 
+    : T extends number 
+    ? { code: T } 
+    : { data: T };
+  
+  export function makeRequest&lt;T&gt;(input: T): Promise&lt;ApiResponse&lt;T&gt;&gt;;
+}
+
+// 使用示例
+import { makeRequest } from &#39;conditional-library&#39;;
+
+makeRequest(&#39;hello&#39;).then(response =&gt; {
+  // response 类型为 { message: string }
+  console.log(response.message);
+});
+
+makeRequest(404).then(response =&gt; {
+  // response 类型为 { code: number }
+  console.log(response.code);
+});
+</code></pre>
+<h3>泛型约束声明</h3>
+<pre><code class="language-typescript">// 泛型约束声明
+declare module &#39;generic-library&#39; {
+  interface Identifiable {
+    id: string | number;
+  }
+  
+  export class Repository&lt;T extends Identifiable&gt; {
+    constructor();
+    
+    findById(id: T[&#39;id&#39;]): Promise&lt;T | null&gt;;
+    save(entity: T): Promise&lt;T&gt;;
+    delete(id: T[&#39;id&#39;]): Promise&lt;void&gt;;
+  }
+  
+  export function createRepository&lt;T extends Identifiable&gt;(): Repository&lt;T&gt;;
+}
+
+// 使用示例
+import { createRepository } from &#39;generic-library&#39;;
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const userRepo = createRepository&lt;User&gt;();
+userRepo.findById(1).then(user =&gt; {
+  if (user) {
+    console.log(user.name); // TypeScript 知道 user 的类型
+  }
+});
+</code></pre>
+<h3>模块增强声明</h3>
+<pre><code class="language-typescript">// 增强现有模块
+declare module &#39;express-serve-static-core&#39; {
+  interface Request {
+    // 添加自定义属性
+    requestId: string;
+    startTime: number;
+    
+    // 添加自定义方法
+    getClientIP(): string;
+  }
+  
+  interface Response {
+    // 添加自定义方法
+    sendSuccess&lt;T&gt;(data: T): Response;
+    sendError(message: string, code?: number): Response;
+  }
+}
+
+// 现在可以在 Express 应用中使用这些扩展
+app.use((req, res, next) =&gt; {
+  req.requestId = generateId();
+  req.startTime = Date.now();
+  next();
+});
+
+app.get(&#39;/api/users&#39;, (req, res) =&gt; {
+  const users = getUsersFromDatabase();
+  res.sendSuccess(users); // 使用扩展的方法
+});
+</code></pre>
+<h2>实际应用示例</h2>
+<h3>为第三方库创建声明文件</h3>
+<pre><code class="language-typescript">// types/my-chart-library.d.ts
+declare module &#39;my-chart-library&#39; {
+  export interface ChartOptions {
+    type: &#39;line&#39; | &#39;bar&#39; | &#39;pie&#39;;
+    data: ChartData;
+    options?: {
+      responsive?: boolean;
+      maintainAspectRatio?: boolean;
+      plugins?: {
+        legend?: {
+          display?: boolean;
+          position?: &#39;top&#39; | &#39;bottom&#39; | &#39;left&#39; | &#39;right&#39;;
+        };
+      };
+    };
+  }
+  
+  export interface ChartData {
+    labels: string[];
+    datasets: Dataset[];
+  }
+  
+  export interface Dataset {
+    label: string;
+    data: number[];
+    backgroundColor?: string | string[];
+    borderColor?: string | string[];
+    borderWidth?: number;
+  }
+  
+  export class Chart {
+    constructor(canvas: HTMLCanvasElement, config: ChartOptions);
+    
+    update(): void;
+    destroy(): void;
+    resize(): void;
+    
+    data: ChartData;
+    options: ChartOptions[&#39;options&#39;];
+  }
+  
+  export default Chart;
+}
+
+// 使用示例
+import Chart, { ChartOptions } from &#39;my-chart-library&#39;;
+
+const chartConfig: ChartOptions = {
+  type: &#39;line&#39;,
+  data: {
+    labels: [&#39;Jan&#39;, &#39;Feb&#39;, &#39;Mar&#39;],
+    datasets: [{
+      label: &#39;Sales&#39;,
+      data: [10, 20, 30],
+      borderColor: &#39;blue&#39;
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: true,
+        position: &#39;top&#39;
+      }
+    }
+  }
+};
+
+const canvas = document.getElementById(&#39;chart&#39;) as HTMLCanvasElement;
+const chart = new Chart(canvas, chartConfig);
+</code></pre>
+<h3>全局变量声明</h3>
+<pre><code class="language-typescript">// types/global.d.ts
+declare global {
+  // 扩展 Window 接口
+  interface Window {
+    myGlobalLibrary: {
+      version: string;
+      init(config: any): void;
+      destroy(): void;
+    };
+    
+    // 环境变量
+    ENV: &#39;development&#39; | &#39;production&#39; | &#39;test&#39;;
+    API_BASE_URL: string;
+  }
+  
+  // 全局函数
+  function gtag(command: string, ...args: any[]): void;
+  
+  // 全局变量
+  var GLOBAL_CONFIG: {
+    apiUrl: string;
+    debug: boolean;
+    features: string[];
+  };
+  
+  // 全局命名空间
+  namespace NodeJS {
+    interface ProcessEnv {
+      NODE_ENV: &#39;development&#39; | &#39;production&#39; | &#39;test&#39;;
+      API_KEY: string;
+      DATABASE_URL: string;
+    }
+  }
+}
+
+// 必须有 export 语句使其成为模块
+export {};
+
+// 使用示例
+window.myGlobalLibrary.init({ debug: true });
+console.log(`Environment: ${window.ENV}`);
+gtag(&#39;config&#39;, &#39;GA_MEASUREMENT_ID&#39;);
+
+// 在 Node.js 环境中
+if (process.env.NODE_ENV === &#39;development&#39;) {
+  console.log(&#39;Development mode&#39;);
+}
+</code></pre>
+<h3>声明文件的组织</h3>
+<pre><code class="language-typescript">// types/index.d.ts - 主声明文件
+export * from &#39;./api&#39;;
+export * from &#39;./components&#39;;
+export * from &#39;./utils&#39;;
+
+// types/api.d.ts - API 相关声明
+export interface ApiResponse&lt;T = any&gt; {
+  success: boolean;
+  data: T;
+  message?: string;
+  errors?: string[];
+}
+
+export interface PaginatedResponse&lt;T&gt; extends ApiResponse&lt;T[]&gt; {
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface ApiClient {
+  get&lt;T&gt;(url: string): Promise&lt;ApiResponse&lt;T&gt;&gt;;
+  post&lt;T&gt;(url: string, data: any): Promise&lt;ApiResponse&lt;T&gt;&gt;;
+  put&lt;T&gt;(url: string, data: any): Promise&lt;ApiResponse&lt;T&gt;&gt;;
+  delete(url: string): Promise&lt;ApiResponse&lt;void&gt;&gt;;
+}
+
+// types/components.d.ts - 组件相关声明
+export interface ComponentProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+export interface ButtonProps extends ComponentProps {
+  variant?: &#39;primary&#39; | &#39;secondary&#39; | &#39;danger&#39;;
+  size?: &#39;small&#39; | &#39;medium&#39; | &#39;large&#39;;
+  disabled?: boolean;
+  onClick?: (event: React.MouseEvent) =&gt; void;
+}
+
+export interface ModalProps extends ComponentProps {
+  isOpen: boolean;
+  onClose: () =&gt; void;
+  title?: string;
+}
+
+// types/utils.d.ts - 工具函数声明
+export interface DateUtils {
+  format(date: Date, pattern: string): string;
+  parse(dateString: string, pattern: string): Date;
+  addDays(date: Date, days: number): Date;
+  diffInDays(date1: Date, date2: Date): number;
+}
+
+export interface ValidationUtils {
+  isEmail(email: string): boolean;
+  isPhoneNumber(phone: string): boolean;
+  isStrongPassword(password: string): boolean;
+}
+</code></pre>
+<h2>声明文件最佳实践</h2>
+<h3>1. 使用 DefinitelyTyped</h3>
+<pre><code class="language-bash"># 安装官方类型定义
+npm install --save-dev @types/lodash
+npm install --save-dev @types/express
+npm install --save-dev @types/node
+
+# 使用示例
+import * as _ from &#39;lodash&#39;;
+import express from &#39;express&#39;;
+
+const app = express(); // 完整的类型支持
+const result = _.map([1, 2, 3], x =&gt; x * 2); // 完整的类型支持
+</code></pre>
+<h3>2. 版本化声明文件</h3>
+<pre><code class="language-typescript">// types/v1/api.d.ts
+declare module &#39;my-api-v1&#39; {
+  export interface User {
+    id: number;
+    name: string;
+  }
+  
+  export function getUser(id: number): Promise&lt;User&gt;;
+}
+
+// types/v2/api.d.ts
+declare module &#39;my-api-v2&#39; {
+  export interface User {
+    id: string; // 改为 string
+    name: string;
+    email: string; // 新增字段
+  }
+  
+  export function getUser(id: string): Promise&lt;User&gt;;
+  export function getUserByEmail(email: string): Promise&lt;User&gt;; // 新增方法
+}
+</code></pre>
+<h3>3. 渐进式类型化</h3>
+<pre><code class="language-typescript">// 开始时使用宽松的类型
+declare module &#39;legacy-library&#39; {
+  export function doSomething(input: any): any;
+}
+
+// 逐步完善类型定义
+declare module &#39;legacy-library&#39; {
+  export interface Input {
+    type: string;
+    value: any;
+  }
+  
+  export interface Output {
+    result: any;
+    status: &#39;success&#39; | &#39;error&#39;;
+  }
+  
+  export function doSomething(input: Input): Output;
+}
+
+// 最终的完整类型定义
+declare module &#39;legacy-library&#39; {
+  export interface StringInput {
+    type: &#39;string&#39;;
+    value: string;
+  }
+  
+  export interface NumberInput {
+    type: &#39;number&#39;;
+    value: number;
+  }
+  
+  export type Input = StringInput | NumberInput;
+  
+  export interface SuccessOutput {
+    result: string | number;
+    status: &#39;success&#39;;
+  }
+  
+  export interface ErrorOutput {
+    result: null;
+    status: &#39;error&#39;;
+    message: string;
+  }
+  
+  export type Output = SuccessOutput | ErrorOutput;
+  
+  export function doSomething(input: Input): Output;
+}
+</code></pre>
+<h2>总结</h2>
+<p>声明文件是 TypeScript 生态系统的重要组成部分：</p>
+<ol>
+<li><strong>类型安全</strong>：为 JavaScript 库提供类型信息</li>
+<li><strong>开发体验</strong>：提供智能提示和错误检查</li>
+<li><strong>模块增强</strong>：扩展现有模块的功能</li>
+<li><strong>渐进式采用</strong>：支持从 JavaScript 逐步迁移</li>
+</ol>
+<p>掌握声明文件有助于：</p>
+<ul>
+<li>更好地使用第三方库</li>
+<li>为团队提供类型定义</li>
+<li>维护大型项目的类型一致性</li>
+<li>提高代码的可维护性</li>
+</ul>
+<h2>练习题</h2>
+<ol>
+<li>为一个简单的 JavaScript 库创建声明文件</li>
+<li>扩展 Express Request 对象，添加自定义属性</li>
+<li>创建一个支持泛型的声明文件</li>
+<li>为全局变量和函数创建声明文件</li>
+</ol>
+
+      

@@ -1,0 +1,651 @@
+
+        <header>
+          <h1>声明合并 (Declaration Merging)</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <h2>1. 什么是声明合并？</h2>
+<p>声明合并是 TypeScript 的一个重要特性，它允许编译器将多个同名的声明合并成一个定义。这个特性使得我们可以扩展现有的类型定义，为库添加新的功能，或者在不同的文件中分别定义同一个类型的不同部分。</p>
+<h2>2. 接口合并</h2>
+<h3>2.1 基本接口合并</h3>
+<pre><code class="language-typescript">interface User {
+  name: string;
+}
+
+interface User {
+  age: number;
+}
+
+interface User {
+  email: string;
+}
+
+// 合并后的接口等价于：
+// interface User {
+//   name: string;
+//   age: number;
+//   email: string;
+// }
+
+const user: User = {
+  name: &quot;Alice&quot;,
+  age: 30,
+  email: &quot;alice@example.com&quot;
+};
+</code></pre>
+<h3>2.2 方法合并</h3>
+<pre><code class="language-typescript">interface Calculator {
+  add(a: number, b: number): number;
+}
+
+interface Calculator {
+  add(a: string, b: string): string;
+  subtract(a: number, b: number): number;
+}
+
+// 合并后支持方法重载
+const calc: Calculator = {
+  add: (a: any, b: any) =&gt; {
+    if (typeof a === &quot;string&quot; &amp;&amp; typeof b === &quot;string&quot;) {
+      return a + b;
+    }
+    return Number(a) + Number(b);
+  },
+  subtract: (a: number, b: number) =&gt; a - b
+};
+
+const result1 = calc.add(1, 2);        // number
+const result2 = calc.add(&quot;Hello&quot;, &quot; World&quot;); // string
+</code></pre>
+<h3>2.3 泛型接口合并</h3>
+<pre><code class="language-typescript">interface Container&lt;T&gt; {
+  value: T;
+}
+
+interface Container&lt;T&gt; {
+  getValue(): T;
+  setValue(value: T): void;
+}
+
+class StringContainer implements Container&lt;string&gt; {
+  constructor(public value: string) {}
+  
+  getValue(): string {
+    return this.value;
+  }
+  
+  setValue(value: string): void {
+    this.value = value;
+  }
+}
+</code></pre>
+<h3>2.4 接口合并的限制</h3>
+<pre><code class="language-typescript">interface Config {
+  apiUrl: string;
+}
+
+interface Config {
+  // ❌ 错误：属性类型不兼容
+  // apiUrl: number;
+  
+  // ✅ 正确：相同类型
+  apiUrl: string;
+  timeout: number;
+}
+
+interface EventHandler {
+  handle(event: MouseEvent): void;
+}
+
+interface EventHandler {
+  // ✅ 正确：方法重载
+  handle(event: KeyboardEvent): void;
+  handle(event: TouchEvent): void;
+}
+</code></pre>
+<h2>3. 命名空间合并</h2>
+<h3>3.1 基本命名空间合并</h3>
+<pre><code class="language-typescript">namespace Utilities {
+  export function formatDate(date: Date): string {
+    return date.toISOString().split(&#39;T&#39;)[0];
+  }
+}
+
+namespace Utilities {
+  export function formatTime(date: Date): string {
+    return date.toTimeString().split(&#39; &#39;)[0];
+  }
+}
+
+namespace Utilities {
+  export const DEFAULT_LOCALE = &quot;en-US&quot;;
+}
+
+// 使用合并后的命名空间
+const formattedDate = Utilities.formatDate(new Date());
+const formattedTime = Utilities.formatTime(new Date());
+console.log(Utilities.DEFAULT_LOCALE);
+</code></pre>
+<h3>3.2 命名空间与类合并</h3>
+<pre><code class="language-typescript">class Album {
+  label: Album.AlbumLabel;
+  
+  constructor(label: string) {
+    this.label = new Album.AlbumLabel(label);
+  }
+}
+
+namespace Album {
+  export class AlbumLabel {
+    constructor(public name: string) {}
+    
+    toString() {
+      return this.name;
+    }
+  }
+  
+  export function createEmpty(): Album {
+    return new Album(&quot;Untitled&quot;);
+  }
+}
+
+// 使用
+const album = new Album(&quot;My Album&quot;);
+const emptyAlbum = Album.createEmpty();
+</code></pre>
+<h3>3.3 命名空间与函数合并</h3>
+<pre><code class="language-typescript">function buildLabel(name: string): string {
+  return buildLabel.prefix + name + buildLabel.suffix;
+}
+
+namespace buildLabel {
+  export let suffix = &quot;&quot;;
+  export let prefix = &quot;Hello, &quot;;
+  
+  export function setPrefix(newPrefix: string) {
+    prefix = newPrefix;
+  }
+}
+
+// 使用
+console.log(buildLabel(&quot;TypeScript&quot;)); // &quot;Hello, TypeScript&quot;
+buildLabel.setPrefix(&quot;Hi, &quot;);
+buildLabel.suffix = &quot;!&quot;;
+console.log(buildLabel(&quot;World&quot;)); // &quot;Hi, World!&quot;
+</code></pre>
+<h3>3.4 命名空间与枚举合并</h3>
+<pre><code class="language-typescript">enum Color {
+  Red,
+  Green,
+  Blue
+}
+
+namespace Color {
+  export function mix(color1: Color, color2: Color): string {
+    return `Mixed ${Color[color1]} and ${Color[color2]}`;
+  }
+  
+  export const Transparent = &quot;transparent&quot;;
+}
+
+// 使用
+console.log(Color.Red); // 0
+console.log(Color.mix(Color.Red, Color.Blue)); // &quot;Mixed Red and Blue&quot;
+console.log(Color.Transparent); // &quot;transparent&quot;
+</code></pre>
+<h2>4. 模块增强</h2>
+<h3>4.1 全局模块增强</h3>
+<pre><code class="language-typescript">// 扩展全局 Array 接口
+declare global {
+  interface Array&lt;T&gt; {
+    first(): T | undefined;
+    last(): T | undefined;
+  }
+}
+
+// 实现扩展方法
+Array.prototype.first = function&lt;T&gt;(this: T[]): T | undefined {
+  return this.length &gt; 0 ? this[0] : undefined;
+};
+
+Array.prototype.last = function&lt;T&gt;(this: T[]): T | undefined {
+  return this.length &gt; 0 ? this[this.length - 1] : undefined;
+};
+
+// 使用
+const numbers = [1, 2, 3, 4, 5];
+console.log(numbers.first()); // 1
+console.log(numbers.last());  // 5
+</code></pre>
+<h3>4.2 第三方库增强</h3>
+<pre><code class="language-typescript">// 扩展 Express Request 接口
+declare module &quot;express-serve-static-core&quot; {
+  interface Request {
+    user?: {
+      id: string;
+      name: string;
+      role: string;
+    };
+  }
+}
+
+// 现在可以在 Express 中使用扩展的属性
+import { Request, Response } from &quot;express&quot;;
+
+function authMiddleware(req: Request, res: Response, next: Function) {
+  // 假设从 token 中解析用户信息
+  req.user = {
+    id: &quot;123&quot;,
+    name: &quot;John Doe&quot;,
+    role: &quot;admin&quot;
+  };
+  next();
+}
+
+function getUserInfo(req: Request, res: Response) {
+  if (req.user) {
+    res.json(req.user);
+  } else {
+    res.status(401).json({ error: &quot;Unauthorized&quot; });
+  }
+}
+</code></pre>
+<h3>4.3 模块内部增强</h3>
+<pre><code class="language-typescript">// math-utils.ts
+export interface MathUtils {
+  add(a: number, b: number): number;
+}
+
+export const mathUtils: MathUtils = {
+  add: (a, b) =&gt; a + b
+};
+
+// 在同一个模块中增强
+declare module &quot;./math-utils&quot; {
+  interface MathUtils {
+    multiply(a: number, b: number): number;
+    divide(a: number, b: number): number;
+  }
+}
+
+// 扩展实现
+Object.assign(mathUtils, {
+  multiply: (a: number, b: number) =&gt; a * b,
+  divide: (a: number, b: number) =&gt; a / b
+});
+</code></pre>
+<h2>5. 实际应用示例</h2>
+<h3>5.1 插件系统设计</h3>
+<pre><code class="language-typescript">// 核心接口
+interface PluginSystem {
+  plugins: Plugin[];
+  register(plugin: Plugin): void;
+}
+
+interface Plugin {
+  name: string;
+  version: string;
+  init(): void;
+}
+
+// 基础实现
+const pluginSystem: PluginSystem = {
+  plugins: [],
+  register(plugin: Plugin) {
+    this.plugins.push(plugin);
+    plugin.init();
+  }
+};
+
+// 通过声明合并扩展插件系统
+interface PluginSystem {
+  // 添加新的方法
+  unregister(pluginName: string): boolean;
+  getPlugin(name: string): Plugin | undefined;
+  listPlugins(): string[];
+}
+
+// 扩展实现
+Object.assign(pluginSystem, {
+  unregister(pluginName: string): boolean {
+    const index = this.plugins.findIndex(p =&gt; p.name === pluginName);
+    if (index !== -1) {
+      this.plugins.splice(index, 1);
+      return true;
+    }
+    return false;
+  },
+  
+  getPlugin(name: string): Plugin | undefined {
+    return this.plugins.find(p =&gt; p.name === name);
+  },
+  
+  listPlugins(): string[] {
+    return this.plugins.map(p =&gt; p.name);
+  }
+});
+
+// 进一步扩展插件接口
+interface Plugin {
+  // 添加可选的生命周期方法
+  destroy?(): void;
+  configure?(options: any): void;
+}
+</code></pre>
+<h3>5.2 API 客户端扩展</h3>
+<pre><code class="language-typescript">// 基础 API 客户端
+interface ApiClient {
+  baseUrl: string;
+  get&lt;T&gt;(endpoint: string): Promise&lt;T&gt;;
+  post&lt;T&gt;(endpoint: string, data: any): Promise&lt;T&gt;;
+}
+
+class HttpClient implements ApiClient {
+  constructor(public baseUrl: string) {}
+  
+  async get&lt;T&gt;(endpoint: string): Promise&lt;T&gt; {
+    const response = await fetch(`${this.baseUrl}${endpoint}`);
+    return response.json();
+  }
+  
+  async post&lt;T&gt;(endpoint: string, data: any): Promise&lt;T&gt; {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: &#39;POST&#39;,
+      headers: { &#39;Content-Type&#39;: &#39;application/json&#39; },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  }
+}
+
+// 通过声明合并添加认证功能
+interface ApiClient {
+  token?: string;
+  setToken(token: string): void;
+  clearToken(): void;
+}
+
+// 扩展实现
+Object.assign(HttpClient.prototype, {
+  setToken(token: string) {
+    this.token = token;
+  },
+  
+  clearToken() {
+    this.token = undefined;
+  }
+});
+
+// 重写原有方法以支持认证
+const originalGet = HttpClient.prototype.get;
+const originalPost = HttpClient.prototype.post;
+
+HttpClient.prototype.get = function&lt;T&gt;(endpoint: string): Promise&lt;T&gt; {
+  // 添加认证头
+  if (this.token) {
+    // 实现认证逻辑
+  }
+  return originalGet.call(this, endpoint);
+};
+
+HttpClient.prototype.post = function&lt;T&gt;(endpoint: string, data: any): Promise&lt;T&gt; {
+  // 添加认证头
+  if (this.token) {
+    // 实现认证逻辑
+  }
+  return originalPost.call(this, endpoint, data);
+};
+</code></pre>
+<h3>5.3 配置系统扩展</h3>
+<pre><code class="language-typescript">// 基础配置接口
+interface AppConfig {
+  app: {
+    name: string;
+    version: string;
+  };
+}
+
+// 数据库配置扩展
+interface AppConfig {
+  database: {
+    host: string;
+    port: number;
+    name: string;
+  };
+}
+
+// 缓存配置扩展
+interface AppConfig {
+  cache: {
+    type: &quot;redis&quot; | &quot;memory&quot;;
+    ttl: number;
+  };
+}
+
+// 日志配置扩展
+interface AppConfig {
+  logging: {
+    level: &quot;debug&quot; | &quot;info&quot; | &quot;warn&quot; | &quot;error&quot;;
+    file?: string;
+  };
+}
+
+// 配置实现
+const config: AppConfig = {
+  app: {
+    name: &quot;MyApp&quot;,
+    version: &quot;1.0.0&quot;
+  },
+  database: {
+    host: &quot;localhost&quot;,
+    port: 5432,
+    name: &quot;myapp_db&quot;
+  },
+  cache: {
+    type: &quot;redis&quot;,
+    ttl: 3600
+  },
+  logging: {
+    level: &quot;info&quot;,
+    file: &quot;app.log&quot;
+  }
+};
+
+// 类型安全的配置访问
+function getConfig&lt;K extends keyof AppConfig&gt;(section: K): AppConfig[K] {
+  return config[section];
+}
+
+const dbConfig = getConfig(&quot;database&quot;); // { host: string; port: number; name: string; }
+const logConfig = getConfig(&quot;logging&quot;); // { level: &quot;debug&quot; | &quot;info&quot; | &quot;warn&quot; | &quot;error&quot;; file?: string; }
+</code></pre>
+<h2>6. 声明合并最佳实践</h2>
+<h3>6.1 合并顺序和优先级</h3>
+<pre><code class="language-typescript">// 文件 1
+interface User {
+  name: string;
+  age: number;
+}
+
+// 文件 2
+interface User {
+  email: string;
+  age: number; // 必须与之前的声明类型一致
+}
+
+// 文件 3
+interface User {
+  // 方法重载按声明顺序排列
+  greet(): string;
+  greet(formal: boolean): string;
+}
+</code></pre>
+<h3>6.2 避免冲突</h3>
+<pre><code class="language-typescript">// ❌ 避免属性类型冲突
+interface Config {
+  timeout: number;
+}
+
+interface Config {
+  // timeout: string; // 错误：类型不匹配
+  timeout: number; // 正确：类型一致
+}
+
+// ✅ 使用命名空间避免全局污染
+namespace MyLibrary {
+  export interface Config {
+    apiKey: string;
+  }
+}
+
+namespace MyLibrary {
+  export interface Config {
+    endpoint: string;
+  }
+}
+</code></pre>
+<h3>6.3 文档和维护</h3>
+<pre><code class="language-typescript">/**
+ * 用户基础信息接口
+ * @description 定义用户的基本属性
+ */
+interface User {
+  /** 用户唯一标识 */
+  id: string;
+  /** 用户姓名 */
+  name: string;
+}
+
+/**
+ * 用户认证信息扩展
+ * @description 扩展用户接口，添加认证相关属性
+ */
+interface User {
+  /** 用户邮箱 */
+  email: string;
+  /** 最后登录时间 */
+  lastLoginAt?: Date;
+}
+
+/**
+ * 用户权限信息扩展
+ * @description 扩展用户接口，添加权限相关属性
+ */
+interface User {
+  /** 用户角色 */
+  roles: string[];
+  /** 用户权限 */
+  permissions: string[];
+}
+</code></pre>
+<h2>7. 高级声明合并技巧</h2>
+<h3>7.1 条件声明合并</h3>
+<pre><code class="language-typescript">// 基于环境的声明合并
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      NODE_ENV: &quot;development&quot; | &quot;production&quot; | &quot;test&quot;;
+    }
+  }
+}
+
+// 开发环境特定的扩展
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      DEBUG?: string;
+      LOG_LEVEL?: string;
+    }
+  }
+}
+
+// 生产环境特定的扩展
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      API_KEY: string;
+      DATABASE_URL: string;
+    }
+  }
+}
+</code></pre>
+<h3>7.2 泛型约束合并</h3>
+<pre><code class="language-typescript">interface Repository&lt;T&gt; {
+  findById(id: string): Promise&lt;T | null&gt;;
+  save(entity: T): Promise&lt;T&gt;;
+}
+
+interface Repository&lt;T extends { id: string }&gt; {
+  findByIds(ids: string[]): Promise&lt;T[]&gt;;
+  delete(id: string): Promise&lt;boolean&gt;;
+}
+
+interface Repository&lt;T extends { createdAt: Date }&gt; {
+  findRecent(limit: number): Promise&lt;T[]&gt;;
+  findByDateRange(start: Date, end: Date): Promise&lt;T[]&gt;;
+}
+
+// 使用合并后的接口
+interface User {
+  id: string;
+  name: string;
+  createdAt: Date;
+}
+
+class UserRepository implements Repository&lt;User&gt; {
+  async findById(id: string): Promise&lt;User | null&gt; {
+    // 实现
+    return null;
+  }
+  
+  async save(entity: User): Promise&lt;User&gt; {
+    // 实现
+    return entity;
+  }
+  
+  async findByIds(ids: string[]): Promise&lt;User[]&gt; {
+    // 实现
+    return [];
+  }
+  
+  async delete(id: string): Promise&lt;boolean&gt; {
+    // 实现
+    return true;
+  }
+  
+  async findRecent(limit: number): Promise&lt;User[]&gt; {
+    // 实现
+    return [];
+  }
+  
+  async findByDateRange(start: Date, end: Date): Promise&lt;User[]&gt; {
+    // 实现
+    return [];
+  }
+}
+</code></pre>
+<h2>8. 总结</h2>
+<p>声明合并是 TypeScript 的强大特性，它允许我们：</p>
+<ol>
+<li><strong>接口合并</strong> - 在多个地方定义同一个接口的不同部分</li>
+<li><strong>命名空间合并</strong> - 扩展命名空间的功能</li>
+<li><strong>模块增强</strong> - 为现有模块添加新的类型定义</li>
+<li><strong>全局增强</strong> - 扩展全局类型和接口</li>
+</ol>
+<p>声明合并特别适用于：</p>
+<ul>
+<li>扩展第三方库的类型定义</li>
+<li>创建可扩展的插件系统</li>
+<li>模块化的类型定义</li>
+<li>渐进式的 API 设计</li>
+</ul>
+<h2>9. 练习题</h2>
+<ol>
+<li>创建一个可扩展的事件系统，使用接口合并支持不同类型的事件</li>
+<li>扩展 JavaScript 的 <code>String</code> 原型，添加自定义方法的类型定义</li>
+<li>设计一个插件架构，允许插件通过声明合并扩展核心功能</li>
+<li>为 Express.js 创建一个中间件，通过模块增强添加自定义属性</li>
+<li>实现一个配置系统，支持通过声明合并添加新的配置节</li>
+</ol>
+<p>下一篇我们将学习&quot;混入 (Mixins)&quot;，了解如何在 TypeScript 中实现多重继承。</p>
+
+      

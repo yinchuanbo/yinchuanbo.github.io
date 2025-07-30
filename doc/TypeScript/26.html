@@ -1,0 +1,897 @@
+
+        <header>
+          <h1>React 与 TypeScript</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <h2>概述</h2>
+<p>React 与 TypeScript 的结合为前端开发带来了强大的类型安全保障。TypeScript 可以帮助我们在编译时发现错误，提供更好的开发体验和代码维护性。本文将深入探讨如何在 React 项目中有效使用 TypeScript。</p>
+<h2>项目设置</h2>
+<h3>创建 TypeScript React 项目</h3>
+<pre><code class="language-bash"># 使用 Create React App
+npx create-react-app my-app --template typescript
+
+# 使用 Vite
+npm create vite@latest my-app -- --template react-ts
+
+# 使用 Next.js
+npx create-next-app@latest my-app --typescript
+</code></pre>
+<h3>基本配置</h3>
+<pre><code class="language-json">// tsconfig.json
+{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;es5&quot;,
+    &quot;lib&quot;: [&quot;dom&quot;, &quot;dom.iterable&quot;, &quot;es6&quot;],
+    &quot;allowJs&quot;: true,
+    &quot;skipLibCheck&quot;: true,
+    &quot;esModuleInterop&quot;: true,
+    &quot;allowSyntheticDefaultImports&quot;: true,
+    &quot;strict&quot;: true,
+    &quot;forceConsistentCasingInFileNames&quot;: true,
+    &quot;noFallthroughCasesInSwitch&quot;: true,
+    &quot;module&quot;: &quot;esnext&quot;,
+    &quot;moduleResolution&quot;: &quot;node&quot;,
+    &quot;resolveJsonModule&quot;: true,
+    &quot;isolatedModules&quot;: true,
+    &quot;noEmit&quot;: true,
+    &quot;jsx&quot;: &quot;react-jsx&quot;
+  },
+  &quot;include&quot;: [
+    &quot;src&quot;
+  ]
+}
+</code></pre>
+<h2>组件类型定义</h2>
+<h3>函数组件</h3>
+<pre><code class="language-typescript">import React from &#39;react&#39;;
+
+// 基础 Props 接口
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick: () =&gt; void;
+  variant?: &#39;primary&#39; | &#39;secondary&#39;;
+  disabled?: boolean;
+}
+
+// 函数组件定义
+const Button: React.FC&lt;ButtonProps&gt; = ({ 
+  children, 
+  onClick, 
+  variant = &#39;primary&#39;, 
+  disabled = false 
+}) =&gt; {
+  return (
+    &lt;button 
+      className={`btn btn-${variant}`}
+      onClick={onClick}
+      disabled={disabled}
+    &gt;
+      {children}
+    &lt;/button&gt;
+  );
+};
+
+// 使用泛型的组件
+interface ListProps&lt;T&gt; {
+  items: T[];
+  renderItem: (item: T, index: number) =&gt; React.ReactNode;
+  keyExtractor: (item: T) =&gt; string | number;
+}
+
+function List&lt;T&gt;({ items, renderItem, keyExtractor }: ListProps&lt;T&gt;) {
+  return (
+    &lt;ul&gt;
+      {items.map((item, index) =&gt; (
+        &lt;li key={keyExtractor(item)}&gt;
+          {renderItem(item, index)}
+        &lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}
+</code></pre>
+<h3>类组件</h3>
+<pre><code class="language-typescript">import React, { Component } from &#39;react&#39;;
+
+interface CounterProps {
+  initialValue?: number;
+  onCountChange?: (count: number) =&gt; void;
+}
+
+interface CounterState {
+  count: number;
+}
+
+class Counter extends Component&lt;CounterProps, CounterState&gt; {
+  constructor(props: CounterProps) {
+    super(props);
+    this.state = {
+      count: props.initialValue || 0
+    };
+  }
+
+  increment = () =&gt; {
+    this.setState(
+      prevState =&gt; ({ count: prevState.count + 1 }),
+      () =&gt; {
+        this.props.onCountChange?.(this.state.count);
+      }
+    );
+  };
+
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;p&gt;Count: {this.state.count}&lt;/p&gt;
+        &lt;button onClick={this.increment}&gt;Increment&lt;/button&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+</code></pre>
+<h2>Hooks 类型</h2>
+<h3>useState</h3>
+<pre><code class="language-typescript">import React, { useState } from &#39;react&#39;;
+
+// 基础类型推断
+const [count, setCount] = useState(0); // number
+const [name, setName] = useState(&#39;&#39;); // string
+
+// 显式类型声明
+const [user, setUser] = useState&lt;User | null&gt;(null);
+
+// 复杂状态类型
+interface FormState {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+}
+
+const [formState, setFormState] = useState&lt;FormState&gt;({
+  email: &#39;&#39;,
+  password: &#39;&#39;,
+  rememberMe: false
+});
+
+// 状态更新函数
+const updateFormField = &lt;K extends keyof FormState&gt;(
+  field: K,
+  value: FormState[K]
+) =&gt; {
+  setFormState(prev =&gt; ({ ...prev, [field]: value }));
+};
+</code></pre>
+<h3>useEffect</h3>
+<pre><code class="language-typescript">import React, { useEffect, useState } from &#39;react&#39;;
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const UserProfile: React.FC&lt;{ userId: number }&gt; = ({ userId }) =&gt; {
+  const [user, setUser] = useState&lt;User | null&gt;(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState&lt;string | null&gt;(null);
+
+  useEffect(() =&gt; {
+    let isCancelled = false;
+
+    const fetchUser = async () =&gt; {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/users/${userId}`);
+        
+        if (!response.ok) {
+          throw new Error(&#39;Failed to fetch user&#39;);
+        }
+
+        const userData: User = await response.json();
+        
+        if (!isCancelled) {
+          setUser(userData);
+          setError(null);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setError(err instanceof Error ? err.message : &#39;Unknown error&#39;);
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchUser();
+
+    return () =&gt; {
+      isCancelled = true;
+    };
+  }, [userId]);
+
+  if (loading) return &lt;div&gt;Loading...&lt;/div&gt;;
+  if (error) return &lt;div&gt;Error: {error}&lt;/div&gt;;
+  if (!user) return &lt;div&gt;User not found&lt;/div&gt;;
+
+  return (
+    &lt;div&gt;
+      &lt;h1&gt;{user.name}&lt;/h1&gt;
+      &lt;p&gt;{user.email}&lt;/p&gt;
+    &lt;/div&gt;
+  );
+};
+</code></pre>
+<h3>useRef</h3>
+<pre><code class="language-typescript">import React, { useRef, useEffect } from &#39;react&#39;;
+
+const FocusInput: React.FC = () =&gt; {
+  // DOM 元素引用
+  const inputRef = useRef&lt;HTMLInputElement&gt;(null);
+  
+  // 可变值引用
+  const countRef = useRef&lt;number&gt;(0);
+
+  useEffect(() =&gt; {
+    // 自动聚焦
+    inputRef.current?.focus();
+  }, []);
+
+  const handleClick = () =&gt; {
+    countRef.current += 1;
+    console.log(&#39;Click count:&#39;, countRef.current);
+  };
+
+  return (
+    &lt;div&gt;
+      &lt;input ref={inputRef} type=&quot;text&quot; /&gt;
+      &lt;button onClick={handleClick}&gt;Click me&lt;/button&gt;
+    &lt;/div&gt;
+  );
+};
+</code></pre>
+<h3>自定义 Hooks</h3>
+<pre><code class="language-typescript">import { useState, useEffect } from &#39;react&#39;;
+
+// 数据获取 Hook
+interface UseApiResult&lt;T&gt; {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+  refetch: () =&gt; void;
+}
+
+function useApi&lt;T&gt;(url: string): UseApiResult&lt;T&gt; {
+  const [data, setData] = useState&lt;T | null&gt;(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState&lt;string | null&gt;(null);
+
+  const fetchData = async () =&gt; {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result: T = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : &#39;Unknown error&#39;);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() =&gt; {
+    fetchData();
+  }, [url]);
+
+  return { data, loading, error, refetch: fetchData };
+}
+
+// 本地存储 Hook
+function useLocalStorage&lt;T&gt;(
+  key: string,
+  initialValue: T
+): [T, (value: T | ((val: T) =&gt; T)) =&gt; void] {
+  const [storedValue, setStoredValue] = useState&lt;T&gt;(() =&gt; {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(`Error reading localStorage key &quot;${key}&quot;:`, error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T | ((val: T) =&gt; T)) =&gt; {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error(`Error setting localStorage key &quot;${key}&quot;:`, error);
+    }
+  };
+
+  return [storedValue, setValue];
+}
+</code></pre>
+<h2>事件处理</h2>
+<h3>事件类型</h3>
+<pre><code class="language-typescript">import React from &#39;react&#39;;
+
+const EventHandling: React.FC = () =&gt; {
+  // 鼠标事件
+  const handleClick = (event: React.MouseEvent&lt;HTMLButtonElement&gt;) =&gt; {
+    console.log(&#39;Button clicked:&#39;, event.currentTarget.textContent);
+  };
+
+  // 键盘事件
+  const handleKeyDown = (event: React.KeyboardEvent&lt;HTMLInputElement&gt;) =&gt; {
+    if (event.key === &#39;Enter&#39;) {
+      console.log(&#39;Enter pressed:&#39;, event.currentTarget.value);
+    }
+  };
+
+  // 表单事件
+  const handleSubmit = (event: React.FormEvent&lt;HTMLFormElement&gt;) =&gt; {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    console.log(&#39;Form submitted:&#39;, Object.fromEntries(formData));
+  };
+
+  // 输入变化事件
+  const handleInputChange = (event: React.ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {
+    console.log(&#39;Input changed:&#39;, event.target.value);
+  };
+
+  // 选择变化事件
+  const handleSelectChange = (event: React.ChangeEvent&lt;HTMLSelectElement&gt;) =&gt; {
+    console.log(&#39;Selection changed:&#39;, event.target.value);
+  };
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input
+        type=&quot;text&quot;
+        name=&quot;username&quot;
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+      /&gt;
+      &lt;select name=&quot;category&quot; onChange={handleSelectChange}&gt;
+        &lt;option value=&quot;a&quot;&gt;Option A&lt;/option&gt;
+        &lt;option value=&quot;b&quot;&gt;Option B&lt;/option&gt;
+      &lt;/select&gt;
+      &lt;button type=&quot;submit&quot; onClick={handleClick}&gt;
+        Submit
+      &lt;/button&gt;
+    &lt;/form&gt;
+  );
+};
+</code></pre>
+<h3>事件处理器类型</h3>
+<pre><code class="language-typescript">// 定义事件处理器类型
+type EventHandler&lt;T = HTMLElement&gt; = (event: React.MouseEvent&lt;T&gt;) =&gt; void;
+type ChangeHandler&lt;T = HTMLInputElement&gt; = (event: React.ChangeEvent&lt;T&gt;) =&gt; void;
+
+interface FormProps {
+  onSubmit: (data: FormData) =&gt; void;
+  onCancel: EventHandler&lt;HTMLButtonElement&gt;;
+  onInputChange: ChangeHandler&lt;HTMLInputElement&gt;;
+}
+
+const Form: React.FC&lt;FormProps&gt; = ({ onSubmit, onCancel, onInputChange }) =&gt; {
+  const handleSubmit: React.FormEventHandler&lt;HTMLFormElement&gt; = (event) =&gt; {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    onSubmit(formData);
+  };
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input type=&quot;text&quot; onChange={onInputChange} /&gt;
+      &lt;button type=&quot;submit&quot;&gt;Submit&lt;/button&gt;
+      &lt;button type=&quot;button&quot; onClick={onCancel}&gt;Cancel&lt;/button&gt;
+    &lt;/form&gt;
+  );
+};
+</code></pre>
+<h2>状态管理</h2>
+<h3>Context API</h3>
+<pre><code class="language-typescript">import React, { createContext, useContext, useReducer, ReactNode } from &#39;react&#39;;
+
+// 状态类型定义
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+interface AppState {
+  user: User | null;
+  theme: &#39;light&#39; | &#39;dark&#39;;
+  loading: boolean;
+}
+
+// 动作类型定义
+type AppAction =
+  | { type: &#39;SET_USER&#39;; payload: User }
+  | { type: &#39;CLEAR_USER&#39; }
+  | { type: &#39;SET_THEME&#39;; payload: &#39;light&#39; | &#39;dark&#39; }
+  | { type: &#39;SET_LOADING&#39;; payload: boolean };
+
+// Context 类型定义
+interface AppContextType {
+  state: AppState;
+  dispatch: React.Dispatch&lt;AppAction&gt;;
+}
+
+// 创建 Context
+const AppContext = createContext&lt;AppContextType | undefined&gt;(undefined);
+
+// Reducer
+const appReducer = (state: AppState, action: AppAction): AppState =&gt; {
+  switch (action.type) {
+    case &#39;SET_USER&#39;:
+      return { ...state, user: action.payload };
+    case &#39;CLEAR_USER&#39;:
+      return { ...state, user: null };
+    case &#39;SET_THEME&#39;:
+      return { ...state, theme: action.payload };
+    case &#39;SET_LOADING&#39;:
+      return { ...state, loading: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Provider 组件
+interface AppProviderProps {
+  children: ReactNode;
+}
+
+export const AppProvider: React.FC&lt;AppProviderProps&gt; = ({ children }) =&gt; {
+  const [state, dispatch] = useReducer(appReducer, {
+    user: null,
+    theme: &#39;light&#39;,
+    loading: false
+  });
+
+  return (
+    &lt;AppContext.Provider value={{ state, dispatch }}&gt;
+      {children}
+    &lt;/AppContext.Provider&gt;
+  );
+};
+
+// Hook for using context
+export const useAppContext = (): AppContextType =&gt; {
+  const context = useContext(AppContext);
+  if (context === undefined) {
+    throw new Error(&#39;useAppContext must be used within an AppProvider&#39;);
+  }
+  return context;
+};
+
+// 使用示例
+const UserProfile: React.FC = () =&gt; {
+  const { state, dispatch } = useAppContext();
+
+  const handleLogin = (user: User) =&gt; {
+    dispatch({ type: &#39;SET_USER&#39;, payload: user });
+  };
+
+  const handleLogout = () =&gt; {
+    dispatch({ type: &#39;CLEAR_USER&#39; });
+  };
+
+  return (
+    &lt;div&gt;
+      {state.user ? (
+        &lt;div&gt;
+          &lt;h1&gt;Welcome, {state.user.name}!&lt;/h1&gt;
+          &lt;button onClick={handleLogout}&gt;Logout&lt;/button&gt;
+        &lt;/div&gt;
+      ) : (
+        &lt;button onClick={() =&gt; handleLogin({ id: 1, name: &#39;John&#39;, email: &#39;john@example.com&#39; })}&gt;
+          Login
+        &lt;/button&gt;
+      )}
+    &lt;/div&gt;
+  );
+};
+</code></pre>
+<h2>高级模式</h2>
+<h3>高阶组件 (HOC)</h3>
+<pre><code class="language-typescript">import React, { ComponentType } from &#39;react&#39;;
+
+// HOC 类型定义
+interface WithLoadingProps {
+  loading: boolean;
+}
+
+function withLoading&lt;P extends object&gt;(
+  Component: ComponentType&lt;P&gt;
+): ComponentType&lt;P &amp; WithLoadingProps&gt; {
+  return (props: P &amp; WithLoadingProps) =&gt; {
+    if (props.loading) {
+      return &lt;div&gt;Loading...&lt;/div&gt;;
+    }
+    return &lt;Component {...props} /&gt;;
+  };
+}
+
+// 使用 HOC
+interface UserListProps {
+  users: User[];
+}
+
+const UserList: React.FC&lt;UserListProps&gt; = ({ users }) =&gt; (
+  &lt;ul&gt;
+    {users.map(user =&gt; (
+      &lt;li key={user.id}&gt;{user.name}&lt;/li&gt;
+    ))}
+  &lt;/ul&gt;
+);
+
+const UserListWithLoading = withLoading(UserList);
+
+// 使用组件
+const App: React.FC = () =&gt; {
+  const [users, setUsers] = useState&lt;User[]&gt;([]);
+  const [loading, setLoading] = useState(true);
+
+  return (
+    &lt;UserListWithLoading 
+      users={users} 
+      loading={loading} 
+    /&gt;
+  );
+};
+</code></pre>
+<h3>Render Props</h3>
+<pre><code class="language-typescript">import React, { ReactNode } from &#39;react&#39;;
+
+// Render Props 模式
+interface DataFetcherProps&lt;T&gt; {
+  url: string;
+  children: (data: {
+    data: T | null;
+    loading: boolean;
+    error: string | null;
+  }) =&gt; ReactNode;
+}
+
+function DataFetcher&lt;T&gt;({ url, children }: DataFetcherProps&lt;T&gt;) {
+  const { data, loading, error } = useApi&lt;T&gt;(url);
+  
+  return &lt;&gt;{children({ data, loading, error })}&lt;/&gt;;
+}
+
+// 使用 Render Props
+const UsersList: React.FC = () =&gt; (
+  &lt;DataFetcher&lt;User[]&gt; url=&quot;/api/users&quot;&gt;
+    {({ data, loading, error }) =&gt; {
+      if (loading) return &lt;div&gt;Loading...&lt;/div&gt;;
+      if (error) return &lt;div&gt;Error: {error}&lt;/div&gt;;
+      if (!data) return &lt;div&gt;No data&lt;/div&gt;;
+      
+      return (
+        &lt;ul&gt;
+          {data.map(user =&gt; (
+            &lt;li key={user.id}&gt;{user.name}&lt;/li&gt;
+          ))}
+        &lt;/ul&gt;
+      );
+    }}
+  &lt;/DataFetcher&gt;
+);
+</code></pre>
+<h3>组件组合</h3>
+<pre><code class="language-typescript">// 复合组件模式
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () =&gt; void;
+  children: ReactNode;
+}
+
+interface ModalHeaderProps {
+  children: ReactNode;
+}
+
+interface ModalBodyProps {
+  children: ReactNode;
+}
+
+interface ModalFooterProps {
+  children: ReactNode;
+}
+
+const Modal: React.FC&lt;ModalProps&gt; &amp; {
+  Header: React.FC&lt;ModalHeaderProps&gt;;
+  Body: React.FC&lt;ModalBodyProps&gt;;
+  Footer: React.FC&lt;ModalFooterProps&gt;;
+} = ({ isOpen, onClose, children }) =&gt; {
+  if (!isOpen) return null;
+
+  return (
+    &lt;div className=&quot;modal-overlay&quot; onClick={onClose}&gt;
+      &lt;div className=&quot;modal-content&quot; onClick={e =&gt; e.stopPropagation()}&gt;
+        {children}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+};
+
+Modal.Header = ({ children }) =&gt; (
+  &lt;div className=&quot;modal-header&quot;&gt;{children}&lt;/div&gt;
+);
+
+Modal.Body = ({ children }) =&gt; (
+  &lt;div className=&quot;modal-body&quot;&gt;{children}&lt;/div&gt;
+);
+
+Modal.Footer = ({ children }) =&gt; (
+  &lt;div className=&quot;modal-footer&quot;&gt;{children}&lt;/div&gt;
+);
+
+// 使用复合组件
+const App: React.FC = () =&gt; {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    &lt;div&gt;
+      &lt;button onClick={() =&gt; setIsModalOpen(true)}&gt;Open Modal&lt;/button&gt;
+      
+      &lt;Modal isOpen={isModalOpen} onClose={() =&gt; setIsModalOpen(false)}&gt;
+        &lt;Modal.Header&gt;
+          &lt;h2&gt;Modal Title&lt;/h2&gt;
+        &lt;/Modal.Header&gt;
+        &lt;Modal.Body&gt;
+          &lt;p&gt;Modal content goes here...&lt;/p&gt;
+        &lt;/Modal.Body&gt;
+        &lt;Modal.Footer&gt;
+          &lt;button onClick={() =&gt; setIsModalOpen(false)}&gt;Close&lt;/button&gt;
+        &lt;/Modal.Footer&gt;
+      &lt;/Modal&gt;
+    &lt;/div&gt;
+  );
+};
+</code></pre>
+<h2>性能优化</h2>
+<h3>React.memo 与类型</h3>
+<pre><code class="language-typescript">import React, { memo } from &#39;react&#39;;
+
+interface ExpensiveComponentProps {
+  data: ComplexData[];
+  onItemClick: (id: number) =&gt; void;
+}
+
+const ExpensiveComponent = memo&lt;ExpensiveComponentProps&gt;(({ data, onItemClick }) =&gt; {
+  return (
+    &lt;div&gt;
+      {data.map(item =&gt; (
+        &lt;div key={item.id} onClick={() =&gt; onItemClick(item.id)}&gt;
+          {item.name}
+        &lt;/div&gt;
+      ))}
+    &lt;/div&gt;
+  );
+});
+
+// 自定义比较函数
+const ExpensiveComponentWithCustomComparison = memo&lt;ExpensiveComponentProps&gt;(
+  ({ data, onItemClick }) =&gt; {
+    // 组件实现
+    return &lt;div&gt;...&lt;/div&gt;;
+  },
+  (prevProps, nextProps) =&gt; {
+    return (
+      prevProps.data.length === nextProps.data.length &amp;&amp;
+      prevProps.data.every((item, index) =&gt; 
+        item.id === nextProps.data[index].id
+      )
+    );
+  }
+);
+</code></pre>
+<h3>useMemo 和 useCallback</h3>
+<pre><code class="language-typescript">import React, { useMemo, useCallback } from &#39;react&#39;;
+
+interface OptimizedComponentProps {
+  items: Item[];
+  filter: string;
+}
+
+const OptimizedComponent: React.FC&lt;OptimizedComponentProps&gt; = ({ items, filter }) =&gt; {
+  // 缓存计算结果
+  const filteredItems = useMemo(() =&gt; {
+    return items.filter(item =&gt; 
+      item.name.toLowerCase().includes(filter.toLowerCase())
+    );
+  }, [items, filter]);
+
+  // 缓存事件处理器
+  const handleItemClick = useCallback((id: number) =&gt; {
+    console.log(&#39;Item clicked:&#39;, id);
+  }, []);
+
+  // 缓存复杂计算
+  const expensiveValue = useMemo(() =&gt; {
+    return filteredItems.reduce((sum, item) =&gt; sum + item.value, 0);
+  }, [filteredItems]);
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;Total value: {expensiveValue}&lt;/p&gt;
+      {filteredItems.map(item =&gt; (
+        &lt;div key={item.id} onClick={() =&gt; handleItemClick(item.id)}&gt;
+          {item.name}
+        &lt;/div&gt;
+      ))}
+    &lt;/div&gt;
+  );
+};
+</code></pre>
+<h2>测试</h2>
+<h3>组件测试</h3>
+<pre><code class="language-typescript">import React from &#39;react&#39;;
+import { render, screen, fireEvent } from &#39;@testing-library/react&#39;;
+import &#39;@testing-library/jest-dom&#39;;
+import { Button } from &#39;./Button&#39;;
+
+describe(&#39;Button Component&#39;, () =&gt; {
+  it(&#39;renders with correct text&#39;, () =&gt; {
+    render(&lt;Button onClick={() =&gt; {}}&gt;Click me&lt;/Button&gt;);
+    expect(screen.getByText(&#39;Click me&#39;)).toBeInTheDocument();
+  });
+
+  it(&#39;calls onClick when clicked&#39;, () =&gt; {
+    const handleClick = jest.fn();
+    render(&lt;Button onClick={handleClick}&gt;Click me&lt;/Button&gt;);
+    
+    fireEvent.click(screen.getByText(&#39;Click me&#39;));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it(&#39;applies correct variant class&#39;, () =&gt; {
+    render(&lt;Button onClick={() =&gt; {}} variant=&quot;secondary&quot;&gt;Click me&lt;/Button&gt;);
+    expect(screen.getByText(&#39;Click me&#39;)).toHaveClass(&#39;btn-secondary&#39;);
+  });
+});
+</code></pre>
+<h3>Hook 测试</h3>
+<pre><code class="language-typescript">import { renderHook, act } from &#39;@testing-library/react&#39;;
+import { useLocalStorage } from &#39;./useLocalStorage&#39;;
+
+describe(&#39;useLocalStorage&#39;, () =&gt; {
+  beforeEach(() =&gt; {
+    localStorage.clear();
+  });
+
+  it(&#39;returns initial value when no stored value exists&#39;, () =&gt; {
+    const { result } = renderHook(() =&gt; useLocalStorage(&#39;test-key&#39;, &#39;initial&#39;));
+    expect(result.current[0]).toBe(&#39;initial&#39;);
+  });
+
+  it(&#39;updates stored value&#39;, () =&gt; {
+    const { result } = renderHook(() =&gt; useLocalStorage(&#39;test-key&#39;, &#39;initial&#39;));
+    
+    act(() =&gt; {
+      result.current[1](&#39;updated&#39;);
+    });
+
+    expect(result.current[0]).toBe(&#39;updated&#39;);
+    expect(localStorage.getItem(&#39;test-key&#39;)).toBe(&#39;&quot;updated&quot;&#39;);
+  });
+});
+</code></pre>
+<h2>最佳实践</h2>
+<h3>1. 类型定义组织</h3>
+<pre><code class="language-typescript">// types/index.ts
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface ApiResponse&lt;T&gt; {
+  data: T;
+  message: string;
+  success: boolean;
+}
+
+export type Theme = &#39;light&#39; | &#39;dark&#39;;
+export type Status = &#39;idle&#39; | &#39;loading&#39; | &#39;success&#39; | &#39;error&#39;;
+</code></pre>
+<h3>2. Props 接口设计</h3>
+<pre><code class="language-typescript">// 使用可选属性和默认值
+interface ComponentProps {
+  required: string;
+  optional?: number;
+  children?: React.ReactNode;
+}
+
+// 扩展 HTML 属性
+interface ButtonProps extends React.ButtonHTMLAttributes&lt;HTMLButtonElement&gt; {
+  variant?: &#39;primary&#39; | &#39;secondary&#39;;
+  size?: &#39;small&#39; | &#39;medium&#39; | &#39;large&#39;;
+}
+
+// 使用泛型提高复用性
+interface SelectProps&lt;T&gt; {
+  options: T[];
+  value: T;
+  onChange: (value: T) =&gt; void;
+  getLabel: (option: T) =&gt; string;
+  getValue: (option: T) =&gt; string;
+}
+</code></pre>
+<h3>3. 错误处理</h3>
+<pre><code class="language-typescript">// 错误边界组件
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+class ErrorBoundary extends React.Component&lt;
+  React.PropsWithChildren&lt;{}&gt;,
+  ErrorBoundaryState
+&gt; {
+  constructor(props: React.PropsWithChildren&lt;{}&gt;) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error(&#39;Error caught by boundary:&#39;, error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        &lt;div&gt;
+          &lt;h2&gt;Something went wrong.&lt;/h2&gt;
+          &lt;details&gt;
+            {this.state.error?.message}
+          &lt;/details&gt;
+        &lt;/div&gt;
+      );
+    }
+
+    return this.props.children;
+  }
+}
+</code></pre>
+<h2>总结</h2>
+<p>React 与 TypeScript 的结合为前端开发提供了强大的类型安全保障：</p>
+<ol>
+<li><strong>组件类型化</strong>：为 Props、State 和事件提供完整的类型定义</li>
+<li><strong>Hooks 类型安全</strong>：确保 useState、useEffect 等 Hooks 的类型正确性</li>
+<li><strong>事件处理</strong>：提供精确的事件类型定义</li>
+<li><strong>状态管理</strong>：为 Context API 和 Reducer 提供类型支持</li>
+<li><strong>性能优化</strong>：结合 TypeScript 进行类型安全的性能优化</li>
+<li><strong>测试支持</strong>：为组件和 Hooks 提供类型安全的测试</li>
+</ol>
+<p>通过合理使用 TypeScript，我们可以构建更加健壮、可维护的 React 应用程序。</p>
+<h2>练习题</h2>
+<ol>
+<li>创建一个类型安全的表单组件，支持多种输入类型</li>
+<li>实现一个带有类型约束的数据表格组件</li>
+<li>设计一个类型安全的路由系统</li>
+<li>创建一个支持泛型的数据获取 Hook</li>
+<li>实现一个类型安全的主题切换系统</li>
+</ol>
+<hr>
+<p><em>下一篇：<a href="./27.md">Node.js 与 TypeScript</a></em></p>
+
+      

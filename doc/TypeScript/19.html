@@ -1,0 +1,628 @@
+
+        <header>
+          <h1>模板字面量类型 (Template Literal Types)</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <h1>TypeScript 模板字面量类型 (Template Literal Types)</h1>
+<h2>什么是模板字面量类型？</h2>
+<p>模板字面量类型是 TypeScript 4.1 引入的强大特性，它允许使用模板字面量语法来创建新的字符串字面量类型。这个特性结合了 JavaScript 的模板字面量语法和 TypeScript 的类型系统。</p>
+<h2>基本语法</h2>
+<pre><code class="language-typescript">// 基本模板字面量类型语法
+type TemplateType = `prefix_${string}_suffix`;
+
+// 使用联合类型
+type Color = &#39;red&#39; | &#39;green&#39; | &#39;blue&#39;;
+type ColoredButton = `${Color}Button`;
+// 结果：&#39;redButton&#39; | &#39;greenButton&#39; | &#39;blueButton&#39;
+
+// 多个插值
+type Size = &#39;small&#39; | &#39;medium&#39; | &#39;large&#39;;
+type StyledButton = `${Color}_${Size}_button`;
+// 结果：&#39;red_small_button&#39; | &#39;red_medium_button&#39; | &#39;red_large_button&#39; | 
+//       &#39;green_small_button&#39; | &#39;green_medium_button&#39; | &#39;green_large_button&#39; |
+//       &#39;blue_small_button&#39; | &#39;blue_medium_button&#39; | &#39;blue_large_button&#39;
+</code></pre>
+<h2>基础应用</h2>
+<h3>事件名称生成</h3>
+<pre><code class="language-typescript">// DOM 事件类型
+type DOMEvent = &#39;click&#39; | &#39;focus&#39; | &#39;blur&#39; | &#39;change&#39; | &#39;submit&#39;;
+
+// 生成事件处理器名称
+type EventHandler&lt;T extends string&gt; = `on${Capitalize&lt;T&gt;}`;
+
+type DOMEventHandlers = EventHandler&lt;DOMEvent&gt;;
+// 结果：&#39;onClick&#39; | &#39;onFocus&#39; | &#39;onBlur&#39; | &#39;onChange&#39; | &#39;onSubmit&#39;
+
+// 实际应用：React 组件 props
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick?: () =&gt; void;
+  onFocus?: () =&gt; void;
+  onBlur?: () =&gt; void;
+}
+
+// 动态生成事件处理器类型
+type EventHandlerProps&lt;T extends string&gt; = {
+  [K in T as EventHandler&lt;K&gt;]?: () =&gt; void;
+};
+
+type AllEventHandlers = EventHandlerProps&lt;DOMEvent&gt;;
+// 结果：{
+//   onClick?: () =&gt; void;
+//   onFocus?: () =&gt; void;
+//   onBlur?: () =&gt; void;
+//   onChange?: () =&gt; void;
+//   onSubmit?: () =&gt; void;
+// }
+</code></pre>
+<h3>CSS 类名生成</h3>
+<pre><code class="language-typescript">// CSS 前缀
+type CSSPrefix = &#39;btn&#39; | &#39;card&#39; | &#39;modal&#39;;
+type CSSVariant = &#39;primary&#39; | &#39;secondary&#39; | &#39;danger&#39;;
+type CSSSize = &#39;sm&#39; | &#39;md&#39; | &#39;lg&#39;;
+
+// 生成 CSS 类名
+type CSSClass = `${CSSPrefix}-${CSSVariant}` | `${CSSPrefix}-${CSSSize}`;
+// 结果：&#39;btn-primary&#39; | &#39;btn-secondary&#39; | &#39;btn-danger&#39; | &#39;btn-sm&#39; | &#39;btn-md&#39; | &#39;btn-lg&#39; |
+//       &#39;card-primary&#39; | &#39;card-secondary&#39; | &#39;card-danger&#39; | &#39;card-sm&#39; | &#39;card-md&#39; | &#39;card-lg&#39; |
+//       &#39;modal-primary&#39; | &#39;modal-secondary&#39; | &#39;modal-danger&#39; | &#39;modal-sm&#39; | &#39;modal-md&#39; | &#39;modal-lg&#39;
+
+// 复杂的 CSS 类名组合
+type ComplexCSSClass = `${CSSPrefix}-${CSSVariant}-${CSSSize}`;
+
+// CSS-in-JS 样式对象
+type StyleObject = Record&lt;CSSClass, React.CSSProperties&gt;;
+
+const styles: StyleObject = {
+  &#39;btn-primary&#39;: { backgroundColor: &#39;blue&#39;, color: &#39;white&#39; },
+  &#39;btn-secondary&#39;: { backgroundColor: &#39;gray&#39;, color: &#39;black&#39; },
+  // ... 其他样式
+};
+</code></pre>
+<h2>字符串操作</h2>
+<h3>字符串转换工具类型</h3>
+<pre><code class="language-typescript">// 驼峰命名转换
+type CamelCase&lt;S extends string&gt; = S extends `${infer P1}_${infer P2}${infer P3}`
+  ? `${P1}${Uppercase&lt;P2&gt;}${CamelCase&lt;P3&gt;}`
+  : S;
+
+type CamelCased = CamelCase&lt;&#39;hello_world_example&#39;&gt;;
+// 结果：&#39;helloWorldExample&#39;
+
+// 下划线命名转换
+type SnakeCase&lt;S extends string&gt; = S extends `${infer T}${infer U}`
+  ? `${T extends Capitalize&lt;T&gt; ? &#39;_&#39; : &#39;&#39;}${Lowercase&lt;T&gt;}${SnakeCase&lt;U&gt;}`
+  : S;
+
+type SnakeCased = SnakeCase&lt;&#39;HelloWorldExample&#39;&gt;;
+// 结果：&#39;hello_world_example&#39;
+
+// 短横线命名转换
+type KebabCase&lt;S extends string&gt; = S extends `${infer T}${infer U}`
+  ? `${T extends Capitalize&lt;T&gt; ? &#39;-&#39; : &#39;&#39;}${Lowercase&lt;T&gt;}${KebabCase&lt;U&gt;}`
+  : S;
+
+type KebabCased = KebabCase&lt;&#39;HelloWorldExample&#39;&gt;;
+// 结果：&#39;hello-world-example&#39;
+
+// 首字母大写
+type PascalCase&lt;S extends string&gt; = S extends `${infer First}${infer Rest}`
+  ? `${Uppercase&lt;First&gt;}${Rest}`
+  : S;
+
+type PascalCased = PascalCase&lt;&#39;hello&#39;&gt;;
+// 结果：&#39;Hello&#39;
+</code></pre>
+<h3>字符串解析</h3>
+<pre><code class="language-typescript">// 解析版本号
+type ParseVersion&lt;V extends string&gt; = V extends `${infer Major}.${infer Minor}.${infer Patch}`
+  ? {
+      major: Major;
+      minor: Minor;
+      patch: Patch;
+    }
+  : never;
+
+type Version = ParseVersion&lt;&#39;1.2.3&#39;&gt;;
+// 结果：{ major: &#39;1&#39;; minor: &#39;2&#39;; patch: &#39;3&#39;; }
+
+// 解析 URL 路径参数
+type ExtractParams&lt;T extends string&gt; = 
+  T extends `${string}:${infer Param}/${infer Rest}`
+    ? Param | ExtractParams&lt;Rest&gt;
+    : T extends `${string}:${infer Param}`
+    ? Param
+    : never;
+
+type RouteParams = ExtractParams&lt;&#39;/users/:id/posts/:postId/comments/:commentId&#39;&gt;;
+// 结果：&#39;id&#39; | &#39;postId&#39; | &#39;commentId&#39;
+
+// 解析查询字符串
+type ParseQuery&lt;T extends string&gt; = 
+  T extends `${infer Key}=${infer Value}&amp;${infer Rest}`
+    ? { [K in Key]: Value } &amp; ParseQuery&lt;Rest&gt;
+    : T extends `${infer Key}=${infer Value}`
+    ? { [K in Key]: Value }
+    : {};
+
+type QueryParams = ParseQuery&lt;&#39;name=john&amp;age=25&amp;active=true&#39;&gt;;
+// 结果：{ name: &#39;john&#39;; age: &#39;25&#39;; active: &#39;true&#39;; }
+
+// 解析文件路径
+type ParsePath&lt;T extends string&gt; = T extends `${infer Dir}/${infer File}`
+  ? { directory: Dir; filename: ParsePath&lt;File&gt; }
+  : T extends `${infer Name}.${infer Ext}`
+  ? { name: Name; extension: Ext }
+  : { name: T; extension: never };
+
+type FilePath = ParsePath&lt;&#39;src/components/Button.tsx&#39;&gt;;
+// 结果：{
+//   directory: &#39;src&#39;;
+//   filename: {
+//     directory: &#39;components&#39;;
+//     filename: { name: &#39;Button&#39;; extension: &#39;tsx&#39; };
+//   };
+// }
+</code></pre>
+<h2>高级应用</h2>
+<h3>API 路由类型系统</h3>
+<pre><code class="language-typescript">// HTTP 方法
+type HttpMethod = &#39;GET&#39; | &#39;POST&#39; | &#39;PUT&#39; | &#39;DELETE&#39; | &#39;PATCH&#39;;
+
+// 路由定义
+type Route = 
+  | &#39;/users&#39;
+  | &#39;/users/:id&#39;
+  | &#39;/users/:id/posts&#39;
+  | &#39;/users/:id/posts/:postId&#39;
+  | &#39;/posts&#39;
+  | &#39;/posts/:id&#39;
+  | &#39;/auth/login&#39;
+  | &#39;/auth/register&#39;;
+
+// 组合 HTTP 方法和路由
+type ApiEndpoint = `${HttpMethod} ${Route}`;
+
+// 提取路由参数
+type ExtractRouteParams&lt;T extends string&gt; = 
+  T extends `${string} ${infer Path}`
+    ? ExtractParams&lt;Path&gt;
+    : never;
+
+// 路由参数映射
+type RouteParamsMap = {
+  [K in ApiEndpoint]: ExtractRouteParams&lt;K&gt; extends never
+    ? {}
+    : { [P in ExtractRouteParams&lt;K&gt;]: string };
+};
+
+// 类型安全的 API 客户端
+class TypedApiClient {
+  async request&lt;T extends ApiEndpoint&gt;(
+    endpoint: T,
+    params: RouteParamsMap[T],
+    body?: any
+  ): Promise&lt;any&gt; {
+    const [method, path] = endpoint.split(&#39; &#39;);
+    
+    // 替换路径参数
+    let finalPath = path;
+    for (const [key, value] of Object.entries(params)) {
+      finalPath = finalPath.replace(`:${key}`, value as string);
+    }
+    
+    return fetch(finalPath, {
+      method,
+      body: body ? JSON.stringify(body) : undefined,
+      headers: {
+        &#39;Content-Type&#39;: &#39;application/json&#39;
+      }
+    }).then(res =&gt; res.json());
+  }
+}
+
+const client = new TypedApiClient();
+
+// 类型安全的使用
+client.request(&#39;GET /users/:id&#39;, { id: &#39;123&#39; });
+client.request(&#39;POST /users/:id/posts&#39;, { id: &#39;123&#39; }, { title: &#39;Hello&#39; });
+// client.request(&#39;GET /users/:id&#39;, {}); // Error: 缺少 id 参数
+</code></pre>
+<h3>数据库查询构建器</h3>
+<pre><code class="language-typescript">// 数据库表定义
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  age: number;
+}
+
+interface Post {
+  id: number;
+  title: string;
+  content: string;
+  authorId: number;
+}
+
+// 查询操作符
+type QueryOperator = &#39;eq&#39; | &#39;ne&#39; | &#39;gt&#39; | &#39;gte&#39; | &#39;lt&#39; | &#39;lte&#39; | &#39;like&#39; | &#39;in&#39;;
+
+// 生成查询方法名
+type QueryMethod&lt;T extends string, O extends string&gt; = `${T}${Capitalize&lt;O&gt;}`;
+
+// 查询构建器类型
+type QueryBuilder&lt;T&gt; = {
+  [K in keyof T as K extends string 
+    ? QueryMethod&lt;K, QueryOperator&gt;
+    : never
+  ]: T[K] extends number
+    ? (value: number) =&gt; QueryBuilder&lt;T&gt;
+    : T[K] extends string
+    ? (value: string) =&gt; QueryBuilder&lt;T&gt;
+    : (value: T[K]) =&gt; QueryBuilder&lt;T&gt;;
+} &amp; {
+  build(): string;
+  execute(): Promise&lt;T[]&gt;;
+};
+
+// 使用示例（概念性）
+declare function createQueryBuilder&lt;T&gt;(): QueryBuilder&lt;T&gt;;
+
+const userQuery = createQueryBuilder&lt;User&gt;()
+  .nameEq(&#39;John&#39;)
+  .ageGt(18)
+  .emailLike(&#39;%@gmail.com&#39;)
+  .build();
+
+// SQL 查询类型
+type SQLQuery&lt;T extends string&gt; = `SELECT * FROM ${T}`;
+type SQLInsert&lt;T extends string&gt; = `INSERT INTO ${T}`;
+type SQLUpdate&lt;T extends string&gt; = `UPDATE ${T} SET`;
+type SQLDelete&lt;T extends string&gt; = `DELETE FROM ${T}`;
+
+type SQLOperation&lt;T extends string, O extends string&gt; = 
+  O extends &#39;select&#39; ? SQLQuery&lt;T&gt; :
+  O extends &#39;insert&#39; ? SQLInsert&lt;T&gt; :
+  O extends &#39;update&#39; ? SQLUpdate&lt;T&gt; :
+  O extends &#39;delete&#39; ? SQLDelete&lt;T&gt; :
+  never;
+
+type UserSelectQuery = SQLOperation&lt;&#39;users&#39;, &#39;select&#39;&gt;;
+// 结果：&#39;SELECT * FROM users&#39;
+</code></pre>
+<h3>状态机类型系统</h3>
+<pre><code class="language-typescript">// 状态定义
+type UserState = &#39;idle&#39; | &#39;loading&#39; | &#39;success&#39; | &#39;error&#39;;
+type UserAction = &#39;fetch&#39; | &#39;reset&#39; | &#39;retry&#39;;
+
+// 状态转换类型
+type StateTransition&lt;S extends string, A extends string&gt; = `${S}_${A}`;
+
+// 生成所有可能的状态转换
+type AllTransitions = StateTransition&lt;UserState, UserAction&gt;;
+// 结果：&#39;idle_fetch&#39; | &#39;idle_reset&#39; | &#39;idle_retry&#39; | &#39;loading_fetch&#39; | &#39;loading_reset&#39; | 
+//       &#39;loading_retry&#39; | &#39;success_fetch&#39; | &#39;success_reset&#39; | &#39;success_retry&#39; | 
+//       &#39;error_fetch&#39; | &#39;error_reset&#39; | &#39;error_retry&#39;
+
+// 有效的状态转换
+type ValidTransitions = 
+  | &#39;idle_fetch&#39;
+  | &#39;loading_reset&#39;
+  | &#39;success_reset&#39;
+  | &#39;error_retry&#39;
+  | &#39;error_reset&#39;;
+
+// 状态机定义
+type StateMachine&lt;S extends string, A extends string&gt; = {
+  [K in StateTransition&lt;S, A&gt;]: K extends ValidTransitions ? S : never;
+};
+
+// 状态机实现
+class TypedStateMachine&lt;S extends string, A extends string&gt; {
+  constructor(private currentState: S) {}
+
+  transition&lt;T extends A&gt;(action: T): S | never {
+    const transitionKey = `${this.currentState}_${action}` as StateTransition&lt;S, A&gt;;
+    
+    // 这里需要运行时逻辑来处理状态转换
+    switch (transitionKey) {
+      case &#39;idle_fetch&#39;:
+        this.currentState = &#39;loading&#39; as S;
+        break;
+      case &#39;loading_reset&#39;:
+      case &#39;success_reset&#39;:
+      case &#39;error_reset&#39;:
+        this.currentState = &#39;idle&#39; as S;
+        break;
+      case &#39;error_retry&#39;:
+        this.currentState = &#39;loading&#39; as S;
+        break;
+      default:
+        throw new Error(`Invalid transition: ${transitionKey}`);
+    }
+    
+    return this.currentState;
+  }
+
+  getCurrentState(): S {
+    return this.currentState;
+  }
+}
+</code></pre>
+<h3>配置系统类型</h3>
+<pre><code class="language-typescript">// 环境类型
+type Environment = &#39;development&#39; | &#39;staging&#39; | &#39;production&#39;;
+
+// 配置键前缀
+type ConfigPrefix = &#39;DB&#39; | &#39;API&#39; | &#39;CACHE&#39; | &#39;AUTH&#39;;
+
+// 生成环境变量名
+type EnvVar&lt;P extends string, K extends string&gt; = `${P}_${Uppercase&lt;K&gt;}`;
+
+// 数据库配置
+type DatabaseConfig = {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+};
+
+// 生成数据库环境变量类型
+type DatabaseEnvVars = {
+  [K in keyof DatabaseConfig as EnvVar&lt;&#39;DB&#39;, string &amp; K&gt;]: string;
+};
+// 结果：{
+//   DB_HOST: string;
+//   DB_PORT: string;
+//   DB_USERNAME: string;
+//   DB_PASSWORD: string;
+// }
+
+// 配置验证器
+type ConfigValidator&lt;T&gt; = {
+  [K in keyof T]: {
+    required: boolean;
+    type: &#39;string&#39; | &#39;number&#39; | &#39;boolean&#39;;
+    default?: T[K];
+  };
+};
+
+// 环境特定配置
+type EnvironmentConfig&lt;E extends Environment&gt; = {
+  [K in `${E}_config`]: {
+    debug: boolean;
+    logLevel: &#39;error&#39; | &#39;warn&#39; | &#39;info&#39; | &#39;debug&#39;;
+  };
+};
+
+type DevConfig = EnvironmentConfig&lt;&#39;development&#39;&gt;;
+// 结果：{ development_config: { debug: boolean; logLevel: &#39;error&#39; | &#39;warn&#39; | &#39;info&#39; | &#39;debug&#39;; } }
+
+// 功能标志
+type FeatureFlag&lt;F extends string&gt; = `feature_${F}_enabled`;
+
+type AppFeatures = &#39;user_registration&#39; | &#39;payment_processing&#39; | &#39;advanced_search&#39;;
+type FeatureFlags = {
+  [K in AppFeatures as FeatureFlag&lt;K&gt;]: boolean;
+};
+// 结果：{
+//   feature_user_registration_enabled: boolean;
+//   feature_payment_processing_enabled: boolean;
+//   feature_advanced_search_enabled: boolean;
+// }
+</code></pre>
+<h2>实际项目应用</h2>
+<h3>React 组件属性生成</h3>
+<pre><code class="language-typescript">// 基础组件类型
+type ComponentSize = &#39;xs&#39; | &#39;sm&#39; | &#39;md&#39; | &#39;lg&#39; | &#39;xl&#39;;
+type ComponentVariant = &#39;primary&#39; | &#39;secondary&#39; | &#39;success&#39; | &#39;warning&#39; | &#39;danger&#39;;
+
+// 生成组件类名
+type ComponentClassName&lt;C extends string&gt; = 
+  | `${C}`
+  | `${C}-${ComponentSize}`
+  | `${C}-${ComponentVariant}`
+  | `${C}-${ComponentSize}-${ComponentVariant}`;
+
+// Button 组件
+type ButtonClassName = ComponentClassName&lt;&#39;btn&#39;&gt;;
+
+interface ButtonProps {
+  children: React.ReactNode;
+  className?: ButtonClassName;
+  size?: ComponentSize;
+  variant?: ComponentVariant;
+  disabled?: boolean;
+}
+
+// 自动生成样式属性
+type StyleProps&lt;T extends string&gt; = {
+  [K in T as `${K}Style`]?: React.CSSProperties;
+};
+
+type ButtonStyleProps = StyleProps&lt;&#39;button&#39; | &#39;icon&#39; | &#39;text&#39;&gt;;
+// 结果：{
+//   buttonStyle?: React.CSSProperties;
+//   iconStyle?: React.CSSProperties;
+//   textStyle?: React.CSSProperties;
+// }
+
+// 完整的 Button 组件属性
+type FullButtonProps = ButtonProps &amp; ButtonStyleProps;
+</code></pre>
+<h3>GraphQL 查询类型</h3>
+<pre><code class="language-typescript">// GraphQL 操作类型
+type GraphQLOperation = &#39;query&#39; | &#39;mutation&#39; | &#39;subscription&#39;;
+
+// 生成 GraphQL 操作名
+type GraphQLOperationName&lt;O extends GraphQLOperation, N extends string&gt; = 
+  `${O}${Capitalize&lt;N&gt;}`;
+
+// 用户相关操作
+type UserOperations = 
+  | GraphQLOperationName&lt;&#39;query&#39;, &#39;user&#39;&gt;
+  | GraphQLOperationName&lt;&#39;query&#39;, &#39;users&#39;&gt;
+  | GraphQLOperationName&lt;&#39;mutation&#39;, &#39;createUser&#39;&gt;
+  | GraphQLOperationName&lt;&#39;mutation&#39;, &#39;updateUser&#39;&gt;
+  | GraphQLOperationName&lt;&#39;mutation&#39;, &#39;deleteUser&#39;&gt;;
+// 结果：&#39;queryUser&#39; | &#39;queryUsers&#39; | &#39;mutationCreateUser&#39; | &#39;mutationUpdateUser&#39; | &#39;mutationDeleteUser&#39;
+
+// GraphQL 字段选择器
+type FieldSelector&lt;T&gt; = {
+  [K in keyof T]?: T[K] extends object ? FieldSelector&lt;T[K]&gt; : boolean;
+};
+
+type UserFieldSelector = FieldSelector&lt;User&gt;;
+// 结果：{
+//   id?: boolean;
+//   name?: boolean;
+//   email?: boolean;
+//   age?: boolean;
+// }
+
+// GraphQL 查询构建器
+type GraphQLQuery&lt;T extends string, F&gt; = {
+  operation: T;
+  fields: F;
+  variables?: Record&lt;string, any&gt;;
+};
+
+type UserQuery = GraphQLQuery&lt;&#39;queryUser&#39;, UserFieldSelector&gt;;
+</code></pre>
+<h3>类型安全的本地化</h3>
+<pre><code class="language-typescript">// 支持的语言
+type Locale = &#39;en&#39; | &#39;zh&#39; | &#39;ja&#39; | &#39;ko&#39;;
+
+// 翻译键
+type TranslationKey = 
+  | &#39;common.save&#39;
+  | &#39;common.cancel&#39;
+  | &#39;common.delete&#39;
+  | &#39;user.name&#39;
+  | &#39;user.email&#39;
+  | &#39;user.profile&#39;
+  | &#39;error.required&#39;
+  | &#39;error.invalid_email&#39;;
+
+// 生成本地化资源键
+type LocalizedKey&lt;L extends Locale, K extends TranslationKey&gt; = `${L}.${K}`;
+
+// 翻译资源类型
+type TranslationResources = {
+  [K in TranslationKey]: string;
+};
+
+// 多语言资源
+type MultiLanguageResources = {
+  [L in Locale]: TranslationResources;
+};
+
+// 翻译函数类型
+type TranslateFunction = &lt;K extends TranslationKey&gt;(
+  key: K,
+  params?: Record&lt;string, string | number&gt;
+) =&gt; string;
+
+// 带参数的翻译键
+type ParameterizedTranslationKey = 
+  | &#39;user.welcome&#39;  // &quot;Welcome, {name}!&quot;
+  | &#39;user.age&#39;      // &quot;Age: {age}&quot;
+  | &#39;error.min_length&#39;; // &quot;Minimum length is {min}&quot;
+
+// 提取参数
+type ExtractParams&lt;T extends string&gt; = 
+  T extends `${string}{${infer Param}}${infer Rest}`
+    ? Param | ExtractParams&lt;Rest&gt;
+    : never;
+
+type WelcomeParams = ExtractParams&lt;&#39;Welcome, {name}!&#39;&gt;;
+// 结果：&#39;name&#39;
+
+type AgeParams = ExtractParams&lt;&#39;Age: {age}&#39;&gt;;
+// 结果：&#39;age&#39;
+
+// 类型安全的翻译函数
+declare function t&lt;K extends TranslationKey&gt;(
+  key: K,
+  ...args: ExtractParams&lt;K&gt; extends never 
+    ? [] 
+    : [params: Record&lt;ExtractParams&lt;K&gt;, string | number&gt;]
+): string;
+
+// 使用示例
+t(&#39;common.save&#39;); // OK
+t(&#39;user.welcome&#39;, { name: &#39;John&#39; }); // OK
+// t(&#39;user.welcome&#39;); // Error: 缺少参数
+// t(&#39;common.save&#39;, { name: &#39;John&#39; }); // Error: 不需要参数
+</code></pre>
+<h2>模板字面量类型最佳实践</h2>
+<h3>1. 避免过度复杂的模板</h3>
+<pre><code class="language-typescript">// 不好的做法：过度复杂
+type OverlyComplex&lt;A, B, C, D&gt; = `${A}_${B}_${C}_${D}_suffix`;
+
+// 好的做法：分步构建
+type Step1&lt;A, B&gt; = `${A}_${B}`;
+type Step2&lt;T, C&gt; = `${T}_${C}`;
+type FinalType&lt;T, D&gt; = `${T}_${D}_suffix`;
+
+type WellStructured&lt;A, B, C, D&gt; = FinalType&lt;Step2&lt;Step1&lt;A, B&gt;, C&gt;, D&gt;;
+</code></pre>
+<h3>2. 使用辅助类型</h3>
+<pre><code class="language-typescript">// 辅助类型
+type Join&lt;T extends string[], S extends string = &#39;_&#39;&gt; = 
+  T extends [infer First, ...infer Rest]
+    ? First extends string
+      ? Rest extends string[]
+        ? Rest[&#39;length&#39;] extends 0
+          ? First
+          : `${First}${S}${Join&lt;Rest, S&gt;}`
+        : never
+      : never
+    : &#39;&#39;;
+
+type JoinedType = Join&lt;[&#39;hello&#39;, &#39;world&#39;, &#39;example&#39;]&gt;;
+// 结果：&#39;hello_world_example&#39;
+</code></pre>
+<h3>3. 提供类型约束</h3>
+<pre><code class="language-typescript">// 约束模板参数
+type SafeTemplate&lt;T extends string&gt; = T extends `${string}${&#39;script&#39; | &#39;iframe&#39;}${string}`
+  ? never
+  : `prefix_${T}_suffix`;
+
+type SafeType = SafeTemplate&lt;&#39;button&#39;&gt;; // OK
+// type UnsafeType = SafeTemplate&lt;&#39;script&#39;&gt;; // Error
+</code></pre>
+<h3>4. 性能考虑</h3>
+<pre><code class="language-typescript">// 限制联合类型的大小
+type LimitedUnion = &#39;a&#39; | &#39;b&#39; | &#39;c&#39;; // 好：小的联合类型
+// type HugeUnion = &#39;a1&#39; | &#39;a2&#39; | ... | &#39;z999&#39;; // 避免：巨大的联合类型
+
+// 使用条件类型优化
+type OptimizedTemplate&lt;T extends string&gt; = T extends &#39;special&#39;
+  ? &#39;special_case&#39;
+  : `normal_${T}`;
+</code></pre>
+<h2>总结</h2>
+<p>模板字面量类型是 TypeScript 的强大特性：</p>
+<ol>
+<li><strong>字符串操作</strong>：强大的字符串类型操作能力</li>
+<li><strong>类型生成</strong>：动态生成复杂的字符串类型</li>
+<li><strong>模式匹配</strong>：支持字符串模式匹配和解析</li>
+<li><strong>类型安全</strong>：编译时的字符串类型检查</li>
+</ol>
+<p>掌握模板字面量类型有助于：</p>
+<ul>
+<li>创建类型安全的 API</li>
+<li>构建强大的配置系统</li>
+<li>实现复杂的字符串操作</li>
+<li>提高代码的类型表达能力</li>
+</ul>
+<h2>练习题</h2>
+<ol>
+<li>实现一个模板字面量类型来解析 CSS 选择器</li>
+<li>创建一个类型安全的 SQL 查询构建器</li>
+<li>实现文件路径类型解析器</li>
+<li>构建一个类型安全的路由参数提取器</li>
+</ol>
+
+      

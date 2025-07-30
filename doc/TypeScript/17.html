@@ -1,0 +1,585 @@
+
+        <header>
+          <h1>条件类型 (Conditional Types)</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <h1>TypeScript 条件类型 (Conditional Types)</h1>
+<h2>什么是条件类型？</h2>
+<p>条件类型是 TypeScript 中的高级类型特性，它允许根据类型关系来选择类型。条件类型的语法类似于 JavaScript 中的三元运算符，但作用于类型层面。</p>
+<h2>基本语法</h2>
+<pre><code class="language-typescript">// 基本条件类型语法
+T extends U ? X : Y
+
+// 如果类型 T 可以赋值给类型 U，则结果类型为 X，否则为 Y
+</code></pre>
+<h2>简单条件类型</h2>
+<h3>基础示例</h3>
+<pre><code class="language-typescript">// 简单的条件类型
+type IsString&lt;T&gt; = T extends string ? true : false;
+
+type Test1 = IsString&lt;string&gt;;  // true
+type Test2 = IsString&lt;number&gt;;  // false
+type Test3 = IsString&lt;&#39;hello&#39;&gt;; // true (字面量类型也是 string)
+
+// 实际应用：类型检查
+type TypeName&lt;T&gt; = 
+  T extends string ? &#39;string&#39; :
+  T extends number ? &#39;number&#39; :
+  T extends boolean ? &#39;boolean&#39; :
+  T extends undefined ? &#39;undefined&#39; :
+  T extends Function ? &#39;function&#39; :
+  &#39;object&#39;;
+
+type T1 = TypeName&lt;string&gt;;    // &#39;string&#39;
+type T2 = TypeName&lt;42&gt;;        // &#39;number&#39;
+type T3 = TypeName&lt;true&gt;;      // &#39;boolean&#39;
+type T4 = TypeName&lt;() =&gt; void&gt;; // &#39;function&#39;
+type T5 = TypeName&lt;{}&gt;;        // &#39;object&#39;
+</code></pre>
+<h3>联合类型的条件判断</h3>
+<pre><code class="language-typescript">// 联合类型会分发条件类型
+type ToArray&lt;T&gt; = T extends any ? T[] : never;
+
+type StringOrNumberArray = ToArray&lt;string | number&gt;;
+// 结果：string[] | number[]
+// 等价于：ToArray&lt;string&gt; | ToArray&lt;number&gt;
+
+// 阻止分发行为
+type ToArrayNonDistributive&lt;T&gt; = [T] extends [any] ? T[] : never;
+
+type SingleArray = ToArrayNonDistributive&lt;string | number&gt;;
+// 结果：(string | number)[]
+</code></pre>
+<h2>infer 关键字</h2>
+<h3>基本用法</h3>
+<pre><code class="language-typescript">// infer 用于在条件类型中推断类型
+type ReturnType&lt;T&gt; = T extends (...args: any[]) =&gt; infer R ? R : any;
+
+function getString(): string { return &#39;hello&#39;; }
+function getNumber(): number { return 42; }
+
+type StringReturn = ReturnType&lt;typeof getString&gt;; // string
+type NumberReturn = ReturnType&lt;typeof getNumber&gt;; // number
+
+// 推断数组元素类型
+type ArrayElement&lt;T&gt; = T extends (infer U)[] ? U : never;
+
+type StringElement = ArrayElement&lt;string[]&gt;; // string
+type NumberElement = ArrayElement&lt;number[]&gt;; // number
+type MixedElement = ArrayElement&lt;(string | number)[]&gt;; // string | number
+</code></pre>
+<h3>复杂推断</h3>
+<pre><code class="language-typescript">// 推断函数参数类型
+type Parameters&lt;T&gt; = T extends (...args: infer P) =&gt; any ? P : never;
+
+function createUser(name: string, age: number, email: string): User {
+  return { id: 1, name, age, email };
+}
+
+type CreateUserParams = Parameters&lt;typeof createUser&gt;;
+// 结果：[string, number, string]
+
+// 推断 Promise 的值类型
+type PromiseValue&lt;T&gt; = T extends Promise&lt;infer U&gt; ? U : T;
+
+type UserPromise = Promise&lt;User&gt;;
+type UserType = PromiseValue&lt;UserPromise&gt;; // User
+type StringType = PromiseValue&lt;string&gt;;    // string (不是 Promise)
+
+// 推断对象属性类型
+type PropertyType&lt;T, K extends keyof T&gt; = T extends { [P in K]: infer U } ? U : never;
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+type UserIdType = PropertyType&lt;User, &#39;id&#39;&gt;;     // number
+type UserNameType = PropertyType&lt;User, &#39;name&#39;&gt;; // string
+</code></pre>
+<h3>多重推断</h3>
+<pre><code class="language-typescript">// 推断函数的参数和返回值
+type FunctionInfo&lt;T&gt; = T extends (...args: infer P) =&gt; infer R 
+  ? { parameters: P; returnType: R }
+  : never;
+
+function processData(data: string[], options: { sort: boolean }): number {
+  return data.length;
+}
+
+type ProcessDataInfo = FunctionInfo&lt;typeof processData&gt;;
+// 结果：{
+//   parameters: [string[], { sort: boolean }];
+//   returnType: number;
+// }
+
+// 推断嵌套结构
+type DeepArrayElement&lt;T&gt; = T extends (infer U)[][]
+  ? U
+  : T extends (infer U)[]
+  ? U
+  : never;
+
+type NestedStringElement = DeepArrayElement&lt;string[][]&gt;; // string
+type SimpleStringElement = DeepArrayElement&lt;string[]&gt;;   // string
+</code></pre>
+<h2>高级条件类型</h2>
+<h3>递归条件类型</h3>
+<pre><code class="language-typescript">// 递归展开嵌套数组
+type Flatten&lt;T&gt; = T extends (infer U)[]
+  ? U extends any[]
+    ? Flatten&lt;U&gt;
+    : U
+  : T;
+
+type NestedArray = number[][][];
+type FlattenedType = Flatten&lt;NestedArray&gt;; // number
+
+// 深度可选类型
+type DeepPartial&lt;T&gt; = {
+  [P in keyof T]?: T[P] extends object
+    ? DeepPartial&lt;T[P]&gt;
+    : T[P];
+};
+
+interface NestedConfig {
+  database: {
+    host: string;
+    port: number;
+    credentials: {
+      username: string;
+      password: string;
+    };
+  };
+  cache: {
+    enabled: boolean;
+    ttl: number;
+  };
+}
+
+type PartialConfig = DeepPartial&lt;NestedConfig&gt;;
+// 所有嵌套属性都变为可选
+</code></pre>
+<h3>字符串操作条件类型</h3>
+<pre><code class="language-typescript">// 字符串模式匹配
+type StartsWith&lt;T extends string, U extends string&gt; = 
+  T extends `${U}${string}` ? true : false;
+
+type StartsWithHello = StartsWith&lt;&#39;hello world&#39;, &#39;hello&#39;&gt;; // true
+type StartsWithBye = StartsWith&lt;&#39;hello world&#39;, &#39;bye&#39;&gt;;     // false
+
+// 提取字符串前缀
+type ExtractPrefix&lt;T extends string, U extends string&gt; = 
+  T extends `${infer Prefix}${U}${string}` ? Prefix : never;
+
+type Prefix = ExtractPrefix&lt;&#39;getUserById&#39;, &#39;By&#39;&gt;; // &#39;getUser&#39;
+
+// 路径参数提取
+type ExtractParams&lt;T extends string&gt; = 
+  T extends `${string}:${infer Param}/${infer Rest}`
+    ? Param | ExtractParams&lt;Rest&gt;
+    : T extends `${string}:${infer Param}`
+    ? Param
+    : never;
+
+type RouteParams = ExtractParams&lt;&#39;/users/:id/posts/:postId&#39;&gt;;
+// 结果：&#39;id&#39; | &#39;postId&#39;
+
+// 驼峰命名转换
+type CamelCase&lt;S extends string&gt; = S extends `${infer P1}_${infer P2}${infer P3}`
+  ? `${P1}${Uppercase&lt;P2&gt;}${CamelCase&lt;P3&gt;}`
+  : S;
+
+type CamelCased = CamelCase&lt;&#39;hello_world_example&#39;&gt;; // &#39;helloWorldExample&#39;
+</code></pre>
+<h3>对象操作条件类型</h3>
+<pre><code class="language-typescript">// 提取可选属性
+type OptionalKeys&lt;T&gt; = {
+  [K in keyof T]-?: {} extends Pick&lt;T, K&gt; ? K : never;
+}[keyof T];
+
+// 提取必需属性
+type RequiredKeys&lt;T&gt; = {
+  [K in keyof T]-?: {} extends Pick&lt;T, K&gt; ? never : K;
+}[keyof T];
+
+interface MixedInterface {
+  required1: string;
+  required2: number;
+  optional1?: boolean;
+  optional2?: Date;
+}
+
+type OptionalProps = OptionalKeys&lt;MixedInterface&gt;; // &#39;optional1&#39; | &#39;optional2&#39;
+type RequiredProps = RequiredKeys&lt;MixedInterface&gt;; // &#39;required1&#39; | &#39;required2&#39;
+
+// 分离可选和必需属性
+type SplitOptionalRequired&lt;T&gt; = {
+  optional: Pick&lt;T, OptionalKeys&lt;T&gt;&gt;;
+  required: Pick&lt;T, RequiredKeys&lt;T&gt;&gt;;
+};
+
+type SplitMixed = SplitOptionalRequired&lt;MixedInterface&gt;;
+// 结果：{
+//   optional: { optional1?: boolean; optional2?: Date };
+//   required: { required1: string; required2: number };
+// }
+</code></pre>
+<h2>实际应用示例</h2>
+<h3>API 响应类型处理</h3>
+<pre><code class="language-typescript">// API 响应基础类型
+interface ApiResponse&lt;T&gt; {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+interface ApiError {
+  success: false;
+  error: string;
+  code: number;
+}
+
+// 条件类型处理 API 响应
+type ApiResult&lt;T&gt; = T extends { success: true }
+  ? T[&#39;data&#39;]
+  : T extends { success: false }
+  ? never
+  : T;
+
+// 提取成功响应的数据类型
+type ExtractData&lt;T&gt; = T extends ApiResponse&lt;infer U&gt; ? U : never;
+
+type UserResponse = ApiResponse&lt;User&gt;;
+type UserData = ExtractData&lt;UserResponse&gt;; // User
+
+// 安全的 API 调用类型
+type SafeApiCall&lt;T&gt; = T extends ApiResponse&lt;infer U&gt;
+  ? Promise&lt;U&gt;
+  : T extends ApiError
+  ? Promise&lt;never&gt;
+  : Promise&lt;T&gt;;
+
+async function fetchUser(id: number): SafeApiCall&lt;ApiResponse&lt;User&gt;&gt; {
+  const response = await fetch(`/api/users/${id}`);
+  const data = await response.json();
+  
+  if (data.success) {
+    return data.data; // 类型为 User
+  }
+  
+  throw new Error(data.error);
+}
+</code></pre>
+<h3>表单验证类型</h3>
+<pre><code class="language-typescript">// 验证规则类型
+interface ValidationRule&lt;T&gt; {
+  required?: boolean;
+  minLength?: T extends string ? number : never;
+  maxLength?: T extends string ? number : never;
+  min?: T extends number ? number : never;
+  max?: T extends number ? number : never;
+  pattern?: T extends string ? RegExp : never;
+  custom?: (value: T) =&gt; boolean | string;
+}
+
+// 根据字段类型生成验证规则
+type FieldValidation&lt;T&gt; = {
+  [K in keyof T]: ValidationRule&lt;T[K]&gt;;
+};
+
+interface UserForm {
+  name: string;
+  email: string;
+  age: number;
+  website?: string;
+}
+
+type UserValidation = FieldValidation&lt;UserForm&gt;;
+// 结果：{
+//   name: ValidationRule&lt;string&gt;;
+//   email: ValidationRule&lt;string&gt;;
+//   age: ValidationRule&lt;number&gt;;
+//   website: ValidationRule&lt;string | undefined&gt;;
+// }
+
+// 验证错误类型
+type ValidationErrors&lt;T&gt; = {
+  [K in keyof T]?: string[];
+};
+
+// 表单状态类型
+type FormState&lt;T&gt; = {
+  values: T;
+  errors: ValidationErrors&lt;T&gt;;
+  touched: { [K in keyof T]?: boolean };
+  isValid: boolean;
+};
+
+// 验证函数类型
+type ValidateFunction&lt;T&gt; = (
+  values: T,
+  rules: FieldValidation&lt;T&gt;
+) =&gt; ValidationErrors&lt;T&gt;;
+</code></pre>
+<h3>状态机类型</h3>
+<pre><code class="language-typescript">// 状态机状态定义
+interface StateDefinition {
+  [stateName: string]: {
+    on?: {
+      [eventName: string]: string;
+    };
+    entry?: string[];
+    exit?: string[];
+  };
+}
+
+// 提取状态名
+type StateNames&lt;T extends StateDefinition&gt; = keyof T;
+
+// 提取事件名
+type EventNames&lt;T extends StateDefinition&gt; = {
+  [K in keyof T]: T[K] extends { on: infer Events }
+    ? Events extends Record&lt;string, any&gt;
+      ? keyof Events
+      : never
+    : never;
+}[keyof T];
+
+// 状态机定义示例
+const userStateMachine = {
+  idle: {
+    on: {
+      FETCH: &#39;loading&#39;,
+      CREATE: &#39;creating&#39;
+    }
+  },
+  loading: {
+    on: {
+      SUCCESS: &#39;success&#39;,
+      ERROR: &#39;error&#39;
+    },
+    entry: [&#39;showSpinner&#39;]
+  },
+  creating: {
+    on: {
+      SUCCESS: &#39;success&#39;,
+      ERROR: &#39;error&#39;
+    }
+  },
+  success: {
+    on: {
+      RESET: &#39;idle&#39;
+    },
+    exit: [&#39;hideSpinner&#39;]
+  },
+  error: {
+    on: {
+      RETRY: &#39;loading&#39;,
+      RESET: &#39;idle&#39;
+    }
+  }
+} as const;
+
+type UserStates = StateNames&lt;typeof userStateMachine&gt;;
+// 结果：&#39;idle&#39; | &#39;loading&#39; | &#39;creating&#39; | &#39;success&#39; | &#39;error&#39;
+
+type UserEvents = EventNames&lt;typeof userStateMachine&gt;;
+// 结果：&#39;FETCH&#39; | &#39;CREATE&#39; | &#39;SUCCESS&#39; | &#39;ERROR&#39; | &#39;RESET&#39; | &#39;RETRY&#39;
+
+// 类型安全的状态机
+class StateMachine&lt;T extends StateDefinition&gt; {
+  constructor(
+    private definition: T,
+    private currentState: StateNames&lt;T&gt;
+  ) {}
+
+  transition(event: EventNames&lt;T&gt;): StateNames&lt;T&gt; | null {
+    const state = this.definition[this.currentState];
+    if (state.on &amp;&amp; event in state.on) {
+      this.currentState = state.on[event as string] as StateNames&lt;T&gt;;
+      return this.currentState;
+    }
+    return null;
+  }
+
+  getCurrentState(): StateNames&lt;T&gt; {
+    return this.currentState;
+  }
+}
+
+const machine = new StateMachine(userStateMachine, &#39;idle&#39;);
+machine.transition(&#39;FETCH&#39;); // 返回 &#39;loading&#39;
+</code></pre>
+<h3>路由类型系统</h3>
+<pre><code class="language-typescript">// 路由定义类型
+interface RouteDefinition {
+  path: string;
+  component: string;
+  children?: RouteDefinition[];
+}
+
+// 提取路径参数
+type ExtractRouteParams&lt;T extends string&gt; = 
+  T extends `${string}:${infer Param}/${infer Rest}`
+    ? { [K in Param]: string } &amp; ExtractRouteParams&lt;Rest&gt;
+    : T extends `${string}:${infer Param}`
+    ? { [K in Param]: string }
+    : {};
+
+// 路由配置
+const routes = [
+  {
+    path: &#39;/users/:id&#39;,
+    component: &#39;UserDetail&#39;
+  },
+  {
+    path: &#39;/posts/:postId/comments/:commentId&#39;,
+    component: &#39;CommentDetail&#39;
+  },
+  {
+    path: &#39;/dashboard&#39;,
+    component: &#39;Dashboard&#39;
+  }
+] as const;
+
+// 提取所有路由路径
+type RoutePaths = typeof routes[number][&#39;path&#39;];
+// 结果：&#39;/users/:id&#39; | &#39;/posts/:postId/comments/:commentId&#39; | &#39;/dashboard&#39;
+
+// 路由参数类型映射
+type RouteParamsMap = {
+  [K in RoutePaths]: ExtractRouteParams&lt;K&gt;;
+};
+// 结果：{
+//   &#39;/users/:id&#39;: { id: string };
+//   &#39;/posts/:postId/comments/:commentId&#39;: { postId: string; commentId: string };
+//   &#39;/dashboard&#39;: {};
+// }
+
+// 类型安全的路由导航
+function navigate&lt;T extends RoutePaths&gt;(
+  path: T,
+  params: RouteParamsMap[T]
+): void {
+  // 路由导航实现
+  console.log(`Navigating to ${path} with params:`, params);
+}
+
+// 使用示例
+navigate(&#39;/users/:id&#39;, { id: &#39;123&#39; }); // OK
+navigate(&#39;/posts/:postId/comments/:commentId&#39;, { 
+  postId: &#39;456&#39;, 
+  commentId: &#39;789&#39; 
+}); // OK
+navigate(&#39;/dashboard&#39;, {}); // OK
+
+// navigate(&#39;/users/:id&#39;, {}); // Error: 缺少 id 参数
+// navigate(&#39;/dashboard&#39;, { id: &#39;123&#39; }); // Error: 不需要参数
+</code></pre>
+<h2>条件类型最佳实践</h2>
+<h3>1. 避免过度复杂的条件类型</h3>
+<pre><code class="language-typescript">// 不好的做法：过度复杂
+type ComplexType&lt;T&gt; = T extends string
+  ? T extends `${infer A}${infer B}`
+    ? B extends string
+      ? A extends &#39;get&#39;
+        ? `Getting ${B}`
+        : A extends &#39;set&#39;
+        ? `Setting ${B}`
+        : never
+      : never
+    : never
+  : never;
+
+// 好的做法：分解为多个简单类型
+type ExtractAction&lt;T extends string&gt; = T extends `${infer Action}${string}` ? Action : never;
+type ExtractTarget&lt;T extends string&gt; = T extends `${string}${infer Target}` ? Target : never;
+
+type ActionType&lt;T extends string&gt; = ExtractAction&lt;T&gt; extends &#39;get&#39;
+  ? &#39;Getting&#39;
+  : ExtractAction&lt;T&gt; extends &#39;set&#39;
+  ? &#39;Setting&#39;
+  : never;
+
+type SimpleType&lt;T extends string&gt; = `${ActionType&lt;T&gt;} ${ExtractTarget&lt;T&gt;}`;
+</code></pre>
+<h3>2. 使用辅助类型提高可读性</h3>
+<pre><code class="language-typescript">// 辅助类型
+type IsArray&lt;T&gt; = T extends any[] ? true : false;
+type IsFunction&lt;T&gt; = T extends (...args: any[]) =&gt; any ? true : false;
+type IsObject&lt;T&gt; = T extends object ? true : false;
+
+// 主要类型使用辅助类型
+type SerializableValue&lt;T&gt; = 
+  IsArray&lt;T&gt; extends true
+    ? T extends (infer U)[]
+      ? SerializableValue&lt;U&gt;[]
+      : never
+    : IsFunction&lt;T&gt; extends true
+    ? never
+    : IsObject&lt;T&gt; extends true
+    ? { [K in keyof T]: SerializableValue&lt;T[K]&gt; }
+    : T;
+
+interface ComplexObject {
+  name: string;
+  age: number;
+  callback: () =&gt; void;
+  items: { id: number; data: string }[];
+}
+
+type SerializableObject = SerializableValue&lt;ComplexObject&gt;;
+// 结果：{
+//   name: string;
+//   age: number;
+//   callback: never;
+//   items: { id: number; data: string }[];
+// }
+</code></pre>
+<h3>3. 提供默认类型参数</h3>
+<pre><code class="language-typescript">// 提供合理的默认值
+type ApiResponse&lt;T = any, E = Error&gt; = 
+  | { success: true; data: T }
+  | { success: false; error: E };
+
+type SafeExtract&lt;T, K extends keyof T, D = never&gt; = 
+  T extends Record&lt;K, infer U&gt; ? U : D;
+
+// 使用示例
+type UserResponse = ApiResponse&lt;User&gt;; // 使用默认错误类型
+type CustomResponse = ApiResponse&lt;User, string&gt;; // 自定义错误类型
+
+interface User {
+  id: number;
+  profile?: { avatar: string };
+}
+
+type Avatar = SafeExtract&lt;User[&#39;profile&#39;], &#39;avatar&#39;, string&gt;;
+// 如果 profile 存在且有 avatar，返回 string；否则返回 string（默认值）
+</code></pre>
+<h2>总结</h2>
+<p>条件类型是 TypeScript 类型系统的强大特性：</p>
+<ol>
+<li><strong>类型选择</strong>：根据类型关系动态选择类型</li>
+<li><strong>类型推断</strong>：使用 <code>infer</code> 关键字推断类型信息</li>
+<li><strong>递归处理</strong>：支持递归条件类型处理复杂结构</li>
+<li><strong>字符串操作</strong>：强大的字符串模式匹配能力</li>
+</ol>
+<p>掌握条件类型有助于：</p>
+<ul>
+<li>创建更智能的类型系统</li>
+<li>构建类型安全的 API</li>
+<li>实现复杂的类型转换</li>
+<li>提高代码的类型表达能力</li>
+</ul>
+<h2>练习题</h2>
+<ol>
+<li>实现一个条件类型来判断类型是否为数组</li>
+<li>创建一个递归条件类型来深度展开嵌套对象</li>
+<li>使用条件类型实现一个类型安全的事件系统</li>
+<li>实现字符串模板类型来处理 URL 路径参数</li>
+</ol>
+
+      

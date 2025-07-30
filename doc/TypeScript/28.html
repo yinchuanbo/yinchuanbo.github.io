@@ -1,0 +1,1579 @@
+
+        <header>
+          <h1>测试</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <h2>概述</h2>
+<p>测试是软件开发中确保代码质量和可靠性的重要环节。TypeScript 的类型系统为测试提供了额外的安全保障，但同时也需要特殊的配置和技巧。本文将深入探讨如何在 TypeScript 项目中编写高质量的测试。</p>
+<h2>测试基础</h2>
+<h3>测试类型</h3>
+<pre><code class="language-typescript">// 测试金字塔
+/*
+    E2E Tests (少量)
+   ─────────────────
+  Integration Tests (适量)
+ ─────────────────────────
+Unit Tests (大量)
+*/
+
+// 1. 单元测试 - 测试单个函数或类
+// 2. 集成测试 - 测试多个模块的交互
+// 3. 端到端测试 - 测试完整的用户流程
+</code></pre>
+<h3>测试工具选择</h3>
+<pre><code class="language-typescript">// 主要测试框架
+interface TestingFramework {
+  name: string;
+  features: string[];
+  bestFor: string[];
+}
+
+const frameworks: TestingFramework[] = [
+  {
+    name: &#39;Jest&#39;,
+    features: [&#39;内置断言&#39;, &#39;模拟功能&#39;, &#39;快照测试&#39;, &#39;覆盖率报告&#39;],
+    bestFor: [&#39;React应用&#39;, &#39;Node.js项目&#39;, &#39;通用JavaScript/TypeScript&#39;]
+  },
+  {
+    name: &#39;Vitest&#39;,
+    features: [&#39;Vite集成&#39;, &#39;快速执行&#39;, &#39;ESM支持&#39;, &#39;TypeScript原生支持&#39;],
+    bestFor: [&#39;Vite项目&#39;, &#39;现代前端应用&#39;, &#39;快速开发&#39;]
+  },
+  {
+    name: &#39;Mocha + Chai&#39;,
+    features: [&#39;灵活配置&#39;, &#39;丰富的断言库&#39;, &#39;插件生态&#39;],
+    bestFor: [&#39;Node.js项目&#39;, &#39;自定义测试环境&#39;]
+  }
+];
+</code></pre>
+<h2>Jest 配置</h2>
+<h3>基础配置</h3>
+<pre><code class="language-json">// package.json
+{
+  &quot;scripts&quot;: {
+    &quot;test&quot;: &quot;jest&quot;,
+    &quot;test:watch&quot;: &quot;jest --watch&quot;,
+    &quot;test:coverage&quot;: &quot;jest --coverage&quot;,
+    &quot;test:ci&quot;: &quot;jest --ci --coverage --watchAll=false&quot;
+  },
+  &quot;devDependencies&quot;: {
+    &quot;@types/jest&quot;: &quot;^29.5.0&quot;,
+    &quot;jest&quot;: &quot;^29.5.0&quot;,
+    &quot;ts-jest&quot;: &quot;^29.1.0&quot;,
+    &quot;typescript&quot;: &quot;^5.0.0&quot;
+  }
+}
+</code></pre>
+<pre><code class="language-javascript">// jest.config.js
+module.exports = {
+  preset: &#39;ts-jest&#39;,
+  testEnvironment: &#39;node&#39;,
+  roots: [&#39;&lt;rootDir&gt;/src&#39;],
+  testMatch: [
+    &#39;**/__tests__/**/*.+(ts|tsx|js)&#39;,
+    &#39;**/*.(test|spec).+(ts|tsx|js)&#39;
+  ],
+  transform: {
+    &#39;^.+\\.(ts|tsx)$&#39;: &#39;ts-jest&#39;
+  },
+  collectCoverageFrom: [
+    &#39;src/**/*.{ts,tsx}&#39;,
+    &#39;!src/**/*.d.ts&#39;,
+    &#39;!src/index.ts&#39;
+  ],
+  coverageDirectory: &#39;coverage&#39;,
+  coverageReporters: [&#39;text&#39;, &#39;lcov&#39;, &#39;html&#39;],
+  setupFilesAfterEnv: [&#39;&lt;rootDir&gt;/src/setupTests.ts&#39;],
+  moduleNameMapping: {
+    &#39;^@/(.*)$&#39;: &#39;&lt;rootDir&gt;/src/$1&#39;
+  }
+};
+</code></pre>
+<h3>TypeScript 配置</h3>
+<pre><code class="language-json">// tsconfig.json (测试专用)
+{
+  &quot;extends&quot;: &quot;./tsconfig.json&quot;,
+  &quot;compilerOptions&quot;: {
+    &quot;types&quot;: [&quot;jest&quot;, &quot;node&quot;],
+    &quot;esModuleInterop&quot;: true,
+    &quot;allowSyntheticDefaultImports&quot;: true
+  },
+  &quot;include&quot;: [
+    &quot;src/**/*&quot;,
+    &quot;**/*.test.ts&quot;,
+    &quot;**/*.spec.ts&quot;
+  ]
+}
+</code></pre>
+<h2>单元测试</h2>
+<h3>基础函数测试</h3>
+<pre><code class="language-typescript">// src/utils/math.ts
+export function add(a: number, b: number): number {
+  return a + b;
+}
+
+export function divide(a: number, b: number): number {
+  if (b === 0) {
+    throw new Error(&#39;Division by zero&#39;);
+  }
+  return a / b;
+}
+
+export function factorial(n: number): number {
+  if (n &lt; 0) {
+    throw new Error(&#39;Factorial is not defined for negative numbers&#39;);
+  }
+  if (n === 0 || n === 1) {
+    return 1;
+  }
+  return n * factorial(n - 1);
+}
+
+// src/utils/validation.ts
+export function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+export function validatePassword(password: string): {
+  isValid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+  
+  if (password.length &lt; 8) {
+    errors.push(&#39;Password must be at least 8 characters long&#39;);
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    errors.push(&#39;Password must contain at least one uppercase letter&#39;);
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    errors.push(&#39;Password must contain at least one lowercase letter&#39;);
+  }
+  
+  if (!/\d/.test(password)) {
+    errors.push(&#39;Password must contain at least one number&#39;);
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+</code></pre>
+<pre><code class="language-typescript">// src/utils/__tests__/math.test.ts
+import { add, divide, factorial } from &#39;../math&#39;;
+
+describe(&#39;Math utilities&#39;, () =&gt; {
+  describe(&#39;add&#39;, () =&gt; {
+    it(&#39;should add two positive numbers&#39;, () =&gt; {
+      expect(add(2, 3)).toBe(5);
+    });
+
+    it(&#39;should add negative numbers&#39;, () =&gt; {
+      expect(add(-2, -3)).toBe(-5);
+    });
+
+    it(&#39;should add zero&#39;, () =&gt; {
+      expect(add(5, 0)).toBe(5);
+    });
+
+    it(&#39;should handle decimal numbers&#39;, () =&gt; {
+      expect(add(0.1, 0.2)).toBeCloseTo(0.3);
+    });
+  });
+
+  describe(&#39;divide&#39;, () =&gt; {
+    it(&#39;should divide two numbers&#39;, () =&gt; {
+      expect(divide(10, 2)).toBe(5);
+    });
+
+    it(&#39;should handle decimal results&#39;, () =&gt; {
+      expect(divide(1, 3)).toBeCloseTo(0.333333);
+    });
+
+    it(&#39;should throw error when dividing by zero&#39;, () =&gt; {
+      expect(() =&gt; divide(10, 0)).toThrow(&#39;Division by zero&#39;);
+    });
+  });
+
+  describe(&#39;factorial&#39;, () =&gt; {
+    it(&#39;should calculate factorial of positive numbers&#39;, () =&gt; {
+      expect(factorial(0)).toBe(1);
+      expect(factorial(1)).toBe(1);
+      expect(factorial(5)).toBe(120);
+    });
+
+    it(&#39;should throw error for negative numbers&#39;, () =&gt; {
+      expect(() =&gt; factorial(-1)).toThrow(&#39;Factorial is not defined for negative numbers&#39;);
+    });
+  });
+});
+</code></pre>
+<pre><code class="language-typescript">// src/utils/__tests__/validation.test.ts
+import { validateEmail, validatePassword } from &#39;../validation&#39;;
+
+describe(&#39;Validation utilities&#39;, () =&gt; {
+  describe(&#39;validateEmail&#39;, () =&gt; {
+    it(&#39;should validate correct email addresses&#39;, () =&gt; {
+      const validEmails = [
+        &#39;test@example.com&#39;,
+        &#39;user.name@domain.co.uk&#39;,
+        &#39;user+tag@example.org&#39;
+      ];
+
+      validEmails.forEach(email =&gt; {
+        expect(validateEmail(email)).toBe(true);
+      });
+    });
+
+    it(&#39;should reject invalid email addresses&#39;, () =&gt; {
+      const invalidEmails = [
+        &#39;invalid-email&#39;,
+        &#39;@example.com&#39;,
+        &#39;user@&#39;,
+        &#39;user@.com&#39;,
+        &#39;&#39;
+      ];
+
+      invalidEmails.forEach(email =&gt; {
+        expect(validateEmail(email)).toBe(false);
+      });
+    });
+  });
+
+  describe(&#39;validatePassword&#39;, () =&gt; {
+    it(&#39;should validate strong passwords&#39;, () =&gt; {
+      const result = validatePassword(&#39;StrongPass123&#39;);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it(&#39;should reject weak passwords&#39;, () =&gt; {
+      const result = validatePassword(&#39;weak&#39;);
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain(&#39;Password must be at least 8 characters long&#39;);
+      expect(result.errors).toContain(&#39;Password must contain at least one uppercase letter&#39;);
+      expect(result.errors).toContain(&#39;Password must contain at least one number&#39;);
+    });
+
+    it(&#39;should provide specific error messages&#39;, () =&gt; {
+      const result = validatePassword(&#39;lowercase123&#39;);
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain(&#39;Password must contain at least one uppercase letter&#39;);
+      expect(result.errors).not.toContain(&#39;Password must be at least 8 characters long&#39;);
+    });
+  });
+});
+</code></pre>
+<h3>类和对象测试</h3>
+<pre><code class="language-typescript">// src/models/User.ts
+export interface UserData {
+  id: number;
+  name: string;
+  email: string;
+  role: &#39;user&#39; | &#39;admin&#39;;
+}
+
+export class User {
+  private data: UserData;
+
+  constructor(data: UserData) {
+    this.data = { ...data };
+  }
+
+  getId(): number {
+    return this.data.id;
+  }
+
+  getName(): string {
+    return this.data.name;
+  }
+
+  getEmail(): string {
+    return this.data.email;
+  }
+
+  getRole(): &#39;user&#39; | &#39;admin&#39; {
+    return this.data.role;
+  }
+
+  updateName(name: string): void {
+    if (!name.trim()) {
+      throw new Error(&#39;Name cannot be empty&#39;);
+    }
+    this.data.name = name;
+  }
+
+  updateEmail(email: string): void {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error(&#39;Invalid email format&#39;);
+    }
+    this.data.email = email;
+  }
+
+  isAdmin(): boolean {
+    return this.data.role === &#39;admin&#39;;
+  }
+
+  toJSON(): UserData {
+    return { ...this.data };
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">// src/models/__tests__/User.test.ts
+import { User, UserData } from &#39;../User&#39;;
+
+describe(&#39;User class&#39;, () =&gt; {
+  let userData: UserData;
+  let user: User;
+
+  beforeEach(() =&gt; {
+    userData = {
+      id: 1,
+      name: &#39;John Doe&#39;,
+      email: &#39;john@example.com&#39;,
+      role: &#39;user&#39;
+    };
+    user = new User(userData);
+  });
+
+  describe(&#39;constructor&#39;, () =&gt; {
+    it(&#39;should create a user with provided data&#39;, () =&gt; {
+      expect(user.getId()).toBe(userData.id);
+      expect(user.getName()).toBe(userData.name);
+      expect(user.getEmail()).toBe(userData.email);
+      expect(user.getRole()).toBe(userData.role);
+    });
+
+    it(&#39;should create a copy of the data&#39;, () =&gt; {
+      const originalData = { ...userData };
+      userData.name = &#39;Modified&#39;;
+      
+      expect(user.getName()).toBe(originalData.name);
+    });
+  });
+
+  describe(&#39;updateName&#39;, () =&gt; {
+    it(&#39;should update the name&#39;, () =&gt; {
+      const newName = &#39;Jane Doe&#39;;
+      user.updateName(newName);
+      expect(user.getName()).toBe(newName);
+    });
+
+    it(&#39;should throw error for empty name&#39;, () =&gt; {
+      expect(() =&gt; user.updateName(&#39;&#39;)).toThrow(&#39;Name cannot be empty&#39;);
+      expect(() =&gt; user.updateName(&#39;   &#39;)).toThrow(&#39;Name cannot be empty&#39;);
+    });
+  });
+
+  describe(&#39;updateEmail&#39;, () =&gt; {
+    it(&#39;should update the email&#39;, () =&gt; {
+      const newEmail = &#39;jane@example.com&#39;;
+      user.updateEmail(newEmail);
+      expect(user.getEmail()).toBe(newEmail);
+    });
+
+    it(&#39;should throw error for invalid email&#39;, () =&gt; {
+      expect(() =&gt; user.updateEmail(&#39;invalid-email&#39;)).toThrow(&#39;Invalid email format&#39;);
+    });
+  });
+
+  describe(&#39;isAdmin&#39;, () =&gt; {
+    it(&#39;should return false for regular user&#39;, () =&gt; {
+      expect(user.isAdmin()).toBe(false);
+    });
+
+    it(&#39;should return true for admin user&#39;, () =&gt; {
+      const adminUser = new User({ ...userData, role: &#39;admin&#39; });
+      expect(adminUser.isAdmin()).toBe(true);
+    });
+  });
+
+  describe(&#39;toJSON&#39;, () =&gt; {
+    it(&#39;should return a copy of user data&#39;, () =&gt; {
+      const json = user.toJSON();
+      expect(json).toEqual(userData);
+      expect(json).not.toBe(userData); // 确保是副本
+    });
+  });
+});
+</code></pre>
+<h2>模拟和存根</h2>
+<h3>Mock 函数</h3>
+<pre><code class="language-typescript">// src/services/ApiService.ts
+export interface ApiResponse&lt;T&gt; {
+  data: T;
+  status: number;
+  message: string;
+}
+
+export class ApiService {
+  private baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  async get&lt;T&gt;(endpoint: string): Promise&lt;ApiResponse&lt;T&gt;&gt; {
+    const response = await fetch(`${this.baseUrl}${endpoint}`);
+    const data = await response.json();
+    
+    return {
+      data,
+      status: response.status,
+      message: response.ok ? &#39;Success&#39; : &#39;Error&#39;
+    };
+  }
+
+  async post&lt;T&gt;(endpoint: string, body: any): Promise&lt;ApiResponse&lt;T&gt;&gt; {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: &#39;POST&#39;,
+      headers: {
+        &#39;Content-Type&#39;: &#39;application/json&#39;
+      },
+      body: JSON.stringify(body)
+    });
+    
+    const data = await response.json();
+    
+    return {
+      data,
+      status: response.status,
+      message: response.ok ? &#39;Success&#39; : &#39;Error&#39;
+    };
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">// src/services/__tests__/ApiService.test.ts
+import { ApiService } from &#39;../ApiService&#39;;
+
+// Mock fetch
+global.fetch = jest.fn();
+const mockFetch = fetch as jest.MockedFunction&lt;typeof fetch&gt;;
+
+describe(&#39;ApiService&#39;, () =&gt; {
+  let apiService: ApiService;
+
+  beforeEach(() =&gt; {
+    apiService = new ApiService(&#39;https://api.example.com&#39;);
+    mockFetch.mockClear();
+  });
+
+  describe(&#39;get&#39;, () =&gt; {
+    it(&#39;should make GET request and return data&#39;, async () =&gt; {
+      const mockData = { id: 1, name: &#39;Test&#39; };
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        json: jest.fn().mockResolvedValue(mockData)
+      };
+
+      mockFetch.mockResolvedValue(mockResponse as any);
+
+      const result = await apiService.get(&#39;/users/1&#39;);
+
+      expect(mockFetch).toHaveBeenCalledWith(&#39;https://api.example.com/users/1&#39;);
+      expect(result).toEqual({
+        data: mockData,
+        status: 200,
+        message: &#39;Success&#39;
+      });
+    });
+
+    it(&#39;should handle error responses&#39;, async () =&gt; {
+      const mockError = { error: &#39;Not found&#39; };
+      const mockResponse = {
+        ok: false,
+        status: 404,
+        json: jest.fn().mockResolvedValue(mockError)
+      };
+
+      mockFetch.mockResolvedValue(mockResponse as any);
+
+      const result = await apiService.get(&#39;/users/999&#39;);
+
+      expect(result).toEqual({
+        data: mockError,
+        status: 404,
+        message: &#39;Error&#39;
+      });
+    });
+  });
+
+  describe(&#39;post&#39;, () =&gt; {
+    it(&#39;should make POST request with body&#39;, async () =&gt; {
+      const requestBody = { name: &#39;New User&#39;, email: &#39;user@example.com&#39; };
+      const mockData = { id: 2, ...requestBody };
+      const mockResponse = {
+        ok: true,
+        status: 201,
+        json: jest.fn().mockResolvedValue(mockData)
+      };
+
+      mockFetch.mockResolvedValue(mockResponse as any);
+
+      const result = await apiService.post(&#39;/users&#39;, requestBody);
+
+      expect(mockFetch).toHaveBeenCalledWith(&#39;https://api.example.com/users&#39;, {
+        method: &#39;POST&#39;,
+        headers: {
+          &#39;Content-Type&#39;: &#39;application/json&#39;
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      expect(result).toEqual({
+        data: mockData,
+        status: 201,
+        message: &#39;Success&#39;
+      });
+    });
+  });
+});
+</code></pre>
+<h3>依赖注入和模拟</h3>
+<pre><code class="language-typescript">// src/services/UserService.ts
+import { ApiService } from &#39;./ApiService&#39;;
+import { User, UserData } from &#39;../models/User&#39;;
+
+export class UserService {
+  constructor(private apiService: ApiService) {}
+
+  async getUser(id: number): Promise&lt;User | null&gt; {
+    try {
+      const response = await this.apiService.get&lt;UserData&gt;(`/users/${id}`);
+      
+      if (response.status === 200) {
+        return new User(response.data);
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(&#39;Failed to fetch user:&#39;, error);
+      return null;
+    }
+  }
+
+  async createUser(userData: Omit&lt;UserData, &#39;id&#39;&gt;): Promise&lt;User&gt; {
+    const response = await this.apiService.post&lt;UserData&gt;(&#39;/users&#39;, userData);
+    
+    if (response.status !== 201) {
+      throw new Error(&#39;Failed to create user&#39;);
+    }
+    
+    return new User(response.data);
+  }
+
+  async updateUser(id: number, updates: Partial&lt;Omit&lt;UserData, &#39;id&#39;&gt;&gt;): Promise&lt;User&gt; {
+    const response = await this.apiService.post&lt;UserData&gt;(`/users/${id}`, updates);
+    
+    if (response.status !== 200) {
+      throw new Error(&#39;Failed to update user&#39;);
+    }
+    
+    return new User(response.data);
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">// src/services/__tests__/UserService.test.ts
+import { UserService } from &#39;../UserService&#39;;
+import { ApiService } from &#39;../ApiService&#39;;
+import { User, UserData } from &#39;../../models/User&#39;;
+
+// Mock ApiService
+jest.mock(&#39;../ApiService&#39;);
+const MockedApiService = ApiService as jest.MockedClass&lt;typeof ApiService&gt;;
+
+describe(&#39;UserService&#39;, () =&gt; {
+  let userService: UserService;
+  let mockApiService: jest.Mocked&lt;ApiService&gt;;
+
+  beforeEach(() =&gt; {
+    mockApiService = new MockedApiService(&#39;&#39;) as jest.Mocked&lt;ApiService&gt;;
+    userService = new UserService(mockApiService);
+  });
+
+  describe(&#39;getUser&#39;, () =&gt; {
+    it(&#39;should return user when API call succeeds&#39;, async () =&gt; {
+      const userData: UserData = {
+        id: 1,
+        name: &#39;John Doe&#39;,
+        email: &#39;john@example.com&#39;,
+        role: &#39;user&#39;
+      };
+
+      mockApiService.get.mockResolvedValue({
+        data: userData,
+        status: 200,
+        message: &#39;Success&#39;
+      });
+
+      const result = await userService.getUser(1);
+
+      expect(mockApiService.get).toHaveBeenCalledWith(&#39;/users/1&#39;);
+      expect(result).toBeInstanceOf(User);
+      expect(result?.getId()).toBe(userData.id);
+    });
+
+    it(&#39;should return null when user not found&#39;, async () =&gt; {
+      mockApiService.get.mockResolvedValue({
+        data: null,
+        status: 404,
+        message: &#39;Not found&#39;
+      });
+
+      const result = await userService.getUser(999);
+
+      expect(result).toBeNull();
+    });
+
+    it(&#39;should return null when API call fails&#39;, async () =&gt; {
+      mockApiService.get.mockRejectedValue(new Error(&#39;Network error&#39;));
+
+      const result = await userService.getUser(1);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe(&#39;createUser&#39;, () =&gt; {
+    it(&#39;should create and return new user&#39;, async () =&gt; {
+      const newUserData = {
+        name: &#39;Jane Doe&#39;,
+        email: &#39;jane@example.com&#39;,
+        role: &#39;user&#39; as const
+      };
+
+      const createdUserData: UserData = {
+        id: 2,
+        ...newUserData
+      };
+
+      mockApiService.post.mockResolvedValue({
+        data: createdUserData,
+        status: 201,
+        message: &#39;Created&#39;
+      });
+
+      const result = await userService.createUser(newUserData);
+
+      expect(mockApiService.post).toHaveBeenCalledWith(&#39;/users&#39;, newUserData);
+      expect(result).toBeInstanceOf(User);
+      expect(result.getId()).toBe(2);
+    });
+
+    it(&#39;should throw error when creation fails&#39;, async () =&gt; {
+      mockApiService.post.mockResolvedValue({
+        data: null,
+        status: 400,
+        message: &#39;Bad request&#39;
+      });
+
+      await expect(userService.createUser({
+        name: &#39;Test&#39;,
+        email: &#39;test@example.com&#39;,
+        role: &#39;user&#39;
+      })).rejects.toThrow(&#39;Failed to create user&#39;);
+    });
+  });
+});
+</code></pre>
+<h2>异步测试</h2>
+<h3>Promise 测试</h3>
+<pre><code class="language-typescript">// src/utils/async.ts
+export function delay(ms: number): Promise&lt;void&gt; {
+  return new Promise(resolve =&gt; setTimeout(resolve, ms));
+}
+
+export async function retryOperation&lt;T&gt;(
+  operation: () =&gt; Promise&lt;T&gt;,
+  maxRetries: number = 3,
+  delayMs: number = 1000
+): Promise&lt;T&gt; {
+  let lastError: Error;
+
+  for (let attempt = 1; attempt &lt;= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      
+      if (attempt === maxRetries) {
+        throw lastError;
+      }
+      
+      await delay(delayMs);
+    }
+  }
+
+  throw lastError!;
+}
+
+export class AsyncQueue&lt;T&gt; {
+  private queue: T[] = [];
+  private processing = false;
+  private processor: (item: T) =&gt; Promise&lt;void&gt;;
+
+  constructor(processor: (item: T) =&gt; Promise&lt;void&gt;) {
+    this.processor = processor;
+  }
+
+  async add(item: T): Promise&lt;void&gt; {
+    this.queue.push(item);
+    
+    if (!this.processing) {
+      await this.process();
+    }
+  }
+
+  private async process(): Promise&lt;void&gt; {
+    this.processing = true;
+
+    while (this.queue.length &gt; 0) {
+      const item = this.queue.shift()!;
+      await this.processor(item);
+    }
+
+    this.processing = false;
+  }
+
+  getQueueLength(): number {
+    return this.queue.length;
+  }
+
+  isProcessing(): boolean {
+    return this.processing;
+  }
+}
+</code></pre>
+<pre><code class="language-typescript">// src/utils/__tests__/async.test.ts
+import { delay, retryOperation, AsyncQueue } from &#39;../async&#39;;
+
+describe(&#39;Async utilities&#39;, () =&gt; {
+  describe(&#39;delay&#39;, () =&gt; {
+    it(&#39;should resolve after specified time&#39;, async () =&gt; {
+      const start = Date.now();
+      await delay(100);
+      const end = Date.now();
+      
+      expect(end - start).toBeGreaterThanOrEqual(90); // 允许一些误差
+    });
+  });
+
+  describe(&#39;retryOperation&#39;, () =&gt; {
+    it(&#39;should succeed on first attempt&#39;, async () =&gt; {
+      const operation = jest.fn().mockResolvedValue(&#39;success&#39;);
+      
+      const result = await retryOperation(operation);
+      
+      expect(result).toBe(&#39;success&#39;);
+      expect(operation).toHaveBeenCalledTimes(1);
+    });
+
+    it(&#39;should retry on failure and eventually succeed&#39;, async () =&gt; {
+      const operation = jest.fn()
+        .mockRejectedValueOnce(new Error(&#39;Attempt 1&#39;))
+        .mockRejectedValueOnce(new Error(&#39;Attempt 2&#39;))
+        .mockResolvedValue(&#39;success&#39;);
+      
+      const result = await retryOperation(operation, 3, 10); // 短延迟用于测试
+      
+      expect(result).toBe(&#39;success&#39;);
+      expect(operation).toHaveBeenCalledTimes(3);
+    });
+
+    it(&#39;should throw error after max retries&#39;, async () =&gt; {
+      const operation = jest.fn().mockRejectedValue(new Error(&#39;Always fails&#39;));
+      
+      await expect(retryOperation(operation, 2, 10)).rejects.toThrow(&#39;Always fails&#39;);
+      expect(operation).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe(&#39;AsyncQueue&#39;, () =&gt; {
+    it(&#39;should process items in order&#39;, async () =&gt; {
+      const processedItems: number[] = [];
+      const processor = jest.fn().mockImplementation(async (item: number) =&gt; {
+        await delay(10);
+        processedItems.push(item);
+      });
+
+      const queue = new AsyncQueue(processor);
+
+      await queue.add(1);
+      await queue.add(2);
+      await queue.add(3);
+
+      expect(processedItems).toEqual([1, 2, 3]);
+      expect(processor).toHaveBeenCalledTimes(3);
+    });
+
+    it(&#39;should handle concurrent additions&#39;, async () =&gt; {
+      const processor = jest.fn().mockImplementation(async (item: number) =&gt; {
+        await delay(50);
+      });
+
+      const queue = new AsyncQueue(processor);
+
+      // 同时添加多个项目
+      const promises = [
+        queue.add(1),
+        queue.add(2),
+        queue.add(3)
+      ];
+
+      await Promise.all(promises);
+
+      expect(processor).toHaveBeenCalledTimes(3);
+      expect(queue.getQueueLength()).toBe(0);
+      expect(queue.isProcessing()).toBe(false);
+    });
+  });
+});
+</code></pre>
+<h3>定时器测试</h3>
+<pre><code class="language-typescript">// src/utils/timer.ts
+export class Timer {
+  private timerId: NodeJS.Timeout | null = null;
+  private callback: () =&gt; void;
+  private interval: number;
+
+  constructor(callback: () =&gt; void, interval: number) {
+    this.callback = callback;
+    this.interval = interval;
+  }
+
+  start(): void {
+    if (this.timerId) {
+      return; // 已经启动
+    }
+
+    this.timerId = setInterval(this.callback, this.interval);
+  }
+
+  stop(): void {
+    if (this.timerId) {
+      clearInterval(this.timerId);
+      this.timerId = null;
+    }
+  }
+
+  isRunning(): boolean {
+    return this.timerId !== null;
+  }
+}
+
+export function debounce&lt;T extends (...args: any[]) =&gt; any&gt;(
+  func: T,
+  delay: number
+): (...args: Parameters&lt;T&gt;) =&gt; void {
+  let timeoutId: NodeJS.Timeout;
+
+  return (...args: Parameters&lt;T&gt;) =&gt; {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() =&gt; func(...args), delay);
+  };
+}
+</code></pre>
+<pre><code class="language-typescript">// src/utils/__tests__/timer.test.ts
+import { Timer, debounce } from &#39;../timer&#39;;
+
+// Mock timers
+jest.useFakeTimers();
+
+describe(&#39;Timer utilities&#39;, () =&gt; {
+  afterEach(() =&gt; {
+    jest.clearAllTimers();
+  });
+
+  describe(&#39;Timer&#39;, () =&gt; {
+    it(&#39;should start and stop timer&#39;, () =&gt; {
+      const callback = jest.fn();
+      const timer = new Timer(callback, 1000);
+
+      expect(timer.isRunning()).toBe(false);
+
+      timer.start();
+      expect(timer.isRunning()).toBe(true);
+
+      // 快进时间
+      jest.advanceTimersByTime(1000);
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(2000);
+      expect(callback).toHaveBeenCalledTimes(3);
+
+      timer.stop();
+      expect(timer.isRunning()).toBe(false);
+
+      jest.advanceTimersByTime(1000);
+      expect(callback).toHaveBeenCalledTimes(3); // 不应该再被调用
+    });
+
+    it(&#39;should not start multiple timers&#39;, () =&gt; {
+      const callback = jest.fn();
+      const timer = new Timer(callback, 1000);
+
+      timer.start();
+      timer.start(); // 第二次调用应该被忽略
+
+      jest.advanceTimersByTime(1000);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe(&#39;debounce&#39;, () =&gt; {
+    it(&#39;should delay function execution&#39;, () =&gt; {
+      const func = jest.fn();
+      const debouncedFunc = debounce(func, 1000);
+
+      debouncedFunc(&#39;arg1&#39;);
+      expect(func).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(1000);
+      expect(func).toHaveBeenCalledWith(&#39;arg1&#39;);
+    });
+
+    it(&#39;should cancel previous calls&#39;, () =&gt; {
+      const func = jest.fn();
+      const debouncedFunc = debounce(func, 1000);
+
+      debouncedFunc(&#39;arg1&#39;);
+      jest.advanceTimersByTime(500);
+
+      debouncedFunc(&#39;arg2&#39;); // 应该取消之前的调用
+      jest.advanceTimersByTime(500);
+      expect(func).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(500);
+      expect(func).toHaveBeenCalledTimes(1);
+      expect(func).toHaveBeenCalledWith(&#39;arg2&#39;);
+    });
+  });
+});
+</code></pre>
+<h2>React 组件测试</h2>
+<h3>基础组件测试</h3>
+<pre><code class="language-typescript">// src/components/Button.tsx
+import React from &#39;react&#39;;
+
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick?: () =&gt; void;
+  variant?: &#39;primary&#39; | &#39;secondary&#39;;
+  disabled?: boolean;
+  type?: &#39;button&#39; | &#39;submit&#39; | &#39;reset&#39;;
+}
+
+export const Button: React.FC&lt;ButtonProps&gt; = ({
+  children,
+  onClick,
+  variant = &#39;primary&#39;,
+  disabled = false,
+  type = &#39;button&#39;
+}) =&gt; {
+  return (
+    &lt;button
+      type={type}
+      className={`btn btn-${variant}`}
+      onClick={onClick}
+      disabled={disabled}
+      data-testid=&quot;button&quot;
+    &gt;
+      {children}
+    &lt;/button&gt;
+  );
+};
+</code></pre>
+<pre><code class="language-typescript">// src/components/__tests__/Button.test.tsx
+import React from &#39;react&#39;;
+import { render, screen, fireEvent } from &#39;@testing-library/react&#39;;
+import &#39;@testing-library/jest-dom&#39;;
+import { Button } from &#39;../Button&#39;;
+
+describe(&#39;Button component&#39;, () =&gt; {
+  it(&#39;should render with children&#39;, () =&gt; {
+    render(&lt;Button&gt;Click me&lt;/Button&gt;);
+    
+    expect(screen.getByText(&#39;Click me&#39;)).toBeInTheDocument();
+  });
+
+  it(&#39;should apply correct variant class&#39;, () =&gt; {
+    render(&lt;Button variant=&quot;secondary&quot;&gt;Secondary Button&lt;/Button&gt;);
+    
+    const button = screen.getByTestId(&#39;button&#39;);
+    expect(button).toHaveClass(&#39;btn-secondary&#39;);
+  });
+
+  it(&#39;should handle click events&#39;, () =&gt; {
+    const handleClick = jest.fn();
+    render(&lt;Button onClick={handleClick}&gt;Click me&lt;/Button&gt;);
+    
+    fireEvent.click(screen.getByText(&#39;Click me&#39;));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it(&#39;should be disabled when disabled prop is true&#39;, () =&gt; {
+    render(&lt;Button disabled&gt;Disabled Button&lt;/Button&gt;);
+    
+    const button = screen.getByTestId(&#39;button&#39;);
+    expect(button).toBeDisabled();
+  });
+
+  it(&#39;should not call onClick when disabled&#39;, () =&gt; {
+    const handleClick = jest.fn();
+    render(&lt;Button onClick={handleClick} disabled&gt;Disabled Button&lt;/Button&gt;);
+    
+    fireEvent.click(screen.getByText(&#39;Disabled Button&#39;));
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it(&#39;should have correct type attribute&#39;, () =&gt; {
+    render(&lt;Button type=&quot;submit&quot;&gt;Submit&lt;/Button&gt;);
+    
+    const button = screen.getByTestId(&#39;button&#39;);
+    expect(button).toHaveAttribute(&#39;type&#39;, &#39;submit&#39;);
+  });
+});
+</code></pre>
+<h3>Hooks 测试</h3>
+<pre><code class="language-typescript">// src/hooks/useCounter.ts
+import { useState, useCallback } from &#39;react&#39;;
+
+interface UseCounterReturn {
+  count: number;
+  increment: () =&gt; void;
+  decrement: () =&gt; void;
+  reset: () =&gt; void;
+  setCount: (value: number) =&gt; void;
+}
+
+export function useCounter(initialValue: number = 0): UseCounterReturn {
+  const [count, setCount] = useState(initialValue);
+
+  const increment = useCallback(() =&gt; {
+    setCount(prev =&gt; prev + 1);
+  }, []);
+
+  const decrement = useCallback(() =&gt; {
+    setCount(prev =&gt; prev - 1);
+  }, []);
+
+  const reset = useCallback(() =&gt; {
+    setCount(initialValue);
+  }, [initialValue]);
+
+  return {
+    count,
+    increment,
+    decrement,
+    reset,
+    setCount
+  };
+}
+</code></pre>
+<pre><code class="language-typescript">// src/hooks/__tests__/useCounter.test.ts
+import { renderHook, act } from &#39;@testing-library/react&#39;;
+import { useCounter } from &#39;../useCounter&#39;;
+
+describe(&#39;useCounter hook&#39;, () =&gt; {
+  it(&#39;should initialize with default value&#39;, () =&gt; {
+    const { result } = renderHook(() =&gt; useCounter());
+    
+    expect(result.current.count).toBe(0);
+  });
+
+  it(&#39;should initialize with custom value&#39;, () =&gt; {
+    const { result } = renderHook(() =&gt; useCounter(10));
+    
+    expect(result.current.count).toBe(10);
+  });
+
+  it(&#39;should increment count&#39;, () =&gt; {
+    const { result } = renderHook(() =&gt; useCounter(0));
+    
+    act(() =&gt; {
+      result.current.increment();
+    });
+    
+    expect(result.current.count).toBe(1);
+  });
+
+  it(&#39;should decrement count&#39;, () =&gt; {
+    const { result } = renderHook(() =&gt; useCounter(5));
+    
+    act(() =&gt; {
+      result.current.decrement();
+    });
+    
+    expect(result.current.count).toBe(4);
+  });
+
+  it(&#39;should reset to initial value&#39;, () =&gt; {
+    const { result } = renderHook(() =&gt; useCounter(10));
+    
+    act(() =&gt; {
+      result.current.increment();
+      result.current.increment();
+    });
+    
+    expect(result.current.count).toBe(12);
+    
+    act(() =&gt; {
+      result.current.reset();
+    });
+    
+    expect(result.current.count).toBe(10);
+  });
+
+  it(&#39;should set specific value&#39;, () =&gt; {
+    const { result } = renderHook(() =&gt; useCounter());
+    
+    act(() =&gt; {
+      result.current.setCount(42);
+    });
+    
+    expect(result.current.count).toBe(42);
+  });
+});
+</code></pre>
+<h2>集成测试</h2>
+<h3>API 集成测试</h3>
+<pre><code class="language-typescript">// src/tests/integration/userApi.test.ts
+import request from &#39;supertest&#39;;
+import { app } from &#39;../../app&#39;;
+import { setupTestDatabase, cleanupTestDatabase } from &#39;../helpers/database&#39;;
+
+describe(&#39;User API Integration&#39;, () =&gt; {
+  beforeAll(async () =&gt; {
+    await setupTestDatabase();
+  });
+
+  afterAll(async () =&gt; {
+    await cleanupTestDatabase();
+  });
+
+  describe(&#39;POST /api/users&#39;, () =&gt; {
+    it(&#39;should create a new user&#39;, async () =&gt; {
+      const userData = {
+        name: &#39;John Doe&#39;,
+        email: &#39;john@example.com&#39;,
+        password: &#39;SecurePass123&#39;
+      };
+
+      const response = await request(app)
+        .post(&#39;/api/users&#39;)
+        .send(userData)
+        .expect(201);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          id: expect.any(Number),
+          name: userData.name,
+          email: userData.email,
+          role: &#39;user&#39;
+        }
+      });
+
+      // 确保密码不在响应中
+      expect(response.body.data.password).toBeUndefined();
+    });
+
+    it(&#39;should return 400 for invalid data&#39;, async () =&gt; {
+      const invalidData = {
+        name: &#39;&#39;,
+        email: &#39;invalid-email&#39;,
+        password: &#39;123&#39; // 太短
+      };
+
+      const response = await request(app)
+        .post(&#39;/api/users&#39;)
+        .send(invalidData)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBeDefined();
+    });
+  });
+
+  describe(&#39;GET /api/users/:id&#39;, () =&gt; {
+    let userId: number;
+
+    beforeEach(async () =&gt; {
+      // 创建测试用户
+      const response = await request(app)
+        .post(&#39;/api/users&#39;)
+        .send({
+          name: &#39;Test User&#39;,
+          email: &#39;test@example.com&#39;,
+          password: &#39;TestPass123&#39;
+        });
+      
+      userId = response.body.data.id;
+    });
+
+    it(&#39;should return user by id&#39;, async () =&gt; {
+      const response = await request(app)
+        .get(`/api/users/${userId}`)
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          id: userId,
+          name: &#39;Test User&#39;,
+          email: &#39;test@example.com&#39;,
+          role: &#39;user&#39;
+        }
+      });
+    });
+
+    it(&#39;should return 404 for non-existent user&#39;, async () =&gt; {
+      const response = await request(app)
+        .get(&#39;/api/users/99999&#39;)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe(&#39;User not found&#39;);
+    });
+  });
+});
+</code></pre>
+<h3>数据库集成测试</h3>
+<pre><code class="language-typescript">// src/tests/helpers/database.ts
+import { DataSource } from &#39;typeorm&#39;;
+import { User } from &#39;../../entities/User&#39;;
+
+let testDataSource: DataSource;
+
+export async function setupTestDatabase(): Promise&lt;void&gt; {
+  testDataSource = new DataSource({
+    type: &#39;sqlite&#39;,
+    database: &#39;:memory:&#39;,
+    entities: [User],
+    synchronize: true,
+    logging: false
+  });
+
+  await testDataSource.initialize();
+}
+
+export async function cleanupTestDatabase(): Promise&lt;void&gt; {
+  if (testDataSource) {
+    await testDataSource.destroy();
+  }
+}
+
+export function getTestDataSource(): DataSource {
+  return testDataSource;
+}
+
+export async function clearDatabase(): Promise&lt;void&gt; {
+  const entities = testDataSource.entityMetadatas;
+  
+  for (const entity of entities) {
+    const repository = testDataSource.getRepository(entity.name);
+    await repository.clear();
+  }
+}
+</code></pre>
+<h2>端到端测试</h2>
+<h3>Playwright 配置</h3>
+<pre><code class="language-typescript">// playwright.config.ts
+import { defineConfig, devices } from &#39;@playwright/test&#39;;
+
+export default defineConfig({
+  testDir: &#39;./e2e&#39;,
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: &#39;html&#39;,
+  use: {
+    baseURL: &#39;http://localhost:3000&#39;,
+    trace: &#39;on-first-retry&#39;,
+  },
+  projects: [
+    {
+      name: &#39;chromium&#39;,
+      use: { ...devices[&#39;Desktop Chrome&#39;] },
+    },
+    {
+      name: &#39;firefox&#39;,
+      use: { ...devices[&#39;Desktop Firefox&#39;] },
+    },
+    {
+      name: &#39;webkit&#39;,
+      use: { ...devices[&#39;Desktop Safari&#39;] },
+    },
+  ],
+  webServer: {
+    command: &#39;npm run dev&#39;,
+    url: &#39;http://localhost:3000&#39;,
+    reuseExistingServer: !process.env.CI,
+  },
+});
+</code></pre>
+<pre><code class="language-typescript">// e2e/user-management.spec.ts
+import { test, expect } from &#39;@playwright/test&#39;;
+
+test.describe(&#39;User Management&#39;, () =&gt; {
+  test.beforeEach(async ({ page }) =&gt; {
+    await page.goto(&#39;/&#39;);
+  });
+
+  test(&#39;should create a new user&#39;, async ({ page }) =&gt; {
+    // 导航到用户创建页面
+    await page.click(&#39;[data-testid=&quot;create-user-button&quot;]&#39;);
+    
+    // 填写表单
+    await page.fill(&#39;[data-testid=&quot;name-input&quot;]&#39;, &#39;John Doe&#39;);
+    await page.fill(&#39;[data-testid=&quot;email-input&quot;]&#39;, &#39;john@example.com&#39;);
+    await page.fill(&#39;[data-testid=&quot;password-input&quot;]&#39;, &#39;SecurePass123&#39;);
+    
+    // 提交表单
+    await page.click(&#39;[data-testid=&quot;submit-button&quot;]&#39;);
+    
+    // 验证成功消息
+    await expect(page.locator(&#39;[data-testid=&quot;success-message&quot;]&#39;)).toBeVisible();
+    await expect(page.locator(&#39;[data-testid=&quot;success-message&quot;]&#39;)).toContainText(&#39;User created successfully&#39;);
+    
+    // 验证用户出现在列表中
+    await expect(page.locator(&#39;[data-testid=&quot;user-list&quot;]&#39;)).toContainText(&#39;John Doe&#39;);
+  });
+
+  test(&#39;should show validation errors for invalid input&#39;, async ({ page }) =&gt; {
+    await page.click(&#39;[data-testid=&quot;create-user-button&quot;]&#39;);
+    
+    // 提交空表单
+    await page.click(&#39;[data-testid=&quot;submit-button&quot;]&#39;);
+    
+    // 验证错误消息
+    await expect(page.locator(&#39;[data-testid=&quot;name-error&quot;]&#39;)).toBeVisible();
+    await expect(page.locator(&#39;[data-testid=&quot;email-error&quot;]&#39;)).toBeVisible();
+    await expect(page.locator(&#39;[data-testid=&quot;password-error&quot;]&#39;)).toBeVisible();
+  });
+
+  test(&#39;should edit existing user&#39;, async ({ page }) =&gt; {
+    // 假设已有用户存在
+    await page.click(&#39;[data-testid=&quot;edit-user-1&quot;]&#39;);
+    
+    // 修改名称
+    await page.fill(&#39;[data-testid=&quot;name-input&quot;]&#39;, &#39;Jane Doe&#39;);
+    await page.click(&#39;[data-testid=&quot;save-button&quot;]&#39;);
+    
+    // 验证更新
+    await expect(page.locator(&#39;[data-testid=&quot;user-1-name&quot;]&#39;)).toContainText(&#39;Jane Doe&#39;);
+  });
+
+  test(&#39;should delete user with confirmation&#39;, async ({ page }) =&gt; {
+    // 点击删除按钮
+    await page.click(&#39;[data-testid=&quot;delete-user-1&quot;]&#39;);
+    
+    // 确认删除
+    await page.click(&#39;[data-testid=&quot;confirm-delete&quot;]&#39;);
+    
+    // 验证用户已被删除
+    await expect(page.locator(&#39;[data-testid=&quot;user-1&quot;]&#39;)).not.toBeVisible();
+  });
+});
+</code></pre>
+<h2>测试覆盖率</h2>
+<h3>配置覆盖率报告</h3>
+<pre><code class="language-json">// jest.config.js
+module.exports = {
+  // ... 其他配置
+  collectCoverage: true,
+  collectCoverageFrom: [
+    &#39;src/**/*.{ts,tsx}&#39;,
+    &#39;!src/**/*.d.ts&#39;,
+    &#39;!src/index.ts&#39;,
+    &#39;!src/**/__tests__/**&#39;,
+    &#39;!src/**/*.test.{ts,tsx}&#39;,
+    &#39;!src/**/*.spec.{ts,tsx}&#39;
+  ],
+  coverageDirectory: &#39;coverage&#39;,
+  coverageReporters: [&#39;text&#39;, &#39;lcov&#39;, &#39;html&#39;, &#39;json&#39;],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    },
+    &#39;./src/utils/&#39;: {
+      branches: 90,
+      functions: 90,
+      lines: 90,
+      statements: 90
+    }
+  }
+};
+</code></pre>
+<h3>覆盖率分析</h3>
+<pre><code class="language-typescript">// 示例：分析覆盖率报告
+interface CoverageReport {
+  lines: {
+    total: number;
+    covered: number;
+    skipped: number;
+    pct: number;
+  };
+  functions: {
+    total: number;
+    covered: number;
+    skipped: number;
+    pct: number;
+  };
+  statements: {
+    total: number;
+    covered: number;
+    skipped: number;
+    pct: number;
+  };
+  branches: {
+    total: number;
+    covered: number;
+    skipped: number;
+    pct: number;
+  };
+}
+
+function analyzeCoverage(report: CoverageReport): string[] {
+  const issues: string[] = [];
+  
+  if (report.lines.pct &lt; 80) {
+    issues.push(`Line coverage (${report.lines.pct}%) is below threshold (80%)`);
+  }
+  
+  if (report.functions.pct &lt; 80) {
+    issues.push(`Function coverage (${report.functions.pct}%) is below threshold (80%)`);
+  }
+  
+  if (report.branches.pct &lt; 80) {
+    issues.push(`Branch coverage (${report.branches.pct}%) is below threshold (80%)`);
+  }
+  
+  return issues;
+}
+</code></pre>
+<h2>测试最佳实践</h2>
+<h3>1. 测试结构</h3>
+<pre><code class="language-typescript">// AAA 模式：Arrange, Act, Assert
+describe(&#39;Calculator&#39;, () =&gt; {
+  it(&#39;should add two numbers correctly&#39;, () =&gt; {
+    // Arrange - 准备测试数据
+    const calculator = new Calculator();
+    const a = 5;
+    const b = 3;
+    
+    // Act - 执行被测试的操作
+    const result = calculator.add(a, b);
+    
+    // Assert - 验证结果
+    expect(result).toBe(8);
+  });
+});
+</code></pre>
+<h3>2. 测试命名</h3>
+<pre><code class="language-typescript">// 好的测试命名
+describe(&#39;UserService&#39;, () =&gt; {
+  describe(&#39;createUser&#39;, () =&gt; {
+    it(&#39;should create user with valid data&#39;, () =&gt; {});
+    it(&#39;should throw error when email already exists&#39;, () =&gt; {});
+    it(&#39;should hash password before saving&#39;, () =&gt; {});
+  });
+  
+  describe(&#39;getUserById&#39;, () =&gt; {
+    it(&#39;should return user when found&#39;, () =&gt; {});
+    it(&#39;should return null when user not found&#39;, () =&gt; {});
+    it(&#39;should throw error when id is invalid&#39;, () =&gt; {});
+  });
+});
+</code></pre>
+<h3>3. 测试数据管理</h3>
+<pre><code class="language-typescript">// src/tests/fixtures/users.ts
+export const validUser = {
+  name: &#39;John Doe&#39;,
+  email: &#39;john@example.com&#39;,
+  password: &#39;SecurePass123&#39;,
+  role: &#39;user&#39; as const
+};
+
+export const adminUser = {
+  name: &#39;Admin User&#39;,
+  email: &#39;admin@example.com&#39;,
+  password: &#39;AdminPass123&#39;,
+  role: &#39;admin&#39; as const
+};
+
+export const invalidUsers = {
+  emptyName: { ...validUser, name: &#39;&#39; },
+  invalidEmail: { ...validUser, email: &#39;invalid-email&#39; },
+  weakPassword: { ...validUser, password: &#39;123&#39; }
+};
+
+// 工厂函数
+export function createUserData(overrides: Partial&lt;typeof validUser&gt; = {}) {
+  return { ...validUser, ...overrides };
+}
+</code></pre>
+<h3>4. 测试工具函数</h3>
+<pre><code class="language-typescript">// src/tests/utils/testHelpers.ts
+export function expectToThrowAsync(
+  asyncFn: () =&gt; Promise&lt;any&gt;,
+  expectedError?: string | RegExp
+): Promise&lt;void&gt; {
+  return expect(asyncFn()).rejects.toThrow(expectedError);
+}
+
+export function createMockFunction&lt;T extends (...args: any[]) =&gt; any&gt;(): jest.MockedFunction&lt;T&gt; {
+  return jest.fn() as jest.MockedFunction&lt;T&gt;;
+}
+
+export function waitFor(condition: () =&gt; boolean, timeout: number = 5000): Promise&lt;void&gt; {
+  return new Promise((resolve, reject) =&gt; {
+    const startTime = Date.now();
+    
+    const check = () =&gt; {
+      if (condition()) {
+        resolve();
+      } else if (Date.now() - startTime &gt; timeout) {
+        reject(new Error(&#39;Timeout waiting for condition&#39;));
+      } else {
+        setTimeout(check, 10);
+      }
+    };
+    
+    check();
+  });
+}
+</code></pre>
+<h2>总结</h2>
+<p>TypeScript 测试涵盖了软件开发的各个层面：</p>
+<ol>
+<li><strong>单元测试</strong>：测试单个函数、类和模块的功能</li>
+<li><strong>集成测试</strong>：测试多个模块之间的交互</li>
+<li><strong>端到端测试</strong>：测试完整的用户流程</li>
+<li><strong>模拟和存根</strong>：隔离依赖，专注于被测试的代码</li>
+<li><strong>异步测试</strong>：处理 Promise、定时器等异步操作</li>
+<li><strong>覆盖率分析</strong>：确保测试的完整性</li>
+</ol>
+<p>通过合理的测试策略和工具选择，我们可以构建高质量、可维护的 TypeScript 应用程序。</p>
+<h2>练习题</h2>
+<ol>
+<li>为一个复杂的业务逻辑类编写完整的单元测试</li>
+<li>创建一个 API 服务的集成测试套件</li>
+<li>实现一个自定义的测试工具函数库</li>
+<li>设计一个 React 组件的测试策略</li>
+<li>建立一个完整的 CI/CD 测试流水线</li>
+</ol>
+<hr>
+<p><em>下一篇：<a href="./29.md">TypeScript 性能优化</a></em></p>
+
+      

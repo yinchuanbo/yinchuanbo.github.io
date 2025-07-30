@@ -1,0 +1,824 @@
+
+        <header>
+          <h1>工具类型 (Utility Types)</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <h1>TypeScript 工具类型 (Utility Types)</h1>
+<h2>什么是工具类型？</h2>
+<p>工具类型是 TypeScript 内置的一组泛型类型，用于对现有类型进行转换和操作。它们提供了强大的类型操作能力，帮助开发者创建更灵活和可重用的类型定义。</p>
+<h2>基础工具类型</h2>
+<h3>Partial<T></h3>
+<p>将类型 T 的所有属性变为可选。</p>
+<pre><code class="language-typescript">interface User {
+  id: number;
+  name: string;
+  email: string;
+  age: number;
+}
+
+// 所有属性都变为可选
+type PartialUser = Partial&lt;User&gt;;
+// 等价于：
+// {
+//   id?: number;
+//   name?: string;
+//   email?: string;
+//   age?: number;
+// }
+
+// 实际应用：更新用户信息
+function updateUser(id: number, updates: Partial&lt;User&gt;): User {
+  const existingUser = getUserById(id);
+  return { ...existingUser, ...updates };
+}
+
+// 使用示例
+updateUser(1, { name: &quot;Alice&quot; }); // 只更新名字
+updateUser(2, { email: &quot;bob@example.com&quot;, age: 30 }); // 更新邮箱和年龄
+</code></pre>
+<h3>Required<T></h3>
+<p>将类型 T 的所有属性变为必需。</p>
+<pre><code class="language-typescript">interface Config {
+  apiUrl?: string;
+  timeout?: number;
+  retries?: number;
+  debug?: boolean;
+}
+
+// 所有属性都变为必需
+type RequiredConfig = Required&lt;Config&gt;;
+// 等价于：
+// {
+//   apiUrl: string;
+//   timeout: number;
+//   retries: number;
+//   debug: boolean;
+// }
+
+// 实际应用：验证配置完整性
+function validateConfig(config: Config): RequiredConfig {
+  const defaultConfig: RequiredConfig = {
+    apiUrl: &#39;https://api.example.com&#39;,
+    timeout: 5000,
+    retries: 3,
+    debug: false
+  };
+  
+  return { ...defaultConfig, ...config };
+}
+</code></pre>
+<h3>Readonly<T></h3>
+<p>将类型 T 的所有属性变为只读。</p>
+<pre><code class="language-typescript">interface MutableUser {
+  id: number;
+  name: string;
+  email: string;
+}
+
+// 所有属性都变为只读
+type ReadonlyUser = Readonly&lt;MutableUser&gt;;
+// 等价于：
+// {
+//   readonly id: number;
+//   readonly name: string;
+//   readonly email: string;
+// }
+
+// 实际应用：不可变数据
+function createImmutableUser(data: MutableUser): ReadonlyUser {
+  return Object.freeze({ ...data });
+}
+
+const user = createImmutableUser({ id: 1, name: &quot;Alice&quot;, email: &quot;alice@example.com&quot; });
+// user.name = &quot;Bob&quot;; // Error: Cannot assign to &#39;name&#39; because it is a read-only property
+</code></pre>
+<h3>Pick&lt;T, K&gt;</h3>
+<p>从类型 T 中选择指定的属性 K。</p>
+<pre><code class="language-typescript">interface User {
+  id: number;
+  name: string;
+  email: string;
+  password: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 只选择公开的用户信息
+type PublicUser = Pick&lt;User, &#39;id&#39; | &#39;name&#39; | &#39;email&#39;&gt;;
+// 等价于：
+// {
+//   id: number;
+//   name: string;
+//   email: string;
+// }
+
+// 选择用于创建用户的字段
+type CreateUserInput = Pick&lt;User, &#39;name&#39; | &#39;email&#39; | &#39;password&#39;&gt;;
+
+// 实际应用：API 响应
+function getUserProfile(id: number): PublicUser {
+  const fullUser = getUserFromDatabase(id);
+  return {
+    id: fullUser.id,
+    name: fullUser.name,
+    email: fullUser.email
+  };
+}
+</code></pre>
+<h3>Omit&lt;T, K&gt;</h3>
+<p>从类型 T 中排除指定的属性 K。</p>
+<pre><code class="language-typescript">interface User {
+  id: number;
+  name: string;
+  email: string;
+  password: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 排除敏感信息
+type SafeUser = Omit&lt;User, &#39;password&#39;&gt;;
+// 等价于：
+// {
+//   id: number;
+//   name: string;
+//   email: string;
+//   createdAt: Date;
+//   updatedAt: Date;
+// }
+
+// 排除自动生成的字段
+type CreateUserInput = Omit&lt;User, &#39;id&#39; | &#39;createdAt&#39; | &#39;updatedAt&#39;&gt;;
+
+// 实际应用：表单数据
+function createUser(input: CreateUserInput): Promise&lt;User&gt; {
+  const now = new Date();
+  const newUser: User = {
+    id: generateId(),
+    ...input,
+    createdAt: now,
+    updatedAt: now
+  };
+  
+  return saveUserToDatabase(newUser);
+}
+</code></pre>
+<h2>高级工具类型</h2>
+<h3>Record&lt;K, T&gt;</h3>
+<p>创建一个对象类型，其属性键为 K，属性值为 T。</p>
+<pre><code class="language-typescript">// 基本用法
+type StringRecord = Record&lt;string, number&gt;;
+// 等价于：{ [key: string]: number }
+
+type UserRoles = Record&lt;&#39;admin&#39; | &#39;user&#39; | &#39;guest&#39;, string[]&gt;;
+// 等价于：
+// {
+//   admin: string[];
+//   user: string[];
+//   guest: string[];
+// }
+
+// 实际应用：权限管理
+const rolePermissions: UserRoles = {
+  admin: [&#39;read&#39;, &#39;write&#39;, &#39;delete&#39;, &#39;manage&#39;],
+  user: [&#39;read&#39;, &#39;write&#39;],
+  guest: [&#39;read&#39;]
+};
+
+// 状态管理
+type LoadingStates = Record&lt;&#39;users&#39; | &#39;posts&#39; | &#39;comments&#39;, boolean&gt;;
+
+const loadingState: LoadingStates = {
+  users: false,
+  posts: true,
+  comments: false
+};
+
+// 动态键类型
+type ApiEndpoints = Record&lt;`/api/${string}`, () =&gt; Promise&lt;any&gt;&gt;;
+
+const endpoints: ApiEndpoints = {
+  &#39;/api/users&#39;: () =&gt; fetch(&#39;/api/users&#39;).then(r =&gt; r.json()),
+  &#39;/api/posts&#39;: () =&gt; fetch(&#39;/api/posts&#39;).then(r =&gt; r.json()),
+  &#39;/api/comments&#39;: () =&gt; fetch(&#39;/api/comments&#39;).then(r =&gt; r.json())
+};
+</code></pre>
+<h3>Exclude&lt;T, U&gt;</h3>
+<p>从联合类型 T 中排除可以赋值给 U 的类型。</p>
+<pre><code class="language-typescript">type AllColors = &#39;red&#39; | &#39;green&#39; | &#39;blue&#39; | &#39;yellow&#39; | &#39;purple&#39;;
+type PrimaryColors = &#39;red&#39; | &#39;green&#39; | &#39;blue&#39;;
+
+// 排除主要颜色
+type SecondaryColors = Exclude&lt;AllColors, PrimaryColors&gt;;
+// 结果：&#39;yellow&#39; | &#39;purple&#39;
+
+// 实际应用：事件类型过滤
+type AllEvents = &#39;click&#39; | &#39;scroll&#39; | &#39;resize&#39; | &#39;load&#39; | &#39;error&#39;;
+type UserEvents = &#39;click&#39; | &#39;scroll&#39;;
+type SystemEvents = Exclude&lt;AllEvents, UserEvents&gt;;
+// 结果：&#39;resize&#39; | &#39;load&#39; | &#39;error&#39;
+
+// 函数参数类型过滤
+type AllTypes = string | number | boolean | null | undefined;
+type ValidInputTypes = Exclude&lt;AllTypes, null | undefined&gt;;
+// 结果：string | number | boolean
+
+function processInput(value: ValidInputTypes): string {
+  return String(value);
+}
+</code></pre>
+<h3>Extract&lt;T, U&gt;</h3>
+<p>从联合类型 T 中提取可以赋值给 U 的类型。</p>
+<pre><code class="language-typescript">type AllTypes = string | number | boolean | Date | RegExp;
+type PrimitiveTypes = string | number | boolean;
+
+// 提取原始类型
+type ExtractedPrimitives = Extract&lt;AllTypes, PrimitiveTypes&gt;;
+// 结果：string | number | boolean
+
+// 实际应用：API 响应类型提取
+type ApiResponse = 
+  | { type: &#39;success&#39;; data: any }
+  | { type: &#39;error&#39;; message: string }
+  | { type: &#39;loading&#39; }
+  | { type: &#39;idle&#39; };
+
+type ErrorResponse = Extract&lt;ApiResponse, { type: &#39;error&#39; }&gt;;
+// 结果：{ type: &#39;error&#39;; message: string }
+
+type DataResponse = Extract&lt;ApiResponse, { data: any }&gt;;
+// 结果：{ type: &#39;success&#39;; data: any }
+</code></pre>
+<h3>NonNullable<T></h3>
+<p>从类型 T 中排除 null 和 undefined。</p>
+<pre><code class="language-typescript">type NullableString = string | null | undefined;
+type NonNullString = NonNullable&lt;NullableString&gt;;
+// 结果：string
+
+// 实际应用：数组过滤
+function filterNonNull&lt;T&gt;(array: (T | null | undefined)[]): NonNullable&lt;T&gt;[] {
+  return array.filter((item): item is NonNullable&lt;T&gt; =&gt; item != null);
+}
+
+const mixedArray = [&#39;hello&#39;, null, &#39;world&#39;, undefined, &#39;typescript&#39;];
+const cleanArray = filterNonNull(mixedArray);
+// cleanArray 类型为 string[]
+
+// 可选链结果处理
+interface User {
+  profile?: {
+    avatar?: string;
+  };
+}
+
+function getAvatar(user: User): NonNullable&lt;string&gt; | null {
+  const avatar = user.profile?.avatar;
+  return avatar ? avatar : null;
+}
+</code></pre>
+<h2>函数相关工具类型</h2>
+<h3>Parameters<T></h3>
+<p>获取函数类型 T 的参数类型元组。</p>
+<pre><code class="language-typescript">function createUser(name: string, age: number, email: string): User {
+  return { id: generateId(), name, age, email };
+}
+
+// 获取函数参数类型
+type CreateUserParams = Parameters&lt;typeof createUser&gt;;
+// 结果：[string, number, string]
+
+// 实际应用：函数包装器
+function loggedCreateUser(...args: CreateUserParams): User {
+  console.log(&#39;Creating user with params:&#39;, args);
+  return createUser(...args);
+}
+
+// 泛型函数参数提取
+type FetchFunction = &lt;T&gt;(url: string, options?: RequestInit) =&gt; Promise&lt;T&gt;;
+type FetchParams = Parameters&lt;FetchFunction&gt;;
+// 结果：[string, RequestInit?]
+
+// 方法参数提取
+class ApiClient {
+  async get&lt;T&gt;(endpoint: string, params?: Record&lt;string, any&gt;): Promise&lt;T&gt; {
+    // 实现...
+    return {} as T;
+  }
+}
+
+type GetMethodParams = Parameters&lt;ApiClient[&#39;get&#39;]&gt;;
+// 结果：[string, Record&lt;string, any&gt;?]
+</code></pre>
+<h3>ReturnType<T></h3>
+<p>获取函数类型 T 的返回类型。</p>
+<pre><code class="language-typescript">function getUser(id: number): Promise&lt;User&gt; {
+  return fetch(`/api/users/${id}`).then(r =&gt; r.json());
+}
+
+// 获取函数返回类型
+type GetUserReturn = ReturnType&lt;typeof getUser&gt;;
+// 结果：Promise&lt;User&gt;
+
+// 实际应用：API 响应类型推断
+async function fetchData() {
+  const users = await getUsers();
+  const posts = await getPosts();
+  
+  return {
+    users,
+    posts,
+    timestamp: Date.now()
+  };
+}
+
+type FetchDataResult = ReturnType&lt;typeof fetchData&gt;;
+// 结果：Promise&lt;{ users: User[]; posts: Post[]; timestamp: number }&gt;
+
+// 条件返回类型
+function processValue&lt;T&gt;(value: T): T extends string ? string : number {
+  return typeof value === &#39;string&#39; ? value.toUpperCase() as any : 42 as any;
+}
+
+type ProcessStringResult = ReturnType&lt;typeof processValue&lt;string&gt;&gt;;
+// 结果：string
+
+type ProcessNumberResult = ReturnType&lt;typeof processValue&lt;number&gt;&gt;;
+// 结果：number
+</code></pre>
+<h3>ConstructorParameters<T></h3>
+<p>获取构造函数类型 T 的参数类型元组。</p>
+<pre><code class="language-typescript">class User {
+  constructor(
+    public name: string,
+    public email: string,
+    public age?: number
+  ) {}
+}
+
+// 获取构造函数参数类型
+type UserConstructorParams = ConstructorParameters&lt;typeof User&gt;;
+// 结果：[string, string, number?]
+
+// 实际应用：工厂函数
+function createUserInstance(...args: UserConstructorParams): User {
+  return new User(...args);
+}
+
+// 泛型构造函数
+interface Constructable&lt;T = {}&gt; {
+  new (...args: any[]): T;
+}
+
+function createInstance&lt;T extends Constructable&gt;(
+  ctor: T,
+  ...args: ConstructorParameters&lt;T&gt;
+): InstanceType&lt;T&gt; {
+  return new ctor(...args);
+}
+
+const user = createInstance(User, &#39;Alice&#39;, &#39;alice@example.com&#39;, 25);
+</code></pre>
+<h3>InstanceType<T></h3>
+<p>获取构造函数类型 T 的实例类型。</p>
+<pre><code class="language-typescript">class ApiClient {
+  constructor(private baseUrl: string) {}
+  
+  async get&lt;T&gt;(endpoint: string): Promise&lt;T&gt; {
+    // 实现...
+    return {} as T;
+  }
+}
+
+// 获取实例类型
+type ApiClientInstance = InstanceType&lt;typeof ApiClient&gt;;
+// 结果：ApiClient
+
+// 实际应用：依赖注入
+interface ServiceConstructor&lt;T = {}&gt; {
+  new (...args: any[]): T;
+}
+
+class ServiceContainer {
+  private services = new Map&lt;string, any&gt;();
+  
+  register&lt;T&gt;(name: string, constructor: ServiceConstructor&lt;T&gt;, ...args: any[]): void {
+    this.services.set(name, new constructor(...args));
+  }
+  
+  get&lt;T extends ServiceConstructor&gt;(name: string): InstanceType&lt;T&gt; | undefined {
+    return this.services.get(name);
+  }
+}
+
+const container = new ServiceContainer();
+container.register(&#39;apiClient&#39;, ApiClient, &#39;https://api.example.com&#39;);
+const client = container.get&lt;typeof ApiClient&gt;(&#39;apiClient&#39;);
+</code></pre>
+<h2>字符串操作工具类型</h2>
+<h3>Uppercase<T></h3>
+<p>将字符串字面量类型转换为大写。</p>
+<pre><code class="language-typescript">type UppercaseHello = Uppercase&lt;&#39;hello&#39;&gt;;
+// 结果：&#39;HELLO&#39;
+
+type UppercaseUnion = Uppercase&lt;&#39;get&#39; | &#39;post&#39; | &#39;put&#39; | &#39;delete&#39;&gt;;
+// 结果：&#39;GET&#39; | &#39;POST&#39; | &#39;PUT&#39; | &#39;DELETE&#39;
+
+// 实际应用：HTTP 方法类型
+type HttpMethod = &#39;get&#39; | &#39;post&#39; | &#39;put&#39; | &#39;delete&#39;;
+type UppercaseHttpMethod = Uppercase&lt;HttpMethod&gt;;
+
+const methods: Record&lt;UppercaseHttpMethod, string&gt; = {
+  GET: &#39;GET&#39;,
+  POST: &#39;POST&#39;,
+  PUT: &#39;PUT&#39;,
+  DELETE: &#39;DELETE&#39;
+};
+</code></pre>
+<h3>Lowercase<T></h3>
+<p>将字符串字面量类型转换为小写。</p>
+<pre><code class="language-typescript">type LowercaseHello = Lowercase&lt;&#39;HELLO&#39;&gt;;
+// 结果：&#39;hello&#39;
+
+// 实际应用：CSS 属性名标准化
+type CSSProperty = &#39;BACKGROUND-COLOR&#39; | &#39;FONT-SIZE&#39; | &#39;MARGIN-TOP&#39;;
+type NormalizedCSSProperty = Lowercase&lt;CSSProperty&gt;;
+// 结果：&#39;background-color&#39; | &#39;font-size&#39; | &#39;margin-top&#39;
+</code></pre>
+<h3>Capitalize<T></h3>
+<p>将字符串字面量类型的首字母大写。</p>
+<pre><code class="language-typescript">type CapitalizedHello = Capitalize&lt;&#39;hello&#39;&gt;;
+// 结果：&#39;Hello&#39;
+
+// 实际应用：组件名生成
+type ComponentName = &#39;button&#39; | &#39;input&#39; | &#39;select&#39;;
+type ReactComponentName = Capitalize&lt;ComponentName&gt;;
+// 结果：&#39;Button&#39; | &#39;Input&#39; | &#39;Select&#39;
+
+type ComponentProps&lt;T extends string&gt; = `${Capitalize&lt;T&gt;}Props`;
+type ButtonProps = ComponentProps&lt;&#39;button&#39;&gt;;
+// 结果：&#39;ButtonProps&#39;
+</code></pre>
+<h3>Uncapitalize<T></h3>
+<p>将字符串字面量类型的首字母小写。</p>
+<pre><code class="language-typescript">type UncapitalizedHello = Uncapitalize&lt;&#39;Hello&#39;&gt;;
+// 结果：&#39;hello&#39;
+
+// 实际应用：方法名生成
+type ActionType = &#39;CREATE_USER&#39; | &#39;UPDATE_USER&#39; | &#39;DELETE_USER&#39;;
+type MethodName&lt;T extends string&gt; = Uncapitalize&lt;
+  Lowercase&lt;T&gt; extends `${infer First}_${infer Rest}`
+    ? `${First}${Capitalize&lt;Lowercase&lt;Rest&gt;&gt;}`
+    : Lowercase&lt;T&gt;
+&gt;;
+
+type CreateUserMethod = MethodName&lt;&#39;CREATE_USER&#39;&gt;;
+// 结果：&#39;createUser&#39;
+</code></pre>
+<h2>模板字面量类型工具</h2>
+<h3>模板字面量类型组合</h3>
+<pre><code class="language-typescript">// 基本模板字面量类型
+type EventName&lt;T extends string&gt; = `on${Capitalize&lt;T&gt;}`;
+type ClickEvent = EventName&lt;&#39;click&#39;&gt;;
+// 结果：&#39;onClick&#39;
+
+// 复杂模板组合
+type ApiEndpoint&lt;
+  Resource extends string,
+  Action extends string
+&gt; = `/api/${Resource}/${Action}`;
+
+type UserEndpoints = ApiEndpoint&lt;&#39;users&#39;, &#39;create&#39; | &#39;update&#39; | &#39;delete&#39;&gt;;
+// 结果：&#39;/api/users/create&#39; | &#39;/api/users/update&#39; | &#39;/api/users/delete&#39;
+
+// 实际应用：类型安全的路由
+type Route = 
+  | &#39;/home&#39;
+  | &#39;/about&#39;
+  | `/users/${number}`
+  | `/posts/${number}/comments`;
+
+function navigate(route: Route): void {
+  // 路由导航实现
+  console.log(`Navigating to: ${route}`);
+}
+
+navigate(&#39;/users/123&#39;); // OK
+navigate(&#39;/posts/456/comments&#39;); // OK
+// navigate(&#39;/invalid&#39;); // Error
+</code></pre>
+<h3>字符串解析工具类型</h3>
+<pre><code class="language-typescript">// 解析路径参数
+type ExtractParams&lt;T extends string&gt; = 
+  T extends `${string}:${infer Param}/${infer Rest}`
+    ? Param | ExtractParams&lt;Rest&gt;
+    : T extends `${string}:${infer Param}`
+    ? Param
+    : never;
+
+type RouteParams = ExtractParams&lt;&#39;/users/:id/posts/:postId&#39;&gt;;
+// 结果：&#39;id&#39; | &#39;postId&#39;
+
+// 解析查询参数
+type ParseQuery&lt;T extends string&gt; = 
+  T extends `${infer Key}=${infer Value}&amp;${infer Rest}`
+    ? { [K in Key]: Value } &amp; ParseQuery&lt;Rest&gt;
+    : T extends `${infer Key}=${infer Value}`
+    ? { [K in Key]: Value }
+    : {};
+
+type QueryParams = ParseQuery&lt;&#39;name=john&amp;age=25&amp;active=true&#39;&gt;;
+// 结果：{ name: &#39;john&#39;; age: &#39;25&#39;; active: &#39;true&#39; }
+</code></pre>
+<h2>实际应用示例</h2>
+<h3>表单类型生成</h3>
+<pre><code class="language-typescript">// 基础用户类型
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  age: number;
+  isActive: boolean;
+  profile: {
+    avatar: string;
+    bio: string;
+  };
+}
+
+// 表单输入类型（排除 id，profile 扁平化）
+type UserFormInput = Omit&lt;User, &#39;id&#39; | &#39;profile&#39;&gt; &amp; {
+  avatar: string;
+  bio: string;
+};
+
+// 表单验证错误类型
+type FormErrors&lt;T&gt; = Partial&lt;Record&lt;keyof T, string&gt;&gt;;
+type UserFormErrors = FormErrors&lt;UserFormInput&gt;;
+
+// 表单状态类型
+interface FormState&lt;T&gt; {
+  values: T;
+  errors: FormErrors&lt;T&gt;;
+  touched: Partial&lt;Record&lt;keyof T, boolean&gt;&gt;;
+  isSubmitting: boolean;
+}
+
+type UserFormState = FormState&lt;UserFormInput&gt;;
+
+// 表单处理函数
+function createUserForm(): UserFormState {
+  return {
+    values: {
+      name: &#39;&#39;,
+      email: &#39;&#39;,
+      age: 0,
+      isActive: false,
+      avatar: &#39;&#39;,
+      bio: &#39;&#39;
+    },
+    errors: {},
+    touched: {},
+    isSubmitting: false
+  };
+}
+</code></pre>
+<h3>API 客户端类型</h3>
+<pre><code class="language-typescript">// API 响应基础类型
+interface ApiResponse&lt;T&gt; {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+// 资源类型定义
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+interface Post {
+  id: number;
+  title: string;
+  content: string;
+  authorId: number;
+}
+
+// API 端点定义
+type ApiEndpoints = {
+  &#39;GET /users&#39;: ApiResponse&lt;User[]&gt;;
+  &#39;GET /users/:id&#39;: ApiResponse&lt;User&gt;;
+  &#39;POST /users&#39;: ApiResponse&lt;User&gt;;
+  &#39;PUT /users/:id&#39;: ApiResponse&lt;User&gt;;
+  &#39;DELETE /users/:id&#39;: ApiResponse&lt;void&gt;;
+  &#39;GET /posts&#39;: ApiResponse&lt;Post[]&gt;;
+  &#39;GET /posts/:id&#39;: ApiResponse&lt;Post&gt;;
+};
+
+// 提取方法和路径
+type ExtractMethod&lt;T extends string&gt; = T extends `${infer Method} ${string}` ? Method : never;
+type ExtractPath&lt;T extends string&gt; = T extends `${string} ${infer Path}` ? Path : never;
+
+type Methods = ExtractMethod&lt;keyof ApiEndpoints&gt;;
+// 结果：&#39;GET&#39; | &#39;POST&#39; | &#39;PUT&#39; | &#39;DELETE&#39;
+
+type Paths = ExtractPath&lt;keyof ApiEndpoints&gt;;
+// 结果：&#39;/users&#39; | &#39;/users/:id&#39; | &#39;/posts&#39; | &#39;/posts/:id&#39;
+
+// 类型安全的 API 客户端
+class TypedApiClient {
+  async request&lt;K extends keyof ApiEndpoints&gt;(
+    endpoint: K,
+    options?: RequestInit
+  ): Promise&lt;ApiEndpoints[K]&gt; {
+    const [method, path] = endpoint.split(&#39; &#39;);
+    // 实际请求实现
+    return {} as ApiEndpoints[K];
+  }
+}
+
+const client = new TypedApiClient();
+
+// 类型安全的使用
+client.request(&#39;GET /users&#39;).then(response =&gt; {
+  // response 类型为 ApiResponse&lt;User[]&gt;
+  console.log(response.data); // User[]
+});
+
+client.request(&#39;GET /users/:id&#39;).then(response =&gt; {
+  // response 类型为 ApiResponse&lt;User&gt;
+  console.log(response.data); // User
+});
+</code></pre>
+<h3>状态管理类型</h3>
+<pre><code class="language-typescript">// 状态类型定义
+interface AppState {
+  user: {
+    currentUser: User | null;
+    isLoading: boolean;
+    error: string | null;
+  };
+  posts: {
+    items: Post[];
+    isLoading: boolean;
+    error: string | null;
+  };
+}
+
+// Action 类型生成
+type ActionType&lt;T extends string&gt; = Uppercase&lt;T&gt;;
+type LoadingAction&lt;T extends string&gt; = `${ActionType&lt;T&gt;}_LOADING`;
+type SuccessAction&lt;T extends string&gt; = `${ActionType&lt;T&gt;}_SUCCESS`;
+type ErrorAction&lt;T extends string&gt; = `${ActionType&lt;T&gt;}_ERROR`;
+
+type UserActions = 
+  | LoadingAction&lt;&#39;fetch_user&#39;&gt;
+  | SuccessAction&lt;&#39;fetch_user&#39;&gt;
+  | ErrorAction&lt;&#39;fetch_user&#39;&gt;;
+// 结果：&#39;FETCH_USER_LOADING&#39; | &#39;FETCH_USER_SUCCESS&#39; | &#39;FETCH_USER_ERROR&#39;
+
+// Action 创建器类型
+type ActionCreator&lt;T, P = void&gt; = P extends void 
+  ? () =&gt; { type: T }
+  : (payload: P) =&gt; { type: T; payload: P };
+
+type UserActionCreators = {
+  fetchUserLoading: ActionCreator&lt;&#39;FETCH_USER_LOADING&#39;&gt;;
+  fetchUserSuccess: ActionCreator&lt;&#39;FETCH_USER_SUCCESS&#39;, User&gt;;
+  fetchUserError: ActionCreator&lt;&#39;FETCH_USER_ERROR&#39;, string&gt;;
+};
+
+// Reducer 类型
+type Reducer&lt;S, A&gt; = (state: S, action: A) =&gt; S;
+
+type UserAction = 
+  | { type: &#39;FETCH_USER_LOADING&#39; }
+  | { type: &#39;FETCH_USER_SUCCESS&#39;; payload: User }
+  | { type: &#39;FETCH_USER_ERROR&#39;; payload: string };
+
+const userReducer: Reducer&lt;AppState[&#39;user&#39;], UserAction&gt; = (state, action) =&gt; {
+  switch (action.type) {
+    case &#39;FETCH_USER_LOADING&#39;:
+      return { ...state, isLoading: true, error: null };
+    case &#39;FETCH_USER_SUCCESS&#39;:
+      return { ...state, isLoading: false, currentUser: action.payload };
+    case &#39;FETCH_USER_ERROR&#39;:
+      return { ...state, isLoading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+</code></pre>
+<h2>工具类型最佳实践</h2>
+<h3>1. 组合使用工具类型</h3>
+<pre><code class="language-typescript">// 组合多个工具类型
+interface BaseEntity {
+  id: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface User extends BaseEntity {
+  name: string;
+  email: string;
+  password: string;
+}
+
+// 创建用户输入：排除自动生成字段，密码可选
+type CreateUserInput = Partial&lt;Pick&lt;User, &#39;password&#39;&gt;&gt; &amp; 
+  Omit&lt;User, keyof BaseEntity | &#39;password&#39;&gt;;
+
+// 更新用户输入：所有字段可选，排除 id
+type UpdateUserInput = Partial&lt;Omit&lt;User, &#39;id&#39;&gt;&gt;;
+
+// 公开用户信息：排除敏感信息
+type PublicUser = Omit&lt;User, &#39;password&#39;&gt;;
+</code></pre>
+<h3>2. 创建自定义工具类型</h3>
+<pre><code class="language-typescript">// 深度可选类型
+type DeepPartial&lt;T&gt; = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial&lt;T[P]&gt; : T[P];
+};
+
+// 深度只读类型
+type DeepReadonly&lt;T&gt; = {
+  readonly [P in keyof T]: T[P] extends object ? DeepReadonly&lt;T[P]&gt; : T[P];
+};
+
+// 可空类型
+type Nullable&lt;T&gt; = T | null;
+
+// 可选键类型
+type OptionalKeys&lt;T&gt; = {
+  [K in keyof T]-?: {} extends Pick&lt;T, K&gt; ? K : never;
+}[keyof T];
+
+// 必需键类型
+type RequiredKeys&lt;T&gt; = {
+  [K in keyof T]-?: {} extends Pick&lt;T, K&gt; ? never : K;
+}[keyof T];
+
+// 使用示例
+interface Config {
+  apiUrl: string;
+  timeout?: number;
+  retries?: number;
+}
+
+type ConfigOptionalKeys = OptionalKeys&lt;Config&gt;;
+// 结果：&#39;timeout&#39; | &#39;retries&#39;
+
+type ConfigRequiredKeys = RequiredKeys&lt;Config&gt;;
+// 结果：&#39;apiUrl&#39;
+</code></pre>
+<h3>3. 条件工具类型</h3>
+<pre><code class="language-typescript">// 条件类型工具
+type IsArray&lt;T&gt; = T extends any[] ? true : false;
+type IsFunction&lt;T&gt; = T extends (...args: any[]) =&gt; any ? true : false;
+type IsPromise&lt;T&gt; = T extends Promise&lt;any&gt; ? true : false;
+
+// 数组元素类型提取
+type ArrayElement&lt;T&gt; = T extends (infer U)[] ? U : never;
+
+type StringArray = string[];
+type StringElement = ArrayElement&lt;StringArray&gt;;
+// 结果：string
+
+// Promise 值类型提取
+type PromiseValue&lt;T&gt; = T extends Promise&lt;infer U&gt; ? U : never;
+
+type UserPromise = Promise&lt;User&gt;;
+type UserType = PromiseValue&lt;UserPromise&gt;;
+// 结果：User
+
+// 函数参数和返回值提取
+type FunctionInfo&lt;T&gt; = T extends (...args: infer P) =&gt; infer R 
+  ? { params: P; return: R }
+  : never;
+
+type CreateUserInfo = FunctionInfo&lt;typeof createUser&gt;;
+// 结果：{ params: [string, number, string]; return: User }
+</code></pre>
+<h2>总结</h2>
+<p>工具类型是 TypeScript 类型系统的强大功能：</p>
+<ol>
+<li><strong>内置工具类型</strong>：提供常用的类型转换操作</li>
+<li><strong>组合能力</strong>：可以组合使用创建复杂类型</li>
+<li><strong>类型安全</strong>：在编译时确保类型正确性</li>
+<li><strong>代码复用</strong>：减少重复的类型定义</li>
+</ol>
+<p>掌握工具类型有助于：</p>
+<ul>
+<li>创建更灵活的类型定义</li>
+<li>提高代码的类型安全性</li>
+<li>减少样板代码</li>
+<li>构建类型安全的 API</li>
+</ul>
+<h2>练习题</h2>
+<ol>
+<li>使用 <code>Pick</code> 和 <code>Omit</code> 创建不同的用户类型变体</li>
+<li>实现一个自定义工具类型 <code>DeepPartial</code></li>
+<li>创建一个类型安全的事件系统</li>
+<li>使用模板字面量类型创建 API 路由类型</li>
+</ol>
+
+      

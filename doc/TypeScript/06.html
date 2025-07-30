@@ -1,0 +1,575 @@
+
+        <header>
+          <h1>类 (Classes)</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <p>TypeScript 的类支持面向对象编程的所有特性，包括继承、封装、多态等，并添加了类型注解和访问修饰符。</p>
+<h2>基本类语法</h2>
+<h3>类的定义</h3>
+<pre><code class="language-typescript">class Person {
+    // 属性声明
+    name: string;
+    age: number;
+    
+    // 构造函数
+    constructor(name: string, age: number) {
+        this.name = name;
+        this.age = age;
+    }
+    
+    // 方法
+    greet(): string {
+        return `Hello, I&#39;m ${this.name} and I&#39;m ${this.age} years old.`;
+    }
+    
+    // 获取器
+    get info(): string {
+        return `${this.name} (${this.age})`;
+    }
+    
+    // 设置器
+    set info(value: string) {
+        const [name, ageStr] = value.split(&#39; (&#39;);
+        this.name = name;
+        this.age = parseInt(ageStr.replace(&#39;)&#39;, &#39;&#39;));
+    }
+}
+
+// 使用类
+const person = new Person(&quot;Alice&quot;, 30);
+console.log(person.greet()); // &quot;Hello, I&#39;m Alice and I&#39;m 30 years old.&quot;
+console.log(person.info); // &quot;Alice (30)&quot;
+person.info = &quot;Bob (25)&quot;;
+console.log(person.name); // &quot;Bob&quot;
+</code></pre>
+<h3>属性初始化</h3>
+<pre><code class="language-typescript">class Student {
+    // 直接初始化
+    school: string = &quot;Default School&quot;;
+    
+    // 可选属性
+    grade?: number;
+    
+    // 只读属性
+    readonly id: string;
+    
+    constructor(id: string, name: string) {
+        this.id = id; // 只能在构造函数中赋值
+        this.name = name;
+    }
+    
+    // 参数属性（简化写法）
+    constructor(
+        readonly id: string,
+        public name: string,
+        private age: number,
+        protected email: string
+    ) {
+        // 自动创建并初始化属性
+    }
+}
+</code></pre>
+<h2>访问修饰符</h2>
+<h3>public、private、protected</h3>
+<pre><code class="language-typescript">class Animal {
+    public name: string; // 公共属性，默认修饰符
+    private age: number; // 私有属性，只能在类内部访问
+    protected species: string; // 受保护属性，可在子类中访问
+    
+    constructor(name: string, age: number, species: string) {
+        this.name = name;
+        this.age = age;
+        this.species = species;
+    }
+    
+    public makeSound(): void {
+        console.log(`${this.name} makes a sound`);
+    }
+    
+    private getAge(): number {
+        return this.age;
+    }
+    
+    protected getSpecies(): string {
+        return this.species;
+    }
+    
+    // 公共方法访问私有属性
+    public getInfo(): string {
+        return `${this.name} is ${this.getAge()} years old`;
+    }
+}
+
+class Dog extends Animal {
+    constructor(name: string, age: number) {
+        super(name, age, &quot;Canine&quot;);
+    }
+    
+    public bark(): void {
+        console.log(`${this.name} barks!`);
+        // 可以访问 protected 属性
+        console.log(`Species: ${this.getSpecies()}`);
+        // console.log(this.age); // Error: 无法访问私有属性
+    }
+}
+
+const dog = new Dog(&quot;Buddy&quot;, 3);
+console.log(dog.name); // OK: public
+// console.log(dog.age); // Error: private
+// console.log(dog.species); // Error: protected
+</code></pre>
+<h3>readonly 修饰符</h3>
+<pre><code class="language-typescript">class Book {
+    readonly isbn: string;
+    readonly title: string;
+    public author: string;
+    
+    constructor(isbn: string, title: string, author: string) {
+        this.isbn = isbn;
+        this.title = title;
+        this.author = author;
+    }
+    
+    updateAuthor(newAuthor: string): void {
+        this.author = newAuthor; // OK
+        // this.title = &quot;New Title&quot;; // Error: 只读属性
+    }
+}
+
+// 参数属性与 readonly 结合
+class Product {
+    constructor(
+        readonly id: number,
+        readonly name: string,
+        public price: number
+    ) {}
+}
+</code></pre>
+<h2>继承</h2>
+<h3>基本继承</h3>
+<pre><code class="language-typescript">class Vehicle {
+    protected speed: number = 0;
+    
+    constructor(public brand: string) {}
+    
+    accelerate(amount: number): void {
+        this.speed += amount;
+        console.log(`${this.brand} accelerated to ${this.speed} km/h`);
+    }
+    
+    brake(): void {
+        this.speed = 0;
+        console.log(`${this.brand} stopped`);
+    }
+}
+
+class Car extends Vehicle {
+    constructor(brand: string, public model: string) {
+        super(brand); // 调用父类构造函数
+    }
+    
+    // 重写父类方法
+    accelerate(amount: number): void {
+        super.accelerate(amount); // 调用父类方法
+        console.log(`Car ${this.model} is now moving`);
+    }
+    
+    // 新增方法
+    honk(): void {
+        console.log(`${this.brand} ${this.model} honks!`);
+    }
+}
+
+class Motorcycle extends Vehicle {
+    constructor(brand: string, public engineSize: number) {
+        super(brand);
+    }
+    
+    wheelie(): void {
+        console.log(`${this.brand} motorcycle does a wheelie!`);
+    }
+}
+
+const car = new Car(&quot;Toyota&quot;, &quot;Camry&quot;);
+car.accelerate(50); // 调用重写的方法
+car.honk();
+
+const bike = new Motorcycle(&quot;Honda&quot;, 600);
+bike.accelerate(30);
+bike.wheelie();
+</code></pre>
+<h3>抽象类</h3>
+<pre><code class="language-typescript">abstract class Shape {
+    abstract area(): number; // 抽象方法，必须在子类中实现
+    abstract perimeter(): number;
+    
+    // 具体方法，可以在子类中使用
+    display(): void {
+        console.log(`Area: ${this.area()}, Perimeter: ${this.perimeter()}`);
+    }
+}
+
+class Rectangle extends Shape {
+    constructor(private width: number, private height: number) {
+        super();
+    }
+    
+    area(): number {
+        return this.width * this.height;
+    }
+    
+    perimeter(): number {
+        return 2 * (this.width + this.height);
+    }
+}
+
+class Circle extends Shape {
+    constructor(private radius: number) {
+        super();
+    }
+    
+    area(): number {
+        return Math.PI * this.radius * this.radius;
+    }
+    
+    perimeter(): number {
+        return 2 * Math.PI * this.radius;
+    }
+}
+
+const rectangle = new Rectangle(5, 3);
+const circle = new Circle(4);
+
+rectangle.display(); // Area: 15, Perimeter: 16
+circle.display(); // Area: 50.26..., Perimeter: 25.13...
+
+// const shape = new Shape(); // Error: 无法实例化抽象类
+</code></pre>
+<h2>静态成员</h2>
+<h3>静态属性和方法</h3>
+<pre><code class="language-typescript">class MathUtils {
+    static readonly PI = 3.14159;
+    static instanceCount = 0;
+    
+    constructor() {
+        MathUtils.instanceCount++;
+    }
+    
+    static calculateCircleArea(radius: number): number {
+        return MathUtils.PI * radius * radius;
+    }
+    
+    static getInstanceCount(): number {
+        return MathUtils.instanceCount;
+    }
+    
+    // 实例方法
+    instanceMethod(): void {
+        console.log(`PI is ${MathUtils.PI}`);
+        // console.log(this.PI); // Error: 静态属性不能通过 this 访问
+    }
+}
+
+// 使用静态成员
+console.log(MathUtils.PI); // 3.14159
+console.log(MathUtils.calculateCircleArea(5)); // 78.53975
+
+const math1 = new MathUtils();
+const math2 = new MathUtils();
+console.log(MathUtils.getInstanceCount()); // 2
+</code></pre>
+<h3>静态块</h3>
+<pre><code class="language-typescript">class DatabaseConfig {
+    static connection: string;
+    static isInitialized: boolean = false;
+    
+    // 静态初始化块
+    static {
+        console.log(&quot;Initializing database configuration...&quot;);
+        this.connection = process.env.DB_URL || &quot;localhost:5432&quot;;
+        this.isInitialized = true;
+        console.log(&quot;Database configuration initialized&quot;);
+    }
+    
+    static getConnection(): string {
+        if (!this.isInitialized) {
+            throw new Error(&quot;Database not initialized&quot;);
+        }
+        return this.connection;
+    }
+}
+</code></pre>
+<h2>泛型类</h2>
+<h3>基本泛型类</h3>
+<pre><code class="language-typescript">class Container&lt;T&gt; {
+    private items: T[] = [];
+    
+    add(item: T): void {
+        this.items.push(item);
+    }
+    
+    get(index: number): T | undefined {
+        return this.items[index];
+    }
+    
+    getAll(): T[] {
+        return [...this.items];
+    }
+    
+    size(): number {
+        return this.items.length;
+    }
+    
+    clear(): void {
+        this.items = [];
+    }
+}
+
+// 使用泛型类
+const stringContainer = new Container&lt;string&gt;();
+stringContainer.add(&quot;hello&quot;);
+stringContainer.add(&quot;world&quot;);
+console.log(stringContainer.getAll()); // [&quot;hello&quot;, &quot;world&quot;]
+
+const numberContainer = new Container&lt;number&gt;();
+numberContainer.add(1);
+numberContainer.add(2);
+console.log(numberContainer.get(0)); // 1
+</code></pre>
+<h3>泛型约束</h3>
+<pre><code class="language-typescript">interface Identifiable {
+    id: number;
+}
+
+class Repository&lt;T extends Identifiable&gt; {
+    private items: T[] = [];
+    
+    add(item: T): void {
+        this.items.push(item);
+    }
+    
+    findById(id: number): T | undefined {
+        return this.items.find(item =&gt; item.id === id);
+    }
+    
+    update(id: number, updates: Partial&lt;T&gt;): boolean {
+        const index = this.items.findIndex(item =&gt; item.id === id);
+        if (index !== -1) {
+            this.items[index] = { ...this.items[index], ...updates };
+            return true;
+        }
+        return false;
+    }
+    
+    delete(id: number): boolean {
+        const index = this.items.findIndex(item =&gt; item.id === id);
+        if (index !== -1) {
+            this.items.splice(index, 1);
+            return true;
+        }
+        return false;
+    }
+}
+
+interface User extends Identifiable {
+    name: string;
+    email: string;
+}
+
+const userRepo = new Repository&lt;User&gt;();
+userRepo.add({ id: 1, name: &quot;Alice&quot;, email: &quot;alice@example.com&quot; });
+userRepo.add({ id: 2, name: &quot;Bob&quot;, email: &quot;bob@example.com&quot; });
+
+const user = userRepo.findById(1);
+console.log(user); // { id: 1, name: &quot;Alice&quot;, email: &quot;alice@example.com&quot; }
+</code></pre>
+<h2>装饰器（实验性功能）</h2>
+<h3>类装饰器</h3>
+<pre><code class="language-typescript">function sealed(constructor: Function) {
+    Object.seal(constructor);
+    Object.seal(constructor.prototype);
+}
+
+@sealed
+class BugReport {
+    type = &quot;report&quot;;
+    title: string;
+    
+    constructor(t: string) {
+        this.title = t;
+    }
+}
+
+// 装饰器工厂
+function classLogger&lt;T extends { new (...args: any[]): {} }&gt;(constructor: T) {
+    return class extends constructor {
+        constructor(...args: any[]) {
+            console.log(`Creating instance of ${constructor.name}`);
+            super(...args);
+        }
+    };
+}
+
+@classLogger
+class Service {
+    constructor(public name: string) {}
+}
+
+const service = new Service(&quot;MyService&quot;); // 输出: Creating instance of Service
+</code></pre>
+<h3>方法装饰器</h3>
+<pre><code class="language-typescript">function log(target: any, propertyName: string, descriptor: PropertyDescriptor) {
+    const method = descriptor.value;
+    
+    descriptor.value = function (...args: any[]) {
+        console.log(`Calling ${propertyName} with arguments:`, args);
+        const result = method.apply(this, args);
+        console.log(`${propertyName} returned:`, result);
+        return result;
+    };
+}
+
+class Calculator {
+    @log
+    add(a: number, b: number): number {
+        return a + b;
+    }
+    
+    @log
+    multiply(a: number, b: number): number {
+        return a * b;
+    }
+}
+
+const calc = new Calculator();
+calc.add(2, 3); // 输出日志信息
+</code></pre>
+<h2>实际应用示例</h2>
+<h3>数据模型类</h3>
+<pre><code class="language-typescript">interface Serializable {
+    serialize(): string;
+    deserialize(data: string): void;
+}
+
+abstract class BaseModel implements Serializable {
+    protected createdAt: Date;
+    protected updatedAt: Date;
+    
+    constructor() {
+        this.createdAt = new Date();
+        this.updatedAt = new Date();
+    }
+    
+    serialize(): string {
+        return JSON.stringify(this);
+    }
+    
+    deserialize(data: string): void {
+        const parsed = JSON.parse(data);
+        Object.assign(this, parsed);
+    }
+    
+    touch(): void {
+        this.updatedAt = new Date();
+    }
+    
+    abstract validate(): boolean;
+}
+
+class UserModel extends BaseModel {
+    constructor(
+        public id: number,
+        public username: string,
+        public email: string,
+        private password: string
+    ) {
+        super();
+    }
+    
+    validate(): boolean {
+        return this.username.length &gt; 0 &amp;&amp; 
+               this.email.includes(&#39;@&#39;) &amp;&amp; 
+               this.password.length &gt;= 8;
+    }
+    
+    changePassword(newPassword: string): boolean {
+        if (newPassword.length &gt;= 8) {
+            this.password = newPassword;
+            this.touch();
+            return true;
+        }
+        return false;
+    }
+    
+    // 重写序列化，排除密码
+    serialize(): string {
+        const { password, ...safeData } = this;
+        return JSON.stringify(safeData);
+    }
+}
+</code></pre>
+<h3>事件发射器类</h3>
+<pre><code class="language-typescript">type EventListener&lt;T = any&gt; = (data: T) =&gt; void;
+
+class EventEmitter&lt;T extends Record&lt;string, any&gt; = Record&lt;string, any&gt;&gt; {
+    private listeners: Map&lt;keyof T, EventListener&lt;T[keyof T]&gt;[]&gt; = new Map();
+    
+    on&lt;K extends keyof T&gt;(event: K, listener: EventListener&lt;T[K]&gt;): void {
+        if (!this.listeners.has(event)) {
+            this.listeners.set(event, []);
+        }
+        this.listeners.get(event)!.push(listener);
+    }
+    
+    off&lt;K extends keyof T&gt;(event: K, listener: EventListener&lt;T[K]&gt;): void {
+        const eventListeners = this.listeners.get(event);
+        if (eventListeners) {
+            const index = eventListeners.indexOf(listener);
+            if (index &gt; -1) {
+                eventListeners.splice(index, 1);
+            }
+        }
+    }
+    
+    emit&lt;K extends keyof T&gt;(event: K, data: T[K]): void {
+        const eventListeners = this.listeners.get(event);
+        if (eventListeners) {
+            eventListeners.forEach(listener =&gt; listener(data));
+        }
+    }
+    
+    once&lt;K extends keyof T&gt;(event: K, listener: EventListener&lt;T[K]&gt;): void {
+        const onceListener = (data: T[K]) =&gt; {
+            listener(data);
+            this.off(event, onceListener);
+        };
+        this.on(event, onceListener);
+    }
+}
+
+// 使用示例
+interface AppEvents {
+    userLogin: { userId: number; username: string };
+    userLogout: { userId: number };
+    dataUpdate: { table: string; id: number };
+}
+
+const eventEmitter = new EventEmitter&lt;AppEvents&gt;();
+
+eventEmitter.on(&#39;userLogin&#39;, (data) =&gt; {
+    console.log(`User ${data.username} logged in`);
+});
+
+eventEmitter.emit(&#39;userLogin&#39;, { userId: 1, username: &#39;alice&#39; });
+</code></pre>
+<h2>最佳实践</h2>
+<ol>
+<li><strong>合理使用访问修饰符</strong>：遵循封装原则，适当隐藏内部实现</li>
+<li><strong>优先组合而非继承</strong>：避免过深的继承层次</li>
+<li><strong>使用抽象类定义契约</strong>：为相关类提供共同的基础结构</li>
+<li><strong>善用泛型类</strong>：提高代码复用性和类型安全性</li>
+<li><strong>谨慎使用装饰器</strong>：确保团队了解装饰器的工作原理</li>
+</ol>
+<p>TypeScript 的类系统为面向对象编程提供了强大的类型支持，合理使用可以编写出更加健壮和可维护的代码。</p>
+
+      

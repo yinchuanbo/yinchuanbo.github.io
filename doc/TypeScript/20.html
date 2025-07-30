@@ -1,0 +1,452 @@
+
+        <header>
+          <h1>类型操作符 (Type Operators)</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <h2>1. 什么是类型操作符？</h2>
+<p>类型操作符是 TypeScript 提供的一组用于操作和转换类型的工具。它们允许我们基于现有类型创建新类型，提供了强大的类型编程能力。</p>
+<h2>2. keyof 操作符</h2>
+<h3>2.1 基本用法</h3>
+<p><code>keyof</code> 操作符用于获取对象类型的所有键名，返回一个联合类型。</p>
+<pre><code class="language-typescript">interface Person {
+  name: string;
+  age: number;
+  email: string;
+}
+
+type PersonKeys = keyof Person; // &quot;name&quot; | &quot;age&quot; | &quot;email&quot;
+
+// 使用示例
+function getProperty&lt;T, K extends keyof T&gt;(obj: T, key: K): T[K] {
+  return obj[key];
+}
+
+const person: Person = {
+  name: &quot;Alice&quot;,
+  age: 30,
+  email: &quot;alice@example.com&quot;
+};
+
+const name = getProperty(person, &quot;name&quot;); // string
+const age = getProperty(person, &quot;age&quot;);   // number
+</code></pre>
+<h3>2.2 与数组和元组的使用</h3>
+<pre><code class="language-typescript">// 数组类型
+type ArrayKeys = keyof string[]; // number | &quot;length&quot; | &quot;toString&quot; | ...
+
+// 元组类型
+type TupleKeys = keyof [string, number]; // &quot;0&quot; | &quot;1&quot; | &quot;length&quot; | &quot;toString&quot; | ...
+
+// 字符串字面量类型
+type StringKeys = keyof &quot;hello&quot;; // number | &quot;toString&quot; | &quot;charAt&quot; | ...
+</code></pre>
+<h3>2.3 实际应用</h3>
+<pre><code class="language-typescript">// 类型安全的对象属性访问
+function pick&lt;T, K extends keyof T&gt;(obj: T, keys: K[]): Pick&lt;T, K&gt; {
+  const result = {} as Pick&lt;T, K&gt;;
+  keys.forEach(key =&gt; {
+    result[key] = obj[key];
+  });
+  return result;
+}
+
+const user = {
+  id: 1,
+  name: &quot;John&quot;,
+  email: &quot;john@example.com&quot;,
+  password: &quot;secret&quot;
+};
+
+const publicInfo = pick(user, [&quot;id&quot;, &quot;name&quot;, &quot;email&quot;]);
+// 类型: { id: number; name: string; email: string; }
+</code></pre>
+<h2>3. typeof 操作符</h2>
+<h3>3.1 基本用法</h3>
+<p><code>typeof</code> 操作符用于获取变量或属性的类型。</p>
+<pre><code class="language-typescript">const message = &quot;Hello, TypeScript!&quot;;
+type MessageType = typeof message; // string
+
+const numbers = [1, 2, 3, 4, 5];
+type NumbersType = typeof numbers; // number[]
+
+const config = {
+  apiUrl: &quot;https://api.example.com&quot;,
+  timeout: 5000,
+  retries: 3
+} as const;
+
+type ConfigType = typeof config;
+// {
+//   readonly apiUrl: &quot;https://api.example.com&quot;;
+//   readonly timeout: 5000;
+//   readonly retries: 3;
+// }
+</code></pre>
+<h3>3.2 与函数的使用</h3>
+<pre><code class="language-typescript">function createUser(name: string, age: number) {
+  return {
+    id: Math.random(),
+    name,
+    age,
+    createdAt: new Date()
+  };
+}
+
+type CreateUserFunction = typeof createUser;
+// (name: string, age: number) =&gt; { id: number; name: string; age: number; createdAt: Date; }
+
+type User = ReturnType&lt;typeof createUser&gt;;
+// { id: number; name: string; age: number; createdAt: Date; }
+</code></pre>
+<h3>3.3 与类的使用</h3>
+<pre><code class="language-typescript">class ApiClient {
+  constructor(public baseUrl: string) {}
+  
+  async get(endpoint: string) {
+    // 实现
+  }
+  
+  async post(endpoint: string, data: any) {
+    // 实现
+  }
+}
+
+type ApiClientClass = typeof ApiClient;
+// new (baseUrl: string) =&gt; ApiClient
+
+type ApiClientInstance = InstanceType&lt;typeof ApiClient&gt;;
+// ApiClient
+</code></pre>
+<h2>4. in 操作符</h2>
+<h3>4.1 基本用法</h3>
+<p><code>in</code> 操作符用于检查对象是否包含某个属性，常用于类型守卫。</p>
+<pre><code class="language-typescript">interface Bird {
+  fly(): void;
+  layEggs(): void;
+}
+
+interface Fish {
+  swim(): void;
+  layEggs(): void;
+}
+
+function move(animal: Bird | Fish) {
+  if (&quot;fly&quot; in animal) {
+    // animal 被推断为 Bird 类型
+    animal.fly();
+  } else {
+    // animal 被推断为 Fish 类型
+    animal.swim();
+  }
+}
+</code></pre>
+<h3>4.2 映射类型中的使用</h3>
+<pre><code class="language-typescript">type Optional&lt;T&gt; = {
+  [K in keyof T]?: T[K];
+};
+
+type RequiredFields&lt;T, K extends keyof T&gt; = T &amp; {
+  [P in K]-?: T[P];
+};
+
+interface User {
+  id?: number;
+  name?: string;
+  email?: string;
+  age?: number;
+}
+
+type RequiredUser = RequiredFields&lt;User, &quot;id&quot; | &quot;name&quot;&gt;;
+// {
+//   id: number;
+//   name: string;
+//   email?: string;
+//   age?: number;
+// }
+</code></pre>
+<h3>4.3 条件类型中的应用</h3>
+<pre><code class="language-typescript">type HasProperty&lt;T, K extends string | number | symbol&gt; = K extends keyof T ? true : false;
+
+type Test1 = HasProperty&lt;{ name: string; age: number }, &quot;name&quot;&gt;; // true
+type Test2 = HasProperty&lt;{ name: string; age: number }, &quot;email&quot;&gt;; // false
+
+// 更复杂的示例
+type FilterByType&lt;T, U&gt; = {
+  [K in keyof T]: T[K] extends U ? K : never;
+}[keyof T];
+
+interface Example {
+  name: string;
+  age: number;
+  isActive: boolean;
+  count: number;
+}
+
+type StringKeys = FilterByType&lt;Example, string&gt;; // &quot;name&quot;
+type NumberKeys = FilterByType&lt;Example, number&gt;; // &quot;age&quot; | &quot;count&quot;
+</code></pre>
+<h2>5. 索引访问类型</h2>
+<h3>5.1 基本语法</h3>
+<pre><code class="language-typescript">interface Person {
+  name: string;
+  age: number;
+  address: {
+    street: string;
+    city: string;
+    country: string;
+  };
+}
+
+type PersonName = Person[&quot;name&quot;]; // string
+type PersonAge = Person[&quot;age&quot;];   // number
+type PersonAddress = Person[&quot;address&quot;]; // { street: string; city: string; country: string; }
+type PersonStreet = Person[&quot;address&quot;][&quot;street&quot;]; // string
+
+// 使用联合类型访问多个属性
+type PersonNameOrAge = Person[&quot;name&quot; | &quot;age&quot;]; // string | number
+</code></pre>
+<h3>5.2 与数组和元组的使用</h3>
+<pre><code class="language-typescript">const fruits = [&quot;apple&quot;, &quot;banana&quot;, &quot;orange&quot;] as const;
+type Fruit = typeof fruits[number]; // &quot;apple&quot; | &quot;banana&quot; | &quot;orange&quot;
+
+type FirstFruit = typeof fruits[0]; // &quot;apple&quot;
+
+// 数组元素类型
+type ArrayElement&lt;T&gt; = T extends readonly (infer U)[] ? U : never;
+type FruitType = ArrayElement&lt;typeof fruits&gt;; // &quot;apple&quot; | &quot;banana&quot; | &quot;orange&quot;
+</code></pre>
+<h3>5.3 动态属性访问</h3>
+<pre><code class="language-typescript">function getProperty&lt;T, K extends keyof T&gt;(obj: T, key: K): T[K] {
+  return obj[key];
+}
+
+function getNestedProperty&lt;T, K1 extends keyof T, K2 extends keyof T[K1]&gt;(
+  obj: T,
+  key1: K1,
+  key2: K2
+): T[K1][K2] {
+  return obj[key1][key2];
+}
+
+const user = {
+  profile: {
+    personal: {
+      name: &quot;John&quot;,
+      age: 30
+    },
+    professional: {
+      title: &quot;Developer&quot;,
+      company: &quot;Tech Corp&quot;
+    }
+  }
+};
+
+const name = getNestedProperty(user, &quot;profile&quot;, &quot;personal&quot;); // { name: string; age: number; }
+</code></pre>
+<h2>6. 条件类型操作符</h2>
+<h3>6.1 extends 关键字</h3>
+<pre><code class="language-typescript">type IsString&lt;T&gt; = T extends string ? true : false;
+
+type Test1 = IsString&lt;string&gt;; // true
+type Test2 = IsString&lt;number&gt;; // false
+
+// 更复杂的条件类型
+type NonNullable&lt;T&gt; = T extends null | undefined ? never : T;
+
+type Example1 = NonNullable&lt;string | null&gt;; // string
+type Example2 = NonNullable&lt;number | undefined&gt;; // number
+</code></pre>
+<h3>6.2 infer 关键字</h3>
+<pre><code class="language-typescript">// 提取函数返回类型
+type ReturnType&lt;T&gt; = T extends (...args: any[]) =&gt; infer R ? R : never;
+
+// 提取数组元素类型
+type ElementType&lt;T&gt; = T extends (infer U)[] ? U : never;
+
+// 提取 Promise 的值类型
+type PromiseType&lt;T&gt; = T extends Promise&lt;infer U&gt; ? U : never;
+
+type AsyncFunction = () =&gt; Promise&lt;string&gt;;
+type Result = PromiseType&lt;ReturnType&lt;AsyncFunction&gt;&gt;; // string
+</code></pre>
+<h2>7. 实际应用示例</h2>
+<h3>7.1 API 响应类型生成器</h3>
+<pre><code class="language-typescript">interface ApiResponse&lt;T&gt; {
+  data: T;
+  status: number;
+  message: string;
+}
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+// 自动生成 API 响应类型
+type UserResponse = ApiResponse&lt;User&gt;;
+type UsersResponse = ApiResponse&lt;User[]&gt;;
+
+// 提取数据类型
+type ExtractData&lt;T&gt; = T extends ApiResponse&lt;infer U&gt; ? U : never;
+
+type UserData = ExtractData&lt;UserResponse&gt;; // User
+type UsersData = ExtractData&lt;UsersResponse&gt;; // User[]
+</code></pre>
+<h3>7.2 表单验证类型系统</h3>
+<pre><code class="language-typescript">interface FormField {
+  value: string;
+  error?: string;
+  touched: boolean;
+}
+
+type FormState&lt;T&gt; = {
+  [K in keyof T]: FormField;
+};
+
+type FormErrors&lt;T&gt; = {
+  [K in keyof T]?: string;
+};
+
+type FormValues&lt;T&gt; = {
+  [K in keyof T]: T[K] extends FormField ? string : never;
+};
+
+interface LoginForm {
+  username: FormField;
+  password: FormField;
+}
+
+type LoginErrors = FormErrors&lt;LoginForm&gt;; // { username?: string; password?: string; }
+type LoginValues = FormValues&lt;LoginForm&gt;; // { username: string; password: string; }
+</code></pre>
+<h3>7.3 状态管理类型系统</h3>
+<pre><code class="language-typescript">interface State {
+  user: {
+    id: number;
+    name: string;
+    preferences: {
+      theme: &quot;light&quot; | &quot;dark&quot;;
+      language: string;
+    };
+  };
+  posts: Array&lt;{
+    id: number;
+    title: string;
+    content: string;
+  }&gt;;
+}
+
+// 深度路径类型
+type DeepKeys&lt;T&gt; = T extends object
+  ? {
+      [K in keyof T]: K extends string
+        ? T[K] extends object
+          ? `${K}` | `${K}.${DeepKeys&lt;T[K]&gt;}`
+          : `${K}`
+        : never;
+    }[keyof T]
+  : never;
+
+type StatePaths = DeepKeys&lt;State&gt;;
+// &quot;user&quot; | &quot;posts&quot; | &quot;user.id&quot; | &quot;user.name&quot; | &quot;user.preferences&quot; | 
+// &quot;user.preferences.theme&quot; | &quot;user.preferences.language&quot;
+
+// 根据路径获取值类型
+type GetByPath&lt;T, P extends string&gt; = P extends `${infer K}.${infer Rest}`
+  ? K extends keyof T
+    ? GetByPath&lt;T[K], Rest&gt;
+    : never
+  : P extends keyof T
+  ? T[P]
+  : never;
+
+type UserName = GetByPath&lt;State, &quot;user.name&quot;&gt;; // string
+type Theme = GetByPath&lt;State, &quot;user.preferences.theme&quot;&gt;; // &quot;light&quot; | &quot;dark&quot;
+</code></pre>
+<h2>8. 类型操作符最佳实践</h2>
+<h3>8.1 性能考虑</h3>
+<pre><code class="language-typescript">// ❌ 避免过度复杂的类型操作
+type OverlyComplex&lt;T&gt; = {
+  [K in keyof T]: T[K] extends object
+    ? {
+        [P in keyof T[K]]: T[K][P] extends object
+          ? {
+              [Q in keyof T[K][P]]: T[K][P][Q];
+            }
+          : T[K][P];
+      }
+    : T[K];
+};
+
+// ✅ 使用辅助类型简化
+type DeepReadonly&lt;T&gt; = {
+  readonly [P in keyof T]: T[P] extends object ? DeepReadonly&lt;T[P]&gt; : T[P];
+};
+</code></pre>
+<h3>8.2 可读性优化</h3>
+<pre><code class="language-typescript">// ❌ 难以理解的类型操作
+type Weird&lt;T&gt; = T extends (...args: infer A) =&gt; infer R
+  ? A extends [infer F, ...infer Rest]
+    ? (first: F, ...rest: Rest) =&gt; R
+    : never
+  : never;
+
+// ✅ 清晰的类型定义
+type ExtractFirstParameter&lt;T&gt; = T extends (first: infer F, ...rest: any[]) =&gt; any ? F : never;
+type ExtractRestParameters&lt;T&gt; = T extends (first: any, ...rest: infer R) =&gt; any ? R : never;
+type ExtractReturnType&lt;T&gt; = T extends (...args: any[]) =&gt; infer R ? R : never;
+
+type ReorganizedFunction&lt;T&gt; = T extends (...args: any[]) =&gt; any
+  ? (first: ExtractFirstParameter&lt;T&gt;, ...rest: ExtractRestParameters&lt;T&gt;) =&gt; ExtractReturnType&lt;T&gt;
+  : never;
+</code></pre>
+<h3>8.3 错误处理</h3>
+<pre><code class="language-typescript">// 类型安全的错误处理
+type SafeGet&lt;T, K&gt; = K extends keyof T ? T[K] : undefined;
+
+interface User {
+  id: number;
+  name: string;
+}
+
+type UserId = SafeGet&lt;User, &quot;id&quot;&gt;; // number
+type UserAge = SafeGet&lt;User, &quot;age&quot;&gt;; // undefined
+
+// 运行时类型检查
+function hasProperty&lt;T, K extends string&gt;(
+  obj: T,
+  key: K
+): obj is T &amp; Record&lt;K, unknown&gt; {
+  return typeof obj === &quot;object&quot; &amp;&amp; obj !== null &amp;&amp; key in obj;
+}
+
+function safeAccess&lt;T, K extends string&gt;(obj: T, key: K): SafeGet&lt;T, K&gt; {
+  if (hasProperty(obj, key)) {
+    return (obj as any)[key];
+  }
+  return undefined as SafeGet&lt;T, K&gt;;
+}
+</code></pre>
+<h2>9. 总结</h2>
+<p>类型操作符是 TypeScript 类型系统的核心工具：</p>
+<ol>
+<li><strong>keyof</strong> - 获取对象类型的键名联合类型</li>
+<li><strong>typeof</strong> - 获取变量或表达式的类型</li>
+<li><strong>in</strong> - 检查属性存在性，用于类型守卫</li>
+<li><strong>索引访问</strong> - 通过键名获取对应的类型</li>
+<li><strong>条件类型</strong> - 基于条件创建类型分支</li>
+<li><strong>infer</strong> - 在条件类型中推断类型</li>
+</ol>
+<p>这些操作符为我们提供了强大的类型编程能力，使得 TypeScript 能够表达复杂的类型关系和约束。</p>
+<h2>10. 练习题</h2>
+<ol>
+<li>实现一个 <code>DeepPartial&lt;T&gt;</code> 类型，使对象的所有属性（包括嵌套属性）都变为可选</li>
+<li>创建一个 <code>StrictPick&lt;T, K&gt;</code> 类型，确保 K 必须是 T 的键</li>
+<li>实现一个 <code>FunctionPropertyNames&lt;T&gt;</code> 类型，提取对象中所有函数属性的名称</li>
+<li>编写一个类型安全的 <code>get</code> 函数，支持点号路径访问嵌套属性</li>
+<li>实现一个 <code>Diff&lt;T, U&gt;</code> 类型，返回 T 中存在但 U 中不存在的属性</li>
+</ol>
+<p>下一篇我们将学习&quot;声明合并 (Declaration Merging)&quot;，了解如何合并接口、模块等声明。</p>
+
+      

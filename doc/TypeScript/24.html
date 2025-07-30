@@ -1,0 +1,704 @@
+
+        <header>
+          <h1>声明文件 (Declaration Files)</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <h2>1. 什么是声明文件？</h2>
+<p>声明文件（Declaration Files）是以 <code>.d.ts</code> 为扩展名的文件，它们不包含实现代码，只包含类型信息。声明文件的主要作用是为 JavaScript 库提供类型定义，使 TypeScript 能够理解这些库的 API 并提供类型检查和智能提示。</p>
+<h2>2. 声明文件的基本语法</h2>
+<h3>2.1 基本结构</h3>
+<pre><code class="language-typescript">// 声明全局变量
+declare var myGlobal: string;
+
+// 声明全局函数
+declare function myFunction(a: number, b: string): boolean;
+
+// 声明全局类
+declare class MyClass {
+  constructor(name: string);
+  name: string;
+  getName(): string;
+}
+
+// 声明全局命名空间
+declare namespace MyNamespace {
+  function someFunction(): void;
+  const someValue: number;
+}
+
+// 声明全局接口
+declare interface MyInterface {
+  prop: string;
+  method(): void;
+}
+
+// 声明全局类型
+declare type MyType = string | number;
+</code></pre>
+<h3>2.2 模块声明</h3>
+<pre><code class="language-typescript">// 为 JavaScript 模块提供类型定义
+declare module &quot;module-name&quot; {
+  export function someFunction(): void;
+  export const someValue: number;
+  export default class SomeClass {}
+}
+
+// 为 CSS/SCSS 等非代码文件提供类型定义
+declare module &quot;*.css&quot; {
+  const content: { [className: string]: string };
+  export default content;
+}
+
+declare module &quot;*.png&quot; {
+  const value: string;
+  export default value;
+}
+</code></pre>
+<h3>2.3 扩展全局对象</h3>
+<pre><code class="language-typescript">// 扩展 Window 接口
+declare global {
+  interface Window {
+    myCustomProperty: string;
+    myCustomMethod(): void;
+  }
+  
+  interface Array&lt;T&gt; {
+    customMethod(): T[];
+  }
+  
+  namespace NodeJS {
+    interface Process {
+      customEnv: string;
+    }
+  }
+}
+</code></pre>
+<h2>3. 编写声明文件的最佳实践</h2>
+<h3>3.1 全局库声明</h3>
+<p>适用于通过全局变量或属性暴露 API 的库。</p>
+<pre><code class="language-typescript">// jquery.d.ts
+declare namespace $ {
+  function ajax(settings: AjaxSettings): Promise&lt;any&gt;;
+  
+  interface AjaxSettings {
+    url: string;
+    method?: &#39;GET&#39; | &#39;POST&#39; | &#39;PUT&#39; | &#39;DELETE&#39;;
+    data?: any;
+    dataType?: string;
+    headers?: Record&lt;string, string&gt;;
+  }
+}
+
+// 全局函数重载
+declare function $(selector: string): $.Element;
+declare function $(element: HTMLElement): $.Element;
+
+// 命名空间扩展
+declare namespace $ {
+  interface Element {
+    css(property: string): string;
+    css(property: string, value: string): this;
+    on(event: string, handler: (event: Event) =&gt; void): this;
+  }
+}
+
+// 全局变量
+declare const jQuery: typeof $;
+</code></pre>
+<h3>3.2 模块库声明</h3>
+<p>适用于使用 ES 模块、CommonJS 或 AMD 模块系统的库。</p>
+<pre><code class="language-typescript">// lodash.d.ts
+declare module &#39;lodash&#39; {
+  // 导出函数
+  export function map&lt;T, U&gt;(
+    array: T[],
+    iteratee: (value: T, index: number, array: T[]) =&gt; U
+  ): U[];
+  
+  export function filter&lt;T&gt;(
+    array: T[],
+    predicate: (value: T, index: number, array: T[]) =&gt; boolean
+  ): T[];
+  
+  // 导出接口
+  export interface LoDashStatic {
+    map: typeof map;
+    filter: typeof filter;
+    // 更多方法...
+  }
+  
+  // 默认导出
+  const _: LoDashStatic;
+  export default _;
+}
+</code></pre>
+<h3>3.3 UMD 库声明</h3>
+<p>适用于同时支持全局变量和模块导入的库。</p>
+<pre><code class="language-typescript">// moment.d.ts
+declare namespace moment {
+  interface Moment {
+    format(format?: string): string;
+    add(amount: number, unit: string): Moment;
+    subtract(amount: number, unit: string): Moment;
+  }
+  
+  interface MomentStatic {
+    (date?: string | Date | number): Moment;
+    utc(date?: string | Date | number): Moment;
+    unix(timestamp: number): Moment;
+  }
+}
+
+// 全局变量
+declare const moment: moment.MomentStatic;
+
+// 模块导出
+declare module &#39;moment&#39; {
+  export = moment;
+}
+</code></pre>
+<h3>3.4 插件声明</h3>
+<p>为已有库添加新功能的插件。</p>
+<pre><code class="language-typescript">// jquery-plugin.d.ts
+import * as $ from &#39;jquery&#39;;
+
+// 模块扩展
+declare module &#39;jquery&#39; {
+  interface JQuery {
+    myPlugin(options?: MyPluginOptions): JQuery;
+    anotherPlugin(): void;
+  }
+}
+
+// 插件选项接口
+interface MyPluginOptions {
+  speed?: number;
+  timeout?: number;
+  onComplete?: () =&gt; void;
+}
+</code></pre>
+<h2>4. 高级声明文件技巧</h2>
+<h3>4.1 条件类型和泛型</h3>
+<pre><code class="language-typescript">// 高级类型定义
+declare module &#39;advanced-library&#39; {
+  // 条件类型
+  export type ArrayOrSingle&lt;T&gt; = T extends any[] ? T : T[];
+  
+  // 泛型约束
+  export function process&lt;T extends object&gt;(input: T): T;
+  
+  // 泛型默认值
+  export class Container&lt;T = any&gt; {
+    value: T;
+    setValue(val: T): void;
+    getValue(): T;
+  }
+  
+  // 映射类型
+  export type ReadonlyProps&lt;T&gt; = {
+    readonly [K in keyof T]: T[K];
+  };
+  
+  // 条件类型与 infer
+  export type UnpackPromise&lt;T&gt; = T extends Promise&lt;infer U&gt; ? U : T;
+}
+</code></pre>
+<h3>4.2 函数重载</h3>
+<pre><code class="language-typescript">// 函数重载
+declare module &#39;http-client&#39; {
+  export function request(url: string): Promise&lt;string&gt;;
+  export function request(url: string, options: RequestOptions): Promise&lt;string&gt;;
+  export function request(url: string, options: RequestOptions, callback: (error: Error | null, response: string) =&gt; void): void;
+  
+  export interface RequestOptions {
+    method?: &#39;GET&#39; | &#39;POST&#39; | &#39;PUT&#39; | &#39;DELETE&#39;;
+    headers?: Record&lt;string, string&gt;;
+    body?: string | object;
+    timeout?: number;
+  }
+}
+</code></pre>
+<h3>4.3 声明合并</h3>
+<pre><code class="language-typescript">// 接口合并
+declare namespace API {
+  interface User {
+    id: number;
+    name: string;
+  }
+}
+
+declare namespace API {
+  interface User {
+    email: string;
+    role: string;
+  }
+  
+  // 合并后 User 包含所有属性
+  // id, name, email, role
+}
+
+// 命名空间与类合并
+declare class MyLibrary {
+  constructor(config: MyLibrary.Config);
+  method(): void;
+}
+
+declare namespace MyLibrary {
+  interface Config {
+    apiKey: string;
+    timeout: number;
+  }
+  
+  function initialize(): MyLibrary;
+}
+</code></pre>
+<h3>4.4 模块扩展</h3>
+<pre><code class="language-typescript">// 扩展 Express 请求对象
+import * as express from &#39;express&#39;;
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        name: string;
+        roles: string[];
+      };
+      session?: {
+        id: string;
+        data: any;
+      };
+    }
+  }
+}
+</code></pre>
+<h2>5. 声明文件的组织和管理</h2>
+<h3>5.1 项目结构</h3>
+<pre><code>my-library/
+├── src/
+│   ├── index.ts
+│   └── components/
+├── dist/
+│   ├── index.js
+│   └── index.d.ts
+├── types/
+│   ├── index.d.ts
+│   └── components.d.ts
+├── tsconfig.json
+└── package.json
+</code></pre>
+<h3>5.2 配置 tsconfig.json</h3>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;declaration&quot;: true,
+    &quot;declarationDir&quot;: &quot;./dist&quot;,
+    &quot;declarationMap&quot;: true,
+    &quot;typeRoots&quot;: [&quot;./node_modules/@types&quot;, &quot;./types&quot;],
+    &quot;types&quot;: [&quot;node&quot;, &quot;jest&quot;]
+  },
+  &quot;include&quot;: [&quot;src/**/*&quot;],
+  &quot;exclude&quot;: [&quot;node_modules&quot;, &quot;**/*.test.ts&quot;]
+}
+</code></pre>
+<h3>5.3 在 package.json 中指定类型定义</h3>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;my-library&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;main&quot;: &quot;dist/index.js&quot;,
+  &quot;types&quot;: &quot;dist/index.d.ts&quot;,
+  &quot;typings&quot;: &quot;dist/index.d.ts&quot;,
+  &quot;dependencies&quot;: {
+    // ...
+  },
+  &quot;devDependencies&quot;: {
+    &quot;@types/node&quot;: &quot;^16.0.0&quot;,
+    &quot;typescript&quot;: &quot;^4.5.0&quot;
+  }
+}
+</code></pre>
+<h2>6. 自动生成声明文件</h2>
+<h3>6.1 使用 TypeScript 编译器</h3>
+<pre><code class="language-bash"># 在 tsconfig.json 中启用声明文件生成
+# 然后运行编译
+tsc --declaration --declarationDir ./types
+</code></pre>
+<h3>6.2 使用 API Extractor</h3>
+<p>Microsoft 的 API Extractor 可以从 TypeScript 项目生成干净的 API 定义。</p>
+<pre><code class="language-bash"># 安装 API Extractor
+npm install --save-dev @microsoft/api-extractor
+
+# 创建配置文件
+npx api-extractor init
+
+# 运行 API Extractor
+npx api-extractor run
+</code></pre>
+<h3>6.3 使用 dts-gen</h3>
+<p>自动为 JavaScript 库生成声明文件。</p>
+<pre><code class="language-bash"># 安装 dts-gen
+npm install -g dts-gen
+
+# 为 npm 包生成声明文件
+dts-gen --name lodash --source npm
+</code></pre>
+<h2>7. 使用第三方声明文件</h2>
+<h3>7.1 DefinitelyTyped 和 @types 包</h3>
+<pre><code class="language-bash"># 安装 React 的类型定义
+npm install --save-dev @types/react
+
+# 安装 jQuery 的类型定义
+npm install --save-dev @types/jquery
+</code></pre>
+<h3>7.2 手动安装声明文件</h3>
+<pre><code class="language-typescript">// 在项目中创建 types 目录
+// types/my-untyped-lib/index.d.ts
+
+declare module &#39;my-untyped-lib&#39; {
+  export function doSomething(value: string): number;
+  export const VERSION: string;
+  export default class MyClass {
+    constructor(config: any);
+    process(data: any): any;
+  }
+}
+</code></pre>
+<h3>7.3 声明文件引用</h3>
+<pre><code class="language-typescript">// 引用其他声明文件
+/// &lt;reference path=&quot;./other-file.d.ts&quot; /&gt;
+/// &lt;reference types=&quot;node&quot; /&gt;
+
+// 声明内容
+declare module &#39;my-module&#39; {
+  // ...
+}
+</code></pre>
+<h2>8. 实际应用示例</h2>
+<h3>8.1 为 JavaScript 库创建声明文件</h3>
+<p>假设我们有一个简单的 JavaScript 库：</p>
+<pre><code class="language-javascript">// simple-lib.js
+var SimpleLib = {
+  add: function(a, b) {
+    return a + b;
+  },
+  subtract: function(a, b) {
+    return a - b;
+  },
+  formatName: function(first, last) {
+    return first + &#39; &#39; + last;
+  },
+  User: function(name, age) {
+    this.name = name;
+    this.age = age;
+    this.greet = function() {
+      return &#39;Hello, &#39; + this.name;
+    };
+  }
+};
+
+if (typeof module !== &#39;undefined&#39; &amp;&amp; module.exports) {
+  module.exports = SimpleLib;
+}
+</code></pre>
+<p>对应的声明文件：</p>
+<pre><code class="language-typescript">// simple-lib.d.ts
+declare namespace SimpleLib {
+  function add(a: number, b: number): number;
+  function subtract(a: number, b: number): number;
+  function formatName(first: string, last: string): string;
+  
+  class User {
+    name: string;
+    age: number;
+    constructor(name: string, age: number);
+    greet(): string;
+  }
+}
+
+// 支持 CommonJS 模块
+declare module &#39;simple-lib&#39; {
+  export = SimpleLib;
+}
+</code></pre>
+<h3>8.2 React 组件库声明文件</h3>
+<pre><code class="language-typescript">// my-react-components.d.ts
+import * as React from &#39;react&#39;;
+
+declare module &#39;my-react-components&#39; {
+  export interface ButtonProps {
+    text: string;
+    onClick?: () =&gt; void;
+    disabled?: boolean;
+    variant?: &#39;primary&#39; | &#39;secondary&#39; | &#39;danger&#39;;
+  }
+  
+  export class Button extends React.Component&lt;ButtonProps&gt; {}
+  
+  export interface CardProps {
+    title: string;
+    subtitle?: string;
+    children?: React.ReactNode;
+    onClose?: () =&gt; void;
+  }
+  
+  export class Card extends React.Component&lt;CardProps&gt; {}
+  
+  export interface ModalProps {
+    isOpen: boolean;
+    onClose: () =&gt; void;
+    title: string;
+    size?: &#39;small&#39; | &#39;medium&#39; | &#39;large&#39;;
+    children: React.ReactNode;
+  }
+  
+  export class Modal extends React.Component&lt;ModalProps&gt; {}
+  
+  // 主题定义
+  export interface Theme {
+    colors: {
+      primary: string;
+      secondary: string;
+      background: string;
+      text: string;
+    };
+    spacing: {
+      small: number;
+      medium: number;
+      large: number;
+    };
+  }
+  
+  // 主题提供者
+  export interface ThemeProviderProps {
+    theme: Theme;
+    children: React.ReactNode;
+  }
+  
+  export class ThemeProvider extends React.Component&lt;ThemeProviderProps&gt; {}
+  
+  // Hooks
+  export function useTheme(): Theme;
+  export function useModal(): [boolean, () =&gt; void, () =&gt; void];
+}
+</code></pre>
+<h3>8.3 Node.js 模块声明文件</h3>
+<pre><code class="language-typescript">// custom-database.d.ts
+/// &lt;reference types=&quot;node&quot; /&gt;
+
+declare module &#39;custom-database&#39; {
+  import { EventEmitter } from &#39;events&#39;;
+  
+  export interface ConnectionOptions {
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    database: string;
+    ssl?: boolean;
+    timeout?: number;
+  }
+  
+  export interface QueryResult&lt;T = any&gt; {
+    rows: T[];
+    rowCount: number;
+    fields: {
+      name: string;
+      type: string;
+    }[];
+  }
+  
+  export class Connection extends EventEmitter {
+    constructor(options: ConnectionOptions);
+    connect(): Promise&lt;void&gt;;
+    disconnect(): Promise&lt;void&gt;;
+    query&lt;T = any&gt;(sql: string, params?: any[]): Promise&lt;QueryResult&lt;T&gt;&gt;;
+    transaction&lt;T&gt;(callback: (client: Connection) =&gt; Promise&lt;T&gt;): Promise&lt;T&gt;;
+    
+    on(event: &#39;connect&#39;, listener: () =&gt; void): this;
+    on(event: &#39;disconnect&#39;, listener: () =&gt; void): this;
+    on(event: &#39;error&#39;, listener: (error: Error) =&gt; void): this;
+  }
+  
+  export function createConnection(options: ConnectionOptions): Connection;
+  export function createPool(options: ConnectionOptions &amp; { maxConnections?: number }): Pool;
+  
+  export class Pool extends EventEmitter {
+    getConnection(): Promise&lt;Connection&gt;;
+    releaseConnection(connection: Connection): void;
+    query&lt;T = any&gt;(sql: string, params?: any[]): Promise&lt;QueryResult&lt;T&gt;&gt;;
+    end(): Promise&lt;void&gt;;
+  }
+  
+  export const version: string;
+}
+</code></pre>
+<h3>8.4 浏览器 API 扩展声明</h3>
+<pre><code class="language-typescript">// browser-extensions.d.ts
+interface Navigator {
+  // 扩展 Navigator 接口
+  getBattery(): Promise&lt;BatteryManager&gt;;
+  share?(data: ShareData): Promise&lt;void&gt;;
+  mediaDevices: MediaDevices;
+}
+
+interface BatteryManager {
+  charging: boolean;
+  chargingTime: number;
+  dischargingTime: number;
+  level: number;
+  onchargingchange: ((this: BatteryManager, ev: Event) =&gt; any) | null;
+  onchargingtimechange: ((this: BatteryManager, ev: Event) =&gt; any) | null;
+  ondischargingtimechange: ((this: BatteryManager, ev: Event) =&gt; any) | null;
+  onlevelchange: ((this: BatteryManager, ev: Event) =&gt; any) | null;
+}
+
+interface ShareData {
+  title?: string;
+  text?: string;
+  url?: string;
+  files?: File[];
+}
+
+// 扩展 Window 接口
+interface Window {
+  requestIdleCallback(
+    callback: (deadline: IdleDeadline) =&gt; void,
+    options?: { timeout: number }
+  ): number;
+  cancelIdleCallback(handle: number): void;
+}
+
+interface IdleDeadline {
+  didTimeout: boolean;
+  timeRemaining(): number;
+}
+</code></pre>
+<h2>9. 声明文件调试和故障排除</h2>
+<h3>9.1 常见问题</h3>
+<pre><code class="language-typescript">// 问题 1: 类型不匹配
+// 声明文件
+declare function process(value: string): number;
+
+// 实际使用
+process(42); // 类型错误: 参数类型 &#39;number&#39; 不能赋值给参数类型 &#39;string&#39;
+
+// 问题 2: 缺少属性
+// 声明文件
+interface Config {
+  apiUrl: string;
+  timeout: number;
+}
+
+// 实际使用
+const config: Config = {
+  apiUrl: &quot;https://api.example.com&quot;
+  // 错误: 缺少属性 &#39;timeout&#39;
+};
+
+// 问题 3: 命名冲突
+// 声明文件 1
+declare namespace Utils {
+  function format(value: string): string;
+}
+
+// 声明文件 2
+declare namespace Utils {
+  function format(value: number): string; // 错误: 重复函数实现
+}
+</code></pre>
+<h3>9.2 调试技巧</h3>
+<pre><code class="language-typescript">// 使用 typeof 检查类型
+const myVar = someLibrary.getValue();
+type MyVarType = typeof myVar; // 查看推断类型
+
+// 使用 --traceResolution 查看类型解析过程
+// tsc --traceResolution
+
+// 使用 --listFiles 查看包含的文件
+// tsc --listFiles
+
+// 使用 --declarationDir 指定声明文件输出目录
+// tsc --declaration --declarationDir ./types
+</code></pre>
+<h2>10. 最佳实践总结</h2>
+<h3>10.1 声明文件编写原则</h3>
+<ol>
+<li><strong>精确性</strong>: 确保类型定义与实际 JavaScript 代码行为一致</li>
+<li><strong>完整性</strong>: 尽可能覆盖库的所有公共 API</li>
+<li><strong>可读性</strong>: 使用清晰的命名和注释</li>
+<li><strong>模块化</strong>: 适当拆分大型声明文件</li>
+<li><strong>版本一致</strong>: 确保声明文件版本与库版本匹配</li>
+</ol>
+<h3>10.2 文档和注释</h3>
+<pre><code class="language-typescript">/**
+ * 表示用户信息的接口
+ * @since 1.0.0
+ */
+export interface User {
+  /** 用户唯一标识 */
+  id: string;
+  
+  /** 用户名称 */
+  name: string;
+  
+  /**
+   * 用户邮箱
+   * @example &quot;user@example.com&quot;
+   */
+  email: string;
+  
+  /**
+   * 用户角色
+   * @default &quot;user&quot;
+   */
+  role?: &quot;admin&quot; | &quot;user&quot; | &quot;guest&quot;;
+}
+
+/**
+ * 创建新用户
+ * @param userData - 用户数据
+ * @returns 创建的用户对象
+ * @throws 如果用户数据无效
+ * @example
+ * ```typescript
+ * const user = createUser({ name: &quot;John&quot;, email: &quot;john@example.com&quot; });
+ * ```
+ */
+export function createUser(userData: Partial&lt;User&gt;): User;
+</code></pre>
+<h3>10.3 发布和维护</h3>
+<pre><code class="language-json">// package.json
+{
+  &quot;name&quot;: &quot;my-library&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;main&quot;: &quot;dist/index.js&quot;,
+  &quot;types&quot;: &quot;dist/index.d.ts&quot;,
+  &quot;files&quot;: [
+    &quot;dist&quot;,
+    &quot;README.md&quot;
+  ],
+  &quot;scripts&quot;: {
+    &quot;build&quot;: &quot;tsc&quot;,
+    &quot;prepublishOnly&quot;: &quot;npm run build&quot;
+  }
+}
+</code></pre>
+<h2>11. 总结</h2>
+<p>声明文件是 TypeScript 生态系统的重要组成部分，它们：</p>
+<ol>
+<li><strong>提供类型信息</strong> - 为 JavaScript 库添加类型定义</li>
+<li><strong>增强开发体验</strong> - 提供代码补全和类型检查</li>
+<li><strong>提高代码质量</strong> - 减少类型错误和运行时问题</li>
+<li><strong>促进生态系统</strong> - 使不同库能够协同工作</li>
+</ol>
+<p>掌握声明文件的编写和使用是 TypeScript 开发者的重要技能，它能够帮助你更好地与 JavaScript 生态系统集成，并提高代码的可维护性和可靠性。</p>
+<h2>12. 练习题</h2>
+<ol>
+<li>为一个简单的 JavaScript 工具库创建声明文件</li>
+<li>扩展 Express.js 的 Request 接口，添加自定义属性</li>
+<li>为一个 React 组件库创建声明文件</li>
+<li>编写一个支持 UMD 模式的库的声明文件</li>
+<li>为一个带有插件系统的库创建声明文件，支持类型安全的插件扩展</li>
+</ol>
+<p>下一篇我们将学习&quot;编译选项 (Compiler Options)&quot;，深入了解 tsconfig.json 的配置。</p>
+
+      

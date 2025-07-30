@@ -1,0 +1,362 @@
+
+        <header>
+          <h1>接口 (Interface)</h1>
+          <p>TypeScript | 2025.07.31</p>
+        </header>
+        <p>接口是 TypeScript 的核心特性之一，用于定义对象的结构和契约。接口描述了对象应该具有的属性和方法。</p>
+<h2>基本接口定义</h2>
+<h3>简单接口</h3>
+<pre><code class="language-typescript">interface Person {
+    name: string;
+    age: number;
+}
+
+function greet(person: Person) {
+    return `Hello, ${person.name}!`;
+}
+
+let user = { name: &quot;Alice&quot;, age: 25 };
+console.log(greet(user));
+</code></pre>
+<h3>可选属性</h3>
+<pre><code class="language-typescript">interface Config {
+    color?: string;
+    width?: number;
+    height?: number;
+}
+
+function createSquare(config: Config): { color: string; area: number } {
+    let newSquare = { color: &quot;white&quot;, area: 100 };
+    
+    if (config.color) {
+        newSquare.color = config.color;
+    }
+    if (config.width) {
+        newSquare.area = config.width * config.width;
+    }
+    
+    return newSquare;
+}
+
+let mySquare = createSquare({ color: &quot;black&quot; });
+</code></pre>
+<h3>只读属性</h3>
+<pre><code class="language-typescript">interface Point {
+    readonly x: number;
+    readonly y: number;
+}
+
+let p1: Point = { x: 10, y: 20 };
+// p1.x = 5; // Error: Cannot assign to &#39;x&#39; because it is a read-only property
+
+// 只读数组
+let a: number[] = [1, 2, 3, 4];
+let ro: ReadonlyArray&lt;number&gt; = a;
+// ro[0] = 12; // Error
+// ro.push(5); // Error
+</code></pre>
+<h2>函数类型接口</h2>
+<h3>函数签名</h3>
+<pre><code class="language-typescript">interface SearchFunc {
+    (source: string, subString: string): boolean;
+}
+
+let mySearch: SearchFunc;
+mySearch = function(source: string, subString: string): boolean {
+    let result = source.search(subString);
+    return result &gt; -1;
+};
+
+// 参数名不需要匹配
+mySearch = function(src: string, sub: string): boolean {
+    let result = src.search(sub);
+    return result &gt; -1;
+};
+</code></pre>
+<h3>构造函数类型</h3>
+<pre><code class="language-typescript">interface ClockConstructor {
+    new (hour: number, minute: number): ClockInterface;
+}
+
+interface ClockInterface {
+    tick(): void;
+}
+
+class DigitalClock implements ClockInterface {
+    constructor(h: number, m: number) { }
+    tick() {
+        console.log(&quot;beep beep&quot;);
+    }
+}
+
+function createClock(ctor: ClockConstructor, hour: number, minute: number): ClockInterface {
+    return new ctor(hour, minute);
+}
+
+let digital = createClock(DigitalClock, 12, 17);
+</code></pre>
+<h2>可索引类型</h2>
+<h3>字符串索引签名</h3>
+<pre><code class="language-typescript">interface StringArray {
+    [index: number]: string;
+}
+
+let myArray: StringArray;
+myArray = [&quot;Bob&quot;, &quot;Fred&quot;];
+
+let myStr: string = myArray[0];
+</code></pre>
+<h3>字典模式</h3>
+<pre><code class="language-typescript">interface StringDictionary {
+    [key: string]: string;
+}
+
+let dict: StringDictionary = {
+    name: &quot;Alice&quot;,
+    city: &quot;Beijing&quot;
+};
+
+// 混合索引签名
+interface NumberOrStringDictionary {
+    [index: string]: number | string;
+    length: number; // 可以，length 是 number 类型
+    name: string;   // 可以，name 是 string 类型
+}
+</code></pre>
+<h2>类类型接口</h2>
+<h3>实现接口</h3>
+<pre><code class="language-typescript">interface ClockInterface {
+    currentTime: Date;
+    setTime(d: Date): void;
+}
+
+class Clock implements ClockInterface {
+    currentTime: Date = new Date();
+    
+    setTime(d: Date) {
+        this.currentTime = d;
+    }
+    
+    constructor(h: number, m: number) { }
+}
+</code></pre>
+<h3>继承接口</h3>
+<pre><code class="language-typescript">interface Shape {
+    color: string;
+}
+
+interface PenStroke {
+    penWidth: number;
+}
+
+// 单继承
+interface Square extends Shape {
+    sideLength: number;
+}
+
+// 多继承
+interface Rectangle extends Shape, PenStroke {
+    width: number;
+    height: number;
+}
+
+let square = {} as Square;
+square.color = &quot;blue&quot;;
+square.sideLength = 10;
+
+let rect = {} as Rectangle;
+rect.color = &quot;red&quot;;
+rect.penWidth = 5.0;
+rect.width = 20;
+rect.height = 10;
+</code></pre>
+<h2>混合类型</h2>
+<p>一个对象可以同时做为函数和对象使用：</p>
+<pre><code class="language-typescript">interface Counter {
+    (start: number): string;
+    interval: number;
+    reset(): void;
+}
+
+function getCounter(): Counter {
+    let counter = (function (start: number) { }) as Counter;
+    counter.interval = 123;
+    counter.reset = function () { };
+    return counter;
+}
+
+let c = getCounter();
+c(10);
+c.reset();
+c.interval = 5.0;
+</code></pre>
+<h2>接口继承类</h2>
+<pre><code class="language-typescript">class Control {
+    private state: any;
+}
+
+interface SelectableControl extends Control {
+    select(): void;
+}
+
+class Button extends Control implements SelectableControl {
+    select() { }
+}
+
+class TextBox extends Control {
+    select() { }
+}
+
+// Error: Property &#39;state&#39; is missing in type &#39;Image&#39;
+// class Image implements SelectableControl {
+//     select() { }
+// }
+</code></pre>
+<h2>泛型接口</h2>
+<pre><code class="language-typescript">interface GenericIdentityFn&lt;T&gt; {
+    (arg: T): T;
+}
+
+function identity&lt;T&gt;(arg: T): T {
+    return arg;
+}
+
+let myIdentity: GenericIdentityFn&lt;number&gt; = identity;
+</code></pre>
+<h2>实际应用示例</h2>
+<h3>API 响应接口</h3>
+<pre><code class="language-typescript">interface ApiResponse&lt;T&gt; {
+    success: boolean;
+    data?: T;
+    error?: string;
+    timestamp: number;
+}
+
+interface User {
+    id: number;
+    username: string;
+    email: string;
+    profile: UserProfile;
+}
+
+interface UserProfile {
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+    bio?: string;
+}
+
+// 使用泛型接口
+async function fetchUser(id: number): Promise&lt;ApiResponse&lt;User&gt;&gt; {
+    // 模拟 API 调用
+    return {
+        success: true,
+        data: {
+            id,
+            username: &quot;johndoe&quot;,
+            email: &quot;john@example.com&quot;,
+            profile: {
+                firstName: &quot;John&quot;,
+                lastName: &quot;Doe&quot;,
+                bio: &quot;Software Developer&quot;
+            }
+        },
+        timestamp: Date.now()
+    };
+}
+</code></pre>
+<h3>事件处理接口</h3>
+<pre><code class="language-typescript">interface EventListener&lt;T = any&gt; {
+    (event: T): void;
+}
+
+interface CustomEvent&lt;T = any&gt; {
+    type: string;
+    data: T;
+    timestamp: number;
+}
+
+interface EventEmitter {
+    on&lt;T&gt;(event: string, listener: EventListener&lt;CustomEvent&lt;T&gt;&gt;): void;
+    emit&lt;T&gt;(event: string, data: T): void;
+    off(event: string, listener: EventListener): void;
+}
+
+class SimpleEventEmitter implements EventEmitter {
+    private listeners: { [key: string]: EventListener[] } = {};
+
+    on&lt;T&gt;(event: string, listener: EventListener&lt;CustomEvent&lt;T&gt;&gt;): void {
+        if (!this.listeners[event]) {
+            this.listeners[event] = [];
+        }
+        this.listeners[event].push(listener);
+    }
+
+    emit&lt;T&gt;(event: string, data: T): void {
+        if (this.listeners[event]) {
+            const customEvent: CustomEvent&lt;T&gt; = {
+                type: event,
+                data,
+                timestamp: Date.now()
+            };
+            this.listeners[event].forEach(listener =&gt; listener(customEvent));
+        }
+    }
+
+    off(event: string, listener: EventListener): void {
+        if (this.listeners[event]) {
+            this.listeners[event] = this.listeners[event].filter(l =&gt; l !== listener);
+        }
+    }
+}
+</code></pre>
+<h3>配置对象接口</h3>
+<pre><code class="language-typescript">interface DatabaseConfig {
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    database: string;
+    ssl?: boolean;
+    timeout?: number;
+}
+
+interface AppConfig {
+    env: &quot;development&quot; | &quot;production&quot; | &quot;test&quot;;
+    port: number;
+    database: DatabaseConfig;
+    logging: {
+        level: &quot;debug&quot; | &quot;info&quot; | &quot;warn&quot; | &quot;error&quot;;
+        file?: string;
+    };
+    features: {
+        [key: string]: boolean;
+    };
+}
+
+const config: AppConfig = {
+    env: &quot;development&quot;,
+    port: 3000,
+    database: {
+        host: &quot;localhost&quot;,
+        port: 5432,
+        username: &quot;admin&quot;,
+        password: &quot;password&quot;,
+        database: &quot;myapp&quot;,
+        ssl: false,
+        timeout: 30000
+    },
+    logging: {
+        level: &quot;debug&quot;,
+        file: &quot;app.log&quot;
+    },
+    features: {
+        userRegistration: true,
+        emailNotifications: false,
+        advancedSearch: true
+    }
+};
+</code></pre>
+<p>在下一章节中，我们将学习类（Class）的定义和使用，包括继承、访问修饰符等概念。</p>
+
+      
