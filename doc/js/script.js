@@ -28,97 +28,102 @@ function categoryBtnCount() {
 
 // 创建图片预览overlay
 function createImagePreviewOverlay() {
-  const overlay = document.createElement('div');
-  overlay.className = 'img-preview-overlay';
-  
-  const img = document.createElement('img');
-  img.className = 'preview-img';
-  
-  const closeBtn = document.createElement('div');
-  closeBtn.className = 'close-preview';
-  closeBtn.innerHTML = '&times;';
-  closeBtn.addEventListener('click', () => {
-    overlay.classList.remove('active');
+  const overlay = document.createElement("div");
+  overlay.className = "img-preview-overlay";
+
+  const img = document.createElement("img");
+  img.className = "preview-img";
+
+  const closeBtn = document.createElement("div");
+  closeBtn.className = "close-preview";
+  closeBtn.innerHTML = "&times;";
+  closeBtn.addEventListener("click", () => {
+    overlay.classList.remove("active");
     setTimeout(() => {
       document.body.removeChild(overlay);
     }, 300);
   });
-  
-  const controls = document.createElement('div');
-  controls.className = 'img-controls';
-  
-  const zoomInBtn = document.createElement('button');
-  zoomInBtn.className = 'img-control-btn';
-  zoomInBtn.innerHTML = '+';
-  zoomInBtn.addEventListener('click', () => {
-    const currentWidth = parseInt(img.style.maxWidth || '90%');
+
+  const controls = document.createElement("div");
+  controls.className = "img-controls";
+
+  const zoomInBtn = document.createElement("button");
+  zoomInBtn.className = "img-control-btn";
+  zoomInBtn.innerHTML = "+";
+  zoomInBtn.addEventListener("click", () => {
+    const currentWidth = parseInt(img.style.maxWidth || "90%");
     if (currentWidth < 150) {
-      img.style.maxWidth = (currentWidth + 10) + '%';
+      img.style.maxWidth = currentWidth + 10 + "%";
     }
   });
-  
-  const zoomOutBtn = document.createElement('button');
-  zoomOutBtn.className = 'img-control-btn';
-  zoomOutBtn.innerHTML = '-';
-  zoomOutBtn.addEventListener('click', () => {
-    const currentWidth = parseInt(img.style.maxWidth || '90%');
+
+  const zoomOutBtn = document.createElement("button");
+  zoomOutBtn.className = "img-control-btn";
+  zoomOutBtn.innerHTML = "-";
+  zoomOutBtn.addEventListener("click", () => {
+    const currentWidth = parseInt(img.style.maxWidth || "90%");
     if (currentWidth > 30) {
-      img.style.maxWidth = (currentWidth - 10) + '%';
+      img.style.maxWidth = currentWidth - 10 + "%";
     }
   });
-  
-  const resetBtn = document.createElement('button');
-  resetBtn.className = 'img-control-btn';
-  resetBtn.innerHTML = '⟲';
-  resetBtn.addEventListener('click', () => {
-    img.style.maxWidth = '90%';
+
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "img-control-btn";
+  resetBtn.innerHTML = "⟲";
+  resetBtn.addEventListener("click", () => {
+    img.style.maxWidth = "90%";
   });
-  
+
   controls.appendChild(zoomOutBtn);
   controls.appendChild(resetBtn);
   controls.appendChild(zoomInBtn);
-  
+
   overlay.appendChild(img);
   overlay.appendChild(closeBtn);
   overlay.appendChild(controls);
-  
+
   // 点击overlay背景关闭预览
-  overlay.addEventListener('click', (e) => {
+  overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
-      overlay.classList.remove('active');
+      overlay.classList.remove("active");
       setTimeout(() => {
         document.body.removeChild(overlay);
       }, 300);
     }
   });
-  
+
   // ESC键关闭预览
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.querySelector('.img-preview-overlay.active')) {
-      const activeOverlay = document.querySelector('.img-preview-overlay.active');
-      activeOverlay.classList.remove('active');
+  document.addEventListener("keydown", (e) => {
+    if (
+      e.key === "Escape" &&
+      document.querySelector(".img-preview-overlay.active")
+    ) {
+      const activeOverlay = document.querySelector(
+        ".img-preview-overlay.active"
+      );
+      activeOverlay.classList.remove("active");
       setTimeout(() => {
         document.body.removeChild(activeOverlay);
       }, 300);
     }
   });
-  
+
   return { overlay, img };
 }
 
 // 图片点击全屏预览功能
 function setupImagePreview() {
-  const images = document.querySelectorAll('main img');
-  
-  images.forEach(img => {
-    img.addEventListener('click', () => {
+  const images = document.querySelectorAll("main img");
+
+  images.forEach((img) => {
+    img.addEventListener("click", () => {
       const { overlay, img: previewImg } = createImagePreviewOverlay();
       previewImg.src = img.src;
       document.body.appendChild(overlay);
-      
+
       // 使用setTimeout确保DOM更新后再添加active类以触发动画
       setTimeout(() => {
-        overlay.classList.add('active');
+        overlay.classList.add("active");
       }, 10);
     });
   });
@@ -185,7 +190,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   categoryBtnCount();
-  
+
   // 设置图片点击预览
   setupImagePreview();
 });
@@ -230,9 +235,15 @@ document.addEventListener("DOMContentLoaded", function () {
         Prism.highlightAll();
         setupImagePreview();
         const headings = contentContainer.querySelectorAll("h2, h3");
-        headings.forEach(heading => {
+        headings.forEach((heading) => {
           if (!heading.id) {
-            heading.id = "heading-" + heading.textContent.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, "-").replace(/^-+|-+$/g, "").replace(/(\d+)-(\d+)/g, "$1$2");
+            heading.id =
+              "heading-" +
+              heading.textContent
+                .toLowerCase()
+                .replace(/[^\w\u4e00-\u9fa5]+/g, "-")
+                .replace(/^-+|-+$/g, "")
+                .replace(/(\d+)-(\d+)/g, "$1$2");
           }
         });
       } catch (error) {
@@ -241,13 +252,14 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
 
-    listLinks.forEach(link => {
+    listLinks.forEach((link) => {
       link.addEventListener("click", function (e) {
         e.preventDefault();
         const url = this.getAttribute("data-url");
         loadContent(url);
-        listLinks.forEach(l => l.classList.remove("active"));
+        listLinks.forEach((l) => l.classList.remove("active"));
         this.classList.add("active");
+        window.scroll(0, 0);
       });
     });
 
