@@ -1,0 +1,401 @@
+
+        <header>
+          <h1>Vite 7.0 静态资源处理</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>Vite 7.0 提供了强大的静态资源处理能力，支持多种资源类型的导入、优化和处理。本文将详细介绍静态资源的处理方法和最佳实践。</p>
+<h2>静态资源导入</h2>
+<h3>基本资源导入</h3>
+<pre><code class="language-javascript">// 导入静态资源会返回解析后的公共 URL
+import imgUrl from &#39;./img.png&#39;
+
+// 在模板中使用
+document.getElementById(&#39;hero-img&#39;).src = imgUrl
+</code></pre>
+<h3>显式 URL 导入</h3>
+<pre><code class="language-javascript">// 显式导入为 URL
+import assetAsURL from &#39;./asset.js?url&#39;
+
+// 导入为字符串
+import assetAsString from &#39;./shader.glsl?raw&#39;
+
+// 导入为 Web Worker
+import Worker from &#39;./worker.js?worker&#39;
+
+// 导入为内联 Web Worker
+import InlineWorker from &#39;./worker.js?worker&amp;inline&#39;
+</code></pre>
+<h3>动态导入资源</h3>
+<pre><code class="language-javascript">// 动态导入
+function getImageUrl(name) {
+  return new URL(`./dir/${name}.png`, import.meta.url).href
+}
+
+// 使用示例
+const imgUrl = getImageUrl(&#39;hero&#39;)
+</code></pre>
+<h2>public 目录</h2>
+<h3>public 目录特性</h3>
+<pre><code>public/
+├── favicon.ico
+├── robots.txt
+├── images/
+│   ├── logo.png
+│   └── banner.jpg
+└── data/
+    └── config.json
+</code></pre>
+<h3>引用 public 资源</h3>
+<pre><code class="language-javascript">// 在 JavaScript 中引用
+const logoUrl = &#39;/images/logo.png&#39;
+
+// 在 HTML 中引用
+&lt;img src=&quot;/images/logo.png&quot; alt=&quot;Logo&quot;&gt;
+
+// 在 CSS 中引用
+.logo {
+  background-image: url(&#39;/images/logo.png&#39;);
+}
+</code></pre>
+<h3>基础路径处理</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  base: &#39;/my-app/&#39;,
+  
+  // 在代码中使用
+  define: {
+    __BASE_URL__: JSON.stringify(&#39;/my-app/&#39;)
+  }
+})
+
+// 使用基础路径
+const logoUrl = import.meta.env.BASE_URL + &#39;images/logo.png&#39;
+</code></pre>
+<h2>图片资源处理</h2>
+<h3>图片格式支持</h3>
+<pre><code class="language-javascript">// 支持的图片格式
+import jpegImg from &#39;./image.jpg&#39;
+import pngImg from &#39;./image.png&#39;
+import gifImg from &#39;./image.gif&#39;
+import svgImg from &#39;./image.svg&#39;
+import webpImg from &#39;./image.webp&#39;
+import avifImg from &#39;./image.avif&#39;
+</code></pre>
+<h3>图片优化配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  build: {
+    // 小于此阈值的导入或引用资源将内联为 base64 编码
+    assetsInlineLimit: 4096,
+    
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) =&gt; {
+          const info = assetInfo.name.split(&#39;.&#39;)
+          const extType = info[info.length - 1]
+          
+          if (/\.(png|jpe?g|gif|svg|webp|avif)$/i.test(assetInfo.name)) {
+            return `images/[name]-[hash][extname]`
+          }
+          
+          return `assets/[name]-[hash][extname]`
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>响应式图片</h3>
+<pre><code class="language-javascript">// 导入不同尺寸的图片
+import heroSmall from &#39;./hero-small.jpg&#39;
+import heroMedium from &#39;./hero-medium.jpg&#39;
+import heroLarge from &#39;./hero-large.jpg&#39;
+
+// 创建响应式图片组件
+function createResponsiveImage() {
+  return `
+    &lt;picture&gt;
+      &lt;source media=&quot;(max-width: 768px)&quot; srcset=&quot;${heroSmall}&quot;&gt;
+      &lt;source media=&quot;(max-width: 1200px)&quot; srcset=&quot;${heroMedium}&quot;&gt;
+      &lt;img src=&quot;${heroLarge}&quot; alt=&quot;Hero Image&quot;&gt;
+    &lt;/picture&gt;
+  `
+}
+</code></pre>
+<h2>CSS 资源处理</h2>
+<h3>CSS 导入</h3>
+<pre><code class="language-javascript">// 导入 CSS 文件
+import &#39;./style.css&#39;
+
+// 导入 CSS 模块
+import styles from &#39;./component.module.css&#39;
+
+// 导入预处理器文件
+import &#39;./styles.scss&#39;
+import &#39;./styles.less&#39;
+import &#39;./styles.styl&#39;
+</code></pre>
+<h3>CSS 模块</h3>
+<pre><code class="language-css">/* component.module.css */
+.button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+}
+
+.button:hover {
+  background: #0056b3;
+}
+</code></pre>
+<pre><code class="language-javascript">// 使用 CSS 模块
+import styles from &#39;./component.module.css&#39;
+
+function Button() {
+  return `&lt;button class=&quot;${styles.button}&quot;&gt;Click me&lt;/button&gt;`
+}
+</code></pre>
+<h3>CSS 预处理器</h3>
+<pre><code class="language-scss">// variables.scss
+$primary-color: #007bff;
+$secondary-color: #6c757d;
+$border-radius: 4px;
+
+// component.scss
+@import &#39;./variables.scss&#39;;
+
+.card {
+  background: white;
+  border-radius: $border-radius;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  &amp;__header {
+    background: $primary-color;
+    color: white;
+    padding: 1rem;
+  }
+  
+  &amp;__body {
+    padding: 1rem;
+  }
+}
+</code></pre>
+<h3>PostCSS 配置</h3>
+<pre><code class="language-javascript">// postcss.config.js
+export default {
+  plugins: {
+    autoprefixer: {},
+    cssnano: {
+      preset: &#39;default&#39;
+    }
+  }
+}
+</code></pre>
+<h2>字体资源处理</h2>
+<h3>字体文件导入</h3>
+<pre><code class="language-css">/* fonts.css */
+@font-face {
+  font-family: &#39;CustomFont&#39;;
+  src: url(&#39;./fonts/custom-font.woff2&#39;) format(&#39;woff2&#39;),
+       url(&#39;./fonts/custom-font.woff&#39;) format(&#39;woff&#39;);
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.custom-text {
+  font-family: &#39;CustomFont&#39;, sans-serif;
+}
+</code></pre>
+<h3>字体优化</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) =&gt; {
+          if (/\.(woff|woff2|eot|ttf|otf)$/i.test(assetInfo.name)) {
+            return &#39;fonts/[name]-[hash][extname]&#39;
+          }
+          return &#39;assets/[name]-[hash][extname]&#39;
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h2>JSON 和数据文件</h2>
+<h3>JSON 导入</h3>
+<pre><code class="language-javascript">// 导入整个 JSON 文件
+import data from &#39;./data.json&#39;
+
+// 具名导入
+import { version, name } from &#39;./package.json&#39;
+
+// 动态导入
+const config = await import(&#39;./config.json&#39;)
+</code></pre>
+<h3>文本文件导入</h3>
+<pre><code class="language-javascript">// 导入为字符串
+import textContent from &#39;./readme.txt?raw&#39;
+
+// 导入 SVG 为字符串
+import svgContent from &#39;./icon.svg?raw&#39;
+
+// 在代码中使用
+document.getElementById(&#39;content&#39;).innerHTML = textContent
+</code></pre>
+<h2>Web Workers</h2>
+<h3>Worker 文件创建</h3>
+<pre><code class="language-javascript">// worker.js
+self.onmessage = function(e) {
+  const { data } = e
+  
+  // 执行计算密集型任务
+  const result = heavyComputation(data)
+  
+  // 发送结果回主线程
+  self.postMessage(result)
+}
+
+function heavyComputation(data) {
+  // 模拟重计算
+  let result = 0
+  for (let i = 0; i &lt; data.iterations; i++) {
+    result += Math.random()
+  }
+  return result
+}
+</code></pre>
+<h3>Worker 使用</h3>
+<pre><code class="language-javascript">// 导入 Worker
+import MyWorker from &#39;./worker.js?worker&#39;
+
+// 创建 Worker 实例
+const worker = new MyWorker()
+
+// 发送数据到 Worker
+worker.postMessage({ iterations: 1000000 })
+
+// 接收 Worker 结果
+worker.onmessage = function(e) {
+  console.log(&#39;Worker result:&#39;, e.data)
+}
+
+// 内联 Worker
+import InlineWorker from &#39;./worker.js?worker&amp;inline&#39;
+const inlineWorker = new InlineWorker()
+</code></pre>
+<h2>资源优化策略</h2>
+<h3>资源压缩</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  build: {
+    // 启用 gzip 压缩
+    reportCompressedSize: true,
+    
+    // 资源内联阈值
+    assetsInlineLimit: 4096,
+    
+    rollupOptions: {
+      output: {
+        // 分离 CSS
+        assetFileNames: (assetInfo) =&gt; {
+          const info = assetInfo.name.split(&#39;.&#39;)
+          const extType = info[info.length - 1]
+          
+          if (extType === &#39;css&#39;) {
+            return &#39;css/[name]-[hash][extname]&#39;
+          }
+          
+          if (/\.(png|jpe?g|gif|svg|webp|avif)$/i.test(assetInfo.name)) {
+            return &#39;images/[name]-[hash][extname]&#39;
+          }
+          
+          return &#39;assets/[name]-[hash][extname]&#39;
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>代码分割</h3>
+<pre><code class="language-javascript">// 动态导入实现代码分割
+const LazyComponent = () =&gt; import(&#39;./LazyComponent.vue&#39;)
+
+// 预加载
+import(&#39;./utils.js&#39;).then(module =&gt; {
+  // 使用模块
+})
+
+// 预取
+const utils = import(/* webpackPrefetch: true */ &#39;./utils.js&#39;)
+</code></pre>
+<h3>资源预加载</h3>
+<pre><code class="language-html">&lt;!-- index.html --&gt;
+&lt;head&gt;
+  &lt;!-- 预加载关键资源 --&gt;
+  &lt;link rel=&quot;preload&quot; href=&quot;/fonts/main.woff2&quot; as=&quot;font&quot; type=&quot;font/woff2&quot; crossorigin&gt;
+  
+  &lt;!-- 预取非关键资源 --&gt;
+  &lt;link rel=&quot;prefetch&quot; href=&quot;/images/hero.jpg&quot;&gt;
+  
+  &lt;!-- DNS 预解析 --&gt;
+  &lt;link rel=&quot;dns-prefetch&quot; href=&quot;//api.example.com&quot;&gt;
+&lt;/head&gt;
+</code></pre>
+<h2>环境特定资源</h2>
+<h3>开发环境资源</h3>
+<pre><code class="language-javascript">// 开发环境使用未压缩资源
+if (import.meta.env.DEV) {
+  import(&#39;./dev-tools.js&#39;)
+}
+
+// 生产环境使用优化资源
+if (import.meta.env.PROD) {
+  import(&#39;./analytics.js&#39;)
+}
+</code></pre>
+<h3>条件资源加载</h3>
+<pre><code class="language-javascript">// 根据设备能力加载资源
+const supportsWebP = () =&gt; {
+  const canvas = document.createElement(&#39;canvas&#39;)
+  return canvas.toDataURL(&#39;image/webp&#39;).indexOf(&#39;webp&#39;) &gt; -1
+}
+
+const getImageUrl = (name) =&gt; {
+  const format = supportsWebP() ? &#39;webp&#39; : &#39;jpg&#39;
+  return new URL(`./images/${name}.${format}`, import.meta.url).href
+}
+</code></pre>
+<h2>最佳实践</h2>
+<h3>资源命名规范</h3>
+<pre><code>src/
+├── assets/
+│   ├── images/
+│   │   ├── icons/
+│   │   ├── photos/
+│   │   └── illustrations/
+│   ├── fonts/
+│   ├── styles/
+│   └── data/
+└── public/
+    ├── favicon.ico
+    ├── manifest.json
+    └── robots.txt
+</code></pre>
+<h3>性能优化建议</h3>
+<ol>
+<li>使用适当的图片格式 (WebP, AVIF)</li>
+<li>启用图片懒加载</li>
+<li>合理设置资源内联阈值</li>
+<li>使用 CDN 加速静态资源</li>
+<li>启用浏览器缓存</li>
+</ol>
+<p>在下一章节中，我们将学习 Vite 7.0 的插件系统和常用插件的使用方法。</p>
+
+      

@@ -1,0 +1,309 @@
+
+        <header>
+          <h1>Vite 7.0 配置文件详解</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>Vite 7.0 通过 <code>vite.config.js</code> 文件进行配置，支持丰富的配置选项来满足不同项目需求。本文将详细介绍配置文件的使用方法。</p>
+<h2>配置文件基础</h2>
+<h3>基本配置文件</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+
+export default defineConfig({
+  // 配置选项
+})
+</code></pre>
+<h3>TypeScript 配置文件</h3>
+<pre><code class="language-typescript">// vite.config.ts
+import { defineConfig } from &#39;vite&#39;
+
+export default defineConfig({
+  // 配置选项
+})
+</code></pre>
+<h3>条件配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+
+export default defineConfig(({ command, mode }) =&gt; {
+  if (command === &#39;serve&#39;) {
+    return {
+      // 开发环境配置
+      define: {
+        __APP_ENV__: JSON.stringify(&#39;dev&#39;)
+      }
+    }
+  } else {
+    return {
+      // 生产环境配置
+      define: {
+        __APP_ENV__: JSON.stringify(&#39;prod&#39;)
+      }
+    }
+  }
+})
+</code></pre>
+<h2>核心配置选项</h2>
+<h3>根目录和基础路径</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  // 项目根目录
+  root: process.cwd(),
+  
+  // 开发或生产环境服务的公共基础路径
+  base: &#39;/&#39;,
+  
+  // 静态资源服务的文件夹
+  publicDir: &#39;public&#39;
+})
+</code></pre>
+<h3>环境变量</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  // 环境变量前缀
+  envPrefix: &#39;VITE_&#39;,
+  
+  // 环境变量目录
+  envDir: &#39;.&#39;,
+  
+  // 定义全局常量替换方式
+  define: {
+    __VERSION__: JSON.stringify(&#39;1.0.0&#39;),
+    __DEV__: JSON.stringify(true)
+  }
+})
+</code></pre>
+<h3>插件配置</h3>
+<pre><code class="language-javascript">import { defineConfig } from &#39;vite&#39;
+import vue from &#39;@vitejs/plugin-vue&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    // 其他插件
+  ]
+})
+</code></pre>
+<h2>开发服务器配置</h2>
+<h3>基本服务器配置</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  server: {
+    // 指定服务器主机名
+    host: &#39;localhost&#39;,
+    
+    // 指定服务器端口
+    port: 3000,
+    
+    // 设为 true 时若端口已被占用则会直接退出
+    strictPort: false,
+    
+    // 服务器启动时自动在浏览器中打开应用程序
+    open: true,
+    
+    // 自定义代理规则
+    proxy: {
+      &#39;/api&#39;: {
+        target: &#39;http://localhost:8080&#39;,
+        changeOrigin: true,
+        rewrite: (path) =&gt; path.replace(/^\/api/, &#39;&#39;)
+      }
+    }
+  }
+})
+</code></pre>
+<h3>HTTPS 配置</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  server: {
+    https: true,
+    // 或者提供证书
+    https: {
+      key: fs.readFileSync(&#39;path/to/server.key&#39;),
+      cert: fs.readFileSync(&#39;path/to/server.crt&#39;)
+    }
+  }
+})
+</code></pre>
+<h3>热更新配置</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  server: {
+    hmr: {
+      port: 24678,
+      // 禁用或配置 HMR 连接
+      // clientPort: 443
+    }
+  }
+})
+</code></pre>
+<h2>构建配置</h2>
+<h3>基本构建配置</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  build: {
+    // 构建输出目录
+    outDir: &#39;dist&#39;,
+    
+    // 静态资源目录
+    assetsDir: &#39;assets&#39;,
+    
+    // 小于此阈值的导入或引用资源将内联为 base64 编码
+    assetsInlineLimit: 4096,
+    
+    // 启用/禁用 CSS 代码拆分
+    cssCodeSplit: true,
+    
+    // 构建后是否生成 source map 文件
+    sourcemap: false,
+    
+    // 自定义底层的 Rollup 打包配置
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, &#39;index.html&#39;),
+        nested: resolve(__dirname, &#39;nested/index.html&#39;)
+      }
+    }
+  }
+})
+</code></pre>
+<h3>库模式构建</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  build: {
+    lib: {
+      entry: resolve(__dirname, &#39;lib/main.js&#39;),
+      name: &#39;MyLib&#39;,
+      fileName: &#39;my-lib&#39;
+    },
+    rollupOptions: {
+      // 确保外部化处理那些你不想打包进库的依赖
+      external: [&#39;vue&#39;],
+      output: {
+        // 在 UMD 构建模式下为这些外部化的依赖提供一个全局变量
+        globals: {
+          vue: &#39;Vue&#39;
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h2>路径解析配置</h2>
+<h3>别名配置</h3>
+<pre><code class="language-javascript">import { defineConfig } from &#39;vite&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      &#39;@&#39;: resolve(__dirname, &#39;src&#39;),
+      &#39;@components&#39;: resolve(__dirname, &#39;src/components&#39;),
+      &#39;@utils&#39;: resolve(__dirname, &#39;src/utils&#39;),
+      &#39;@assets&#39;: resolve(__dirname, &#39;src/assets&#39;)
+    }
+  }
+})
+</code></pre>
+<h3>文件扩展名</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  resolve: {
+    extensions: [&#39;.mjs&#39;, &#39;.js&#39;, &#39;.ts&#39;, &#39;.jsx&#39;, &#39;.tsx&#39;, &#39;.json&#39;, &#39;.vue&#39;]
+  }
+})
+</code></pre>
+<h2>CSS 配置</h2>
+<h3>CSS 预处理器</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@import &quot;@/styles/variables.scss&quot;;`
+      },
+      less: {
+        modifyVars: {
+          &#39;primary-color&#39;: &#39;#1DA57A&#39;,
+        },
+        javascriptEnabled: true,
+      }
+    }
+  }
+})
+</code></pre>
+<h3>CSS Modules</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  css: {
+    modules: {
+      localsConvention: &#39;camelCase&#39;,
+      generateScopedName: &#39;[name]__[local]___[hash:base64:5]&#39;
+    }
+  }
+})
+</code></pre>
+<h2>完整配置示例</h2>
+<pre><code class="language-javascript">import { defineConfig } from &#39;vite&#39;
+import vue from &#39;@vitejs/plugin-vue&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  plugins: [vue()],
+  
+  resolve: {
+    alias: {
+      &#39;@&#39;: resolve(__dirname, &#39;src&#39;)
+    }
+  },
+  
+  server: {
+    port: 3000,
+    open: true,
+    proxy: {
+      &#39;/api&#39;: {
+        target: &#39;http://localhost:8080&#39;,
+        changeOrigin: true,
+        rewrite: (path) =&gt; path.replace(/^\/api/, &#39;&#39;)
+      }
+    }
+  },
+  
+  build: {
+    outDir: &#39;dist&#39;,
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: [&#39;vue&#39;, &#39;vue-router&#39;],
+          utils: [&#39;lodash&#39;, &#39;axios&#39;]
+        }
+      }
+    }
+  },
+  
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@import &quot;@/styles/variables.scss&quot;;`
+      }
+    }
+  }
+})
+</code></pre>
+<h2>配置智能提示</h2>
+<h3>使用 TypeScript</h3>
+<pre><code class="language-typescript">// vite.config.ts
+import { defineConfig } from &#39;vite&#39;
+import type { UserConfig } from &#39;vite&#39;
+
+const config: UserConfig = {
+  // 配置选项
+}
+
+export default defineConfig(config)
+</code></pre>
+<h3>JSDoc 注释</h3>
+<pre><code class="language-javascript">/**
+ * @type {import(&#39;vite&#39;).UserConfig}
+ */
+const config = {
+  // 配置选项
+}
+
+export default config
+</code></pre>
+<p>在下一章节中，我们将学习 Vite 7.0 的开发服务器功能和热模块替换机制。</p>
+
+      

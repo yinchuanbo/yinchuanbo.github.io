@@ -1,0 +1,651 @@
+
+        <header>
+          <h1>Vite 7.0 部署与 CI/CD 集成</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>Vite 7.0 构建的应用可以部署到各种平台和环境。本文将详细介绍部署策略、CI/CD 集成和最佳实践。</p>
+<h2>静态网站部署</h2>
+<h3>基本构建配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  // 设置基础路径
+  base: &#39;/my-app/&#39;,
+  
+  build: {
+    // 输出目录
+    outDir: &#39;dist&#39;,
+    
+    // 静态资源目录
+    assetsDir: &#39;assets&#39;,
+    
+    // 生成 source map
+    sourcemap: false,
+    
+    // 启用压缩
+    minify: &#39;terser&#39;,
+    
+    rollupOptions: {
+      output: {
+        // 文件命名策略
+        entryFileNames: &#39;js/[name]-[hash].js&#39;,
+        chunkFileNames: &#39;js/[name]-[hash].js&#39;,
+        assetFileNames: (assetInfo) =&gt; {
+          const info = assetInfo.name.split(&#39;.&#39;)
+          const extType = info[info.length - 1]
+          
+          if (/\.(png|jpe?g|gif|svg|webp|avif)$/i.test(assetInfo.name)) {
+            return `images/[name]-[hash][extname]`
+          }
+          
+          if (extType === &#39;css&#39;) {
+            return `css/[name]-[hash][extname]`
+          }
+          
+          return `assets/[name]-[hash][extname]`
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>环境配置</h3>
+<pre><code class="language-bash"># .env.production
+VITE_API_URL=https://api.production.com
+VITE_APP_TITLE=Production App
+VITE_ENABLE_ANALYTICS=true
+VITE_CDN_URL=https://cdn.example.com
+</code></pre>
+<h2>Vercel 部署</h2>
+<h3>配置文件</h3>
+<pre><code class="language-json">// vercel.json
+{
+  &quot;buildCommand&quot;: &quot;npm run build&quot;,
+  &quot;outputDirectory&quot;: &quot;dist&quot;,
+  &quot;devCommand&quot;: &quot;npm run dev&quot;,
+  &quot;installCommand&quot;: &quot;npm install&quot;,
+  &quot;framework&quot;: &quot;vite&quot;,
+  &quot;rewrites&quot;: [
+    {
+      &quot;source&quot;: &quot;/(.*)&quot;,
+      &quot;destination&quot;: &quot;/index.html&quot;
+    }
+  ],
+  &quot;headers&quot;: [
+    {
+      &quot;source&quot;: &quot;/assets/(.*)&quot;,
+      &quot;headers&quot;: [
+        {
+          &quot;key&quot;: &quot;Cache-Control&quot;,
+          &quot;value&quot;: &quot;public, max-age=31536000, immutable&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<h3>部署脚本</h3>
+<pre><code class="language-json">// package.json
+{
+  &quot;scripts&quot;: {
+    &quot;build&quot;: &quot;vite build&quot;,
+    &quot;preview&quot;: &quot;vite preview&quot;,
+    &quot;deploy&quot;: &quot;vercel --prod&quot;
+  }
+}
+</code></pre>
+<h3>环境变量配置</h3>
+<pre><code class="language-bash"># 通过 Vercel CLI 设置环境变量
+vercel env add VITE_API_URL production
+vercel env add VITE_APP_TITLE production
+</code></pre>
+<h2>Netlify 部署</h2>
+<h3>配置文件</h3>
+<pre><code class="language-toml"># netlify.toml
+[build]
+  publish = &quot;dist&quot;
+  command = &quot;npm run build&quot;
+
+[build.environment]
+  NODE_VERSION = &quot;18&quot;
+
+[[redirects]]
+  from = &quot;/*&quot;
+  to = &quot;/index.html&quot;
+  status = 200
+
+[[headers]]
+  for = &quot;/assets/*&quot;
+  [headers.values]
+    Cache-Control = &quot;public, max-age=31536000, immutable&quot;
+
+[[headers]]
+  for = &quot;/*.js&quot;
+  [headers.values]
+    Cache-Control = &quot;public, max-age=31536000, immutable&quot;
+
+[[headers]]
+  for = &quot;/*.css&quot;
+  [headers.values]
+    Cache-Control = &quot;public, max-age=31536000, immutable&quot;
+</code></pre>
+<h3>构建钩子</h3>
+<pre><code class="language-bash"># 在 Netlify 构建设置中添加
+# Build command: npm run build
+# Publish directory: dist
+# Node version: 18
+</code></pre>
+<h2>GitHub Pages 部署</h2>
+<h3>GitHub Actions 工作流</h3>
+<pre><code class="language-yaml"># .github/workflows/deploy.yml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: &#39;18&#39;
+        cache: &#39;npm&#39;
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run tests
+      run: npm run test:run
+      
+    - name: Build
+      run: npm run build
+      env:
+        VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        VITE_APP_TITLE: &quot;GitHub Pages App&quot;
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == &#39;refs/heads/main&#39;
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+</code></pre>
+<h3>基础路径配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  // GitHub Pages 需要设置仓库名作为基础路径
+  base: process.env.NODE_ENV === &#39;production&#39; ? &#39;/repository-name/&#39; : &#39;/&#39;,
+  
+  build: {
+    outDir: &#39;dist&#39;
+  }
+})
+</code></pre>
+<h2>Docker 部署</h2>
+<h3>Dockerfile</h3>
+<pre><code class="language-dockerfile"># 多阶段构建
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# 复制 package 文件
+COPY package*.json ./
+
+# 安装依赖
+RUN npm ci --only=production
+
+# 复制源代码
+COPY . .
+
+# 构建应用
+RUN npm run build
+
+# 生产阶段
+FROM nginx:alpine
+
+# 复制构建结果
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# 复制 nginx 配置
+COPY nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80
+
+CMD [&quot;nginx&quot;, &quot;-g&quot;, &quot;daemon off;&quot;]
+</code></pre>
+<h3>Nginx 配置</h3>
+<pre><code class="language-nginx"># nginx.conf
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    
+    sendfile        on;
+    keepalive_timeout  65;
+    
+    # Gzip 压缩
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/javascript
+        application/xml+rss
+        application/json;
+    
+    server {
+        listen       80;
+        server_name  localhost;
+        root         /usr/share/nginx/html;
+        index        index.html;
+        
+        # 处理 SPA 路由
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+        
+        # 静态资源缓存
+        location /assets/ {
+            expires 1y;
+            add_header Cache-Control &quot;public, immutable&quot;;
+        }
+        
+        # 安全头
+        add_header X-Frame-Options &quot;SAMEORIGIN&quot; always;
+        add_header X-Content-Type-Options &quot;nosniff&quot; always;
+        add_header X-XSS-Protection &quot;1; mode=block&quot; always;
+    }
+}
+</code></pre>
+<h3>Docker Compose</h3>
+<pre><code class="language-yaml"># docker-compose.yml
+version: &#39;3.8&#39;
+
+services:
+  app:
+    build: .
+    ports:
+      - &quot;80:80&quot;
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    
+  # 可选：添加反向代理
+  nginx:
+    image: nginx:alpine
+    ports:
+      - &quot;443:443&quot;
+    volumes:
+      - ./ssl:/etc/nginx/ssl
+      - ./nginx-proxy.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app
+</code></pre>
+<h2>AWS S3 + CloudFront 部署</h2>
+<h3>部署脚本</h3>
+<pre><code class="language-bash">#!/bin/bash
+# deploy-aws.sh
+
+# 构建应用
+npm run build
+
+# 同步到 S3
+aws s3 sync dist/ s3://your-bucket-name --delete
+
+# 设置缓存策略
+aws s3 cp dist/index.html s3://your-bucket-name/index.html \
+  --cache-control &quot;no-cache&quot;
+
+aws s3 cp dist/assets/ s3://your-bucket-name/assets/ \
+  --recursive --cache-control &quot;max-age=31536000&quot;
+
+# 清除 CloudFront 缓存
+aws cloudfront create-invalidation \
+  --distribution-id YOUR_DISTRIBUTION_ID \
+  --paths &quot;/*&quot;
+</code></pre>
+<h3>AWS CLI 配置</h3>
+<pre><code class="language-json">// aws-config.json
+{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [
+        &quot;s3:PutObject&quot;,
+        &quot;s3:PutObjectAcl&quot;,
+        &quot;s3:GetObject&quot;,
+        &quot;s3:DeleteObject&quot;,
+        &quot;s3:ListBucket&quot;
+      ],
+      &quot;Resource&quot;: [
+        &quot;arn:aws:s3:::your-bucket-name&quot;,
+        &quot;arn:aws:s3:::your-bucket-name/*&quot;
+      ]
+    },
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [
+        &quot;cloudfront:CreateInvalidation&quot;
+      ],
+      &quot;Resource&quot;: &quot;*&quot;
+    }
+  ]
+}
+</code></pre>
+<h2>CI/CD 管道</h2>
+<h3>GitHub Actions 完整工作流</h3>
+<pre><code class="language-yaml"># .github/workflows/ci-cd.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: &#39;18&#39;
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: &#39;npm&#39;
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run linting
+      run: npm run lint
+      
+    - name: Run type checking
+      run: npm run type-check
+      
+    - name: Run tests
+      run: npm run test:coverage
+      
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        environment: [staging, production]
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: &#39;npm&#39;
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build for ${{ matrix.environment }}
+      run: npm run build
+      env:
+        NODE_ENV: ${{ matrix.environment }}
+        VITE_API_URL: ${{ secrets[format(&#39;VITE_API_URL_{0}&#39;, upper(matrix.environment))] }}
+        VITE_APP_TITLE: ${{ secrets[format(&#39;VITE_APP_TITLE_{0}&#39;, upper(matrix.environment))] }}
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-${{ matrix.environment }}
+        path: dist/
+        
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == &#39;refs/heads/develop&#39;
+    environment: staging
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-staging
+        path: dist/
+        
+    - name: Deploy to staging
+      run: |
+        # 部署到测试环境的脚本
+        echo &quot;Deploying to staging...&quot;
+        
+  deploy-production:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == &#39;refs/heads/main&#39;
+    environment: production
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-production
+        path: dist/
+        
+    - name: Deploy to production
+      run: |
+        # 部署到生产环境的脚本
+        echo &quot;Deploying to production...&quot;
+</code></pre>
+<h3>GitLab CI/CD</h3>
+<pre><code class="language-yaml"># .gitlab-ci.yml
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  NODE_VERSION: &quot;18&quot;
+
+cache:
+  paths:
+    - node_modules/
+
+before_script:
+  - npm ci
+
+test:
+  stage: test
+  script:
+    - npm run lint
+    - npm run type-check
+    - npm run test:coverage
+  coverage: &#39;/Lines\s*:\s*(\d+\.\d+)%/&#39;
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+
+build:staging:
+  stage: build
+  script:
+    - npm run build
+  environment:
+    name: staging
+  variables:
+    NODE_ENV: staging
+    VITE_API_URL: $STAGING_API_URL
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+  only:
+    - develop
+
+build:production:
+  stage: build
+  script:
+    - npm run build
+  environment:
+    name: production
+  variables:
+    NODE_ENV: production
+    VITE_API_URL: $PRODUCTION_API_URL
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+  only:
+    - main
+
+deploy:staging:
+  stage: deploy
+  script:
+    - echo &quot;Deploying to staging...&quot;
+    # 添加部署脚本
+  environment:
+    name: staging
+    url: https://staging.example.com
+  dependencies:
+    - build:staging
+  only:
+    - develop
+
+deploy:production:
+  stage: deploy
+  script:
+    - echo &quot;Deploying to production...&quot;
+    # 添加部署脚本
+  environment:
+    name: production
+    url: https://example.com
+  dependencies:
+    - build:production
+  only:
+    - main
+  when: manual
+</code></pre>
+<h2>性能监控</h2>
+<h3>构建分析</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import { visualizer } from &#39;rollup-plugin-visualizer&#39;
+
+export default defineConfig({
+  plugins: [
+    // 生产环境启用分析
+    process.env.ANALYZE &amp;&amp; visualizer({
+      filename: &#39;dist/stats.html&#39;,
+      open: true,
+      gzipSize: true,
+      brotliSize: true
+    })
+  ],
+  
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: [&#39;vue&#39;, &#39;vue-router&#39;],
+          utils: [&#39;lodash&#39;, &#39;axios&#39;]
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>运行时监控</h3>
+<pre><code class="language-javascript">// src/utils/performance.ts
+export function initPerformanceMonitoring() {
+  // Web Vitals 监控
+  if (&#39;web-vital&#39; in window) {
+    import(&#39;web-vitals&#39;).then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) =&gt; {
+      getCLS(console.log)
+      getFID(console.log)
+      getFCP(console.log)
+      getLCP(console.log)
+      getTTFB(console.log)
+    })
+  }
+  
+  // 错误监控
+  window.addEventListener(&#39;error&#39;, (event) =&gt; {
+    console.error(&#39;Runtime error:&#39;, event.error)
+    // 发送到监控服务
+  })
+  
+  window.addEventListener(&#39;unhandledrejection&#39;, (event) =&gt; {
+    console.error(&#39;Unhandled promise rejection:&#39;, event.reason)
+    // 发送到监控服务
+  })
+}
+</code></pre>
+<h2>部署最佳实践</h2>
+<h3>安全配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      external: [
+        // 排除敏感信息
+      ]
+    }
+  },
+  
+  define: {
+    // 避免暴露敏感信息
+    __VERSION__: JSON.stringify(process.env.npm_package_version),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString())
+  }
+})
+</code></pre>
+<h3>缓存策略</h3>
+<pre><code class="language-nginx"># nginx 缓存配置
+location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+    expires 1y;
+    add_header Cache-Control &quot;public, immutable&quot;;
+}
+
+location ~* \.(html)$ {
+    expires -1;
+    add_header Cache-Control &quot;no-cache, no-store, must-revalidate&quot;;
+}
+</code></pre>
+<h3>环境隔离</h3>
+<pre><code class="language-bash"># 不同环境使用不同的配置文件
+# .env.development
+VITE_API_URL=http://localhost:3000
+
+# .env.staging
+VITE_API_URL=https://api-staging.example.com
+
+# .env.production
+VITE_API_URL=https://api.example.com
+</code></pre>
+<p>在下一章节中，我们将学习 Vite 7.0 的高级特性和最佳实践。</p>
+
+      
