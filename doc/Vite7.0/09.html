@@ -1,0 +1,779 @@
+
+        <header>
+          <h1>CSS 处理与预处理器</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>Vite 提供了强大的 CSS 处理能力，原生支持多种预处理器和现代 CSS 特性。本章将详细介绍如何在 Vite 中处理各种 CSS 需求。</p>
+<h2>CSS 基础支持</h2>
+<h3>原生 CSS 导入</h3>
+<pre><code class="language-css">/* src/styles/main.css */
+:root {
+  --primary-color: #007bff;
+  --secondary-color: #6c757d;
+  --border-radius: 4px;
+  --transition-duration: 0.2s;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Roboto, sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+</code></pre>
+<pre><code class="language-javascript">// src/main.js
+import &#39;./styles/main.css&#39;
+import { createApp } from &#39;vue&#39;
+import App from &#39;./App.vue&#39;
+
+createApp(App).mount(&#39;#app&#39;)
+</code></pre>
+<h3>CSS 模块</h3>
+<pre><code class="language-css">/* src/components/Button.module.css */
+.button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all var(--transition-duration) ease;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.button:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.primary {
+  background: var(--primary-color);
+}
+
+.secondary {
+  background: var(--secondary-color);
+}
+
+.large {
+  padding: 16px 32px;
+  font-size: 18px;
+}
+
+.small {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+</code></pre>
+<pre><code class="language-javascript">// src/components/Button.jsx
+import styles from &#39;./Button.module.css&#39;
+import clsx from &#39;clsx&#39;
+
+function Button({ 
+  variant = &#39;primary&#39;, 
+  size = &#39;medium&#39;, 
+  children, 
+  className,
+  ...props 
+}) {
+  return (
+    &lt;button 
+      className={clsx(
+        styles.button,
+        styles[variant],
+        size !== &#39;medium&#39; &amp;&amp; styles[size],
+        className
+      )}
+      {...props}
+    &gt;
+      {children}
+    &lt;/button&gt;
+  )
+}
+
+export default Button
+</code></pre>
+<h2>Sass/SCSS 支持</h2>
+<h3>安装和基础配置</h3>
+<pre><code class="language-bash"># 安装 Sass
+npm install -D sass
+</code></pre>
+<pre><code class="language-scss">// src/styles/variables.scss
+$primary-color: #007bff;
+$secondary-color: #6c757d;
+$success-color: #28a745;
+$warning-color: #ffc107;
+$danger-color: #dc3545;
+
+$font-sizes: (
+  small: 14px,
+  medium: 16px,
+  large: 18px,
+  xlarge: 24px
+);
+
+$breakpoints: (
+  mobile: 576px,
+  tablet: 768px,
+  desktop: 992px,
+  wide: 1200px
+);
+
+// 混合宏
+@mixin respond-to($breakpoint) {
+  @if map-has-key($breakpoints, $breakpoint) {
+    @media (min-width: map-get($breakpoints, $breakpoint)) {
+      @content;
+    }
+  }
+}
+
+@mixin button-variant($bg-color, $text-color: white) {
+  background-color: $bg-color;
+  color: $text-color;
+  border: 1px solid $bg-color;
+  
+  &amp;:hover {
+    background-color: darken($bg-color, 10%);
+    border-color: darken($bg-color, 10%);
+  }
+  
+  &amp;:active {
+    background-color: darken($bg-color, 15%);
+    border-color: darken($bg-color, 15%);
+  }
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</code></pre>
+<pre><code class="language-scss">// src/styles/mixins.scss
+@import &#39;variables&#39;;
+
+// 响应式网格
+@mixin grid($columns: 12, $gap: 20px) {
+  display: grid;
+  grid-template-columns: repeat($columns, 1fr);
+  gap: $gap;
+}
+
+// 文本截断
+@mixin text-ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+// 卡片样式
+@mixin card($padding: 20px, $radius: 8px, $shadow: true) {
+  background: white;
+  border-radius: $radius;
+  padding: $padding;
+  
+  @if $shadow {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+</code></pre>
+<h3>Vite 中的 Sass 配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // 自动导入全局样式
+        additionalData: `
+          @import &quot;@/styles/variables.scss&quot;;
+          @import &quot;@/styles/mixins.scss&quot;;
+        `,
+        
+        // 包含路径
+        includePaths: [&#39;node_modules&#39;],
+        
+        // Sass 选项
+        outputStyle: &#39;expanded&#39;,
+        sourceMap: true
+      }
+    }
+  }
+})
+</code></pre>
+<h3>组件中使用 SCSS</h3>
+<pre><code class="language-vue">&lt;!-- src/components/Card.vue --&gt;
+&lt;template&gt;
+  &lt;div :class=&quot;cardClass&quot;&gt;
+    &lt;header v-if=&quot;title&quot; class=&quot;card-header&quot;&gt;
+      &lt;h3&gt;{{ title }}&lt;/h3&gt;
+    &lt;/header&gt;
+    &lt;div class=&quot;card-body&quot;&gt;
+      &lt;slot /&gt;
+    &lt;/div&gt;
+    &lt;footer v-if=&quot;$slots.footer&quot; class=&quot;card-footer&quot;&gt;
+      &lt;slot name=&quot;footer&quot; /&gt;
+    &lt;/footer&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+export default {
+  props: {
+    title: String,
+    variant: {
+      type: String,
+      default: &#39;default&#39;,
+      validator: value =&gt; [&#39;default&#39;, &#39;primary&#39;, &#39;success&#39;, &#39;warning&#39;, &#39;danger&#39;].includes(value)
+    }
+  },
+  computed: {
+    cardClass() {
+      return [&#39;card&#39;, `card--${this.variant}`]
+    }
+  }
+}
+&lt;/script&gt;
+
+&lt;style lang=&quot;scss&quot; scoped&gt;
+.card {
+  @include card();
+  margin-bottom: 20px;
+  
+  &amp;--primary {
+    border-left: 4px solid $primary-color;
+  }
+  
+  &amp;--success {
+    border-left: 4px solid $success-color;
+  }
+  
+  &amp;--warning {
+    border-left: 4px solid $warning-color;
+  }
+  
+  &amp;--danger {
+    border-left: 4px solid $danger-color;
+  }
+}
+
+.card-header {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+  
+  h3 {
+    margin: 0;
+    font-size: map-get($font-sizes, large);
+    color: #333;
+  }
+}
+
+.card-body {
+  flex: 1;
+}
+
+.card-footer {
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+  margin-top: 15px;
+  @include flex-center;
+  justify-content: flex-end;
+}
+
+// 响应式设计
+@include respond-to(tablet) {
+  .card {
+    margin-bottom: 30px;
+  }
+}
+&lt;/style&gt;
+</code></pre>
+<h2>Less 支持</h2>
+<h3>安装和配置</h3>
+<pre><code class="language-bash"># 安装 Less
+npm install -D less
+</code></pre>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  css: {
+    preprocessorOptions: {
+      less: {
+        // 修改变量
+        modifyVars: {
+          &#39;primary-color&#39;: &#39;#1DA57A&#39;,
+          &#39;link-color&#39;: &#39;#1DA57A&#39;,
+          &#39;border-radius-base&#39;: &#39;4px&#39;
+        },
+        
+        // 启用 JavaScript
+        javascriptEnabled: true,
+        
+        // 自动导入
+        additionalData: `@import &quot;@/styles/variables.less&quot;;`
+      }
+    }
+  }
+})
+</code></pre>
+<pre><code class="language-less">// src/styles/variables.less
+@primary-color: #1DA57A;
+@secondary-color: #6c757d;
+@success-color: #52c41a;
+@warning-color: #faad14;
+@error-color: #f5222d;
+
+@font-size-base: 14px;
+@font-size-lg: 16px;
+@font-size-sm: 12px;
+
+@border-radius-base: 4px;
+@border-radius-sm: 2px;
+@border-radius-lg: 6px;
+
+// 混合函数
+.button-variant(@color; @background; @border) {
+  color: @color;
+  background-color: @background;
+  border-color: @border;
+  
+  &amp;:hover {
+    color: @color;
+    background-color: lighten(@background, 10%);
+    border-color: lighten(@border, 10%);
+  }
+}
+
+.flex-center() {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</code></pre>
+<h2>Stylus 支持</h2>
+<h3>安装和配置</h3>
+<pre><code class="language-bash"># 安装 Stylus
+npm install -D stylus
+</code></pre>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  css: {
+    preprocessorOptions: {
+      stylus: {
+        // 定义全局变量
+        define: {
+          $specialColor: new stylus.nodes.RGBA(51, 197, 255, 1)
+        },
+        
+        // 导入全局文件
+        additionalData: `@import &quot;@/styles/variables.styl&quot;`
+      }
+    }
+  }
+})
+</code></pre>
+<pre><code class="language-stylus">// src/styles/variables.styl
+$primary-color = #007bff
+$secondary-color = #6c757d
+$success-color = #28a745
+
+$font-sizes = {
+  small: 14px,
+  medium: 16px,
+  large: 18px
+}
+
+// 混合函数
+button-variant(bg-color, text-color = white)
+  background-color bg-color
+  color text-color
+  border 1px solid bg-color
+  
+  &amp;:hover
+    background-color darken(bg-color, 10%)
+    border-color darken(bg-color, 10%)
+
+flex-center()
+  display flex
+  align-items center
+  justify-content center
+</code></pre>
+<h2>PostCSS 集成</h2>
+<h3>基础 PostCSS 配置</h3>
+<pre><code class="language-javascript">// postcss.config.js
+export default {
+  plugins: {
+    // 自动添加浏览器前缀
+    autoprefixer: {},
+    
+    // CSS 嵌套
+    &#39;postcss-nested&#39;: {},
+    
+    // 自定义媒体查询
+    &#39;postcss-custom-media&#39;: {
+      importFrom: &#39;src/styles/media.css&#39;
+    },
+    
+    // CSS 变量
+    &#39;postcss-custom-properties&#39;: {
+      preserve: false
+    },
+    
+    // 生产环境压缩
+    ...(process.env.NODE_ENV === &#39;production&#39; ? {
+      cssnano: {
+        preset: &#39;default&#39;
+      }
+    } : {})
+  }
+}
+</code></pre>
+<h3>Tailwind CSS 集成</h3>
+<pre><code class="language-bash"># 安装 Tailwind CSS
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+</code></pre>
+<pre><code class="language-javascript">// tailwind.config.js
+export default {
+  content: [
+    &quot;./index.html&quot;,
+    &quot;./src/**/*.{vue,js,ts,jsx,tsx}&quot;,
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: &#39;#eff6ff&#39;,
+          500: &#39;#3b82f6&#39;,
+          900: &#39;#1e3a8a&#39;,
+        }
+      },
+      fontFamily: {
+        sans: [&#39;Inter&#39;, &#39;system-ui&#39;, &#39;sans-serif&#39;],
+      },
+      spacing: {
+        &#39;18&#39;: &#39;4.5rem&#39;,
+        &#39;88&#39;: &#39;22rem&#39;,
+      }
+    },
+  },
+  plugins: [
+    require(&#39;@tailwindcss/forms&#39;),
+    require(&#39;@tailwindcss/typography&#39;),
+  ],
+}
+</code></pre>
+<pre><code class="language-css">/* src/styles/tailwind.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: Inter, system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-colors;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-500 text-white hover:bg-blue-600;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-500 text-white hover:bg-gray-600;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+</code></pre>
+<h2>CSS-in-JS 支持</h2>
+<h3>Styled Components</h3>
+<pre><code class="language-bash"># 安装 styled-components
+npm install styled-components
+npm install -D @types/styled-components
+</code></pre>
+<pre><code class="language-javascript">// src/components/StyledButton.jsx
+import styled, { css } from &#39;styled-components&#39;
+
+const Button = styled.button`
+  padding: 12px 24px;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  ${props =&gt; props.variant === &#39;primary&#39; &amp;&amp; css`
+    background-color: #007bff;
+    color: white;
+    
+    &amp;:hover {
+      background-color: #0056b3;
+    }
+  `}
+  
+  ${props =&gt; props.variant === &#39;secondary&#39; &amp;&amp; css`
+    background-color: #6c757d;
+    color: white;
+    
+    &amp;:hover {
+      background-color: #545b62;
+    }
+  `}
+  
+  ${props =&gt; props.size === &#39;large&#39; &amp;&amp; css`
+    padding: 16px 32px;
+    font-size: 18px;
+  `}
+  
+  ${props =&gt; props.size === &#39;small&#39; &amp;&amp; css`
+    padding: 8px 16px;
+    font-size: 14px;
+  `}
+  
+  ${props =&gt; props.disabled &amp;&amp; css`
+    opacity: 0.6;
+    cursor: not-allowed;
+  `}
+`
+
+export default Button
+</code></pre>
+<h3>Emotion</h3>
+<pre><code class="language-bash"># 安装 Emotion
+npm install @emotion/react @emotion/styled
+</code></pre>
+<pre><code class="language-javascript">// src/components/EmotionButton.jsx
+import styled from &#39;@emotion/styled&#39;
+import { css } from &#39;@emotion/react&#39;
+
+const buttonStyles = css`
+  padding: 12px 24px;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+`
+
+const Button = styled.button`
+  ${buttonStyles}
+  
+  background-color: ${props =&gt; 
+    props.variant === &#39;primary&#39; ? &#39;#007bff&#39; : &#39;#6c757d&#39;
+  };
+  color: white;
+  
+  &amp;:hover {
+    background-color: ${props =&gt; 
+      props.variant === &#39;primary&#39; ? &#39;#0056b3&#39; : &#39;#545b62&#39;
+    };
+  }
+`
+
+export default Button
+</code></pre>
+<h2>CSS 优化</h2>
+<h3>关键 CSS 提取</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import { createHtmlPlugin } from &#39;vite-plugin-html&#39;
+
+export default defineConfig({
+  plugins: [
+    createHtmlPlugin({
+      minify: true,
+      inject: {
+        data: {
+          criticalCss: process.env.NODE_ENV === &#39;production&#39; 
+            ? &#39;&lt;style&gt;/* 关键 CSS 内容 */&lt;/style&gt;&#39;
+            : &#39;&#39;
+        }
+      }
+    })
+  ],
+  
+  build: {
+    cssCodeSplit: true,
+    
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) =&gt; {
+          if (assetInfo.name.endsWith(&#39;.css&#39;)) {
+            return &#39;css/[name]-[hash].css&#39;
+          }
+          return &#39;assets/[name]-[hash].[ext]&#39;
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>CSS 压缩优化</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  css: {
+    // 开发环境启用 source map
+    devSourcemap: true,
+    
+    // CSS 压缩器选择
+    minify: &#39;esbuild&#39;, // &#39;esbuild&#39; | &#39;lightningcss&#39;
+    
+    // PostCSS 配置
+    postcss: {
+      plugins: [
+        require(&#39;autoprefixer&#39;),
+        require(&#39;postcss-preset-env&#39;)({
+          stage: 1,
+          features: {
+            &#39;nesting-rules&#39;: true
+          }
+        }),
+        ...(process.env.NODE_ENV === &#39;production&#39; ? [
+          require(&#39;cssnano&#39;)({
+            preset: [&#39;default&#39;, {
+              discardComments: {
+                removeAll: true
+              }
+            }]
+          })
+        ] : [])
+      ]
+    }
+  }
+})
+</code></pre>
+<h2>现代 CSS 特性</h2>
+<h3>CSS 容器查询</h3>
+<pre><code class="language-css">/* src/styles/container-queries.css */
+.card-container {
+  container-type: inline-size;
+  container-name: card;
+}
+
+.card {
+  padding: 1rem;
+}
+
+@container card (min-width: 300px) {
+  .card {
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1rem;
+  }
+}
+
+@container card (min-width: 500px) {
+  .card {
+    padding: 3rem;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+</code></pre>
+<h3>CSS 层叠层</h3>
+<pre><code class="language-css">/* src/styles/layers.css */
+@layer reset, base, components, utilities;
+
+@layer reset {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+}
+
+@layer base {
+  body {
+    font-family: system-ui, sans-serif;
+    line-height: 1.6;
+  }
+}
+
+@layer components {
+  .btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .text-center { text-align: center; }
+  .hidden { display: none; }
+}
+</code></pre>
+<h2>故障排除</h2>
+<h3>常见 CSS 问题</h3>
+<pre><code class="language-javascript">// 1. 样式不生效
+// 检查导入路径
+import &#39;./styles/main.css&#39; // ✅
+import &#39;styles/main.css&#39;   // ❌ 可能需要配置别名
+
+// 2. CSS 模块类名问题
+import styles from &#39;./Button.module.css&#39;
+console.log(styles) // 查看生成的类名
+
+// 3. 预处理器变量未定义
+// 确保在 vite.config.js 中正确配置 additionalData
+
+// 4. PostCSS 插件冲突
+// 检查 postcss.config.js 中插件的顺序和配置
+</code></pre>
+<h3>样式调试工具</h3>
+<pre><code class="language-javascript">// src/utils/styleDebugger.js
+export function debugStyles() {
+  if (import.meta.env.DEV) {
+    // 显示所有 CSS 模块的映射
+    const modules = import.meta.glob(&#39;../**/*.module.css&#39;, { eager: true })
+    console.group(&#39;CSS Modules&#39;)
+    Object.entries(modules).forEach(([path, module]) =&gt; {
+      console.log(path, module.default || module)
+    })
+    console.groupEnd()
+  }
+}
+
+// 在开发环境中调用
+if (import.meta.env.DEV) {
+  debugStyles()
+}
+</code></pre>
+<h2>总结</h2>
+<p>Vite 的 CSS 处理能力包括：</p>
+<ul>
+<li>原生支持多种预处理器（Sass、Less、Stylus）</li>
+<li>强大的 PostCSS 集成</li>
+<li>灵活的 CSS 模块系统</li>
+<li>现代 CSS 特性支持</li>
+<li>完善的优化和压缩机制</li>
+</ul>
+<p>掌握这些 CSS 处理技巧，能够帮助你构建更加优雅和高效的样式系统。</p>
+
+      

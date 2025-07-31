@@ -1,0 +1,1092 @@
+
+        <header>
+          <h1>性能优化策略</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>性能优化是现代前端应用的关键要素。本章将详细介绍 Vite 应用的各种性能优化策略，从开发环境到生产环境的全方位优化。</p>
+<h2>开发环境性能优化</h2>
+<h3>依赖预构建优化</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  optimizeDeps: {
+    // 强制预构建的依赖
+    include: [
+      &#39;vue&#39;,
+      &#39;vue-router&#39;,
+      &#39;pinia&#39;,
+      &#39;axios&#39;,
+      &#39;lodash-es&#39;,
+      &#39;dayjs&#39;
+    ],
+    
+    // 排除预构建的依赖
+    exclude: [
+      &#39;your-local-package&#39;
+    ],
+    
+    // 自定义 esbuild 选项
+    esbuildOptions: {
+      target: &#39;es2020&#39;,
+      supported: {
+        bigint: true
+      },
+      // 定义全局变量
+      define: {
+        global: &#39;globalThis&#39;
+      }
+    },
+    
+    // 强制重新预构建
+    force: false,
+    
+    // 预构建入口点
+    entries: [
+      &#39;src/main.js&#39;,
+      &#39;src/pages/**/*.vue&#39;
+    ]
+  }
+})
+</code></pre>
+<h3>开发服务器优化</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  server: {
+    // 预热文件，提前编译常用文件
+    warmup: {
+      clientFiles: [
+        &#39;./src/components/**/*.vue&#39;,
+        &#39;./src/utils/helpers.js&#39;,
+        &#39;./src/stores/*.js&#39;
+      ]
+    },
+    
+    // 文件系统缓存
+    fs: {
+      // 允许访问的目录
+      allow: [&#39;..&#39;],
+      // 缓存策略
+      cachedChecks: false
+    }
+  },
+  
+  // 缓存目录配置
+  cacheDir: &#39;node_modules/.vite&#39;,
+  
+  // 日志级别，减少不必要的输出
+  logLevel: &#39;warn&#39;
+})
+</code></pre>
+<h3>模块热更新优化</h3>
+<pre><code class="language-javascript">// src/utils/hmrOptimizer.js
+class HMROptimizer {
+  constructor() {
+    this.updateQueue = []
+    this.isProcessing = false
+    this.debounceTime = 100
+  }
+  
+  // 批量处理 HMR 更新
+  batchUpdate(callback) {
+    this.updateQueue.push(callback)
+    
+    if (!this.isProcessing) {
+      this.isProcessing = true
+      setTimeout(() =&gt; {
+        this.processQueue()
+      }, this.debounceTime)
+    }
+  }
+  
+  processQueue() {
+    const callbacks = [...this.updateQueue]
+    this.updateQueue = []
+    this.isProcessing = false
+    
+    callbacks.forEach(callback =&gt; {
+      try {
+        callback()
+      } catch (error) {
+        console.error(&#39;HMR update error:&#39;, error)
+      }
+    })
+  }
+}
+
+export const hmrOptimizer = new HMROptimizer()
+
+// 在组件中使用
+if (import.meta.hot) {
+  import.meta.hot.accept(() =&gt; {
+    hmrOptimizer.batchUpdate(() =&gt; {
+      // 执行更新逻辑
+      console.log(&#39;Component updated&#39;)
+    })
+  })
+}
+</code></pre>
+<h2>构建性能优化</h2>
+<h3>构建配置优化</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  build: {
+    // 目标环境
+    target: &#39;es2015&#39;,
+    
+    // 启用/禁用 CSS 代码分割
+    cssCodeSplit: true,
+    
+    // 构建后是否生成 source map
+    sourcemap: false,
+    
+    // 压缩器选择
+    minify: &#39;esbuild&#39;, // &#39;esbuild&#39; 比 &#39;terser&#39; 更快
+    
+    // chunk 大小警告限制
+    chunkSizeWarningLimit: 1000,
+    
+    // 启用/禁用 gzip 压缩大小报告
+    reportCompressedSize: false, // 禁用以提升构建速度
+    
+    rollupOptions: {
+      // 输出配置
+      output: {
+        // 手动分包
+        manualChunks: (id) =&gt; {
+          // 第三方库分包
+          if (id.includes(&#39;node_modules&#39;)) {
+            if (id.includes(&#39;vue&#39;)) {
+              return &#39;vue-vendor&#39;
+            }
+            if (id.includes(&#39;lodash&#39;)) {
+              return &#39;lodash-vendor&#39;
+            }
+            if (id.includes(&#39;axios&#39;)) {
+              return &#39;axios-vendor&#39;
+            }
+            return &#39;vendor&#39;
+          }
+          
+          // 业务代码分包
+          if (id.includes(&#39;/src/components/&#39;)) {
+            return &#39;components&#39;
+          }
+          if (id.includes(&#39;/src/utils/&#39;)) {
+            return &#39;utils&#39;
+          }
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>并行构建优化</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import { cpus } from &#39;os&#39;
+
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      // 控制并行处理数量
+      maxParallelFileOps: Math.max(1, cpus().length - 1)
+    }
+  },
+  
+  // esbuild 并行配置
+  esbuild: {
+    // 启用并行处理
+    legalComments: &#39;none&#39;,
+    // 目标版本
+    target: &#39;es2020&#39;
+  }
+})
+</code></pre>
+<h2>资源优化策略</h2>
+<h3>图片优化</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import { ViteImageOptimize } from &#39;vite-plugin-imagemin&#39;
+
+export default defineConfig({
+  plugins: [
+    ViteImageOptimize({
+      // JPEG 优化
+      mozjpeg: {
+        quality: 80,
+        progressive: true
+      },
+      
+      // PNG 优化
+      pngquant: {
+        quality: [0.65, 0.8],
+        speed: 4
+      },
+      
+      // SVG 优化
+      svgo: {
+        plugins: [
+          { name: &#39;removeViewBox&#39;, active: false },
+          { name: &#39;removeEmptyAttrs&#39;, active: false }
+        ]
+      },
+      
+      // WebP 转换
+      webp: {
+        quality: 75
+      }
+    })
+  ],
+  
+  build: {
+    // 资源内联阈值
+    assetsInlineLimit: 4096, // 4KB 以下内联
+    
+    rollupOptions: {
+      output: {
+        // 资源文件命名
+        assetFileNames: (assetInfo) =&gt; {
+          const info = assetInfo.name.split(&#39;.&#39;)
+          const ext = info[info.length - 1]
+          
+          if (/\.(png|jpe?g|gif|svg|webp)$/i.test(assetInfo.name)) {
+            return `images/[name]-[hash].${ext}`
+          }
+          if (/\.(woff2?|eot|ttf|otf)$/i.test(assetInfo.name)) {
+            return `fonts/[name]-[hash].${ext}`
+          }
+          return `assets/[name]-[hash].${ext}`
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>字体优化</h3>
+<pre><code class="language-css">/* src/styles/fonts.css */
+/* 字体预加载 */
+@font-face {
+  font-family: &#39;CustomFont&#39;;
+  src: url(&#39;./fonts/custom-font.woff2&#39;) format(&#39;woff2&#39;),
+       url(&#39;./fonts/custom-font.woff&#39;) format(&#39;woff&#39;);
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap; /* 字体交换策略 */
+}
+
+/* 字体子集化 */
+@font-face {
+  font-family: &#39;CustomFont-Latin&#39;;
+  src: url(&#39;./fonts/custom-font-latin.woff2&#39;) format(&#39;woff2&#39;);
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: &#39;CustomFont-Chinese&#39;;
+  src: url(&#39;./fonts/custom-font-chinese.woff2&#39;) format(&#39;woff2&#39;);
+  unicode-range: U+4E00-9FFF;
+  font-display: swap;
+}
+</code></pre>
+<h3>CSS 优化</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  css: {
+    // PostCSS 配置
+    postcss: {
+      plugins: [
+        // 自动添加浏览器前缀
+        require(&#39;autoprefixer&#39;),
+        
+        // CSS 优化
+        require(&#39;postcss-preset-env&#39;)({
+          stage: 1,
+          features: {
+            &#39;nesting-rules&#39;: true
+          }
+        }),
+        
+        // 生产环境压缩
+        ...(process.env.NODE_ENV === &#39;production&#39; ? [
+          require(&#39;cssnano&#39;)({
+            preset: [&#39;default&#39;, {
+              discardComments: {
+                removeAll: true
+              },
+              normalizeWhitespace: true
+            }]
+          })
+        ] : [])
+      ]
+    },
+    
+    // CSS 模块配置
+    modules: {
+      // 生成更短的类名
+      generateScopedName: process.env.NODE_ENV === &#39;production&#39; 
+        ? &#39;[hash:base64:5]&#39; 
+        : &#39;[name]__[local]___[hash:base64:5]&#39;
+    }
+  }
+})
+</code></pre>
+<h2>代码分割优化</h2>
+<h3>智能分包策略</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) =&gt; {
+          // 分析模块大小和使用频率
+          const moduleInfo = getModuleInfo(id)
+          
+          // 大型第三方库单独分包
+          if (id.includes(&#39;node_modules&#39;)) {
+            if (id.includes(&#39;echarts&#39;)) {
+              return &#39;echarts&#39;
+            }
+            if (id.includes(&#39;monaco-editor&#39;)) {
+              return &#39;monaco&#39;
+            }
+            if (id.includes(&#39;three&#39;)) {
+              return &#39;three&#39;
+            }
+            
+            // 常用小库合并
+            if (isSmallLibrary(id)) {
+              return &#39;vendor-small&#39;
+            }
+            
+            // 其他第三方库
+            return &#39;vendor&#39;
+          }
+          
+          // 业务代码按功能分包
+          if (id.includes(&#39;/src/pages/&#39;)) {
+            const pageName = extractPageName(id)
+            return `page-${pageName}`
+          }
+          
+          if (id.includes(&#39;/src/components/&#39;)) {
+            // 公共组件
+            if (isCommonComponent(id)) {
+              return &#39;components-common&#39;
+            }
+            // 业务组件
+            return &#39;components-business&#39;
+          }
+        }
+      }
+    }
+  }
+})
+
+function getModuleInfo(id) {
+  // 模拟获取模块信息
+  return {
+    size: 0,
+    usage: 0
+  }
+}
+
+function isSmallLibrary(id) {
+  const smallLibs = [&#39;dayjs&#39;, &#39;uuid&#39;, &#39;qs&#39;, &#39;classnames&#39;]
+  return smallLibs.some(lib =&gt; id.includes(lib))
+}
+
+function extractPageName(id) {
+  const match = id.match(/\/pages\/([^\/]+)/)
+  return match ? match[1] : &#39;unknown&#39;
+}
+
+function isCommonComponent(id) {
+  return id.includes(&#39;/components/common/&#39;) || 
+         id.includes(&#39;/components/ui/&#39;)
+}
+</code></pre>
+<h3>动态导入优化</h3>
+<pre><code class="language-javascript">// src/utils/dynamicImport.js
+class DynamicImportManager {
+  constructor() {
+    this.cache = new Map()
+    this.loading = new Map()
+    this.retryCount = new Map()
+    this.maxRetries = 3
+  }
+  
+  async import(importFn, chunkName) {
+    // 检查缓存
+    if (this.cache.has(chunkName)) {
+      return this.cache.get(chunkName)
+    }
+    
+    // 检查是否正在加载
+    if (this.loading.has(chunkName)) {
+      return this.loading.get(chunkName)
+    }
+    
+    // 开始加载
+    const loadPromise = this.loadWithRetry(importFn, chunkName)
+    this.loading.set(chunkName, loadPromise)
+    
+    try {
+      const module = await loadPromise
+      this.cache.set(chunkName, module)
+      this.loading.delete(chunkName)
+      return module
+    } catch (error) {
+      this.loading.delete(chunkName)
+      throw error
+    }
+  }
+  
+  async loadWithRetry(importFn, chunkName) {
+    const retries = this.retryCount.get(chunkName) || 0
+    
+    try {
+      return await importFn()
+    } catch (error) {
+      if (retries &lt; this.maxRetries) {
+        this.retryCount.set(chunkName, retries + 1)
+        
+        // 延迟重试
+        await new Promise(resolve =&gt; setTimeout(resolve, 1000 * (retries + 1)))
+        
+        return this.loadWithRetry(importFn, chunkName)
+      } else {
+        throw error
+      }
+    }
+  }
+  
+  // 预加载
+  preload(importFn, chunkName) {
+    if (!this.cache.has(chunkName) &amp;&amp; !this.loading.has(chunkName)) {
+      this.import(importFn, chunkName).catch(error =&gt; {
+        console.warn(`Failed to preload ${chunkName}:`, error)
+      })
+    }
+  }
+  
+  // 清理缓存
+  clearCache() {
+    this.cache.clear()
+    this.retryCount.clear()
+  }
+}
+
+export const dynamicImportManager = new DynamicImportManager()
+
+// 使用示例
+export const loadComponent = (componentName) =&gt; {
+  return dynamicImportManager.import(
+    () =&gt; import(`../components/${componentName}.vue`),
+    componentName
+  )
+}
+
+// 预加载组件
+export const preloadComponent = (componentName) =&gt; {
+  dynamicImportManager.preload(
+    () =&gt; import(`../components/${componentName}.vue`),
+    componentName
+  )
+}
+</code></pre>
+<h2>运行时性能优化</h2>
+<h3>虚拟滚动实现</h3>
+<pre><code class="language-vue">&lt;!-- src/components/VirtualList.vue --&gt;
+&lt;template&gt;
+  &lt;div 
+    ref=&quot;containerRef&quot;
+    class=&quot;virtual-list&quot;
+    :style=&quot;{ height: containerHeight + &#39;px&#39; }&quot;
+    @scroll=&quot;handleScroll&quot;
+  &gt;
+    &lt;div 
+      class=&quot;virtual-list-phantom&quot;
+      :style=&quot;{ height: totalHeight + &#39;px&#39; }&quot;
+    &gt;&lt;/div&gt;
+    
+    &lt;div 
+      class=&quot;virtual-list-content&quot;
+      :style=&quot;{ transform: `translateY(${offsetY}px)` }&quot;
+    &gt;
+      &lt;div
+        v-for=&quot;item in visibleItems&quot;
+        :key=&quot;item.index&quot;
+        class=&quot;virtual-list-item&quot;
+        :style=&quot;{ height: itemHeight + &#39;px&#39; }&quot;
+      &gt;
+        &lt;slot :item=&quot;item.data&quot; :index=&quot;item.index&quot; /&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, computed, onMounted, onUnmounted } from &#39;vue&#39;
+
+const props = defineProps({
+  items: {
+    type: Array,
+    required: true
+  },
+  itemHeight: {
+    type: Number,
+    default: 50
+  },
+  containerHeight: {
+    type: Number,
+    default: 400
+  },
+  overscan: {
+    type: Number,
+    default: 5
+  }
+})
+
+const containerRef = ref(null)
+const scrollTop = ref(0)
+
+// 计算可见项目
+const visibleItems = computed(() =&gt; {
+  const visibleStart = Math.floor(scrollTop.value / props.itemHeight)
+  const visibleEnd = Math.min(
+    visibleStart + Math.ceil(props.containerHeight / props.itemHeight),
+    props.items.length - 1
+  )
+  
+  const start = Math.max(0, visibleStart - props.overscan)
+  const end = Math.min(props.items.length - 1, visibleEnd + props.overscan)
+  
+  return props.items.slice(start, end + 1).map((item, index) =&gt; ({
+    data: item,
+    index: start + index
+  }))
+})
+
+// 计算总高度
+const totalHeight = computed(() =&gt; {
+  return props.items.length * props.itemHeight
+})
+
+// 计算偏移量
+const offsetY = computed(() =&gt; {
+  const visibleStart = Math.floor(scrollTop.value / props.itemHeight)
+  const start = Math.max(0, visibleStart - props.overscan)
+  return start * props.itemHeight
+})
+
+// 处理滚动
+const handleScroll = (event) =&gt; {
+  scrollTop.value = event.target.scrollTop
+}
+
+// 滚动到指定项目
+const scrollToItem = (index) =&gt; {
+  if (containerRef.value) {
+    containerRef.value.scrollTop = index * props.itemHeight
+  }
+}
+
+// 暴露方法
+defineExpose({
+  scrollToItem
+})
+&lt;/script&gt;
+
+&lt;style scoped&gt;
+.virtual-list {
+  position: relative;
+  overflow: auto;
+}
+
+.virtual-list-phantom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: -1;
+}
+
+.virtual-list-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.virtual-list-item {
+  box-sizing: border-box;
+}
+&lt;/style&gt;
+</code></pre>
+<h3>组件懒加载优化</h3>
+<pre><code class="language-javascript">// src/utils/lazyComponent.js
+import { defineAsyncComponent, ref } from &#39;vue&#39;
+
+export function createLazyComponent(importFn, options = {}) {
+  const {
+    delay = 200,
+    timeout = 10000,
+    retries = 3,
+    loadingComponent = null,
+    errorComponent = null
+  } = options
+  
+  return defineAsyncComponent({
+    loader: async () =&gt; {
+      let lastError
+      
+      for (let i = 0; i &lt;= retries; i++) {
+        try {
+          const module = await importFn()
+          return module
+        } catch (error) {
+          lastError = error
+          
+          if (i &lt; retries) {
+            // 延迟重试
+            await new Promise(resolve =&gt; setTimeout(resolve, 1000 * (i + 1)))
+          }
+        }
+      }
+      
+      throw lastError
+    },
+    
+    loadingComponent,
+    errorComponent,
+    delay,
+    timeout
+  })
+}
+
+// 使用示例
+export const LazyChart = createLazyComponent(
+  () =&gt; import(&#39;../components/Chart.vue&#39;),
+  {
+    delay: 200,
+    timeout: 5000,
+    retries: 2,
+    loadingComponent: () =&gt; import(&#39;../components/ChartLoading.vue&#39;),
+    errorComponent: () =&gt; import(&#39;../components/ChartError.vue&#39;)
+  }
+)
+</code></pre>
+<h3>内存优化</h3>
+<pre><code class="language-javascript">// src/utils/memoryOptimizer.js
+class MemoryOptimizer {
+  constructor() {
+    this.observers = new Set()
+    this.timers = new Set()
+    this.eventListeners = new Map()
+    this.subscriptions = new Set()
+  }
+  
+  // 注册观察者
+  addObserver(observer) {
+    this.observers.add(observer)
+    
+    return () =&gt; {
+      if (observer.disconnect) {
+        observer.disconnect()
+      }
+      this.observers.delete(observer)
+    }
+  }
+  
+  // 注册定时器
+  addTimer(timer) {
+    this.timers.add(timer)
+    
+    return () =&gt; {
+      clearTimeout(timer)
+      clearInterval(timer)
+      this.timers.delete(timer)
+    }
+  }
+  
+  // 注册事件监听器
+  addEventListener(element, event, handler, options) {
+    if (!this.eventListeners.has(element)) {
+      this.eventListeners.set(element, new Map())
+    }
+    
+    const elementListeners = this.eventListeners.get(element)
+    if (!elementListeners.has(event)) {
+      elementListeners.set(event, new Set())
+    }
+    
+    elementListeners.get(event).add(handler)
+    element.addEventListener(event, handler, options)
+    
+    return () =&gt; {
+      element.removeEventListener(event, handler, options)
+      elementListeners.get(event).delete(handler)
+    }
+  }
+  
+  // 注册订阅
+  addSubscription(subscription) {
+    this.subscriptions.add(subscription)
+    
+    return () =&gt; {
+      if (typeof subscription === &#39;function&#39;) {
+        subscription()
+      } else if (subscription.unsubscribe) {
+        subscription.unsubscribe()
+      }
+      this.subscriptions.delete(subscription)
+    }
+  }
+  
+  // 清理所有资源
+  cleanup() {
+    // 清理观察者
+    this.observers.forEach(observer =&gt; {
+      if (observer.disconnect) {
+        observer.disconnect()
+      }
+    })
+    this.observers.clear()
+    
+    // 清理定时器
+    this.timers.forEach(timer =&gt; {
+      clearTimeout(timer)
+      clearInterval(timer)
+    })
+    this.timers.clear()
+    
+    // 清理事件监听器
+    this.eventListeners.forEach((elementListeners, element) =&gt; {
+      elementListeners.forEach((handlers, event) =&gt; {
+        handlers.forEach(handler =&gt; {
+          element.removeEventListener(event, handler)
+        })
+      })
+    })
+    this.eventListeners.clear()
+    
+    // 清理订阅
+    this.subscriptions.forEach(subscription =&gt; {
+      if (typeof subscription === &#39;function&#39;) {
+        subscription()
+      } else if (subscription.unsubscribe) {
+        subscription.unsubscribe()
+      }
+    })
+    this.subscriptions.clear()
+  }
+}
+
+// 在组件中使用
+export function useMemoryOptimizer() {
+  const optimizer = new MemoryOptimizer()
+  
+  // 组件卸载时自动清理
+  onUnmounted(() =&gt; {
+    optimizer.cleanup()
+  })
+  
+  return optimizer
+}
+</code></pre>
+<h2>性能监控</h2>
+<h3>性能指标收集</h3>
+<pre><code class="language-javascript">// src/utils/performanceMonitor.js
+class PerformanceMonitor {
+  constructor() {
+    this.metrics = {
+      navigation: {},
+      resources: [],
+      userTiming: [],
+      vitals: {}
+    }
+    
+    this.init()
+  }
+  
+  init() {
+    // 监听页面加载完成
+    if (document.readyState === &#39;complete&#39;) {
+      this.collectNavigationMetrics()
+    } else {
+      window.addEventListener(&#39;load&#39;, () =&gt; {
+        this.collectNavigationMetrics()
+      })
+    }
+    
+    // 监听资源加载
+    this.observeResources()
+    
+    // 监听核心 Web 指标
+    this.observeWebVitals()
+  }
+  
+  collectNavigationMetrics() {
+    const navigation = performance.getEntriesByType(&#39;navigation&#39;)[0]
+    
+    if (navigation) {
+      this.metrics.navigation = {
+        // DNS 查询时间
+        dnsLookup: navigation.domainLookupEnd - navigation.domainLookupStart,
+        
+        // TCP 连接时间
+        tcpConnect: navigation.connectEnd - navigation.connectStart,
+        
+        // SSL 握手时间
+        sslHandshake: navigation.secureConnectionStart &gt; 0 
+          ? navigation.connectEnd - navigation.secureConnectionStart 
+          : 0,
+        
+        // 请求响应时间
+        requestResponse: navigation.responseEnd - navigation.requestStart,
+        
+        // DOM 解析时间
+        domParse: navigation.domContentLoadedEventEnd - navigation.responseEnd,
+        
+        // 资源加载时间
+        resourceLoad: navigation.loadEventEnd - navigation.domContentLoadedEventEnd,
+        
+        // 总加载时间
+        totalLoad: navigation.loadEventEnd - navigation.navigationStart,
+        
+        // 首次内容绘制
+        fcp: this.getFCP(),
+        
+        // 最大内容绘制
+        lcp: this.getLCP()
+      }
+    }
+  }
+  
+  observeResources() {
+    const observer = new PerformanceObserver((list) =&gt; {
+      list.getEntries().forEach(entry =&gt; {
+        if (entry.entryType === &#39;resource&#39;) {
+          this.metrics.resources.push({
+            name: entry.name,
+            type: this.getResourceType(entry.name),
+            size: entry.transferSize,
+            duration: entry.duration,
+            startTime: entry.startTime
+          })
+        }
+      })
+    })
+    
+    observer.observe({ entryTypes: [&#39;resource&#39;] })
+  }
+  
+  observeWebVitals() {
+    // 观察 LCP
+    new PerformanceObserver((list) =&gt; {
+      const entries = list.getEntries()
+      const lastEntry = entries[entries.length - 1]
+      this.metrics.vitals.lcp = lastEntry.startTime
+    }).observe({ entryTypes: [&#39;largest-contentful-paint&#39;] })
+    
+    // 观察 FID
+    new PerformanceObserver((list) =&gt; {
+      list.getEntries().forEach(entry =&gt; {
+        this.metrics.vitals.fid = entry.processingStart - entry.startTime
+      })
+    }).observe({ entryTypes: [&#39;first-input&#39;] })
+    
+    // 观察 CLS
+    let clsValue = 0
+    new PerformanceObserver((list) =&gt; {
+      list.getEntries().forEach(entry =&gt; {
+        if (!entry.hadRecentInput) {
+          clsValue += entry.value
+          this.metrics.vitals.cls = clsValue
+        }
+      })
+    }).observe({ entryTypes: [&#39;layout-shift&#39;] })
+  }
+  
+  getFCP() {
+    const fcpEntry = performance.getEntriesByName(&#39;first-contentful-paint&#39;)[0]
+    return fcpEntry ? fcpEntry.startTime : null
+  }
+  
+  getLCP() {
+    const lcpEntries = performance.getEntriesByType(&#39;largest-contentful-paint&#39;)
+    return lcpEntries.length &gt; 0 ? lcpEntries[lcpEntries.length - 1].startTime : null
+  }
+  
+  getResourceType(url) {
+    if (url.match(/\.(js|mjs)$/)) return &#39;script&#39;
+    if (url.match(/\.css$/)) return &#39;stylesheet&#39;
+    if (url.match(/\.(png|jpg|jpeg|gif|svg|webp)$/)) return &#39;image&#39;
+    if (url.match(/\.(woff|woff2|ttf|eot)$/)) return &#39;font&#39;
+    return &#39;other&#39;
+  }
+  
+  // 自定义性能标记
+  mark(name) {
+    performance.mark(name)
+  }
+  
+  // 测量性能
+  measure(name, startMark, endMark) {
+    performance.measure(name, startMark, endMark)
+    
+    const measure = performance.getEntriesByName(name)[0]
+    this.metrics.userTiming.push({
+      name,
+      duration: measure.duration,
+      startTime: measure.startTime
+    })
+  }
+  
+  // 获取性能报告
+  getReport() {
+    return {
+      ...this.metrics,
+      timestamp: Date.now(),
+      userAgent: navigator.userAgent,
+      url: window.location.href
+    }
+  }
+  
+  // 发送性能数据
+  sendReport(endpoint) {
+    const report = this.getReport()
+    
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(endpoint, JSON.stringify(report))
+    } else {
+      fetch(endpoint, {
+        method: &#39;POST&#39;,
+        body: JSON.stringify(report),
+        headers: {
+          &#39;Content-Type&#39;: &#39;application/json&#39;
+        }
+      }).catch(error =&gt; {
+        console.warn(&#39;Failed to send performance report:&#39;, error)
+      })
+    }
+  }
+}
+
+export const performanceMonitor = new PerformanceMonitor()
+
+// 在应用中使用
+// performanceMonitor.mark(&#39;app-start&#39;)
+// performanceMonitor.mark(&#39;app-ready&#39;)
+// performanceMonitor.measure(&#39;app-init&#39;, &#39;app-start&#39;, &#39;app-ready&#39;)
+</code></pre>
+<h3>性能预算</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  plugins: [
+    {
+      name: &#39;performance-budget&#39;,
+      generateBundle(options, bundle) {
+        const budgets = {
+          // 总包大小限制
+          totalSize: 2 * 1024 * 1024, // 2MB
+          
+          // 单个文件大小限制
+          chunkSize: 500 * 1024, // 500KB
+          
+          // 资源数量限制
+          assetCount: 50,
+          
+          // 特定类型限制
+          jsSize: 1 * 1024 * 1024, // 1MB
+          cssSize: 200 * 1024, // 200KB
+          imageSize: 500 * 1024 // 500KB
+        }
+        
+        this.checkBudgets(bundle, budgets)
+      },
+      
+      checkBudgets(bundle, budgets) {
+        let totalSize = 0
+        let jsSize = 0
+        let cssSize = 0
+        let imageSize = 0
+        let assetCount = 0
+        
+        Object.values(bundle).forEach(chunk =&gt; {
+          const size = chunk.type === &#39;chunk&#39; 
+            ? chunk.code.length 
+            : chunk.source.length
+          
+          totalSize += size
+          assetCount++
+          
+          // 检查单个文件大小
+          if (size &gt; budgets.chunkSize) {
+            this.warn(`File ${chunk.fileName} (${this.formatSize(size)}) exceeds chunk size budget (${this.formatSize(budgets.chunkSize)})`)
+          }
+          
+          // 按类型统计
+          if (chunk.fileName.endsWith(&#39;.js&#39;)) {
+            jsSize += size
+          } else if (chunk.fileName.endsWith(&#39;.css&#39;)) {
+            cssSize += size
+          } else if (/\.(png|jpg|jpeg|gif|svg|webp)$/.test(chunk.fileName)) {
+            imageSize += size
+          }
+        })
+        
+        // 检查总大小
+        if (totalSize &gt; budgets.totalSize) {
+          this.warn(`Total bundle size (${this.formatSize(totalSize)}) exceeds budget (${this.formatSize(budgets.totalSize)})`)
+        }
+        
+        // 检查 JS 大小
+        if (jsSize &gt; budgets.jsSize) {
+          this.warn(`JavaScript size (${this.formatSize(jsSize)}) exceeds budget (${this.formatSize(budgets.jsSize)})`)
+        }
+        
+        // 检查 CSS 大小
+        if (cssSize &gt; budgets.cssSize) {
+          this.warn(`CSS size (${this.formatSize(cssSize)}) exceeds budget (${this.formatSize(budgets.cssSize)})`)
+        }
+        
+        // 检查图片大小
+        if (imageSize &gt; budgets.imageSize) {
+          this.warn(`Image size (${this.formatSize(imageSize)}) exceeds budget (${this.formatSize(budgets.imageSize)})`)
+        }
+        
+        // 检查资源数量
+        if (assetCount &gt; budgets.assetCount) {
+          this.warn(`Asset count (${assetCount}) exceeds budget (${budgets.assetCount})`)
+        }
+        
+        console.log(`\n📊 Performance Budget Report:`)
+        console.log(`Total Size: ${this.formatSize(totalSize)} / ${this.formatSize(budgets.totalSize)}`)
+        console.log(`JavaScript: ${this.formatSize(jsSize)} / ${this.formatSize(budgets.jsSize)}`)
+        console.log(`CSS: ${this.formatSize(cssSize)} / ${this.formatSize(budgets.cssSize)}`)
+        console.log(`Images: ${this.formatSize(imageSize)} / ${this.formatSize(budgets.imageSize)}`)
+        console.log(`Assets: ${assetCount} / ${budgets.assetCount}`)
+      },
+      
+      formatSize(bytes) {
+        const sizes = [&#39;B&#39;, &#39;KB&#39;, &#39;MB&#39;, &#39;GB&#39;]
+        if (bytes === 0) return &#39;0 B&#39;
+        const i = Math.floor(Math.log(bytes) / Math.log(1024))
+        return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + &#39; &#39; + sizes[i]
+      }
+    }
+  ]
+})
+</code></pre>
+<h2>总结</h2>
+<p>Vite 性能优化策略涵盖了：</p>
+<ul>
+<li>开发环境的依赖预构建和 HMR 优化</li>
+<li>构建过程的并行处理和资源优化</li>
+<li>运行时的代码分割和内存管理</li>
+<li>全面的性能监控和预算控制</li>
+</ul>
+<p>通过系统性地应用这些优化策略，可以显著提升 Vite 应用的性能表现，为用户提供更好的体验。</p>
+
+      

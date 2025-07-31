@@ -1,0 +1,687 @@
+
+        <header>
+          <h1>依赖预构建</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>Vite 的依赖预构建是其快速启动的关键特性之一。本章将详细介绍依赖预构建的工作原理、配置方法和优化策略。</p>
+<h2>预构建基础概念</h2>
+<h3>为什么需要预构建</h3>
+<pre><code class="language-javascript">// 问题：CommonJS 模块在浏览器中无法直接使用
+const lodash = require(&#39;lodash&#39;) // ❌ 浏览器不支持
+
+// 问题：深层嵌套的依赖导致大量网络请求
+import { debounce } from &#39;lodash-es&#39;
+// 可能触发数百个模块请求
+
+// 解决方案：预构建将依赖转换为 ESM 并打包
+import { debounce } from &#39;/node_modules/.vite/deps/lodash-es.js?v=abc123&#39;
+// 单个请求获取所有相关代码
+</code></pre>
+<h3>预构建的工作流程</h3>
+<pre><code class="language-javascript">// 1. 扫描阶段 - 发现依赖
+// Vite 扫描入口文件和动态导入，收集依赖列表
+
+// 2. 分析阶段 - 确定需要预构建的依赖
+const needsPreBuild = (dep) =&gt; {
+  // CommonJS 模块
+  if (isCommonJS(dep)) return true
+  
+  // 有很多内部模块的 ESM 包
+  if (hasDeepImports(dep)) return true
+  
+  // 用户明确指定的依赖
+  if (isInIncludeList(dep)) return true
+  
+  return false
+}
+
+// 3. 构建阶段 - 使用 esbuild 预构建
+// 将 CommonJS 转换为 ESM
+// 将多个模块打包为单个文件
+// 生成 sourcemap
+
+// 4. 缓存阶段 - 存储构建结果
+// 存储在 node_modules/.vite/deps/
+// 生成元数据文件 _metadata.json
+</code></pre>
+<h2>预构建配置</h2>
+<h3>基础配置选项</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  optimizeDeps: {
+    // 强制预构建的依赖
+    include: [
+      &#39;lodash-es&#39;,
+      &#39;axios&#39;,
+      &#39;dayjs&#39;,
+      &#39;vue-router&#39;
+    ],
+    
+    // 排除预构建的依赖
+    exclude: [
+      &#39;your-local-package&#39;,
+      &#39;@your-org/internal-lib&#39;
+    ],
+    
+    // 预构建入口点
+    entries: [
+      &#39;src/main.js&#39;,
+      &#39;src/worker.js&#39;,
+      &#39;src/pages/**/*.vue&#39;
+    ],
+    
+    // 强制重新预构建
+    force: false,
+    
+    // 自定义 esbuild 选项
+    esbuildOptions: {
+      target: &#39;es2020&#39;,
+      supported: {
+        bigint: true
+      },
+      plugins: [
+        // 自定义 esbuild 插件
+      ]
+    }
+  }
+})
+</code></pre>
+<h3>高级配置示例</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+
+export default defineConfig({
+  optimizeDeps: {
+    // 条件包含
+    include: process.env.NODE_ENV === &#39;development&#39; 
+      ? [&#39;vue-devtools&#39;, &#39;mockjs&#39;]
+      : [],
+    
+    // 动态排除
+    exclude: (id) =&gt; {
+      // 排除所有以 @internal/ 开头的包
+      if (id.startsWith(&#39;@internal/&#39;)) return true
+      
+      // 排除本地开发的包
+      if (id.startsWith(&#39;file:&#39;)) return true
+      
+      return false
+    },
+    
+    // 自定义入口扫描
+    entries: [
+      // 主入口
+      &#39;src/main.js&#39;,
+      
+      // 动态导入的入口
+      &#39;src/pages/**/index.js&#39;,
+      
+      // Web Worker 入口
+      &#39;src/workers/*.js&#39;,
+      
+      // 测试文件（开发环境）
+      ...(process.env.NODE_ENV === &#39;development&#39; 
+        ? [&#39;src/**/*.test.js&#39;] 
+        : [])
+    ],
+    
+    esbuildOptions: {
+      // 目标环境
+      target: [&#39;es2020&#39;, &#39;chrome80&#39;, &#39;firefox78&#39;],
+      
+      // 定义全局变量
+      define: {
+        __DEV__: JSON.stringify(process.env.NODE_ENV === &#39;development&#39;)
+      },
+      
+      // 外部化某些依赖
+      external: [&#39;fsevents&#39;],
+      
+      // 自定义加载器
+      loader: {
+        &#39;.svg&#39;: &#39;text&#39;
+      }
+    }
+  }
+})
+</code></pre>
+<h2>依赖发现和扫描</h2>
+<h3>自定义依赖扫描</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  optimizeDeps: {
+    // 自定义扫描逻辑
+    entries: [
+      // 扫描所有 Vue 文件中的依赖
+      &#39;src/**/*.vue&#39;,
+      
+      // 扫描 JavaScript 入口
+      &#39;src/main.js&#39;,
+      
+      // 扫描配置文件中的依赖
+      &#39;src/config/*.js&#39;,
+      
+      // 扫描路由文件
+      &#39;src/router/index.js&#39;
+    ],
+    
+    // 包含间接依赖
+    include: [
+      // Vue 生态系统
+      &#39;vue&#39;,
+      &#39;vue-router&#39;,
+      &#39;pinia&#39;,
+      
+      // UI 库的子模块
+      &#39;element-plus/es&#39;,
+      &#39;element-plus/es/components/button/style/css&#39;,
+      
+      // 工具库
+      &#39;lodash-es&#39;,
+      &#39;dayjs&#39;,
+      &#39;dayjs/plugin/relativeTime&#39;,
+      
+      // 图表库
+      &#39;echarts&#39;,
+      &#39;echarts/charts/BarChart&#39;,
+      &#39;echarts/components/TooltipComponent&#39;
+    ]
+  }
+})
+</code></pre>
+<h3>动态依赖处理</h3>
+<pre><code class="language-javascript">// 处理动态导入的依赖
+export default defineConfig({
+  optimizeDeps: {
+    include: [
+      // 动态导入的组件库
+      &#39;ant-design-vue&#39;,
+      &#39;ant-design-vue/es/**&#39;,
+      
+      // 动态加载的语言包
+      &#39;dayjs/locale/zh-cn&#39;,
+      &#39;dayjs/locale/en&#39;,
+      
+      // 条件加载的 polyfill
+      &#39;core-js/stable&#39;,
+      &#39;regenerator-runtime/runtime&#39;
+    ],
+    
+    // 自定义扫描插件
+    plugins: [
+      {
+        name: &#39;dynamic-deps-scanner&#39;,
+        setup(build) {
+          build.onResolve({ filter: /^virtual:/ }, args =&gt; {
+            // 处理虚拟模块的依赖
+            return {
+              path: args.path,
+              namespace: &#39;virtual&#39;
+            }
+          })
+          
+          build.onLoad({ filter: /.*/, namespace: &#39;virtual&#39; }, args =&gt; {
+            // 返回虚拟模块内容
+            return {
+              contents: generateVirtualModule(args.path),
+              loader: &#39;js&#39;
+            }
+          })
+        }
+      }
+    ]
+  }
+})
+
+function generateVirtualModule(path) {
+  // 根据路径生成虚拟模块内容
+  if (path === &#39;virtual:dynamic-imports&#39;) {
+    return `
+      export const loadChart = () =&gt; import(&#39;echarts&#39;)
+      export const loadEditor = () =&gt; import(&#39;monaco-editor&#39;)
+      export const loadPDF = () =&gt; import(&#39;pdfjs-dist&#39;)
+    `
+  }
+  return &#39;&#39;
+}
+</code></pre>
+<h2>预构建优化策略</h2>
+<h3>分包策略</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  optimizeDeps: {
+    include: [
+      // 基础框架包
+      &#39;vue&#39;,
+      &#39;vue-router&#39;,
+      &#39;pinia&#39;,
+      
+      // UI 组件库
+      &#39;element-plus&#39;,
+      
+      // 工具库
+      &#39;lodash-es&#39;,
+      &#39;dayjs&#39;,
+      &#39;axios&#39;
+    ],
+    
+    // 自定义分包逻辑
+    esbuildOptions: {
+      plugins: [
+        {
+          name: &#39;custom-chunking&#39;,
+          setup(build) {
+            // 将大型库分成多个包
+            build.onResolve({ filter: /^echarts/ }, args =&gt; {
+              if (args.path === &#39;echarts&#39;) {
+                return {
+                  path: &#39;echarts-core&#39;,
+                  external: false
+                }
+              }
+            })
+          }
+        }
+      ]
+    }
+  }
+})
+</code></pre>
+<h3>缓存优化</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { createHash } from &#39;crypto&#39;
+
+export default defineConfig({
+  optimizeDeps: {
+    // 自定义缓存键生成
+    cacheDir: &#39;node_modules/.vite/deps&#39;,
+    
+    // 基于内容的缓存失效
+    force: shouldForceRebuild(),
+    
+    include: getDependenciesToPreBuild()
+  }
+})
+
+function shouldForceRebuild() {
+  // 检查关键文件是否变化
+  const criticalFiles = [
+    &#39;package.json&#39;,
+    &#39;package-lock.json&#39;,
+    &#39;yarn.lock&#39;,
+    &#39;pnpm-lock.yaml&#39;
+  ]
+  
+  const currentHash = createHash(&#39;md5&#39;)
+  
+  criticalFiles.forEach(file =&gt; {
+    try {
+      const content = fs.readFileSync(file, &#39;utf-8&#39;)
+      currentHash.update(content)
+    } catch {
+      // 文件不存在
+    }
+  })
+  
+  const newHash = currentHash.digest(&#39;hex&#39;)
+  const cacheFile = &#39;node_modules/.vite/deps-hash&#39;
+  
+  try {
+    const oldHash = fs.readFileSync(cacheFile, &#39;utf-8&#39;)
+    if (oldHash === newHash) {
+      return false
+    }
+  } catch {
+    // 缓存文件不存在
+  }
+  
+  fs.writeFileSync(cacheFile, newHash)
+  return true
+}
+
+function getDependenciesToPreBuild() {
+  const packageJson = JSON.parse(fs.readFileSync(&#39;package.json&#39;, &#39;utf-8&#39;))
+  const dependencies = Object.keys(packageJson.dependencies || {})
+  
+  // 过滤需要预构建的依赖
+  return dependencies.filter(dep =&gt; {
+    // 排除纯 ESM 包
+    if (isESMOnly(dep)) return false
+    
+    // 排除 Node.js 专用包
+    if (isNodeOnly(dep)) return false
+    
+    // 包含有复杂导入的包
+    if (hasComplexImports(dep)) return true
+    
+    return true
+  })
+}
+</code></pre>
+<h3>性能监控</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  optimizeDeps: {
+    esbuildOptions: {
+      plugins: [
+        {
+          name: &#39;prebuild-monitor&#39;,
+          setup(build) {
+            const startTime = Date.now()
+            const buildStats = {
+              totalFiles: 0,
+              totalSize: 0,
+              dependencies: {}
+            }
+            
+            build.onStart(() =&gt; {
+              console.log(&#39;🔨 Starting dependency pre-bundling...&#39;)
+            })
+            
+            build.onResolve({ filter: /.*/ }, args =&gt; {
+              buildStats.totalFiles++
+              
+              if (!buildStats.dependencies[args.path]) {
+                buildStats.dependencies[args.path] = {
+                  resolveTime: Date.now() - startTime,
+                  importer: args.importer
+                }
+              }
+              
+              return null
+            })
+            
+            build.onEnd(result =&gt; {
+              const duration = Date.now() - startTime
+              
+              console.log(`✅ Pre-bundling completed in ${duration}ms`)
+              console.log(`📦 Processed ${buildStats.totalFiles} files`)
+              console.log(`📊 Dependencies: ${Object.keys(buildStats.dependencies).length}`)
+              
+              // 输出详细统计
+              if (process.env.VITE_DEBUG_PREBUILD) {
+                console.table(buildStats.dependencies)
+              }
+              
+              // 检查性能问题
+              if (duration &gt; 10000) {
+                console.warn(&#39;⚠️  Pre-bundling took longer than 10s, consider optimizing dependencies&#39;)
+              }
+            })
+          }
+        }
+      ]
+    }
+  }
+})
+</code></pre>
+<h2>特殊场景处理</h2>
+<h3>Monorepo 环境</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  optimizeDeps: {
+    // 包含 workspace 中的包
+    include: [
+      // 外部依赖
+      &#39;vue&#39;,
+      &#39;lodash-es&#39;,
+      
+      // workspace 内的包
+      &#39;@my-org/shared-utils&#39;,
+      &#39;@my-org/ui-components&#39;
+    ],
+    
+    // 排除正在开发的包
+    exclude: [
+      &#39;@my-org/current-package&#39;
+    ],
+    
+    // 自定义解析
+    esbuildOptions: {
+      plugins: [
+        {
+          name: &#39;monorepo-resolver&#39;,
+          setup(build) {
+            build.onResolve({ filter: /^@my-org\// }, args =&gt; {
+              const packageName = args.path
+              const packagePath = resolve(__dirname, `../packages/${packageName.split(&#39;/&#39;)[1]}`)
+              
+              return {
+                path: resolve(packagePath, &#39;src/index.js&#39;)
+              }
+            })
+          }
+        }
+      ]
+    }
+  }
+})
+</code></pre>
+<h3>条件导入处理</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  optimizeDeps: {
+    include: [
+      // 基础依赖
+      &#39;vue&#39;,
+      
+      // 条件依赖
+      ...(process.env.NODE_ENV === &#39;development&#39; 
+        ? [&#39;vue-devtools&#39;, &#39;@vue/devtools-api&#39;]
+        : []
+      ),
+      
+      // 平台特定依赖
+      ...(process.platform === &#39;darwin&#39;
+        ? [&#39;fsevents&#39;]
+        : []
+      ),
+      
+      // 功能特定依赖
+      ...(process.env.ENABLE_ANALYTICS === &#39;true&#39;
+        ? [&#39;google-analytics&#39;, &#39;mixpanel-browser&#39;]
+        : []
+      )
+    ],
+    
+    esbuildOptions: {
+      define: {
+        // 注入环境变量
+        &#39;process.env.NODE_ENV&#39;: JSON.stringify(process.env.NODE_ENV),
+        &#39;process.env.ENABLE_ANALYTICS&#39;: JSON.stringify(process.env.ENABLE_ANALYTICS),
+        &#39;__DEV__&#39;: JSON.stringify(process.env.NODE_ENV === &#39;development&#39;)
+      }
+    }
+  }
+})
+</code></pre>
+<h3>Web Worker 依赖</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  optimizeDeps: {
+    // 包含 Worker 中使用的依赖
+    include: [
+      // 主线程依赖
+      &#39;vue&#39;,
+      &#39;vue-router&#39;,
+      
+      // Worker 依赖
+      &#39;comlink&#39;,
+      &#39;lodash-es&#39;,
+      &#39;fflate&#39;
+    ],
+    
+    // Worker 特定入口
+    entries: [
+      &#39;src/main.js&#39;,
+      &#39;src/workers/*.js&#39;,
+      &#39;src/workers/*.ts&#39;
+    ],
+    
+    esbuildOptions: {
+      // Worker 环境配置
+      target: &#39;es2020&#39;,
+      format: &#39;esm&#39;,
+      
+      plugins: [
+        {
+          name: &#39;worker-deps&#39;,
+          setup(build) {
+            // 处理 Worker 中的特殊导入
+            build.onResolve({ filter: /\?worker$/ }, args =&gt; {
+              return {
+                path: args.path.replace(&#39;?worker&#39;, &#39;&#39;),
+                namespace: &#39;worker&#39;
+              }
+            })
+          }
+        }
+      ]
+    }
+  }
+})
+</code></pre>
+<h2>故障排除</h2>
+<h3>常见问题诊断</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  optimizeDeps: {
+    // 调试配置
+    force: process.env.VITE_FORCE_PREBUILD === &#39;true&#39;,
+    
+    esbuildOptions: {
+      // 启用详细日志
+      logLevel: process.env.VITE_DEBUG_PREBUILD ? &#39;debug&#39; : &#39;info&#39;,
+      
+      plugins: [
+        {
+          name: &#39;debug-plugin&#39;,
+          setup(build) {
+            if (process.env.VITE_DEBUG_PREBUILD) {
+              build.onStart(() =&gt; {
+                console.log(&#39;🔍 Debug: Pre-bundling started&#39;)
+              })
+              
+              build.onResolve({ filter: /.*/ }, args =&gt; {
+                console.log(`🔍 Debug: Resolving ${args.path} from ${args.importer}`)
+                return null
+              })
+              
+              build.onLoad({ filter: /.*/ }, args =&gt; {
+                console.log(`🔍 Debug: Loading ${args.path}`)
+                return null
+              })
+            }
+          }
+        }
+      ]
+    }
+  }
+})
+</code></pre>
+<h3>预构建验证</h3>
+<pre><code class="language-javascript">// scripts/validate-prebuild.js
+import fs from &#39;fs&#39;
+import path from &#39;path&#39;
+
+function validatePreBuild() {
+  const depsDir = &#39;node_modules/.vite/deps&#39;
+  const metadataFile = path.join(depsDir, &#39;_metadata.json&#39;)
+  
+  if (!fs.existsSync(metadataFile)) {
+    console.error(&#39;❌ Pre-build metadata not found&#39;)
+    return false
+  }
+  
+  const metadata = JSON.parse(fs.readFileSync(metadataFile, &#39;utf-8&#39;))
+  
+  console.log(&#39;📊 Pre-build validation:&#39;)
+  console.log(`  Hash: ${metadata.hash}`)
+  console.log(`  Dependencies: ${Object.keys(metadata.optimized).length}`)
+  
+  // 验证依赖文件存在
+  const missingDeps = []
+  Object.entries(metadata.optimized).forEach(([dep, info]) =&gt; {
+    const depFile = path.join(depsDir, info.file)
+    if (!fs.existsSync(depFile)) {
+      missingDeps.push(dep)
+    }
+  })
+  
+  if (missingDeps.length &gt; 0) {
+    console.error(&#39;❌ Missing pre-built dependencies:&#39;, missingDeps)
+    return false
+  }
+  
+  console.log(&#39;✅ Pre-build validation passed&#39;)
+  return true
+}
+
+validatePreBuild()
+</code></pre>
+<h3>性能分析工具</h3>
+<pre><code class="language-javascript">// scripts/analyze-prebuild.js
+import fs from &#39;fs&#39;
+import path from &#39;path&#39;
+
+function analyzePreBuild() {
+  const depsDir = &#39;node_modules/.vite/deps&#39;
+  const metadataFile = path.join(depsDir, &#39;_metadata.json&#39;)
+  
+  if (!fs.existsSync(metadataFile)) {
+    console.error(&#39;No pre-build metadata found&#39;)
+    return
+  }
+  
+  const metadata = JSON.parse(fs.readFileSync(metadataFile, &#39;utf-8&#39;))
+  const analysis = {
+    totalDeps: 0,
+    totalSize: 0,
+    largestDeps: [],
+    duplicates: []
+  }
+  
+  Object.entries(metadata.optimized).forEach(([dep, info]) =&gt; {
+    const depFile = path.join(depsDir, info.file)
+    
+    if (fs.existsSync(depFile)) {
+      const stats = fs.statSync(depFile)
+      const size = stats.size
+      
+      analysis.totalDeps++
+      analysis.totalSize += size
+      analysis.largestDeps.push({ dep, size })
+    }
+  })
+  
+  // 排序找出最大的依赖
+  analysis.largestDeps.sort((a, b) =&gt; b.size - a.size)
+  analysis.largestDeps = analysis.largestDeps.slice(0, 10)
+  
+  console.log(&#39;📊 Pre-build Analysis:&#39;)
+  console.log(`  Total dependencies: ${analysis.totalDeps}`)
+  console.log(`  Total size: ${(analysis.totalSize / 1024 / 1024).toFixed(2)} MB`)
+  console.log(&#39;\n🔝 Largest dependencies:&#39;)
+  
+  analysis.largestDeps.forEach(({ dep, size }, index) =&gt; {
+    console.log(`  ${index + 1}. ${dep}: ${(size / 1024).toFixed(2)} KB`)
+  })
+}
+
+analyzePreBuild()
+</code></pre>
+<h2>总结</h2>
+<p>Vite 的依赖预构建提供了：</p>
+<ul>
+<li>自动的 CommonJS 到 ESM 转换</li>
+<li>智能的依赖发现和分析</li>
+<li>高效的缓存机制</li>
+<li>灵活的配置选项</li>
+<li>强大的性能优化能力</li>
+</ul>
+<p>通过合理配置依赖预构建，可以显著提升开发服务器的启动速度和运行性能，为开发者提供更好的开发体验。</p>
+
+      

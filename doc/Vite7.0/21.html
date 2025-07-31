@@ -1,0 +1,878 @@
+
+        <header>
+          <h1>库模式构建</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>Vite 提供了强大的库模式构建功能，让你能够轻松地将代码打包成可复用的库。本章将详细介绍如何使用 Vite 构建各种类型的库。</p>
+<h2>库模式基础</h2>
+<h3>基础库配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  build: {
+    lib: {
+      // 入口文件
+      entry: resolve(__dirname, &#39;src/index.js&#39;),
+      
+      // 库名称（全局变量名）
+      name: &#39;MyLibrary&#39;,
+      
+      // 输出文件名
+      fileName: &#39;my-library&#39;
+    },
+    
+    rollupOptions: {
+      // 外部化依赖，不打包到库中
+      external: [&#39;vue&#39;, &#39;react&#39;, &#39;lodash&#39;],
+      
+      output: {
+        // 为外部化的依赖提供全局变量名
+        globals: {
+          vue: &#39;Vue&#39;,
+          react: &#39;React&#39;,
+          lodash: &#39;_&#39;
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>多格式输出</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  build: {
+    lib: {
+      entry: resolve(__dirname, &#39;src/index.js&#39;),
+      name: &#39;MyLibrary&#39;,
+      fileName: (format) =&gt; `my-library.${format}.js`
+    },
+    
+    rollupOptions: {
+      external: [&#39;vue&#39;],
+      output: [
+        // ES 模块格式
+        {
+          format: &#39;es&#39;,
+          entryFileNames: &#39;my-library.esm.js&#39;
+        },
+        // UMD 格式
+        {
+          format: &#39;umd&#39;,
+          name: &#39;MyLibrary&#39;,
+          entryFileNames: &#39;my-library.umd.js&#39;,
+          globals: {
+            vue: &#39;Vue&#39;
+          }
+        },
+        // CommonJS 格式
+        {
+          format: &#39;cjs&#39;,
+          entryFileNames: &#39;my-library.cjs.js&#39;
+        }
+      ]
+    }
+  }
+})
+</code></pre>
+<h2>Vue 组件库开发</h2>
+<h3>组件库结构</h3>
+<pre><code>vue-component-library/
+├── src/
+│   ├── components/
+│   │   ├── Button/
+│   │   │   ├── index.vue
+│   │   │   └── index.js
+│   │   ├── Input/
+│   │   │   ├── index.vue
+│   │   │   └── index.js
+│   │   └── Modal/
+│   │       ├── index.vue
+│   │       └── index.js
+│   ├── styles/
+│   │   ├── index.css
+│   │   └── variables.css
+│   ├── utils/
+│   │   └── index.js
+│   └── index.js
+├── package.json
+└── vite.config.js
+</code></pre>
+<h3>组件导出</h3>
+<pre><code class="language-javascript">// src/components/Button/index.js
+import Button from &#39;./index.vue&#39;
+
+// 为组件添加 install 方法
+Button.install = function(app) {
+  app.component(Button.name || &#39;MyButton&#39;, Button)
+}
+
+export default Button
+</code></pre>
+<pre><code class="language-vue">&lt;!-- src/components/Button/index.vue --&gt;
+&lt;template&gt;
+  &lt;button 
+    :class=&quot;buttonClass&quot; 
+    :disabled=&quot;disabled&quot;
+    @click=&quot;handleClick&quot;
+  &gt;
+    &lt;slot /&gt;
+  &lt;/button&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+export default {
+  name: &#39;MyButton&#39;,
+  
+  props: {
+    type: {
+      type: String,
+      default: &#39;default&#39;,
+      validator: value =&gt; [&#39;default&#39;, &#39;primary&#39;, &#39;success&#39;, &#39;warning&#39;, &#39;danger&#39;].includes(value)
+    },
+    size: {
+      type: String,
+      default: &#39;medium&#39;,
+      validator: value =&gt; [&#39;small&#39;, &#39;medium&#39;, &#39;large&#39;].includes(value)
+    },
+    disabled: {
+      type: Boolean,
+      default: false
+    }
+  },
+  
+  emits: [&#39;click&#39;],
+  
+  computed: {
+    buttonClass() {
+      return [
+        &#39;my-button&#39;,
+        `my-button--${this.type}`,
+        `my-button--${this.size}`,
+        {
+          &#39;my-button--disabled&#39;: this.disabled
+        }
+      ]
+    }
+  },
+  
+  methods: {
+    handleClick(event) {
+      if (!this.disabled) {
+        this.$emit(&#39;click&#39;, event)
+      }
+    }
+  }
+}
+&lt;/script&gt;
+
+&lt;style scoped&gt;
+.my-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.my-button--small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.my-button--medium {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.my-button--large {
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+.my-button--default {
+  background: #ffffff;
+  border-color: #d9d9d9;
+  color: #000000;
+}
+
+.my-button--primary {
+  background: #1890ff;
+  border-color: #1890ff;
+  color: #ffffff;
+}
+
+.my-button--success {
+  background: #52c41a;
+  border-color: #52c41a;
+  color: #ffffff;
+}
+
+.my-button--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+&lt;/style&gt;
+</code></pre>
+<h3>库入口文件</h3>
+<pre><code class="language-javascript">// src/index.js
+import Button from &#39;./components/Button&#39;
+import Input from &#39;./components/Input&#39;
+import Modal from &#39;./components/Modal&#39;
+
+// 导入样式
+import &#39;./styles/index.css&#39;
+
+// 所有组件
+const components = [
+  Button,
+  Input,
+  Modal
+]
+
+// 定义 install 方法
+const install = function(app, options = {}) {
+  // 全局配置
+  if (options.prefix) {
+    components.forEach(component =&gt; {
+      app.component(`${options.prefix}${component.name}`, component)
+    })
+  } else {
+    components.forEach(component =&gt; {
+      app.component(component.name, component)
+    })
+  }
+  
+  // 全局属性
+  app.config.globalProperties.$myLibrary = {
+    version: &#39;1.0.0&#39;,
+    ...options
+  }
+}
+
+// 按需导出
+export {
+  Button,
+  Input,
+  Modal
+}
+
+// 默认导出
+export default {
+  install,
+  version: &#39;1.0.0&#39;
+}
+
+// 自动安装（浏览器环境）
+if (typeof window !== &#39;undefined&#39; &amp;&amp; window.Vue) {
+  install(window.Vue)
+}
+</code></pre>
+<h3>Vue 库构建配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import vue from &#39;@vitejs/plugin-vue&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  plugins: [vue()],
+  
+  build: {
+    lib: {
+      entry: resolve(__dirname, &#39;src/index.js&#39;),
+      name: &#39;MyVueLibrary&#39;,
+      fileName: (format) =&gt; `my-vue-library.${format}.js`
+    },
+    
+    rollupOptions: {
+      // Vue 作为外部依赖
+      external: [&#39;vue&#39;],
+      
+      output: {
+        globals: {
+          vue: &#39;Vue&#39;
+        },
+        
+        // 导出 CSS
+        assetFileNames: (assetInfo) =&gt; {
+          if (assetInfo.name === &#39;style.css&#39;) {
+            return &#39;my-vue-library.css&#39;
+          }
+          return assetInfo.name
+        }
+      }
+    },
+    
+    // 生成类型声明文件
+    emptyOutDir: false
+  }
+})
+</code></pre>
+<h2>React 组件库开发</h2>
+<h3>React 组件示例</h3>
+<pre><code class="language-jsx">// src/components/Button/index.jsx
+import React from &#39;react&#39;
+import PropTypes from &#39;prop-types&#39;
+import &#39;./index.css&#39;
+
+const Button = ({ 
+  type = &#39;default&#39;, 
+  size = &#39;medium&#39;, 
+  disabled = false, 
+  children, 
+  onClick,
+  ...props 
+}) =&gt; {
+  const handleClick = (event) =&gt; {
+    if (!disabled &amp;&amp; onClick) {
+      onClick(event)
+    }
+  }
+
+  const className = [
+    &#39;my-react-button&#39;,
+    `my-react-button--${type}`,
+    `my-react-button--${size}`,
+    disabled &amp;&amp; &#39;my-react-button--disabled&#39;
+  ].filter(Boolean).join(&#39; &#39;)
+
+  return (
+    &lt;button 
+      className={className}
+      disabled={disabled}
+      onClick={handleClick}
+      {...props}
+    &gt;
+      {children}
+    &lt;/button&gt;
+  )
+}
+
+Button.propTypes = {
+  type: PropTypes.oneOf([&#39;default&#39;, &#39;primary&#39;, &#39;success&#39;, &#39;warning&#39;, &#39;danger&#39;]),
+  size: PropTypes.oneOf([&#39;small&#39;, &#39;medium&#39;, &#39;large&#39;]),
+  disabled: PropTypes.bool,
+  children: PropTypes.node,
+  onClick: PropTypes.func
+}
+
+export default Button
+</code></pre>
+<h3>React 库入口</h3>
+<pre><code class="language-javascript">// src/index.js
+export { default as Button } from &#39;./components/Button&#39;
+export { default as Input } from &#39;./components/Input&#39;
+export { default as Modal } from &#39;./components/Modal&#39;
+
+// 导入样式
+import &#39;./styles/index.css&#39;
+
+// 版本信息
+export const version = &#39;1.0.0&#39;
+</code></pre>
+<h3>React 库构建配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import react from &#39;@vitejs/plugin-react&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  plugins: [react()],
+  
+  build: {
+    lib: {
+      entry: resolve(__dirname, &#39;src/index.js&#39;),
+      name: &#39;MyReactLibrary&#39;,
+      fileName: (format) =&gt; `my-react-library.${format}.js`
+    },
+    
+    rollupOptions: {
+      external: [&#39;react&#39;, &#39;react-dom&#39;],
+      
+      output: {
+        globals: {
+          react: &#39;React&#39;,
+          &#39;react-dom&#39;: &#39;ReactDOM&#39;
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h2>工具库开发</h2>
+<h3>工具函数库</h3>
+<pre><code class="language-javascript">// src/utils/format.js
+export function formatDate(date, format = &#39;YYYY-MM-DD&#39;) {
+  if (!date) return &#39;&#39;
+  
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, &#39;0&#39;)
+  const day = String(d.getDate()).padStart(2, &#39;0&#39;)
+  
+  return format
+    .replace(&#39;YYYY&#39;, year)
+    .replace(&#39;MM&#39;, month)
+    .replace(&#39;DD&#39;, day)
+}
+
+export function formatCurrency(amount, currency = &#39;USD&#39;) {
+  return new Intl.NumberFormat(&#39;en-US&#39;, {
+    style: &#39;currency&#39;,
+    currency
+  }).format(amount)
+}
+
+export function formatFileSize(bytes) {
+  if (bytes === 0) return &#39;0 Bytes&#39;
+  
+  const k = 1024
+  const sizes = [&#39;Bytes&#39;, &#39;KB&#39;, &#39;MB&#39;, &#39;GB&#39;, &#39;TB&#39;]
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + &#39; &#39; + sizes[i]
+}
+</code></pre>
+<pre><code class="language-javascript">// src/utils/validation.js
+export function isEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+export function isPhone(phone) {
+  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/
+  return phoneRegex.test(phone)
+}
+
+export function isURL(url) {
+  try {
+    new URL(url)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function validateForm(data, rules) {
+  const errors = {}
+  
+  Object.keys(rules).forEach(field =&gt; {
+    const rule = rules[field]
+    const value = data[field]
+    
+    if (rule.required &amp;&amp; (!value || value.trim() === &#39;&#39;)) {
+      errors[field] = rule.message || `${field} is required`
+      return
+    }
+    
+    if (value &amp;&amp; rule.pattern &amp;&amp; !rule.pattern.test(value)) {
+      errors[field] = rule.message || `${field} format is invalid`
+      return
+    }
+    
+    if (value &amp;&amp; rule.minLength &amp;&amp; value.length &lt; rule.minLength) {
+      errors[field] = rule.message || `${field} must be at least ${rule.minLength} characters`
+      return
+    }
+  })
+  
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  }
+}
+</code></pre>
+<h3>工具库入口</h3>
+<pre><code class="language-javascript">// src/index.js
+// 格式化工具
+export * from &#39;./utils/format&#39;
+
+// 验证工具
+export * from &#39;./utils/validation&#39;
+
+// 数组工具
+export * from &#39;./utils/array&#39;
+
+// 对象工具
+export * from &#39;./utils/object&#39;
+
+// 字符串工具
+export * from &#39;./utils/string&#39;
+
+// 默认导出
+export default {
+  version: &#39;1.0.0&#39;,
+  name: &#39;MyUtilsLibrary&#39;
+}
+</code></pre>
+<h3>工具库构建配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  build: {
+    lib: {
+      entry: resolve(__dirname, &#39;src/index.js&#39;),
+      name: &#39;MyUtils&#39;,
+      fileName: (format) =&gt; `my-utils.${format}.js`
+    },
+    
+    rollupOptions: {
+      // 工具库通常不需要外部依赖
+      external: [],
+      
+      output: [
+        // ES 模块 - 支持 tree shaking
+        {
+          format: &#39;es&#39;,
+          entryFileNames: &#39;my-utils.esm.js&#39;
+        },
+        // UMD - 浏览器兼容
+        {
+          format: &#39;umd&#39;,
+          name: &#39;MyUtils&#39;,
+          entryFileNames: &#39;my-utils.umd.js&#39;
+        },
+        // CommonJS - Node.js 兼容
+        {
+          format: &#39;cjs&#39;,
+          entryFileNames: &#39;my-utils.cjs.js&#39;
+        }
+      ]
+    },
+    
+    // 生成压缩版本
+    minify: &#39;terser&#39;,
+    
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    }
+  }
+})
+</code></pre>
+<h2>TypeScript 库开发</h2>
+<h3>TypeScript 配置</h3>
+<pre><code class="language-json">// tsconfig.json
+{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;ES2020&quot;,
+    &quot;lib&quot;: [&quot;ES2020&quot;, &quot;DOM&quot;, &quot;DOM.Iterable&quot;],
+    &quot;module&quot;: &quot;ESNext&quot;,
+    &quot;skipLibCheck&quot;: true,
+    
+    /* Bundler mode */
+    &quot;moduleResolution&quot;: &quot;bundler&quot;,
+    &quot;allowImportingTsExtensions&quot;: true,
+    &quot;resolveJsonModule&quot;: true,
+    &quot;isolatedModules&quot;: true,
+    &quot;noEmit&quot;: true,
+    
+    /* Linting */
+    &quot;strict&quot;: true,
+    &quot;noUnusedLocals&quot;: true,
+    &quot;noUnusedParameters&quot;: true,
+    &quot;noFallthroughCasesInSwitch&quot;: true,
+    
+    /* Declaration */
+    &quot;declaration&quot;: true,
+    &quot;declarationDir&quot;: &quot;dist/types&quot;,
+    &quot;emitDeclarationOnly&quot;: false
+  },
+  &quot;include&quot;: [&quot;src/**/*&quot;],
+  &quot;exclude&quot;: [&quot;node_modules&quot;, &quot;dist&quot;]
+}
+</code></pre>
+<h3>TypeScript 库示例</h3>
+<pre><code class="language-typescript">// src/types/index.ts
+export interface User {
+  id: number
+  name: string
+  email: string
+  avatar?: string
+}
+
+export interface ApiResponse&lt;T = any&gt; {
+  success: boolean
+  data: T
+  message?: string
+}
+
+export type EventCallback&lt;T = any&gt; = (data: T) =&gt; void
+
+export enum UserRole {
+  ADMIN = &#39;admin&#39;,
+  USER = &#39;user&#39;,
+  GUEST = &#39;guest&#39;
+}
+</code></pre>
+<pre><code class="language-typescript">// src/api/client.ts
+import type { User, ApiResponse } from &#39;../types&#39;
+
+export class ApiClient {
+  private baseURL: string
+  private headers: Record&lt;string, string&gt;
+
+  constructor(baseURL: string, headers: Record&lt;string, string&gt; = {}) {
+    this.baseURL = baseURL
+    this.headers = {
+      &#39;Content-Type&#39;: &#39;application/json&#39;,
+      ...headers
+    }
+  }
+
+  async get&lt;T&gt;(endpoint: string): Promise&lt;ApiResponse&lt;T&gt;&gt; {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: &#39;GET&#39;,
+      headers: this.headers
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return response.json()
+  }
+
+  async post&lt;T, U = any&gt;(endpoint: string, data: U): Promise&lt;ApiResponse&lt;T&gt;&gt; {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: &#39;POST&#39;,
+      headers: this.headers,
+      body: JSON.stringify(data)
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return response.json()
+  }
+
+  setHeader(key: string, value: string): void {
+    this.headers[key] = value
+  }
+
+  removeHeader(key: string): void {
+    delete this.headers[key]
+  }
+}
+
+// 用户相关 API
+export class UserApi extends ApiClient {
+  async getUsers(): Promise&lt;ApiResponse&lt;User[]&gt;&gt; {
+    return this.get&lt;User[]&gt;(&#39;/users&#39;)
+  }
+
+  async getUser(id: number): Promise&lt;ApiResponse&lt;User&gt;&gt; {
+    return this.get&lt;User&gt;(`/users/${id}`)
+  }
+
+  async createUser(userData: Omit&lt;User, &#39;id&#39;&gt;): Promise&lt;ApiResponse&lt;User&gt;&gt; {
+    return this.post&lt;User, Omit&lt;User, &#39;id&#39;&gt;&gt;(&#39;/users&#39;, userData)
+  }
+
+  async updateUser(id: number, userData: Partial&lt;User&gt;): Promise&lt;ApiResponse&lt;User&gt;&gt; {
+    return this.post&lt;User, Partial&lt;User&gt;&gt;(`/users/${id}`, userData)
+  }
+}
+</code></pre>
+<h3>TypeScript 库构建配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import { resolve } from &#39;path&#39;
+import dts from &#39;vite-plugin-dts&#39;
+
+export default defineConfig({
+  plugins: [
+    // 生成类型声明文件
+    dts({
+      insertTypesEntry: true,
+      rollupTypes: true
+    })
+  ],
+  
+  build: {
+    lib: {
+      entry: resolve(__dirname, &#39;src/index.ts&#39;),
+      name: &#39;MyTSLibrary&#39;,
+      fileName: (format) =&gt; `my-ts-library.${format}.js`
+    },
+    
+    rollupOptions: {
+      external: [],
+      
+      output: [
+        {
+          format: &#39;es&#39;,
+          entryFileNames: &#39;my-ts-library.esm.js&#39;
+        },
+        {
+          format: &#39;umd&#39;,
+          name: &#39;MyTSLibrary&#39;,
+          entryFileNames: &#39;my-ts-library.umd.js&#39;
+        }
+      ]
+    }
+  }
+})
+</code></pre>
+<h2>库的测试和文档</h2>
+<h3>测试配置</h3>
+<pre><code class="language-javascript">// vitest.config.js
+import { defineConfig } from &#39;vitest/config&#39;
+
+export default defineConfig({
+  test: {
+    environment: &#39;jsdom&#39;,
+    globals: true,
+    setupFiles: [&#39;./tests/setup.js&#39;]
+  }
+})
+</code></pre>
+<pre><code class="language-javascript">// tests/Button.test.js
+import { describe, it, expect } from &#39;vitest&#39;
+import { mount } from &#39;@vue/test-utils&#39;
+import Button from &#39;../src/components/Button/index.vue&#39;
+
+describe(&#39;Button&#39;, () =&gt; {
+  it(&#39;renders correctly&#39;, () =&gt; {
+    const wrapper = mount(Button, {
+      slots: {
+        default: &#39;Click me&#39;
+      }
+    })
+    
+    expect(wrapper.text()).toBe(&#39;Click me&#39;)
+    expect(wrapper.classes()).toContain(&#39;my-button&#39;)
+  })
+  
+  it(&#39;emits click event&#39;, async () =&gt; {
+    const wrapper = mount(Button)
+    
+    await wrapper.trigger(&#39;click&#39;)
+    
+    expect(wrapper.emitted(&#39;click&#39;)).toBeTruthy()
+  })
+  
+  it(&#39;does not emit click when disabled&#39;, async () =&gt; {
+    const wrapper = mount(Button, {
+      props: {
+        disabled: true
+      }
+    })
+    
+    await wrapper.trigger(&#39;click&#39;)
+    
+    expect(wrapper.emitted(&#39;click&#39;)).toBeFalsy()
+  })
+})
+</code></pre>
+<h3>文档生成</h3>
+<pre><code class="language-javascript">// docs/vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import vue from &#39;@vitejs/plugin-vue&#39;
+
+export default defineConfig({
+  plugins: [vue()],
+  
+  base: &#39;/my-library/&#39;,
+  
+  build: {
+    outDir: &#39;../dist-docs&#39;
+  }
+})
+</code></pre>
+<h2>发布配置</h2>
+<h3>package.json 配置</h3>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;my-awesome-library&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;description&quot;: &quot;An awesome library built with Vite&quot;,
+  &quot;main&quot;: &quot;dist/my-library.umd.js&quot;,
+  &quot;module&quot;: &quot;dist/my-library.esm.js&quot;,
+  &quot;types&quot;: &quot;dist/types/index.d.ts&quot;,
+  &quot;exports&quot;: {
+    &quot;.&quot;: {
+      &quot;types&quot;: &quot;./dist/types/index.d.ts&quot;,
+      &quot;import&quot;: &quot;./dist/my-library.esm.js&quot;,
+      &quot;require&quot;: &quot;./dist/my-library.umd.js&quot;
+    },
+    &quot;./dist/style.css&quot;: &quot;./dist/style.css&quot;
+  },
+  &quot;files&quot;: [
+    &quot;dist&quot;
+  ],
+  &quot;keywords&quot;: [
+    &quot;vite&quot;,
+    &quot;library&quot;,
+    &quot;vue&quot;,
+    &quot;components&quot;
+  ],
+  &quot;scripts&quot;: {
+    &quot;build&quot;: &quot;vite build&quot;,
+    &quot;build:types&quot;: &quot;vue-tsc --declaration --emitDeclarationOnly&quot;,
+    &quot;test&quot;: &quot;vitest&quot;,
+    &quot;test:ui&quot;: &quot;vitest --ui&quot;,
+    &quot;docs:dev&quot;: &quot;vitepress dev docs&quot;,
+    &quot;docs:build&quot;: &quot;vitepress build docs&quot;,
+    &quot;prepublishOnly&quot;: &quot;npm run build &amp;&amp; npm run test&quot;
+  },
+  &quot;peerDependencies&quot;: {
+    &quot;vue&quot;: &quot;^3.0.0&quot;
+  },
+  &quot;devDependencies&quot;: {
+    &quot;vite&quot;: &quot;^5.0.0&quot;,
+    &quot;@vitejs/plugin-vue&quot;: &quot;^5.0.0&quot;,
+    &quot;vue&quot;: &quot;^3.0.0&quot;
+  }
+}
+</code></pre>
+<h3>发布脚本</h3>
+<pre><code class="language-bash">#!/bin/bash
+# scripts/release.sh
+
+set -e
+
+echo &quot;🚀 Starting release process...&quot;
+
+# 运行测试
+echo &quot;📋 Running tests...&quot;
+npm test
+
+# 构建库
+echo &quot;🔨 Building library...&quot;
+npm run build
+
+# 构建文档
+echo &quot;📚 Building documentation...&quot;
+npm run docs:build
+
+# 发布到 npm
+echo &quot;📦 Publishing to npm...&quot;
+npm publish
+
+# 创建 git tag
+VERSION=$(node -p &quot;require(&#39;./package.json&#39;).version&quot;)
+git tag &quot;v$VERSION&quot;
+git push origin &quot;v$VERSION&quot;
+
+echo &quot;✅ Release completed successfully!&quot;
+</code></pre>
+<h2>总结</h2>
+<p>Vite 的库模式构建提供了：</p>
+<ul>
+<li>多种输出格式支持（ES、UMD、CJS）</li>
+<li>完整的 TypeScript 支持</li>
+<li>灵活的外部依赖处理</li>
+<li>优秀的构建性能</li>
+</ul>
+<p>通过合理配置库模式，可以轻松构建出高质量、易于使用的 JavaScript 库，满足不同场景的需求。</p>
+
+      

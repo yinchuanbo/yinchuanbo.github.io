@@ -1,0 +1,980 @@
+
+        <header>
+          <h1>代码分割与懒加载</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>代码分割和懒加载是现代前端应用优化的重要手段。Vite 提供了强大的代码分割能力，本章将详细介绍如何在 Vite 中实现高效的代码分割和懒加载策略。</p>
+<h2>代码分割基础</h2>
+<h3>自动代码分割</h3>
+<pre><code class="language-javascript">// Vite 自动识别动态导入并创建分割点
+// 路由级别的代码分割
+const routes = [
+  {
+    path: &#39;/&#39;,
+    component: () =&gt; import(&#39;./views/Home.vue&#39;) // 自动分割为独立 chunk
+  },
+  {
+    path: &#39;/about&#39;,
+    component: () =&gt; import(&#39;./views/About.vue&#39;) // 自动分割为独立 chunk
+  },
+  {
+    path: &#39;/products&#39;,
+    component: () =&gt; import(&#39;./views/Products.vue&#39;) // 自动分割为独立 chunk
+  }
+]
+
+// 组件级别的代码分割
+const LazyComponent = defineAsyncComponent(() =&gt; import(&#39;./components/Heavy.vue&#39;))
+
+// 功能模块的代码分割
+async function loadUtilities() {
+  const { formatDate, formatCurrency } = await import(&#39;./utils/formatters.js&#39;)
+  return { formatDate, formatCurrency }
+}
+</code></pre>
+<h3>手动分包配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        // 手动分包策略
+        manualChunks: {
+          // 将 Vue 相关库打包到 vue-vendor
+          &#39;vue-vendor&#39;: [&#39;vue&#39;, &#39;vue-router&#39;, &#39;pinia&#39;],
+          
+          // 将 UI 库打包到 ui-vendor
+          &#39;ui-vendor&#39;: [&#39;element-plus&#39;, &#39;ant-design-vue&#39;],
+          
+          // 将工具库打包到 utils-vendor
+          &#39;utils-vendor&#39;: [&#39;lodash-es&#39;, &#39;dayjs&#39;, &#39;axios&#39;],
+          
+          // 将图表库打包到 charts-vendor
+          &#39;charts-vendor&#39;: [&#39;echarts&#39;, &#39;d3&#39;]
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>函数式分包策略</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) =&gt; {
+          // node_modules 中的包
+          if (id.includes(&#39;node_modules&#39;)) {
+            // Vue 生态
+            if (id.includes(&#39;vue&#39;) || id.includes(&#39;pinia&#39;)) {
+              return &#39;vue-ecosystem&#39;
+            }
+            
+            // UI 组件库
+            if (id.includes(&#39;element-plus&#39;) || id.includes(&#39;ant-design&#39;)) {
+              return &#39;ui-library&#39;
+            }
+            
+            // 工具库
+            if (id.includes(&#39;lodash&#39;) || id.includes(&#39;dayjs&#39;) || id.includes(&#39;axios&#39;)) {
+              return &#39;utilities&#39;
+            }
+            
+            // 图表和可视化
+            if (id.includes(&#39;echarts&#39;) || id.includes(&#39;d3&#39;) || id.includes(&#39;chart&#39;)) {
+              return &#39;visualization&#39;
+            }
+            
+            // 其他第三方库
+            return &#39;vendor&#39;
+          }
+          
+          // 业务代码分包
+          if (id.includes(&#39;/src/views/&#39;)) {
+            // 按页面分包
+            const match = id.match(/\/views\/([^\/]+)/)
+            if (match) {
+              return `page-${match[1].toLowerCase()}`
+            }
+          }
+          
+          if (id.includes(&#39;/src/components/&#39;)) {
+            // 公共组件
+            if (id.includes(&#39;/src/components/common/&#39;)) {
+              return &#39;common-components&#39;
+            }
+            // 业务组件
+            return &#39;business-components&#39;
+          }
+          
+          if (id.includes(&#39;/src/utils/&#39;)) {
+            return &#39;app-utils&#39;
+          }
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h2>路由懒加载</h2>
+<h3>Vue Router 懒加载</h3>
+<pre><code class="language-javascript">// src/router/index.js
+import { createRouter, createWebHistory } from &#39;vue-router&#39;
+
+// 路由懒加载配置
+const routes = [
+  {
+    path: &#39;/&#39;,
+    name: &#39;Home&#39;,
+    component: () =&gt; import(
+      /* webpackChunkName: &quot;home&quot; */ 
+      &#39;../views/Home.vue&#39;
+    )
+  },
+  {
+    path: &#39;/dashboard&#39;,
+    name: &#39;Dashboard&#39;,
+    component: () =&gt; import(
+      /* webpackChunkName: &quot;dashboard&quot; */ 
+      &#39;../views/Dashboard.vue&#39;
+    ),
+    children: [
+      {
+        path: &#39;analytics&#39;,
+        component: () =&gt; import(
+          /* webpackChunkName: &quot;dashboard-analytics&quot; */ 
+          &#39;../views/dashboard/Analytics.vue&#39;
+        )
+      },
+      {
+        path: &#39;reports&#39;,
+        component: () =&gt; import(
+          /* webpackChunkName: &quot;dashboard-reports&quot; */ 
+          &#39;../views/dashboard/Reports.vue&#39;
+        )
+      }
+    ]
+  },
+  {
+    path: &#39;/admin&#39;,
+    name: &#39;Admin&#39;,
+    component: () =&gt; import(
+      /* webpackChunkName: &quot;admin&quot; */ 
+      &#39;../views/Admin.vue&#39;
+    ),
+    // 路由级别的权限检查
+    beforeEnter: (to, from, next) =&gt; {
+      // 只有管理员才加载管理页面
+      if (hasAdminPermission()) {
+        next()
+      } else {
+        next(&#39;/unauthorized&#39;)
+      }
+    }
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+export default router
+</code></pre>
+<h3>React Router 懒加载</h3>
+<pre><code class="language-jsx">// src/router/index.jsx
+import { lazy, Suspense } from &#39;react&#39;
+import { BrowserRouter, Routes, Route } from &#39;react-router-dom&#39;
+import LoadingSpinner from &#39;../components/LoadingSpinner&#39;
+import ErrorBoundary from &#39;../components/ErrorBoundary&#39;
+
+// 懒加载组件
+const Home = lazy(() =&gt; import(&#39;../pages/Home&#39;))
+const Dashboard = lazy(() =&gt; import(&#39;../pages/Dashboard&#39;))
+const Profile = lazy(() =&gt; import(&#39;../pages/Profile&#39;))
+const Settings = lazy(() =&gt; import(&#39;../pages/Settings&#39;))
+
+// 带错误边界的懒加载组件
+const AdminPanel = lazy(() =&gt; 
+  import(&#39;../pages/AdminPanel&#39;).catch(() =&gt; ({
+    default: () =&gt; &lt;div&gt;Failed to load Admin Panel&lt;/div&gt;
+  }))
+)
+
+function AppRouter() {
+  return (
+    &lt;BrowserRouter&gt;
+      &lt;ErrorBoundary&gt;
+        &lt;Suspense fallback={&lt;LoadingSpinner /&gt;}&gt;
+          &lt;Routes&gt;
+            &lt;Route path=&quot;/&quot; element={&lt;Home /&gt;} /&gt;
+            &lt;Route path=&quot;/dashboard&quot; element={&lt;Dashboard /&gt;} /&gt;
+            &lt;Route path=&quot;/profile&quot; element={&lt;Profile /&gt;} /&gt;
+            &lt;Route path=&quot;/settings&quot; element={&lt;Settings /&gt;} /&gt;
+            &lt;Route path=&quot;/admin&quot; element={&lt;AdminPanel /&gt;} /&gt;
+          &lt;/Routes&gt;
+        &lt;/Suspense&gt;
+      &lt;/ErrorBoundary&gt;
+    &lt;/BrowserRouter&gt;
+  )
+}
+
+export default AppRouter
+</code></pre>
+<h2>组件懒加载</h2>
+<h3>Vue 异步组件</h3>
+<pre><code class="language-vue">&lt;!-- src/views/Dashboard.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;dashboard&quot;&gt;
+    &lt;h1&gt;仪表板&lt;/h1&gt;
+    
+    &lt;!-- 条件渲染的重组件 --&gt;
+    &lt;Suspense v-if=&quot;showCharts&quot;&gt;
+      &lt;template #default&gt;
+        &lt;ChartComponent :data=&quot;chartData&quot; /&gt;
+      &lt;/template&gt;
+      &lt;template #fallback&gt;
+        &lt;div class=&quot;loading&quot;&gt;图表加载中...&lt;/div&gt;
+      &lt;/template&gt;
+    &lt;/Suspense&gt;
+    
+    &lt;!-- 标签页懒加载 --&gt;
+    &lt;el-tabs v-model=&quot;activeTab&quot;&gt;
+      &lt;el-tab-pane label=&quot;概览&quot; name=&quot;overview&quot;&gt;
+        &lt;OverviewTab /&gt;
+      &lt;/el-tab-pane&gt;
+      &lt;el-tab-pane label=&quot;分析&quot; name=&quot;analytics&quot;&gt;
+        &lt;Suspense&gt;
+          &lt;template #default&gt;
+            &lt;AnalyticsTab /&gt;
+          &lt;/template&gt;
+          &lt;template #fallback&gt;
+            &lt;div class=&quot;tab-loading&quot;&gt;分析数据加载中...&lt;/div&gt;
+          &lt;/template&gt;
+        &lt;/Suspense&gt;
+      &lt;/el-tab-pane&gt;
+      &lt;el-tab-pane label=&quot;报告&quot; name=&quot;reports&quot;&gt;
+        &lt;Suspense&gt;
+          &lt;template #default&gt;
+            &lt;ReportsTab /&gt;
+          &lt;/template&gt;
+          &lt;template #fallback&gt;
+            &lt;div class=&quot;tab-loading&quot;&gt;报告加载中...&lt;/div&gt;
+          &lt;/template&gt;
+        &lt;/Suspense&gt;
+      &lt;/el-tab-pane&gt;
+    &lt;/el-tabs&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, defineAsyncComponent } from &#39;vue&#39;
+
+// 异步组件定义
+const ChartComponent = defineAsyncComponent({
+  loader: () =&gt; import(&#39;../components/ChartComponent.vue&#39;),
+  loadingComponent: () =&gt; import(&#39;../components/ChartLoading.vue&#39;),
+  errorComponent: () =&gt; import(&#39;../components/ChartError.vue&#39;),
+  delay: 200,
+  timeout: 3000
+})
+
+const AnalyticsTab = defineAsyncComponent(() =&gt; 
+  import(&#39;../components/tabs/AnalyticsTab.vue&#39;)
+)
+
+const ReportsTab = defineAsyncComponent(() =&gt; 
+  import(&#39;../components/tabs/ReportsTab.vue&#39;)
+)
+
+// 同步组件（立即需要的）
+import OverviewTab from &#39;../components/tabs/OverviewTab.vue&#39;
+
+const activeTab = ref(&#39;overview&#39;)
+const showCharts = ref(false)
+const chartData = ref([])
+
+// 根据用户交互懒加载
+const loadCharts = async () =&gt; {
+  showCharts.value = true
+  // 模拟数据加载
+  chartData.value = await fetchChartData()
+}
+&lt;/script&gt;
+</code></pre>
+<h3>React 组件懒加载</h3>
+<pre><code class="language-jsx">// src/components/Dashboard.jsx
+import React, { useState, lazy, Suspense } from &#39;react&#39;
+import { Tabs, Button } from &#39;antd&#39;
+import ErrorBoundary from &#39;./ErrorBoundary&#39;
+
+// 懒加载组件
+const ChartComponent = lazy(() =&gt; import(&#39;./ChartComponent&#39;))
+const AnalyticsTab = lazy(() =&gt; import(&#39;./tabs/AnalyticsTab&#39;))
+const ReportsTab = lazy(() =&gt; import(&#39;./tabs/ReportsTab&#39;))
+
+// 带重试机制的懒加载
+const DataTable = lazy(() =&gt; 
+  import(&#39;./DataTable&#39;).catch(error =&gt; {
+    console.error(&#39;Failed to load DataTable:&#39;, error)
+    // 返回降级组件
+    return { default: () =&gt; &lt;div&gt;数据表格加载失败，请刷新页面重试&lt;/div&gt; }
+  })
+)
+
+function Dashboard() {
+  const [activeTab, setActiveTab] = useState(&#39;overview&#39;)
+  const [showCharts, setShowCharts] = useState(false)
+  const [showDataTable, setShowDataTable] = useState(false)
+
+  const tabItems = [
+    {
+      key: &#39;overview&#39;,
+      label: &#39;概览&#39;,
+      children: &lt;div&gt;概览内容&lt;/div&gt;
+    },
+    {
+      key: &#39;analytics&#39;,
+      label: &#39;分析&#39;,
+      children: (
+        &lt;ErrorBoundary&gt;
+          &lt;Suspense fallback={&lt;div&gt;分析数据加载中...&lt;/div&gt;}&gt;
+            &lt;AnalyticsTab /&gt;
+          &lt;/Suspense&gt;
+        &lt;/ErrorBoundary&gt;
+      )
+    },
+    {
+      key: &#39;reports&#39;,
+      label: &#39;报告&#39;,
+      children: (
+        &lt;ErrorBoundary&gt;
+          &lt;Suspense fallback={&lt;div&gt;报告加载中...&lt;/div&gt;}&gt;
+            &lt;ReportsTab /&gt;
+          &lt;/Suspense&gt;
+        &lt;/ErrorBoundary&gt;
+      )
+    }
+  ]
+
+  return (
+    &lt;div className=&quot;dashboard&quot;&gt;
+      &lt;h1&gt;仪表板&lt;/h1&gt;
+      
+      &lt;div className=&quot;actions&quot;&gt;
+        &lt;Button onClick={() =&gt; setShowCharts(true)}&gt;
+          加载图表
+        &lt;/Button&gt;
+        &lt;Button onClick={() =&gt; setShowDataTable(true)}&gt;
+          加载数据表格
+        &lt;/Button&gt;
+      &lt;/div&gt;
+      
+      {showCharts &amp;&amp; (
+        &lt;ErrorBoundary&gt;
+          &lt;Suspense fallback={&lt;div&gt;图表加载中...&lt;/div&gt;}&gt;
+            &lt;ChartComponent /&gt;
+          &lt;/Suspense&gt;
+        &lt;/ErrorBoundary&gt;
+      )}
+      
+      {showDataTable &amp;&amp; (
+        &lt;ErrorBoundary&gt;
+          &lt;Suspense fallback={&lt;div&gt;数据表格加载中...&lt;/div&gt;}&gt;
+            &lt;DataTable /&gt;
+          &lt;/Suspense&gt;
+        &lt;/ErrorBoundary&gt;
+      )}
+      
+      &lt;Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={tabItems}
+      /&gt;
+    &lt;/div&gt;
+  )
+}
+
+export default Dashboard
+</code></pre>
+<h2>模块懒加载</h2>
+<h3>功能模块懒加载</h3>
+<pre><code class="language-javascript">// src/utils/moduleLoader.js
+class ModuleLoader {
+  constructor() {
+    this.cache = new Map()
+    this.loading = new Map()
+  }
+  
+  async loadModule(moduleName) {
+    // 检查缓存
+    if (this.cache.has(moduleName)) {
+      return this.cache.get(moduleName)
+    }
+    
+    // 检查是否正在加载
+    if (this.loading.has(moduleName)) {
+      return this.loading.get(moduleName)
+    }
+    
+    // 开始加载
+    const loadPromise = this.importModule(moduleName)
+    this.loading.set(moduleName, loadPromise)
+    
+    try {
+      const module = await loadPromise
+      this.cache.set(moduleName, module)
+      this.loading.delete(moduleName)
+      return module
+    } catch (error) {
+      this.loading.delete(moduleName)
+      throw error
+    }
+  }
+  
+  async importModule(moduleName) {
+    switch (moduleName) {
+      case &#39;charts&#39;:
+        return import(&#39;./charts/index.js&#39;)
+      
+      case &#39;editor&#39;:
+        return import(&#39;./editor/index.js&#39;)
+      
+      case &#39;pdf&#39;:
+        return import(&#39;./pdf/index.js&#39;)
+      
+      case &#39;excel&#39;:
+        return import(&#39;./excel/index.js&#39;)
+      
+      case &#39;image-processor&#39;:
+        return import(&#39;./imageProcessor/index.js&#39;)
+      
+      default:
+        throw new Error(`Unknown module: ${moduleName}`)
+    }
+  }
+  
+  // 预加载模块
+  async preloadModule(moduleName) {
+    try {
+      await this.loadModule(moduleName)
+      console.log(`Module ${moduleName} preloaded successfully`)
+    } catch (error) {
+      console.warn(`Failed to preload module ${moduleName}:`, error)
+    }
+  }
+  
+  // 批量预加载
+  async preloadModules(moduleNames) {
+    const promises = moduleNames.map(name =&gt; this.preloadModule(name))
+    await Promise.allSettled(promises)
+  }
+}
+
+export const moduleLoader = new ModuleLoader()
+
+// 使用示例
+export async function useCharts() {
+  const chartsModule = await moduleLoader.loadModule(&#39;charts&#39;)
+  return chartsModule
+}
+
+export async function useEditor() {
+  const editorModule = await moduleLoader.loadModule(&#39;editor&#39;)
+  return editorModule
+}
+</code></pre>
+<h3>第三方库懒加载</h3>
+<pre><code class="language-javascript">// src/utils/libraryLoader.js
+class LibraryLoader {
+  constructor() {
+    this.loadedLibraries = new Set()
+    this.loadingPromises = new Map()
+  }
+  
+  async loadLibrary(libraryName) {
+    if (this.loadedLibraries.has(libraryName)) {
+      return this.getLibraryExports(libraryName)
+    }
+    
+    if (this.loadingPromises.has(libraryName)) {
+      return this.loadingPromises.get(libraryName)
+    }
+    
+    const loadPromise = this.importLibrary(libraryName)
+    this.loadingPromises.set(libraryName, loadPromise)
+    
+    try {
+      const library = await loadPromise
+      this.loadedLibraries.add(libraryName)
+      this.loadingPromises.delete(libraryName)
+      return library
+    } catch (error) {
+      this.loadingPromises.delete(libraryName)
+      throw error
+    }
+  }
+  
+  async importLibrary(libraryName) {
+    switch (libraryName) {
+      case &#39;echarts&#39;:
+        const echarts = await import(&#39;echarts&#39;)
+        return echarts
+      
+      case &#39;monaco-editor&#39;:
+        const monaco = await import(&#39;monaco-editor&#39;)
+        return monaco
+      
+      case &#39;pdf-lib&#39;:
+        const pdfLib = await import(&#39;pdf-lib&#39;)
+        return pdfLib
+      
+      case &#39;xlsx&#39;:
+        const xlsx = await import(&#39;xlsx&#39;)
+        return xlsx
+      
+      case &#39;fabric&#39;:
+        const fabric = await import(&#39;fabric&#39;)
+        return fabric
+      
+      default:
+        throw new Error(`Unknown library: ${libraryName}`)
+    }
+  }
+  
+  getLibraryExports(libraryName) {
+    // 返回已加载库的导出
+    switch (libraryName) {
+      case &#39;echarts&#39;:
+        return window.echarts
+      case &#39;monaco-editor&#39;:
+        return window.monaco
+      default:
+        return null
+    }
+  }
+}
+
+export const libraryLoader = new LibraryLoader()
+
+// 使用示例
+export async function createChart(container, options) {
+  const echarts = await libraryLoader.loadLibrary(&#39;echarts&#39;)
+  const chart = echarts.init(container)
+  chart.setOption(options)
+  return chart
+}
+
+export async function createEditor(container, options) {
+  const monaco = await libraryLoader.loadLibrary(&#39;monaco-editor&#39;)
+  const editor = monaco.editor.create(container, options)
+  return editor
+}
+</code></pre>
+<h2>预加载策略</h2>
+<h3>智能预加载</h3>
+<pre><code class="language-javascript">// src/utils/preloader.js
+class IntelligentPreloader {
+  constructor() {
+    this.preloadQueue = []
+    this.isPreloading = false
+    this.userBehavior = {
+      visitedRoutes: new Set(),
+      clickedComponents: new Set(),
+      timeSpent: new Map()
+    }
+  }
+  
+  // 基于用户行为的预加载
+  analyzeAndPreload() {
+    // 分析用户行为模式
+    const patterns = this.analyzeUserBehavior()
+    
+    // 根据模式预加载可能需要的资源
+    patterns.forEach(pattern =&gt; {
+      this.schedulePreload(pattern.resource, pattern.priority)
+    })
+  }
+  
+  analyzeUserBehavior() {
+    const patterns = []
+    
+    // 分析访问过的路由
+    this.userBehavior.visitedRoutes.forEach(route =&gt; {
+      const relatedRoutes = this.getRelatedRoutes(route)
+      relatedRoutes.forEach(relatedRoute =&gt; {
+        patterns.push({
+          resource: relatedRoute,
+          priority: this.calculatePriority(route, relatedRoute),
+          type: &#39;route&#39;
+        })
+      })
+    })
+    
+    // 分析点击过的组件
+    this.userBehavior.clickedComponents.forEach(component =&gt; {
+      const relatedComponents = this.getRelatedComponents(component)
+      relatedComponents.forEach(relatedComponent =&gt; {
+        patterns.push({
+          resource: relatedComponent,
+          priority: this.calculateComponentPriority(component, relatedComponent),
+          type: &#39;component&#39;
+        })
+      })
+    })
+    
+    return patterns.sort((a, b) =&gt; b.priority - a.priority)
+  }
+  
+  schedulePreload(resource, priority) {
+    this.preloadQueue.push({ resource, priority })
+    this.preloadQueue.sort((a, b) =&gt; b.priority - a.priority)
+    
+    if (!this.isPreloading) {
+      this.startPreloading()
+    }
+  }
+  
+  async startPreloading() {
+    this.isPreloading = true
+    
+    while (this.preloadQueue.length &gt; 0) {
+      const { resource } = this.preloadQueue.shift()
+      
+      try {
+        await this.preloadResource(resource)
+        console.log(`Preloaded: ${resource}`)
+      } catch (error) {
+        console.warn(`Failed to preload ${resource}:`, error)
+      }
+      
+      // 避免阻塞主线程
+      await this.sleep(100)
+    }
+    
+    this.isPreloading = false
+  }
+  
+  async preloadResource(resource) {
+    if (resource.startsWith(&#39;/&#39;)) {
+      // 路由预加载
+      return import(/* webpackChunkName: &quot;preload&quot; */ `../views${resource}.vue`)
+    } else {
+      // 组件预加载
+      return import(/* webpackChunkName: &quot;preload&quot; */ `../components/${resource}.vue`)
+    }
+  }
+  
+  getRelatedRoutes(route) {
+    // 根据路由关系返回相关路由
+    const routeMap = {
+      &#39;/dashboard&#39;: [&#39;/dashboard/analytics&#39;, &#39;/dashboard/reports&#39;],
+      &#39;/profile&#39;: [&#39;/profile/settings&#39;, &#39;/profile/security&#39;],
+      &#39;/admin&#39;: [&#39;/admin/users&#39;, &#39;/admin/settings&#39;]
+    }
+    
+    return routeMap[route] || []
+  }
+  
+  getRelatedComponents(component) {
+    // 根据组件关系返回相关组件
+    const componentMap = {
+      &#39;DataTable&#39;: [&#39;DataTablePagination&#39;, &#39;DataTableFilter&#39;],
+      &#39;Chart&#39;: [&#39;ChartLegend&#39;, &#39;ChartTooltip&#39;],
+      &#39;Form&#39;: [&#39;FormValidation&#39;, &#39;FormSubmit&#39;]
+    }
+    
+    return componentMap[component] || []
+  }
+  
+  calculatePriority(route, relatedRoute) {
+    // 计算路由优先级
+    const timeSpent = this.userBehavior.timeSpent.get(route) || 0
+    const visitCount = this.userBehavior.visitedRoutes.has(route) ? 1 : 0
+    
+    return timeSpent * 0.6 + visitCount * 0.4
+  }
+  
+  calculateComponentPriority(component, relatedComponent) {
+    // 计算组件优先级
+    return Math.random() * 100 // 简化实现
+  }
+  
+  sleep(ms) {
+    return new Promise(resolve =&gt; setTimeout(resolve, ms))
+  }
+  
+  // 记录用户行为
+  recordRouteVisit(route) {
+    this.userBehavior.visitedRoutes.add(route)
+    const startTime = Date.now()
+    
+    return () =&gt; {
+      const timeSpent = Date.now() - startTime
+      this.userBehavior.timeSpent.set(route, timeSpent)
+    }
+  }
+  
+  recordComponentClick(component) {
+    this.userBehavior.clickedComponents.add(component)
+  }
+}
+
+export const preloader = new IntelligentPreloader()
+
+// 在路由守卫中使用
+router.beforeEach((to, from, next) =&gt; {
+  const stopRecording = preloader.recordRouteVisit(to.path)
+  
+  // 在路由离开时停止记录
+  router.afterEach(() =&gt; {
+    stopRecording()
+    preloader.analyzeAndPreload()
+  })
+  
+  next()
+})
+</code></pre>
+<h3>网络感知预加载</h3>
+<pre><code class="language-javascript">// src/utils/networkAwarePreloader.js
+class NetworkAwarePreloader {
+  constructor() {
+    this.connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection
+    this.preloadStrategy = this.determineStrategy()
+  }
+  
+  determineStrategy() {
+    if (!this.connection) {
+      return &#39;conservative&#39; // 保守策略
+    }
+    
+    const { effectiveType, downlink, rtt } = this.connection
+    
+    // 根据网络条件确定预加载策略
+    if (effectiveType === &#39;4g&#39; &amp;&amp; downlink &gt; 2) {
+      return &#39;aggressive&#39; // 激进策略
+    } else if (effectiveType === &#39;3g&#39; || downlink &gt; 1) {
+      return &#39;moderate&#39; // 适中策略
+    } else {
+      return &#39;conservative&#39; // 保守策略
+    }
+  }
+  
+  async preloadBasedOnNetwork(resources) {
+    const strategy = this.preloadStrategy
+    
+    switch (strategy) {
+      case &#39;aggressive&#39;:
+        // 预加载所有资源
+        return this.preloadAll(resources)
+      
+      case &#39;moderate&#39;:
+        // 预加载高优先级资源
+        return this.preloadHighPriority(resources)
+      
+      case &#39;conservative&#39;:
+        // 只预加载关键资源
+        return this.preloadCritical(resources)
+      
+      default:
+        return Promise.resolve()
+    }
+  }
+  
+  async preloadAll(resources) {
+    const promises = resources.map(resource =&gt; this.preloadResource(resource))
+    return Promise.allSettled(promises)
+  }
+  
+  async preloadHighPriority(resources) {
+    const highPriority = resources.filter(r =&gt; r.priority &gt; 0.7)
+    const promises = highPriority.map(resource =&gt; this.preloadResource(resource))
+    return Promise.allSettled(promises)
+  }
+  
+  async preloadCritical(resources) {
+    const critical = resources.filter(r =&gt; r.critical)
+    const promises = critical.map(resource =&gt; this.preloadResource(resource))
+    return Promise.allSettled(promises)
+  }
+  
+  async preloadResource(resource) {
+    try {
+      if (resource.type === &#39;route&#39;) {
+        return import(/* webpackChunkName: &quot;route-preload&quot; */ `../views/${resource.path}.vue`)
+      } else if (resource.type === &#39;component&#39;) {
+        return import(/* webpackChunkName: &quot;component-preload&quot; */ `../components/${resource.name}.vue`)
+      } else if (resource.type === &#39;library&#39;) {
+        return import(/* webpackChunkName: &quot;library-preload&quot; */ resource.path)
+      }
+    } catch (error) {
+      console.warn(`Failed to preload ${resource.path}:`, error)
+    }
+  }
+  
+  // 监听网络变化
+  startNetworkMonitoring() {
+    if (this.connection) {
+      this.connection.addEventListener(&#39;change&#39;, () =&gt; {
+        const newStrategy = this.determineStrategy()
+        if (newStrategy !== this.preloadStrategy) {
+          console.log(`Network strategy changed: ${this.preloadStrategy} -&gt; ${newStrategy}`)
+          this.preloadStrategy = newStrategy
+        }
+      })
+    }
+  }
+}
+
+export const networkAwarePreloader = new NetworkAwarePreloader()
+</code></pre>
+<h2>性能监控和优化</h2>
+<h3>加载性能监控</h3>
+<pre><code class="language-javascript">// src/utils/performanceMonitor.js
+class LoadingPerformanceMonitor {
+  constructor() {
+    this.metrics = {
+      chunkLoadTimes: new Map(),
+      failedLoads: new Map(),
+      cacheHits: new Map()
+    }
+  }
+  
+  startChunkLoadTimer(chunkName) {
+    const startTime = performance.now()
+    
+    return {
+      end: () =&gt; {
+        const loadTime = performance.now() - startTime
+        this.recordChunkLoadTime(chunkName, loadTime)
+        return loadTime
+      }
+    }
+  }
+  
+  recordChunkLoadTime(chunkName, loadTime) {
+    if (!this.metrics.chunkLoadTimes.has(chunkName)) {
+      this.metrics.chunkLoadTimes.set(chunkName, [])
+    }
+    
+    this.metrics.chunkLoadTimes.get(chunkName).push({
+      loadTime,
+      timestamp: Date.now()
+    })
+    
+    // 保持最近100次记录
+    const records = this.metrics.chunkLoadTimes.get(chunkName)
+    if (records.length &gt; 100) {
+      records.shift()
+    }
+  }
+  
+  recordFailedLoad(chunkName, error) {
+    if (!this.metrics.failedLoads.has(chunkName)) {
+      this.metrics.failedLoads.set(chunkName, []
+    }
+    
+    this.metrics.failedLoads.get(chunkName).push({
+      error: error.message,
+      timestamp: Date.now()
+    })
+  }
+  
+  getAverageLoadTime(chunkName) {
+    const records = this.metrics.chunkLoadTimes.get(chunkName)
+    if (!records || records.length === 0) return 0
+    
+    const total = records.reduce((sum, record) =&gt; sum + record.loadTime, 0)
+    return total / records.length
+  }
+  
+  getFailureRate(chunkName) {
+    const loadTimes = this.metrics.chunkLoadTimes.get(chunkName) || []
+    const failures = this.metrics.failedLoads.get(chunkName) || []
+    
+    const totalAttempts = loadTimes.length + failures.length
+    return totalAttempts &gt; 0 ? failures.length / totalAttempts : 0
+  }
+  
+  generateReport() {
+    const report = {
+      timestamp: new Date().toISOString(),
+      chunks: {}
+    }
+    
+    for (const [chunkName] of this.metrics.chunkLoadTimes) {
+      report.chunks[chunkName] = {
+        averageLoadTime: this.getAverageLoadTime(chunkName),
+        failureRate: this.getFailureRate(chunkName),
+        loadCount: this.metrics.chunkLoadTimes.get(chunkName).length,
+        failureCount: (this.metrics.failedLoads.get(chunkName) || []).length
+      }
+    }
+    
+    return report
+  }
+  
+  // 自动优化建议
+  getOptimizationSuggestions() {
+    const suggestions = []
+    
+    for (const [chunkName] of this.metrics.chunkLoadTimes) {
+      const avgLoadTime = this.getAverageLoadTime(chunkName)
+      const failureRate = this.getFailureRate(chunkName)
+      
+      if (avgLoadTime &gt; 3000) {
+        suggestions.push({
+          type: &#39;slow-loading&#39;,
+          chunk: chunkName,
+          message: `${chunkName} 加载时间过长 (${avgLoadTime.toFixed(2)}ms)，建议进一步分割或优化`
+        })
+      }
+      
+      if (failureRate &gt; 0.1) {
+        suggestions.push({
+          type: &#39;high-failure-rate&#39;,
+          chunk: chunkName,
+          message: `${chunkName} 失败率过高 (${(failureRate * 100).toFixed(2)}%)，建议添加重试机制`
+        })
+      }
+    }
+    
+    return suggestions
+  }
+}
+
+export const performanceMonitor = new LoadingPerformanceMonitor()
+
+// 包装动态导入以监控性能
+export function monitoredImport(importFn, chunkName) {
+  const timer = performanceMonitor.startChunkLoadTimer(chunkName)
+  
+  return importFn()
+    .then(module =&gt; {
+      timer.end()
+      return module
+    })
+    .catch(error =&gt; {
+      performanceMonitor.recordFailedLoad(chunkName, error)
+      throw error
+    })
+}
+
+// 使用示例
+const LazyComponent = () =&gt; monitoredImport(
+  () =&gt; import(&#39;./HeavyComponent.vue&#39;),
+  &#39;HeavyComponent&#39;
+)
+</code></pre>
+<h2>总结</h2>
+<p>代码分割和懒加载为现代前端应用提供了：</p>
+<ul>
+<li>更快的初始加载速度</li>
+<li>更好的用户体验</li>
+<li>更高效的资源利用</li>
+<li>更灵活的性能优化策略</li>
+</ul>
+<p>通过合理使用这些技术，可以显著提升应用的性能和用户体验，特别是在大型复杂应用中效果更加明显。</p>
+
+      

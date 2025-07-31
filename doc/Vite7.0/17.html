@@ -1,0 +1,743 @@
+
+        <header>
+          <h1>插件 API 详解</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>Vite 插件 API 基于 Rollup 插件系统，并扩展了开发服务器相关的功能。本章将详细介绍 Vite 插件 API 的各个方面，帮助你深入理解插件的工作机制。</p>
+<h2>插件 API 概览</h2>
+<h3>插件对象结构</h3>
+<pre><code class="language-javascript">// 完整的插件对象结构
+const plugin = {
+  // 基础属性
+  name: &#39;plugin-name&#39;,           // 插件名称（必需）
+  enforce: &#39;pre&#39;,                // 执行顺序：&#39;pre&#39; | &#39;post&#39;
+  apply: &#39;build&#39;,                // 应用条件：&#39;serve&#39; | &#39;build&#39; | function
+  
+  // Vite 特有钩子
+  config(config, { command }),           // 修改配置
+  configResolved(resolvedConfig),        // 配置解析完成
+  configureServer(server),               // 配置开发服务器
+  configurePreviewServer(server),        // 配置预览服务器
+  handleHotUpdate(ctx),                  // 处理热更新
+  
+  // Rollup 构建钩子
+  buildStart(opts),                      // 构建开始
+  resolveId(id, importer, options),      // 解析模块 ID
+  load(id),                              // 加载模块
+  transform(code, id),                   // 转换代码
+  generateBundle(options, bundle),       // 生成构建包
+  writeBundle(options, bundle),          // 写入构建包
+  
+  // 其他钩子...
+}
+</code></pre>
+<h3>钩子执行顺序</h3>
+<pre><code class="language-javascript">// 开发环境钩子执行顺序
+const developmentHooks = [
+  &#39;config&#39;,           // 配置修改
+  &#39;configResolved&#39;,   // 配置解析完成
+  &#39;configureServer&#39;,  // 配置开发服务器
+  &#39;buildStart&#39;,       // 构建开始
+  &#39;resolveId&#39;,        // 解析模块（按需）
+  &#39;load&#39;,             // 加载模块（按需）
+  &#39;transform&#39;,        // 转换代码（按需）
+  &#39;handleHotUpdate&#39;   // 热更新处理（按需）
+]
+
+// 生产环境钩子执行顺序
+const productionHooks = [
+  &#39;config&#39;,           // 配置修改
+  &#39;configResolved&#39;,   // 配置解析完成
+  &#39;buildStart&#39;,       // 构建开始
+  &#39;resolveId&#39;,        // 解析模块
+  &#39;load&#39;,             // 加载模块
+  &#39;transform&#39;,        // 转换代码
+  &#39;generateBundle&#39;,   // 生成构建包
+  &#39;writeBundle&#39;       // 写入构建包
+]
+</code></pre>
+<h2>Vite 特有钩子详解</h2>
+<h3>config 钩子</h3>
+<pre><code class="language-javascript">// 修改配置的钩子
+const configPlugin = () =&gt; ({
+  name: &#39;config-plugin&#39;,
+  config(config, { command }) {
+    // 根据命令修改配置
+    if (command === &#39;serve&#39;) {
+      // 开发环境配置
+      config.server = config.server || {}
+      config.server.port = 3000
+      config.server.open = true
+      
+      // 添加开发环境插件
+      config.plugins = config.plugins || []
+      config.plugins.push(mockPlugin())
+      
+    } else if (command === &#39;build&#39;) {
+      // 生产环境配置
+      config.build = config.build || {}
+      config.build.minify = &#39;terser&#39;
+      config.build.sourcemap = false
+      
+      // 添加生产环境插件
+      config.plugins = config.plugins || []
+      config.plugins.push(compressionPlugin())
+    }
+    
+    // 修改别名
+    config.resolve = config.resolve || {}
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      &#39;@utils&#39;: path.resolve(__dirname, &#39;src/utils&#39;),
+      &#39;@components&#39;: path.resolve(__dirname, &#39;src/components&#39;)
+    }
+    
+    // 修改环境变量
+    config.define = {
+      ...config.define,
+      __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+      __VERSION__: JSON.stringify(process.env.npm_package_version)
+    }
+  }
+})
+</code></pre>
+<h3>configResolved 钩子</h3>
+<pre><code class="language-javascript">// 配置解析完成后的钩子
+const configResolvedPlugin = () =&gt; {
+  let config
+  let isProduction
+  let outputDir
+  
+  return {
+    name: &#39;config-resolved-plugin&#39;,
+    configResolved(resolvedConfig) {
+      // 保存解析后的配置
+      config = resolvedConfig
+      isProduction = config.command === &#39;build&#39;
+      outputDir = config.build.outDir
+      
+      // 根据配置调整插件行为
+      if (isProduction) {
+        console.log(&#39;Production build detected&#39;)
+        console.log(&#39;Output directory:&#39;, outputDir)
+      } else {
+        console.log(&#39;Development mode detected&#39;)
+        console.log(&#39;Dev server port:&#39;, config.server.port)
+      }
+      
+      // 验证配置
+      if (!config.resolve.alias[&#39;@&#39;]) {
+        console.warn(&#39;Missing @ alias configuration&#39;)
+      }
+    },
+    
+    // 在其他钩子中使用配置
+    transform(code, id) {
+      if (isProduction &amp;&amp; code.includes(&#39;console.log&#39;)) {
+        // 生产环境移除 console.log
+        return {
+          code: code.replace(/console\.log\([^)]*\);?/g, &#39;&#39;),
+          map: null
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<h3>configureServer 钩子</h3>
+<pre><code class="language-javascript">// 配置开发服务器的钩子
+const serverConfigPlugin = () =&gt; ({
+  name: &#39;server-config-plugin&#39;,
+  configureServer(server) {
+    // 添加中间件
+    server.middlewares.use(&#39;/api&#39;, (req, res, next) =&gt; {
+      if (req.url.startsWith(&#39;/api/mock&#39;)) {
+        // 处理 mock API
+        res.setHeader(&#39;Content-Type&#39;, &#39;application/json&#39;)
+        res.end(JSON.stringify({ message: &#39;Mock API response&#39; }))
+      } else {
+        next()
+      }
+    })
+    
+    // 代理配置
+    server.middlewares.use(&#39;/proxy&#39;, proxy(&#39;http://localhost:8080&#39;, {
+      changeOrigin: true,
+      pathRewrite: {
+        &#39;^/proxy&#39;: &#39;&#39;
+      }
+    }))
+    
+    // 静态文件服务
+    server.middlewares.use(&#39;/static&#39;, express.static(&#39;public&#39;))
+    
+    // WebSocket 处理
+    server.ws.on(&#39;custom-event&#39;, (data, client) =&gt; {
+      console.log(&#39;Received custom event:&#39;, data)
+      
+      // 广播给所有客户端
+      server.ws.clients.forEach(client =&gt; {
+        client.send(JSON.stringify({
+          type: &#39;custom-response&#39;,
+          data: &#39;Response from server&#39;
+        }))
+      })
+    })
+    
+    // 服务器启动后的回调
+    server.httpServer?.once(&#39;listening&#39;, () =&gt; {
+      const address = server.httpServer.address()
+      console.log(`Server running at http://localhost:${address.port}`)
+    })
+  }
+})
+</code></pre>
+<h3>handleHotUpdate 钩子</h3>
+<pre><code class="language-javascript">// 处理热更新的钩子
+const hotUpdatePlugin = () =&gt; ({
+  name: &#39;hot-update-plugin&#39;,
+  handleHotUpdate(ctx) {
+    const { file, timestamp, server } = ctx
+    
+    // 特殊文件处理
+    if (file.endsWith(&#39;.env&#39;)) {
+      // 环境变量文件变化，重启服务器
+      console.log(&#39;Environment file changed, restarting server...&#39;)
+      server.restart()
+      return []
+    }
+    
+    if (file.endsWith(&#39;.config.js&#39;)) {
+      // 配置文件变化，全量刷新
+      console.log(&#39;Config file changed, full reload...&#39;)
+      server.ws.send({
+        type: &#39;full-reload&#39;
+      })
+      return []
+    }
+    
+    if (file.includes(&#39;/api/&#39;)) {
+      // API 文件变化，通知客户端
+      server.ws.send({
+        type: &#39;custom&#39;,
+        event: &#39;api-changed&#39;,
+        data: { file, timestamp }
+      })
+      
+      // 不进行默认的热更新
+      return []
+    }
+    
+    // 自定义模块更新逻辑
+    if (file.endsWith(&#39;.vue&#39;)) {
+      const modules = ctx.modules
+      
+      // 过滤需要更新的模块
+      const filteredModules = modules.filter(mod =&gt; {
+        // 只更新直接依赖此文件的模块
+        return mod.file === file
+      })
+      
+      if (filteredModules.length &gt; 0) {
+        console.log(`Hot updating ${filteredModules.length} modules for ${file}`)
+      }
+      
+      return filteredModules
+    }
+    
+    // 返回 undefined 使用默认行为
+    return undefined
+  }
+})
+</code></pre>
+<h2>Rollup 构建钩子详解</h2>
+<h3>resolveId 钩子</h3>
+<pre><code class="language-javascript">// 模块解析钩子
+const resolvePlugin = () =&gt; ({
+  name: &#39;resolve-plugin&#39;,
+  resolveId(id, importer, options) {
+    // 虚拟模块处理
+    if (id.startsWith(&#39;virtual:&#39;)) {
+      return id
+    }
+    
+    // 别名处理
+    if (id.startsWith(&#39;@/&#39;)) {
+      return path.resolve(__dirname, &#39;src&#39;, id.slice(2))
+    }
+    
+    // 条件解析
+    if (id === &#39;my-lib&#39;) {
+      if (options.isEntry) {
+        // 入口文件使用完整版本
+        return path.resolve(__dirname, &#39;node_modules/my-lib/dist/full.js&#39;)
+      } else {
+        // 非入口文件使用精简版本
+        return path.resolve(__dirname, &#39;node_modules/my-lib/dist/lite.js&#39;)
+      }
+    }
+    
+    // 环境相关解析
+    if (id.endsWith(&#39;.dev.js&#39;) &amp;&amp; process.env.NODE_ENV === &#39;production&#39;) {
+      // 生产环境使用生产版本
+      return id.replace(&#39;.dev.js&#39;, &#39;.prod.js&#39;)
+    }
+    
+    // 外部模块处理
+    if (id.startsWith(&#39;http://&#39;) || id.startsWith(&#39;https://&#39;)) {
+      // 标记为外部模块
+      return { id, external: true }
+    }
+    
+    // 返回 null 表示使用默认解析
+    return null
+  }
+})
+</code></pre>
+<h3>load 钩子</h3>
+<pre><code class="language-javascript">// 模块加载钩子
+const loadPlugin = () =&gt; {
+  const cache = new Map()
+  
+  return {
+    name: &#39;load-plugin&#39;,
+    load(id) {
+      // 虚拟模块加载
+      if (id.startsWith(&#39;virtual:&#39;)) {
+        const moduleName = id.slice(8) // 移除 &#39;virtual:&#39; 前缀
+        
+        switch (moduleName) {
+          case &#39;env&#39;:
+            return `export default ${JSON.stringify(process.env)}`
+          
+          case &#39;config&#39;:
+            return `export default ${JSON.stringify({
+              apiUrl: process.env.VITE_API_URL,
+              version: process.env.npm_package_version
+            })}`
+          
+          case &#39;build-info&#39;:
+            return `
+              export const buildTime = &quot;${new Date().toISOString()}&quot;
+              export const gitCommit = &quot;${process.env.GIT_COMMIT || &#39;unknown&#39;}&quot;
+              export const nodeVersion = &quot;${process.version}&quot;
+            `
+        }
+      }
+      
+      // 缓存处理
+      if (cache.has(id)) {
+        return cache.get(id)
+      }
+      
+      // 特殊文件处理
+      if (id.endsWith(&#39;.txt&#39;)) {
+        const content = fs.readFileSync(id, &#39;utf-8&#39;)
+        const result = `export default ${JSON.stringify(content)}`
+        cache.set(id, result)
+        return result
+      }
+      
+      if (id.endsWith(&#39;.csv&#39;)) {
+        const content = fs.readFileSync(id, &#39;utf-8&#39;)
+        const rows = content.split(&#39;\n&#39;).map(row =&gt; row.split(&#39;,&#39;))
+        const result = `export default ${JSON.stringify(rows)}`
+        cache.set(id, result)
+        return result
+      }
+      
+      // 远程模块加载
+      if (id.startsWith(&#39;remote:&#39;)) {
+        const url = id.slice(7)
+        return fetch(url).then(res =&gt; res.text())
+      }
+      
+      // 返回 null 使用默认加载
+      return null
+    }
+  }
+}
+</code></pre>
+<h3>transform 钩子</h3>
+<pre><code class="language-javascript">// 代码转换钩子
+const transformPlugin = () =&gt; {
+  const sourceMapCache = new Map()
+  
+  return {
+    name: &#39;transform-plugin&#39;,
+    transform(code, id) {
+      // 跳过 node_modules
+      if (id.includes(&#39;node_modules&#39;)) {
+        return null
+      }
+      
+      let transformedCode = code
+      let hasChanges = false
+      const sourcemap = this.getCombinedSourcemap()
+      
+      // TypeScript 装饰器转换
+      if (id.endsWith(&#39;.ts&#39;) &amp;&amp; code.includes(&#39;@&#39;)) {
+        transformedCode = transformDecorators(transformedCode)
+        hasChanges = true
+      }
+      
+      // JSX 转换
+      if (id.endsWith(&#39;.jsx&#39;) &amp;&amp; !id.includes(&#39;.vue&#39;)) {
+        transformedCode = transformJSX(transformedCode)
+        hasChanges = true
+      }
+      
+      // 环境变量替换
+      const envVars = Object.entries(process.env)
+        .filter(([key]) =&gt; key.startsWith(&#39;VITE_&#39;))
+      
+      envVars.forEach(([key, value]) =&gt; {
+        const pattern = new RegExp(`import\\.meta\\.env\\.${key}`, &#39;g&#39;)
+        if (pattern.test(transformedCode)) {
+          transformedCode = transformedCode.replace(pattern, JSON.stringify(value))
+          hasChanges = true
+        }
+      })
+      
+      // 开发环境注入
+      if (process.env.NODE_ENV === &#39;development&#39;) {
+        if (transformedCode.includes(&#39;console.error&#39;)) {
+          // 开发环境增强错误信息
+          transformedCode = transformedCode.replace(
+            /console\.error\(([^)]+)\)/g,
+            `console.error(&#39;[${id}]&#39;, $1)`
+          )
+          hasChanges = true
+        }
+      }
+      
+      // 生产环境优化
+      if (process.env.NODE_ENV === &#39;production&#39;) {
+        // 移除调试代码
+        transformedCode = transformedCode.replace(/debugger;?/g, &#39;&#39;)
+        transformedCode = transformedCode.replace(/console\.(log|debug|info)\([^)]*\);?/g, &#39;&#39;)
+        hasChanges = true
+      }
+      
+      // 返回转换结果
+      if (hasChanges) {
+        return {
+          code: transformedCode,
+          map: sourcemap
+        }
+      }
+      
+      return null
+    }
+  }
+}
+
+// 辅助函数
+function transformDecorators(code) {
+  // 简单的装饰器转换示例
+  return code.replace(/@(\w+)/g, &#39;/* @$1 */&#39;)
+}
+
+function transformJSX(code) {
+  // 简单的 JSX 转换示例
+  return code.replace(/&lt;(\w+)([^&gt;]*)&gt;/g, &#39;React.createElement(&quot;$1&quot;, {$2})&#39;)
+}
+</code></pre>
+<h3>generateBundle 钩子</h3>
+<pre><code class="language-javascript">// 构建包生成钩子
+const generateBundlePlugin = () =&gt; ({
+  name: &#39;generate-bundle-plugin&#39;,
+  generateBundle(options, bundle) {
+    // 分析构建包
+    const chunks = Object.values(bundle).filter(chunk =&gt; chunk.type === &#39;chunk&#39;)
+    const assets = Object.values(bundle).filter(asset =&gt; asset.type === &#39;asset&#39;)
+    
+    console.log(`Generated ${chunks.length} chunks and ${assets.length} assets`)
+    
+    // 添加构建信息文件
+    const buildInfo = {
+      buildTime: new Date().toISOString(),
+      chunks: chunks.map(chunk =&gt; ({
+        fileName: chunk.fileName,
+        size: chunk.code.length,
+        modules: Object.keys(chunk.modules || {}).length
+      })),
+      assets: assets.map(asset =&gt; ({
+        fileName: asset.fileName,
+        size: asset.source.length
+      })),
+      totalSize: chunks.reduce((sum, chunk) =&gt; sum + chunk.code.length, 0) +
+                 assets.reduce((sum, asset) =&gt; sum + asset.source.length, 0)
+    }
+    
+    // 添加到构建包中
+    this.emitFile({
+      type: &#39;asset&#39;,
+      fileName: &#39;build-info.json&#39;,
+      source: JSON.stringify(buildInfo, null, 2)
+    })
+    
+    // 修改现有文件
+    Object.keys(bundle).forEach(fileName =&gt; {
+      const chunk = bundle[fileName]
+      
+      if (chunk.type === &#39;chunk&#39; &amp;&amp; chunk.isEntry) {
+        // 在入口文件顶部添加版本信息
+        chunk.code = `/* Build: ${buildInfo.buildTime} */\n${chunk.code}`
+      }
+      
+      if (chunk.type === &#39;asset&#39; &amp;&amp; fileName.endsWith(&#39;.css&#39;)) {
+        // 在 CSS 文件顶部添加注释
+        chunk.source = `/* Generated at ${buildInfo.buildTime} */\n${chunk.source}`
+      }
+    })
+    
+    // 生成依赖图
+    const dependencyGraph = generateDependencyGraph(chunks)
+    this.emitFile({
+      type: &#39;asset&#39;,
+      fileName: &#39;dependency-graph.json&#39;,
+      source: JSON.stringify(dependencyGraph, null, 2)
+    })
+  }
+})
+
+function generateDependencyGraph(chunks) {
+  const graph = {}
+  
+  chunks.forEach(chunk =&gt; {
+    graph[chunk.fileName] = {
+      imports: chunk.imports || [],
+      dynamicImports: chunk.dynamicImports || [],
+      modules: Object.keys(chunk.modules || {})
+    }
+  })
+  
+  return graph
+}
+</code></pre>
+<h2>插件上下文 API</h2>
+<h3>插件上下文方法</h3>
+<pre><code class="language-javascript">const contextPlugin = () =&gt; ({
+  name: &#39;context-plugin&#39;,
+  
+  buildStart() {
+    // 添加监听文件
+    this.addWatchFile(&#39;config/app.json&#39;)
+    this.addWatchFile(&#39;src/types/global.d.ts&#39;)
+  },
+  
+  load(id) {
+    if (id.endsWith(&#39;.special&#39;)) {
+      // 发出文件
+      const referenceId = this.emitFile({
+        type: &#39;asset&#39;,
+        fileName: &#39;generated.txt&#39;,
+        source: &#39;This is a generated file&#39;
+      })
+      
+      // 获取文件名
+      const fileName = this.getFileName(referenceId)
+      
+      return `export const generatedFile = &quot;${fileName}&quot;`
+    }
+  },
+  
+  transform(code, id) {
+    if (code.includes(&#39;import.meta.SPECIAL&#39;)) {
+      // 解析模块
+      const resolved = this.resolve(&#39;./utils&#39;, id)
+      
+      if (resolved) {
+        return {
+          code: code.replace(
+            &#39;import.meta.SPECIAL&#39;,
+            `&quot;${resolved.id}&quot;`
+          ),
+          map: null
+        }
+      }
+    }
+  },
+  
+  generateBundle() {
+    // 获取模块信息
+    const moduleIds = this.getModuleIds()
+    
+    moduleIds.forEach(id =&gt; {
+      const moduleInfo = this.getModuleInfo(id)
+      
+      if (moduleInfo &amp;&amp; moduleInfo.isEntry) {
+        console.log(`Entry module: ${id}`)
+        console.log(`Dependencies: ${moduleInfo.importedIds.length}`)
+      }
+    })
+  }
+})
+</code></pre>
+<h3>错误处理</h3>
+<pre><code class="language-javascript">const errorHandlingPlugin = () =&gt; ({
+  name: &#39;error-handling-plugin&#39;,
+  
+  load(id) {
+    try {
+      if (id.endsWith(&#39;.risky&#39;)) {
+        // 可能出错的操作
+        return processRiskyFile(id)
+      }
+    } catch (error) {
+      // 发出警告
+      this.warn(`Failed to process ${id}: ${error.message}`)
+      
+      // 或者发出错误
+      this.error(`Critical error in ${id}: ${error.message}`)
+    }
+  },
+  
+  transform(code, id) {
+    // 验证代码
+    if (!isValidCode(code)) {
+      // 发出错误并停止构建
+      this.error(`Invalid code in ${id}`, {
+        id,
+        loc: { line: 1, column: 1 },
+        frame: code.split(&#39;\n&#39;).slice(0, 5).join(&#39;\n&#39;)
+      })
+    }
+    
+    // 发出警告但继续构建
+    if (hasDeprecatedAPI(code)) {
+      this.warn(`Deprecated API usage in ${id}`, {
+        id,
+        message: &#39;This API will be removed in the next version&#39;
+      })
+    }
+  }
+})
+
+function processRiskyFile(id) {
+  // 模拟可能出错的文件处理
+  if (Math.random() &lt; 0.1) {
+    throw new Error(&#39;Random processing error&#39;)
+  }
+  return `export default &quot;processed-${id}&quot;`
+}
+
+function isValidCode(code) {
+  // 简单的代码验证
+  try {
+    new Function(code)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function hasDeprecatedAPI(code) {
+  return code.includes(&#39;deprecatedFunction&#39;)
+}
+</code></pre>
+<h2>插件组合和通信</h2>
+<h3>插件间通信</h3>
+<pre><code class="language-javascript">// 共享状态插件
+const sharedStatePlugin = () =&gt; {
+  const state = new Map()
+  
+  return {
+    name: &#39;shared-state-plugin&#39;,
+    
+    configResolved() {
+      // 在全局对象上暴露状态
+      global.__PLUGIN_STATE__ = state
+    },
+    
+    buildStart() {
+      state.set(&#39;buildStartTime&#39;, Date.now())
+    },
+    
+    generateBundle() {
+      const startTime = state.get(&#39;buildStartTime&#39;)
+      const duration = Date.now() - startTime
+      console.log(`Build duration: ${duration}ms`)
+    }
+  }
+}
+
+// 消费状态插件
+const consumerPlugin = () =&gt; ({
+  name: &#39;consumer-plugin&#39;,
+  
+  transform(code, id) {
+    const state = global.__PLUGIN_STATE__
+    
+    if (state &amp;&amp; state.has(&#39;buildStartTime&#39;)) {
+      const startTime = state.get(&#39;buildStartTime&#39;)
+      const elapsed = Date.now() - startTime
+      
+      // 在代码中注入构建时间
+      if (code.includes(&#39;__BUILD_ELAPSED__&#39;)) {
+        return {
+          code: code.replace(&#39;__BUILD_ELAPSED__&#39;, elapsed.toString()),
+          map: null
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>插件依赖管理</h3>
+<pre><code class="language-javascript">// 依赖管理插件
+const dependencyPlugin = () =&gt; ({
+  name: &#39;dependency-plugin&#39;,
+  
+  // 确保在其他插件之前执行
+  enforce: &#39;pre&#39;,
+  
+  configResolved(config) {
+    // 检查依赖插件
+    const requiredPlugins = [&#39;vue&#39;, &#39;typescript&#39;]
+    const availablePlugins = config.plugins.map(p =&gt; p.name)
+    
+    const missing = requiredPlugins.filter(name =&gt; 
+      !availablePlugins.includes(name)
+    )
+    
+    if (missing.length &gt; 0) {
+      throw new Error(`Missing required plugins: ${missing.join(&#39;, &#39;)}`)
+    }
+  }
+})
+
+// 插件工厂，确保依赖顺序
+const createPluginSuite = (options = {}) =&gt; {
+  return [
+    // 基础插件
+    sharedStatePlugin(),
+    dependencyPlugin(),
+    
+    // 功能插件
+    consumerPlugin(),
+    
+    // 确保在最后执行的插件
+    {
+      name: &#39;cleanup-plugin&#39;,
+      enforce: &#39;post&#39;,
+      writeBundle() {
+        // 清理全局状态
+        delete global.__PLUGIN_STATE__
+      }
+    }
+  ]
+}
+</code></pre>
+<h2>总结</h2>
+<p>Vite 插件 API 提供了：</p>
+<ul>
+<li>完整的构建生命周期钩子</li>
+<li>强大的代码转换能力</li>
+<li>灵活的模块解析机制</li>
+<li>丰富的上下文方法和错误处理</li>
+</ul>
+<p>深入理解这些 API，能够帮助你开发出功能强大、性能优异的 Vite 插件，充分发挥 Vite 的扩展能力。</p>
+
+      

@@ -1,0 +1,534 @@
+
+        <header>
+          <h1>最佳实践</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <h2>概述</h2>
+<p>本章总结了使用 Vite 7.0 开发现代前端应用的最佳实践，涵盖项目结构、性能优化、代码质量、团队协作等方面。</p>
+<h2>项目结构最佳实践</h2>
+<h3>推荐的目录结构</h3>
+<pre><code>src/
+├── assets/           # 静态资源
+│   ├── images/
+│   ├── icons/
+│   └── styles/
+├── components/       # 可复用组件
+│   ├── ui/          # 基础 UI 组件
+│   ├── forms/       # 表单组件
+│   └── layout/      # 布局组件
+├── features/        # 功能模块
+│   ├── auth/
+│   ├── dashboard/
+│   └── profile/
+├── hooks/           # 自定义 Hooks
+├── services/        # API 服务
+├── stores/          # 状态管理
+├── types/           # TypeScript 类型定义
+├── utils/           # 工具函数
+├── constants/       # 常量定义
+└── App.tsx
+</code></pre>
+<h3>功能模块组织</h3>
+<pre><code class="language-typescript">// features/auth/index.ts
+export { AuthProvider } from &#39;./components/AuthProvider&#39;
+export { LoginForm } from &#39;./components/LoginForm&#39;
+export { useAuth } from &#39;./hooks/useAuth&#39;
+export { authService } from &#39;./services/authService&#39;
+export type { User, AuthState } from &#39;./types&#39;
+</code></pre>
+<h2>代码质量最佳实践</h2>
+<h3>TypeScript 配置</h3>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;ES2022&quot;,
+    &quot;lib&quot;: [&quot;ES2022&quot;, &quot;DOM&quot;, &quot;DOM.Iterable&quot;],
+    &quot;module&quot;: &quot;ESNext&quot;,
+    &quot;skipLibCheck&quot;: true,
+    &quot;moduleResolution&quot;: &quot;bundler&quot;,
+    &quot;allowImportingTsExtensions&quot;: true,
+    &quot;resolveJsonModule&quot;: true,
+    &quot;isolatedModules&quot;: true,
+    &quot;noEmit&quot;: true,
+    &quot;jsx&quot;: &quot;react-jsx&quot;,
+    &quot;strict&quot;: true,
+    &quot;noUnusedLocals&quot;: true,
+    &quot;noUnusedParameters&quot;: true,
+    &quot;noFallthroughCasesInSwitch&quot;: true,
+    &quot;exactOptionalPropertyTypes&quot;: true,
+    &quot;noImplicitReturns&quot;: true,
+    &quot;noImplicitOverride&quot;: true
+  },
+  &quot;include&quot;: [&quot;src&quot;],
+  &quot;references&quot;: [{ &quot;path&quot;: &quot;./tsconfig.node.json&quot; }]
+}
+</code></pre>
+<h3>ESLint 配置</h3>
+<pre><code class="language-javascript">// eslint.config.js
+import js from &#39;@eslint/js&#39;
+import globals from &#39;globals&#39;
+import reactHooks from &#39;eslint-plugin-react-hooks&#39;
+import reactRefresh from &#39;eslint-plugin-react-refresh&#39;
+import tseslint from &#39;typescript-eslint&#39;
+
+export default tseslint.config(
+  { ignores: [&#39;dist&#39;] },
+  {
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: [&#39;**/*.{ts,tsx}&#39;],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+    plugins: {
+      &#39;react-hooks&#39;: reactHooks,
+      &#39;react-refresh&#39;: reactRefresh,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      &#39;react-refresh/only-export-components&#39;: [
+        &#39;warn&#39;,
+        { allowConstantExport: true },
+      ],
+      &#39;@typescript-eslint/no-unused-vars&#39;: [&#39;error&#39;, { argsIgnorePattern: &#39;^_&#39; }],
+      &#39;@typescript-eslint/explicit-function-return-type&#39;: &#39;warn&#39;,
+      &#39;@typescript-eslint/no-explicit-any&#39;: &#39;error&#39;,
+    },
+  },
+)
+</code></pre>
+<h3>Prettier 配置</h3>
+<pre><code class="language-json">{
+  &quot;semi&quot;: false,
+  &quot;singleQuote&quot;: true,
+  &quot;tabWidth&quot;: 2,
+  &quot;trailingComma&quot;: &quot;es5&quot;,
+  &quot;printWidth&quot;: 80,
+  &quot;bracketSpacing&quot;: true,
+  &quot;arrowParens&quot;: &quot;avoid&quot;,
+  &quot;endOfLine&quot;: &quot;lf&quot;
+}
+</code></pre>
+<h2>性能优化最佳实践</h2>
+<h3>代码分割策略</h3>
+<pre><code class="language-typescript">// 路由级别的代码分割
+import { lazy, Suspense } from &#39;react&#39;
+import { Routes, Route } from &#39;react-router-dom&#39;
+import LoadingSpinner from &#39;./components/LoadingSpinner&#39;
+
+const Home = lazy(() =&gt; import(&#39;./pages/Home&#39;))
+const Dashboard = lazy(() =&gt; import(&#39;./pages/Dashboard&#39;))
+const Profile = lazy(() =&gt; import(&#39;./pages/Profile&#39;))
+
+function App() {
+  return (
+    &lt;Suspense fallback={&lt;LoadingSpinner /&gt;}&gt;
+      &lt;Routes&gt;
+        &lt;Route path=&quot;/&quot; element={&lt;Home /&gt;} /&gt;
+        &lt;Route path=&quot;/dashboard&quot; element={&lt;Dashboard /&gt;} /&gt;
+        &lt;Route path=&quot;/profile&quot; element={&lt;Profile /&gt;} /&gt;
+      &lt;/Routes&gt;
+    &lt;/Suspense&gt;
+  )
+}
+</code></pre>
+<h3>资源优化</h3>
+<pre><code class="language-typescript">// vite.config.ts
+import { defineConfig } from &#39;vite&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // 将第三方库分离
+          vendor: [&#39;react&#39;, &#39;react-dom&#39;],
+          router: [&#39;react-router-dom&#39;],
+          ui: [&#39;antd&#39;, &#39;@ant-design/icons&#39;],
+          utils: [&#39;lodash&#39;, &#39;date-fns&#39;],
+        },
+        // 资源文件命名
+        assetFileNames: (assetInfo) =&gt; {
+          const info = assetInfo.name.split(&#39;.&#39;)
+          const ext = info[info.length - 1]
+          if (/\.(png|jpe?g|gif|svg)$/.test(assetInfo.name)) {
+            return `images/[name]-[hash][extname]`
+          }
+          if (/\.(css)$/.test(assetInfo.name)) {
+            return `styles/[name]-[hash][extname]`
+          }
+          return `assets/[name]-[hash][extname]`
+        },
+      },
+    },
+    // 启用压缩
+    minify: &#39;esbuild&#39;,
+    // 生成 source map
+    sourcemap: true,
+    // 设置 chunk 大小警告限制
+    chunkSizeWarningLimit: 1000,
+  },
+})
+</code></pre>
+<h3>图片优化</h3>
+<pre><code class="language-typescript">// 使用 vite-plugin-imagemin
+import { defineConfig } from &#39;vite&#39;
+import { viteImagemin } from &#39;vite-plugin-imagemin&#39;
+
+export default defineConfig({
+  plugins: [
+    viteImagemin({
+      gifsicle: { optimizationLevel: 7 },
+      mozjpeg: { quality: 80 },
+      pngquant: { quality: [0.65, 0.8] },
+      svgo: {
+        plugins: [
+          { name: &#39;removeViewBox&#39;, active: false },
+          { name: &#39;removeEmptyAttrs&#39;, active: false },
+        ],
+      },
+    }),
+  ],
+})
+</code></pre>
+<h2>状态管理最佳实践</h2>
+<h3>Zustand 使用模式</h3>
+<pre><code class="language-typescript">// stores/useUserStore.ts
+import { create } from &#39;zustand&#39;
+import { devtools, persist } from &#39;zustand/middleware&#39;
+import { immer } from &#39;zustand/middleware/immer&#39;
+
+interface User {
+  id: string
+  name: string
+  email: string
+}
+
+interface UserState {
+  user: User | null
+  isLoading: boolean
+  error: string | null
+}
+
+interface UserActions {
+  setUser: (user: User) =&gt; void
+  clearUser: () =&gt; void
+  setLoading: (loading: boolean) =&gt; void
+  setError: (error: string | null) =&gt; void
+}
+
+export const useUserStore = create&lt;UserState &amp; UserActions&gt;()(
+  devtools(
+    persist(
+      immer((set) =&gt; ({
+        user: null,
+        isLoading: false,
+        error: null,
+        
+        setUser: (user) =&gt; set((state) =&gt; {
+          state.user = user
+          state.error = null
+        }),
+        
+        clearUser: () =&gt; set((state) =&gt; {
+          state.user = null
+        }),
+        
+        setLoading: (loading) =&gt; set((state) =&gt; {
+          state.isLoading = loading
+        }),
+        
+        setError: (error) =&gt; set((state) =&gt; {
+          state.error = error
+        }),
+      })),
+      {
+        name: &#39;user-storage&#39;,
+        partialize: (state) =&gt; ({ user: state.user }),
+      }
+    ),
+    { name: &#39;user-store&#39; }
+  )
+)
+</code></pre>
+<h3>React Query 集成</h3>
+<pre><code class="language-typescript">// hooks/useUsers.ts
+import { useQuery, useMutation, useQueryClient } from &#39;@tanstack/react-query&#39;
+import { userService } from &#39;../services/userService&#39;
+
+export function useUsers() {
+  return useQuery({
+    queryKey: [&#39;users&#39;],
+    queryFn: userService.getUsers,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: userService.createUser,
+    onSuccess: () =&gt; {
+      queryClient.invalidateQueries({ queryKey: [&#39;users&#39;] })
+    },
+  })
+}
+</code></pre>
+<h2>测试最佳实践</h2>
+<h3>组件测试</h3>
+<pre><code class="language-typescript">// __tests__/Button.test.tsx
+import { render, screen, fireEvent } from &#39;@testing-library/react&#39;
+import { vi } from &#39;vitest&#39;
+import Button from &#39;../Button&#39;
+
+describe(&#39;Button&#39;, () =&gt; {
+  it(&#39;renders with correct text&#39;, () =&gt; {
+    render(&lt;Button&gt;Click me&lt;/Button&gt;)
+    expect(screen.getByRole(&#39;button&#39;)).toHaveTextContent(&#39;Click me&#39;)
+  })
+
+  it(&#39;calls onClick when clicked&#39;, () =&gt; {
+    const handleClick = vi.fn()
+    render(&lt;Button onClick={handleClick}&gt;Click me&lt;/Button&gt;)
+    
+    fireEvent.click(screen.getByRole(&#39;button&#39;))
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
+
+  it(&#39;is disabled when loading&#39;, () =&gt; {
+    render(&lt;Button loading&gt;Click me&lt;/Button&gt;)
+    expect(screen.getByRole(&#39;button&#39;)).toBeDisabled()
+  })
+})
+</code></pre>
+<h3>自定义 Hook 测试</h3>
+<pre><code class="language-typescript">// __tests__/useCounter.test.ts
+import { renderHook, act } from &#39;@testing-library/react&#39;
+import { useCounter } from &#39;../useCounter&#39;
+
+describe(&#39;useCounter&#39;, () =&gt; {
+  it(&#39;should initialize with default value&#39;, () =&gt; {
+    const { result } = renderHook(() =&gt; useCounter())
+    expect(result.current.count).toBe(0)
+  })
+
+  it(&#39;should increment count&#39;, () =&gt; {
+    const { result } = renderHook(() =&gt; useCounter())
+    
+    act(() =&gt; {
+      result.current.increment()
+    })
+    
+    expect(result.current.count).toBe(1)
+  })
+})
+</code></pre>
+<h2>安全最佳实践</h2>
+<h3>环境变量管理</h3>
+<pre><code class="language-typescript">// utils/env.ts
+const requiredEnvVars = [
+  &#39;VITE_API_URL&#39;,
+  &#39;VITE_APP_NAME&#39;,
+] as const
+
+type RequiredEnvVar = typeof requiredEnvVars[number]
+
+function getEnvVar(name: RequiredEnvVar): string {
+  const value = import.meta.env[name]
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+  return value
+}
+
+export const env = {
+  apiUrl: getEnvVar(&#39;VITE_API_URL&#39;),
+  appName: getEnvVar(&#39;VITE_APP_NAME&#39;),
+  isDev: import.meta.env.DEV,
+  isProd: import.meta.env.PROD,
+} as const
+</code></pre>
+<h3>XSS 防护</h3>
+<pre><code class="language-typescript">// utils/sanitize.ts
+import DOMPurify from &#39;dompurify&#39;
+
+export function sanitizeHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [&#39;b&#39;, &#39;i&#39;, &#39;em&#39;, &#39;strong&#39;, &#39;a&#39;, &#39;p&#39;, &#39;br&#39;],
+    ALLOWED_ATTR: [&#39;href&#39;, &#39;target&#39;],
+  })
+}
+
+// 使用示例
+function UserContent({ content }: { content: string }) {
+  return (
+    &lt;div 
+      dangerouslySetInnerHTML={{ 
+        __html: sanitizeHtml(content) 
+      }} 
+    /&gt;
+  )
+}
+</code></pre>
+<h2>团队协作最佳实践</h2>
+<h3>Git 工作流</h3>
+<pre><code class="language-bash"># 功能分支命名规范
+feature/user-authentication
+bugfix/login-validation
+hotfix/security-patch
+
+# 提交信息规范
+feat: add user authentication
+fix: resolve login validation issue
+docs: update API documentation
+style: format code with prettier
+refactor: extract user service
+test: add unit tests for auth
+chore: update dependencies
+</code></pre>
+<h3>代码审查清单</h3>
+<pre><code class="language-markdown">## 代码审查清单
+
+### 功能性
+- [ ] 功能是否按预期工作
+- [ ] 边界情况是否处理
+- [ ] 错误处理是否完善
+
+### 代码质量
+- [ ] 代码是否易读易懂
+- [ ] 是否遵循项目编码规范
+- [ ] 是否有重复代码
+
+### 性能
+- [ ] 是否有性能问题
+- [ ] 是否正确使用缓存
+- [ ] 是否有内存泄漏
+
+### 安全性
+- [ ] 输入验证是否充分
+- [ ] 是否有安全漏洞
+- [ ] 敏感信息是否正确处理
+
+### 测试
+- [ ] 是否有足够的测试覆盖
+- [ ] 测试是否有意义
+- [ ] 是否通过所有测试
+</code></pre>
+<h3>文档规范</h3>
+<pre><code class="language-typescript">/**
+ * 用户认证服务
+ * 
+ * @example
+ * ```typescript
+ * const user = await authService.login(&#39;user@example.com&#39;, &#39;password&#39;)
+ * ```
+ */
+export class AuthService {
+  /**
+   * 用户登录
+   * 
+   * @param email - 用户邮箱
+   * @param password - 用户密码
+   * @returns Promise&lt;User&gt; 用户信息
+   * @throws {AuthError} 认证失败时抛出
+   */
+  async login(email: string, password: string): Promise&lt;User&gt; {
+    // 实现逻辑
+  }
+}
+</code></pre>
+<h2>监控和调试最佳实践</h2>
+<h3>错误边界</h3>
+<pre><code class="language-typescript">// components/ErrorBoundary.tsx
+import { Component, ErrorInfo, ReactNode } from &#39;react&#39;
+
+interface Props {
+  children: ReactNode
+  fallback?: ReactNode
+}
+
+interface State {
+  hasError: boolean
+  error?: Error
+}
+
+export class ErrorBoundary extends Component&lt;Props, State&gt; {
+  constructor(props: Props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error(&#39;Error caught by boundary:&#39;, error, errorInfo)
+    
+    // 发送错误到监控服务
+    if (import.meta.env.PROD) {
+      this.reportError(error, errorInfo)
+    }
+  }
+
+  private reportError(error: Error, errorInfo: ErrorInfo) {
+    // 发送到错误监控服务
+    fetch(&#39;/api/errors&#39;, {
+      method: &#39;POST&#39;,
+      headers: { &#39;Content-Type&#39;: &#39;application/json&#39; },
+      body: JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+        timestamp: new Date().toISOString(),
+      }),
+    })
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || (
+        &lt;div className=&quot;error-fallback&quot;&gt;
+          &lt;h2&gt;出现了一些问题&lt;/h2&gt;
+          &lt;p&gt;请刷新页面重试&lt;/p&gt;
+        &lt;/div&gt;
+      )
+    }
+
+    return this.props.children
+  }
+}
+</code></pre>
+<h3>性能监控</h3>
+<pre><code class="language-typescript">// utils/performance.ts
+export function measurePerformance&lt;T&gt;(
+  name: string,
+  fn: () =&gt; T
+): T {
+  const start = performance.now()
+  const result = fn()
+  const end = performance.now()
+  
+  console.log(`${name} took ${end - start} milliseconds`)
+  
+  // 发送到分析服务
+  if (import.meta.env.PROD) {
+    reportMetric(name, end - start)
+  }
+  
+  return result
+}
+
+function reportMetric(name: string, duration: number) {
+  // 发送性能指标
+  navigator.sendBeacon(&#39;/api/metrics&#39;, JSON.stringify({
+    name,
+    duration,
+    timestamp: Date.now(),
+  }))
+}
+</code></pre>
+<p>通过遵循这些最佳实践，你可以构建高质量、可维护、高性能的 Vite 7.0 应用程序。</p>
+
+      

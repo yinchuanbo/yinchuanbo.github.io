@@ -1,0 +1,443 @@
+
+        <header>
+          <h1>构建生产版本</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>Vite 使用 Rollup 作为生产构建工具，提供高度优化的构建输出。本章将详细介绍如何配置和优化生产构建。</p>
+<h2>构建基础</h2>
+<h3>基本构建命令</h3>
+<pre><code class="language-bash"># 构建生产版本
+npm run build
+
+# 构建并分析包大小
+npm run build -- --analyze
+
+# 构建特定环境
+npm run build -- --mode production
+</code></pre>
+<h3>构建输出结构</h3>
+<pre><code>dist/
+├── assets/
+│   ├── index-a1b2c3d4.js      # 主入口文件
+│   ├── vendor-e5f6g7h8.js     # 第三方依赖
+│   ├── style-i9j0k1l2.css     # 样式文件
+│   └── logo-m3n4o5p6.png      # 静态资源
+├── index.html                  # HTML 入口
+└── favicon.ico                 # 网站图标
+</code></pre>
+<h2>构建配置</h2>
+<h3>基础构建选项</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  build: {
+    // 输出目录
+    outDir: &#39;dist&#39;,
+    
+    // 静态资源目录
+    assetsDir: &#39;assets&#39;,
+    
+    // 小于此阈值的导入或引用资源将内联为 base64 编码
+    assetsInlineLimit: 4096,
+    
+    // 启用/禁用 CSS 代码拆分
+    cssCodeSplit: true,
+    
+    // 构建后是否生成 source map
+    sourcemap: false,
+    
+    // 设置为 false 可以禁用最小化混淆
+    minify: &#39;esbuild&#39;, // &#39;terser&#39; | &#39;esbuild&#39; | false
+    
+    // 传递给 Terser 的更多 minify 选项
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    }
+  }
+})
+</code></pre>
+<h3>高级构建配置</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  build: {
+    // 自定义底层的 Rollup 打包配置
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, &#39;index.html&#39;),
+        admin: resolve(__dirname, &#39;admin.html&#39;)
+      },
+      output: {
+        // 分包策略
+        manualChunks: {
+          vendor: [&#39;vue&#39;, &#39;vue-router&#39;],
+          utils: [&#39;lodash-es&#39;, &#39;axios&#39;]
+        },
+        // 自定义文件名
+        chunkFileNames: &#39;js/[name]-[hash].js&#39;,
+        entryFileNames: &#39;js/[name]-[hash].js&#39;,
+        assetFileNames: &#39;assets/[name]-[hash].[ext]&#39;
+      }
+    },
+    
+    // 库模式配置
+    lib: {
+      entry: resolve(__dirname, &#39;src/main.js&#39;),
+      name: &#39;MyLib&#39;,
+      fileName: &#39;my-lib&#39;
+    },
+    
+    // 构建目标
+    target: &#39;es2015&#39;, // &#39;es2015&#39; | &#39;es2017&#39; | &#39;es2018&#39; | &#39;es2019&#39; | &#39;es2020&#39; | &#39;esnext&#39;
+    
+    // 警告阈值
+    chunkSizeWarningLimit: 500,
+    
+    // 启用/禁用 gzip 压缩大小报告
+    reportCompressedSize: true,
+    
+    // 调整 chunk 大小警告的限制
+    chunkSizeWarningLimit: 1000
+  }
+})
+</code></pre>
+<h2>代码分割</h2>
+<h3>自动代码分割</h3>
+<pre><code class="language-javascript">// 动态导入自动创建分割点
+const LazyComponent = () =&gt; import(&#39;./components/LazyComponent.vue&#39;)
+
+// 路由级别的代码分割
+const routes = [
+  {
+    path: &#39;/home&#39;,
+    component: () =&gt; import(&#39;./views/Home.vue&#39;)
+  },
+  {
+    path: &#39;/about&#39;,
+    component: () =&gt; import(&#39;./views/About.vue&#39;)
+  }
+]
+</code></pre>
+<h3>手动分包配置</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) =&gt; {
+          // 将 node_modules 中的包分离到 vendor chunk
+          if (id.includes(&#39;node_modules&#39;)) {
+            // 进一步细分第三方库
+            if (id.includes(&#39;vue&#39;)) {
+              return &#39;vue-vendor&#39;
+            }
+            if (id.includes(&#39;lodash&#39;)) {
+              return &#39;lodash-vendor&#39;
+            }
+            return &#39;vendor&#39;
+          }
+          
+          // 将工具函数分离到单独的 chunk
+          if (id.includes(&#39;/src/utils/&#39;)) {
+            return &#39;utils&#39;
+          }
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>预加载策略</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        // 生成预加载指令
+        manualChunks: {
+          &#39;critical-vendor&#39;: [&#39;vue&#39;, &#39;vue-router&#39;],
+          &#39;secondary-vendor&#39;: [&#39;axios&#39;, &#39;lodash-es&#39;]
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h2>资源处理</h2>
+<h3>静态资源优化</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  build: {
+    // 小文件内联阈值
+    assetsInlineLimit: 4096,
+    
+    rollupOptions: {
+      output: {
+        // 资源文件命名
+        assetFileNames: (assetInfo) =&gt; {
+          const info = assetInfo.name.split(&#39;.&#39;)
+          const ext = info[info.length - 1]
+          
+          if (/\.(png|jpe?g|gif|svg)$/.test(assetInfo.name)) {
+            return `images/[name]-[hash].${ext}`
+          }
+          if (/\.(woff2?|eot|ttf|otf)$/.test(assetInfo.name)) {
+            return `fonts/[name]-[hash].${ext}`
+          }
+          return `assets/[name]-[hash].${ext}`
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>图片优化</h3>
+<pre><code class="language-javascript">// 使用 vite-plugin-imagemin
+import { defineConfig } from &#39;vite&#39;
+import { ViteImageOptimize } from &#39;vite-plugin-imagemin&#39;
+
+export default defineConfig({
+  plugins: [
+    ViteImageOptimize({
+      gifsicle: { optimizationLevel: 7 },
+      mozjpeg: { quality: 80 },
+      pngquant: { quality: [0.65, 0.8] },
+      svgo: {
+        plugins: [
+          { name: &#39;removeViewBox&#39;, active: false },
+          { name: &#39;removeEmptyAttrs&#39;, active: false }
+        ]
+      }
+    })
+  ]
+})
+</code></pre>
+<h2>CSS 优化</h2>
+<h3>CSS 分割和压缩</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  build: {
+    // 启用 CSS 代码分割
+    cssCodeSplit: true,
+    
+    // CSS 压缩
+    cssMinify: &#39;esbuild&#39;, // &#39;esbuild&#39; | &#39;lightningcss&#39;
+  },
+  
+  css: {
+    // PostCSS 配置
+    postcss: {
+      plugins: [
+        require(&#39;autoprefixer&#39;),
+        require(&#39;cssnano&#39;)({
+          preset: &#39;default&#39;
+        })
+      ]
+    }
+  }
+})
+</code></pre>
+<h3>CSS 模块优化</h3>
+<pre><code class="language-css">/* src/styles/components.module.css */
+.button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background: #0056b3;
+}
+
+/* 构建后会生成优化的类名 */
+</code></pre>
+<h2>环境配置</h2>
+<h3>多环境构建</h3>
+<pre><code class="language-javascript">// vite.config.js
+export default defineConfig(({ command, mode }) =&gt; {
+  const config = {
+    plugins: [vue()],
+    build: {
+      outDir: &#39;dist&#39;
+    }
+  }
+  
+  if (mode === &#39;production&#39;) {
+    config.build.minify = &#39;terser&#39;
+    config.build.terserOptions = {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    }
+  }
+  
+  if (mode === &#39;staging&#39;) {
+    config.build.outDir = &#39;dist-staging&#39;
+    config.build.sourcemap = true
+  }
+  
+  return config
+})
+</code></pre>
+<h3>环境变量处理</h3>
+<pre><code class="language-bash"># .env.production
+VITE_API_URL=https://api.example.com
+VITE_APP_TITLE=My App
+VITE_ANALYTICS_ID=GA-XXXXXXXXX
+</code></pre>
+<pre><code class="language-javascript">// src/config/index.js
+export const config = {
+  apiUrl: import.meta.env.VITE_API_URL,
+  appTitle: import.meta.env.VITE_APP_TITLE,
+  analyticsId: import.meta.env.VITE_ANALYTICS_ID,
+  isDev: import.meta.env.DEV,
+  isProd: import.meta.env.PROD
+}
+</code></pre>
+<h2>性能优化</h2>
+<h3>Tree Shaking</h3>
+<pre><code class="language-javascript">// 确保使用 ES 模块导入
+import { debounce } from &#39;lodash-es&#39; // ✅ 支持 tree shaking
+// import _ from &#39;lodash&#39; // ❌ 不支持 tree shaking
+
+// 标记副作用
+// package.json
+{
+  &quot;sideEffects&quot;: false, // 或者 [&quot;*.css&quot;, &quot;*.scss&quot;]
+}
+</code></pre>
+<h3>预加载关键资源</h3>
+<pre><code class="language-html">&lt;!-- 在 index.html 中添加预加载 --&gt;
+&lt;head&gt;
+  &lt;link rel=&quot;preload&quot; href=&quot;/fonts/main.woff2&quot; as=&quot;font&quot; type=&quot;font/woff2&quot; crossorigin&gt;
+  &lt;link rel=&quot;prefetch&quot; href=&quot;/js/secondary-chunk.js&quot;&gt;
+&lt;/head&gt;
+</code></pre>
+<h3>压缩配置</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  build: {
+    minify: &#39;terser&#39;,
+    terserOptions: {
+      compress: {
+        // 移除 console
+        drop_console: true,
+        // 移除 debugger
+        drop_debugger: true,
+        // 移除无用代码
+        dead_code: true,
+        // 全局变量替换
+        global_defs: {
+          __DEV__: false
+        }
+      },
+      mangle: {
+        // 保留类名
+        keep_classnames: true,
+        // 保留函数名
+        keep_fnames: true
+      }
+    }
+  }
+})
+</code></pre>
+<h2>构建分析</h2>
+<h3>包大小分析</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import { visualizer } from &#39;rollup-plugin-visualizer&#39;
+
+export default defineConfig({
+  plugins: [
+    visualizer({
+      filename: &#39;dist/stats.html&#39;,
+      open: true,
+      gzipSize: true,
+      brotliSize: true
+    })
+  ]
+})
+</code></pre>
+<h3>构建时间分析</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  plugins: [
+    {
+      name: &#39;build-timer&#39;,
+      buildStart() {
+        this.startTime = Date.now()
+      },
+      buildEnd() {
+        console.log(`Build time: ${Date.now() - this.startTime}ms`)
+      }
+    }
+  ]
+})
+</code></pre>
+<h2>部署优化</h2>
+<h3>CDN 配置</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  build: {
+    rollupOptions: {
+      external: [&#39;vue&#39;, &#39;vue-router&#39;],
+      output: {
+        globals: {
+          vue: &#39;Vue&#39;,
+          &#39;vue-router&#39;: &#39;VueRouter&#39;
+        }
+      }
+    }
+  }
+})
+</code></pre>
+<h3>基础路径配置</h3>
+<pre><code class="language-javascript">export default defineConfig({
+  base: &#39;/my-app/&#39;, // 部署到子路径
+  
+  build: {
+    outDir: &#39;dist&#39;,
+    assetsDir: &#39;static&#39;
+  }
+})
+</code></pre>
+<h2>故障排除</h2>
+<h3>常见构建问题</h3>
+<pre><code class="language-javascript">// 1. 内存不足
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      // 减少并行处理
+      maxParallelFileOps: 2
+    }
+  }
+})
+
+// 2. 循环依赖警告
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // 忽略循环依赖警告
+        if (warning.code === &#39;CIRCULAR_DEPENDENCY&#39;) return
+        warn(warning)
+      }
+    }
+  }
+})
+
+// 3. 动态导入问题
+// 确保动态导入的路径是静态的
+const component = await import(`./components/${name}.vue`) // ❌
+const component = await import(&#39;./components/MyComponent.vue&#39;) // ✅
+</code></pre>
+<h2>总结</h2>
+<p>Vite 的生产构建提供了：</p>
+<ul>
+<li>基于 Rollup 的高度优化</li>
+<li>灵活的代码分割策略</li>
+<li>完善的资源处理机制</li>
+<li>丰富的性能优化选项</li>
+</ul>
+<p>通过合理配置这些选项，可以构建出高性能的生产应用。下一章我们将学习静态资源的处理和优化。</p>
+
+      

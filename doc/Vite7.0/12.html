@@ -1,0 +1,969 @@
+
+        <header>
+          <h1>Vue 单文件组件支持</h1>
+          <p>Vite7.0 | 2025.07.31</p>
+        </header>
+        <p>Vite 为 Vue 单文件组件（SFC）提供了一流的支持，包括模板编译、样式处理、TypeScript 集成等。本章将详细介绍如何在 Vite 中开发 Vue 应用。</p>
+<h2>Vue 项目初始化</h2>
+<h3>创建 Vue 项目</h3>
+<pre><code class="language-bash"># 创建 JavaScript Vue 项目
+npm create vite@latest my-vue-app -- --template vue
+
+# 创建 TypeScript Vue 项目
+npm create vite@latest my-vue-ts-app -- --template vue-ts
+</code></pre>
+<h3>基础项目结构</h3>
+<pre><code>my-vue-app/
+├── public/
+│   └── vite.svg
+├── src/
+│   ├── assets/
+│   │   └── vue.svg
+│   ├── components/
+│   │   └── HelloWorld.vue
+│   ├── composables/
+│   ├── stores/
+│   ├── views/
+│   ├── App.vue
+│   ├── main.js
+│   └── style.css
+├── index.html
+├── package.json
+└── vite.config.js
+</code></pre>
+<h2>Vite Vue 配置</h2>
+<h3>基础配置</h3>
+<pre><code class="language-javascript">// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import vue from &#39;@vitejs/plugin-vue&#39;
+import { resolve } from &#39;path&#39;
+
+export default defineConfig({
+  plugins: [
+    vue({
+      // Vue 插件选项
+      include: [/\.vue$/, /\.md$/], // 支持的文件类型
+      
+      // 自定义块支持
+      customElement: true,
+      
+      // 模板编译选项
+      template: {
+        compilerOptions: {
+          // 自定义元素处理
+          isCustomElement: (tag) =&gt; tag.startsWith(&#39;my-&#39;)
+        }
+      }
+    })
+  ],
+  
+  resolve: {
+    alias: {
+      &#39;@&#39;: resolve(__dirname, &#39;src&#39;),
+      &#39;@/components&#39;: resolve(__dirname, &#39;src/components&#39;),
+      &#39;@/composables&#39;: resolve(__dirname, &#39;src/composables&#39;),
+      &#39;@/stores&#39;: resolve(__dirname, &#39;src/stores&#39;),
+      &#39;@/views&#39;: resolve(__dirname, &#39;src/views&#39;)
+    }
+  }
+})
+```##
+# 高级配置选项
+```javascript
+// vite.config.js
+import { defineConfig } from &#39;vite&#39;
+import vue from &#39;@vitejs/plugin-vue&#39;
+import vueJsx from &#39;@vitejs/plugin-vue-jsx&#39;
+
+export default defineConfig({
+  plugins: [
+    vue({
+      // 脚本设置支持
+      script: {
+        defineModel: true,
+        propsDestructure: true
+      },
+      
+      // 样式特性
+      style: {
+        filename: &#39;style.css&#39;
+      },
+      
+      // 自定义块
+      customElement: /\.ce\.vue$/,
+      
+      // 响应式转换
+      reactivityTransform: true
+    }),
+    
+    // JSX 支持
+    vueJsx({
+      mergeProps: false,
+      enableObjectSlots: false
+    })
+  ]
+})
+</code></pre>
+<h3>TypeScript 配置</h3>
+<pre><code class="language-json">// tsconfig.json
+{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;ES2020&quot;,
+    &quot;useDefineForClassFields&quot;: true,
+    &quot;module&quot;: &quot;ESNext&quot;,
+    &quot;lib&quot;: [&quot;ES2020&quot;, &quot;DOM&quot;, &quot;DOM.Iterable&quot;],
+    &quot;skipLibCheck&quot;: true,
+    
+    &quot;moduleResolution&quot;: &quot;bundler&quot;,
+    &quot;allowImportingTsExtensions&quot;: true,
+    &quot;resolveJsonModule&quot;: true,
+    &quot;isolatedModules&quot;: true,
+    &quot;noEmit&quot;: true,
+    &quot;jsx&quot;: &quot;preserve&quot;,
+    
+    &quot;strict&quot;: true,
+    &quot;noUnusedLocals&quot;: true,
+    &quot;noUnusedParameters&quot;: true,
+    &quot;noFallthroughCasesInSwitch&quot;: true,
+    
+    &quot;baseUrl&quot;: &quot;.&quot;,
+    &quot;paths&quot;: {
+      &quot;@/*&quot;: [&quot;src/*&quot;]
+    }
+  },
+  &quot;include&quot;: [&quot;src/**/*.ts&quot;, &quot;src/**/*.tsx&quot;, &quot;src/**/*.vue&quot;],
+  &quot;references&quot;: [{ &quot;path&quot;: &quot;./tsconfig.node.json&quot; }]
+}
+</code></pre>
+<h2>组合式 API 开发</h2>
+<h3>基础组件示例</h3>
+<pre><code class="language-vue">&lt;!-- src/components/UserProfile.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;user-profile&quot; :class=&quot;{ loading: isLoading }&quot;&gt;
+    &lt;div v-if=&quot;error&quot; class=&quot;error&quot;&gt;
+      {{ error }}
+      &lt;button @click=&quot;retry&quot;&gt;重试&lt;/button&gt;
+    &lt;/div&gt;
+    
+    &lt;div v-else-if=&quot;user&quot; class=&quot;user-info&quot;&gt;
+      &lt;div class=&quot;avatar&quot;&gt;
+        &lt;img 
+          v-if=&quot;user.avatar&quot; 
+          :src=&quot;user.avatar&quot; 
+          :alt=&quot;user.name&quot;
+          @error=&quot;handleImageError&quot;
+        /&gt;
+        &lt;div v-else class=&quot;avatar-placeholder&quot;&gt;
+          {{ user.name.charAt(0).toUpperCase() }}
+        &lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;div class=&quot;details&quot;&gt;
+        &lt;h2&gt;{{ user.name }}&lt;/h2&gt;
+        &lt;p&gt;{{ user.email }}&lt;/p&gt;
+        &lt;div v-if=&quot;user.bio&quot; class=&quot;bio&quot;&gt;{{ user.bio }}&lt;/div&gt;
+        
+        &lt;div class=&quot;actions&quot;&gt;
+          &lt;button 
+            @click=&quot;toggleFollow&quot; 
+            :disabled=&quot;isFollowing&quot;
+            class=&quot;btn&quot;
+            :class=&quot;user.isFollowed ? &#39;btn-secondary&#39; : &#39;btn-primary&#39;&quot;
+          &gt;
+            {{ isFollowing ? &#39;处理中...&#39; : (user.isFollowed ? &#39;取消关注&#39; : &#39;关注&#39;) }}
+          &lt;/button&gt;
+          
+          &lt;button @click=&quot;sendMessage&quot; class=&quot;btn btn-outline&quot;&gt;
+            发消息
+          &lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    
+    &lt;div v-else class=&quot;loading-placeholder&quot;&gt;
+      加载中...
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup lang=&quot;ts&quot;&gt;
+import { ref, computed, onMounted, watch } from &#39;vue&#39;
+import { useUserApi } from &#39;@/composables/useUserApi&#39;
+import type { User } from &#39;@/types/api&#39;
+
+// Props 定义
+interface Props {
+  userId: number
+  showActions?: boolean
+}
+
+const props = withDefaults(defineProps&lt;Props&gt;(), {
+  showActions: true
+})
+
+// Emits 定义
+interface Emits {
+  (e: &#39;follow&#39;, userId: number): void
+  (e: &#39;unfollow&#39;, userId: number): void
+  (e: &#39;message&#39;, userId: number): void
+}
+
+const emit = defineEmits&lt;Emits&gt;()
+
+// 响应式数据
+const user = ref&lt;User | null&gt;(null)
+const isLoading = ref(false)
+const isFollowing = ref(false)
+const error = ref&lt;string | null&gt;(null)
+
+// Composables
+const { fetchUser, followUser, unfollowUser } = useUserApi()
+
+// 计算属性
+const displayName = computed(() =&gt; {
+  return user.value ? `${user.value.name} (@${user.value.username})` : &#39;&#39;
+})
+
+// 方法
+const loadUser = async () =&gt; {
+  try {
+    isLoading.value = true
+    error.value = null
+    user.value = await fetchUser(props.userId)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : &#39;加载失败&#39;
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const toggleFollow = async () =&gt; {
+  if (!user.value || isFollowing.value) return
+  
+  try {
+    isFollowing.value = true
+    
+    if (user.value.isFollowed) {
+      await unfollowUser(user.value.id)
+      user.value.isFollowed = false
+      emit(&#39;unfollow&#39;, user.value.id)
+    } else {
+      await followUser(user.value.id)
+      user.value.isFollowed = true
+      emit(&#39;follow&#39;, user.value.id)
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : &#39;操作失败&#39;
+  } finally {
+    isFollowing.value = false
+  }
+}
+
+const sendMessage = () =&gt; {
+  if (user.value) {
+    emit(&#39;message&#39;, user.value.id)
+  }
+}
+
+const handleImageError = () =&gt; {
+  if (user.value) {
+    user.value.avatar = null
+  }
+}
+
+const retry = () =&gt; {
+  loadUser()
+}
+
+// 监听器
+watch(() =&gt; props.userId, (newId) =&gt; {
+  if (newId) {
+    loadUser()
+  }
+}, { immediate: true })
+
+// 生命周期
+onMounted(() =&gt; {
+  console.log(&#39;UserProfile mounted&#39;)
+})
+
+// 暴露给父组件的方法
+defineExpose({
+  loadUser,
+  user: readonly(user)
+})
+&lt;/script&gt;
+
+&lt;style scoped&gt;
+.user-profile {
+  padding: 20px;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.user-profile.loading {
+  opacity: 0.7;
+}
+
+.error {
+  color: #dc3545;
+  text-align: center;
+  padding: 20px;
+}
+
+.user-info {
+  display: flex;
+  gap: 16px;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #6c757d;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.details {
+  flex: 1;
+}
+
+.details h2 {
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.details p {
+  margin: 0 0 12px 0;
+  color: #666;
+}
+
+.bio {
+  margin-bottom: 16px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #545b62;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #007bff;
+  border: 1px solid #007bff;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #007bff;
+  color: white;
+}
+
+.loading-placeholder {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+&lt;/style&gt;
+</code></pre>
+<h3>Composables 开发</h3>
+<pre><code class="language-typescript">// src/composables/useUserApi.ts
+import { ref } from &#39;vue&#39;
+import type { User } from &#39;@/types/api&#39;
+
+export function useUserApi() {
+  const loading = ref(false)
+  const error = ref&lt;string | null&gt;(null)
+
+  const fetchUser = async (id: number): Promise&lt;User&gt; =&gt; {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const response = await fetch(`/api/users/${id}`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      return await response.json()
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : &#39;获取用户失败&#39;
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const followUser = async (id: number): Promise&lt;void&gt; =&gt; {
+    const response = await fetch(`/api/users/${id}/follow`, {
+      method: &#39;POST&#39;
+    })
+    if (!response.ok) {
+      throw new Error(&#39;关注失败&#39;)
+    }
+  }
+
+  const unfollowUser = async (id: number): Promise&lt;void&gt; =&gt; {
+    const response = await fetch(`/api/users/${id}/follow`, {
+      method: &#39;DELETE&#39;
+    })
+    if (!response.ok) {
+      throw new Error(&#39;取消关注失败&#39;)
+    }
+  }
+
+  return {
+    loading: readonly(loading),
+    error: readonly(error),
+    fetchUser,
+    followUser,
+    unfollowUser
+  }
+}
+</code></pre>
+<h2>选项式 API 支持</h2>
+<h3>传统组件写法</h3>
+<pre><code class="language-vue">&lt;!-- src/components/TodoList.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;todo-list&quot;&gt;
+    &lt;div class=&quot;header&quot;&gt;
+      &lt;h2&gt;待办事项&lt;/h2&gt;
+      &lt;div class=&quot;add-todo&quot;&gt;
+        &lt;input 
+          v-model=&quot;newTodo&quot;
+          @keyup.enter=&quot;addTodo&quot;
+          placeholder=&quot;添加新任务...&quot;
+          class=&quot;todo-input&quot;
+        /&gt;
+        &lt;button @click=&quot;addTodo&quot; :disabled=&quot;!newTodo.trim()&quot;&gt;
+          添加
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;filters&quot;&gt;
+      &lt;button 
+        v-for=&quot;filter in filters&quot;
+        :key=&quot;filter.value&quot;
+        @click=&quot;currentFilter = filter.value&quot;
+        :class=&quot;{ active: currentFilter === filter.value }&quot;
+        class=&quot;filter-btn&quot;
+      &gt;
+        {{ filter.label }}
+      &lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;todo-items&quot;&gt;
+      &lt;div 
+        v-for=&quot;todo in filteredTodos&quot;
+        :key=&quot;todo.id&quot;
+        class=&quot;todo-item&quot;
+        :class=&quot;{ completed: todo.completed }&quot;
+      &gt;
+        &lt;input 
+          type=&quot;checkbox&quot;
+          v-model=&quot;todo.completed&quot;
+          @change=&quot;updateTodo(todo)&quot;
+        /&gt;
+        &lt;span class=&quot;todo-text&quot;&gt;{{ todo.text }}&lt;/span&gt;
+        &lt;button @click=&quot;deleteTodo(todo.id)&quot; class=&quot;delete-btn&quot;&gt;
+          删除
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;footer&quot;&gt;
+      &lt;span&gt;总计: {{ todos.length }} 项&lt;/span&gt;
+      &lt;span&gt;已完成: {{ completedCount }} 项&lt;/span&gt;
+      &lt;button @click=&quot;clearCompleted&quot; v-if=&quot;completedCount &gt; 0&quot;&gt;
+        清除已完成
+      &lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script lang=&quot;ts&quot;&gt;
+import { defineComponent, type PropType } from &#39;vue&#39;
+
+interface Todo {
+  id: number
+  text: string
+  completed: boolean
+  createdAt: Date
+}
+
+type FilterType = &#39;all&#39; | &#39;active&#39; | &#39;completed&#39;
+
+export default defineComponent({
+  name: &#39;TodoList&#39;,
+  
+  props: {
+    initialTodos: {
+      type: Array as PropType&lt;Todo[]&gt;,
+      default: () =&gt; []
+    }
+  },
+  
+  emits: {
+    &#39;todo-added&#39;: (todo: Todo) =&gt; true,
+    &#39;todo-updated&#39;: (todo: Todo) =&gt; true,
+    &#39;todo-deleted&#39;: (id: number) =&gt; typeof id === &#39;number&#39;
+  },
+  
+  data() {
+    return {
+      todos: [...this.initialTodos] as Todo[],
+      newTodo: &#39;&#39;,
+      currentFilter: &#39;all&#39; as FilterType,
+      filters: [
+        { value: &#39;all&#39;, label: &#39;全部&#39; },
+        { value: &#39;active&#39;, label: &#39;未完成&#39; },
+        { value: &#39;completed&#39;, label: &#39;已完成&#39; }
+      ]
+    }
+  },
+  
+  computed: {
+    filteredTodos(): Todo[] {
+      switch (this.currentFilter) {
+        case &#39;active&#39;:
+          return this.todos.filter(todo =&gt; !todo.completed)
+        case &#39;completed&#39;:
+          return this.todos.filter(todo =&gt; todo.completed)
+        default:
+          return this.todos
+      }
+    },
+    
+    completedCount(): number {
+      return this.todos.filter(todo =&gt; todo.completed).length
+    }
+  },
+  
+  methods: {
+    addTodo(): void {
+      const text = this.newTodo.trim()
+      if (!text) return
+      
+      const todo: Todo = {
+        id: Date.now(),
+        text,
+        completed: false,
+        createdAt: new Date()
+      }
+      
+      this.todos.push(todo)
+      this.newTodo = &#39;&#39;
+      this.$emit(&#39;todo-added&#39;, todo)
+    },
+    
+    updateTodo(todo: Todo): void {
+      this.$emit(&#39;todo-updated&#39;, todo)
+    },
+    
+    deleteTodo(id: number): void {
+      const index = this.todos.findIndex(todo =&gt; todo.id === id)
+      if (index &gt; -1) {
+        this.todos.splice(index, 1)
+        this.$emit(&#39;todo-deleted&#39;, id)
+      }
+    },
+    
+    clearCompleted(): void {
+      this.todos = this.todos.filter(todo =&gt; !todo.completed)
+    }
+  },
+  
+  watch: {
+    initialTodos: {
+      handler(newTodos: Todo[]) {
+        this.todos = [...newTodos]
+      },
+      deep: true
+    }
+  },
+  
+  mounted() {
+    console.log(&#39;TodoList mounted with&#39;, this.todos.length, &#39;todos&#39;)
+  }
+})
+&lt;/script&gt;
+</code></pre>
+<h2>状态管理集成</h2>
+<h3>Pinia 集成</h3>
+<pre><code class="language-bash">npm install pinia
+</code></pre>
+<pre><code class="language-typescript">// src/stores/user.ts
+import { defineStore } from &#39;pinia&#39;
+import type { User } from &#39;@/types/api&#39;
+
+interface UserState {
+  currentUser: User | null
+  users: User[]
+  loading: boolean
+  error: string | null
+}
+
+export const useUserStore = defineStore(&#39;user&#39;, {
+  state: (): UserState =&gt; ({
+    currentUser: null,
+    users: [],
+    loading: false,
+    error: null
+  }),
+  
+  getters: {
+    isLoggedIn: (state) =&gt; !!state.currentUser,
+    
+    getUserById: (state) =&gt; {
+      return (id: number) =&gt; state.users.find(user =&gt; user.id === id)
+    },
+    
+    activeUsers: (state) =&gt; state.users.filter(user =&gt; user.isActive)
+  },
+  
+  actions: {
+    async fetchCurrentUser() {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const response = await fetch(&#39;/api/user/me&#39;)
+        if (!response.ok) throw new Error(&#39;Failed to fetch user&#39;)
+        
+        this.currentUser = await response.json()
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : &#39;Unknown error&#39;
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    async fetchUsers() {
+      this.loading = true
+      
+      try {
+        const response = await fetch(&#39;/api/users&#39;)
+        if (!response.ok) throw new Error(&#39;Failed to fetch users&#39;)
+        
+        this.users = await response.json()
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : &#39;Unknown error&#39;
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    async login(credentials: { email: string; password: string }) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const response = await fetch(&#39;/api/auth/login&#39;, {
+          method: &#39;POST&#39;,
+          headers: { &#39;Content-Type&#39;: &#39;application/json&#39; },
+          body: JSON.stringify(credentials)
+        })
+        
+        if (!response.ok) throw new Error(&#39;Login failed&#39;)
+        
+        this.currentUser = await response.json()
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : &#39;Login failed&#39;
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    logout() {
+      this.currentUser = null
+    }
+  }
+})
+
+// 在组件中使用
+// &lt;script setup lang=&quot;ts&quot;&gt;
+// import { useUserStore } from &#39;@/stores/user&#39;
+// 
+// const userStore = useUserStore()
+// 
+// onMounted(() =&gt; {
+//   userStore.fetchCurrentUser()
+// })
+// &lt;/script&gt;
+</code></pre>
+<h2>Vue Router 集成</h2>
+<h3>路由配置</h3>
+<pre><code class="language-bash">npm install vue-router@4
+</code></pre>
+<pre><code class="language-typescript">// src/router/index.ts
+import { createRouter, createWebHistory } from &#39;vue-router&#39;
+import type { RouteRecordRaw } from &#39;vue-router&#39;
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: &#39;/&#39;,
+    name: &#39;Home&#39;,
+    component: () =&gt; import(&#39;@/views/Home.vue&#39;)
+  },
+  {
+    path: &#39;/about&#39;,
+    name: &#39;About&#39;,
+    component: () =&gt; import(&#39;@/views/About.vue&#39;),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: &#39;/users&#39;,
+    name: &#39;Users&#39;,
+    component: () =&gt; import(&#39;@/views/Users.vue&#39;),
+    children: [
+      {
+        path: &#39;&#39;,
+        name: &#39;UserList&#39;,
+        component: () =&gt; import(&#39;@/views/UserList.vue&#39;)
+      },
+      {
+        path: &#39;:id&#39;,
+        name: &#39;UserDetail&#39;,
+        component: () =&gt; import(&#39;@/views/UserDetail.vue&#39;),
+        props: true
+      }
+    ]
+  },
+  {
+    path: &#39;/login&#39;,
+    name: &#39;Login&#39;,
+    component: () =&gt; import(&#39;@/views/Login.vue&#39;),
+    meta: { requiresGuest: true }
+  },
+  {
+    path: &#39;/:pathMatch(.*)*&#39;,
+    name: &#39;NotFound&#39;,
+    component: () =&gt; import(&#39;@/views/NotFound.vue&#39;)
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+// 路由守卫
+router.beforeEach((to, from, next) =&gt; {
+  const userStore = useUserStore()
+  
+  if (to.meta.requiresAuth &amp;&amp; !userStore.isLoggedIn) {
+    next(&#39;/login&#39;)
+  } else if (to.meta.requiresGuest &amp;&amp; userStore.isLoggedIn) {
+    next(&#39;/&#39;)
+  } else {
+    next()
+  }
+})
+
+export default router
+</code></pre>
+<h2>性能优化</h2>
+<h3>异步组件和懒加载</h3>
+<pre><code class="language-vue">&lt;!-- src/views/Dashboard.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;dashboard&quot;&gt;
+    &lt;h1&gt;仪表板&lt;/h1&gt;
+    
+    &lt;!-- 异步组件 --&gt;
+    &lt;Suspense&gt;
+      &lt;template #default&gt;
+        &lt;AsyncChart :data=&quot;chartData&quot; /&gt;
+      &lt;/template&gt;
+      &lt;template #fallback&gt;
+        &lt;div class=&quot;loading&quot;&gt;图表加载中...&lt;/div&gt;
+      &lt;/template&gt;
+    &lt;/Suspense&gt;
+    
+    &lt;!-- 条件渲染的重组件 --&gt;
+    &lt;HeavyComponent v-if=&quot;showHeavyComponent&quot; /&gt;
+    
+    &lt;!-- 动态组件 --&gt;
+    &lt;component :is=&quot;currentComponent&quot; /&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup lang=&quot;ts&quot;&gt;
+import { ref, defineAsyncComponent } from &#39;vue&#39;
+
+// 异步组件
+const AsyncChart = defineAsyncComponent({
+  loader: () =&gt; import(&#39;@/components/Chart.vue&#39;),
+  loadingComponent: () =&gt; import(&#39;@/components/Loading.vue&#39;),
+  errorComponent: () =&gt; import(&#39;@/components/Error.vue&#39;),
+  delay: 200,
+  timeout: 3000
+})
+
+// 条件加载
+const HeavyComponent = defineAsyncComponent(
+  () =&gt; import(&#39;@/components/HeavyComponent.vue&#39;)
+)
+
+const chartData = ref([])
+const showHeavyComponent = ref(false)
+const currentComponent = ref(&#39;UserList&#39;)
+&lt;/script&gt;
+</code></pre>
+<h3>组件缓存</h3>
+<pre><code class="language-vue">&lt;!-- src/App.vue --&gt;
+&lt;template&gt;
+  &lt;div id=&quot;app&quot;&gt;
+    &lt;nav&gt;
+      &lt;router-link to=&quot;/users&quot;&gt;用户&lt;/router-link&gt;
+      &lt;router-link to=&quot;/posts&quot;&gt;文章&lt;/router-link&gt;
+      &lt;router-link to=&quot;/settings&quot;&gt;设置&lt;/router-link&gt;
+    &lt;/nav&gt;
+    
+    &lt;!-- 缓存路由组件 --&gt;
+    &lt;router-view v-slot=&quot;{ Component, route }&quot;&gt;
+      &lt;keep-alive :include=&quot;cachedComponents&quot;&gt;
+        &lt;component :is=&quot;Component&quot; :key=&quot;route.fullPath&quot; /&gt;
+      &lt;/keep-alive&gt;
+    &lt;/router-view&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup lang=&quot;ts&quot;&gt;
+import { ref } from &#39;vue&#39;
+
+// 需要缓存的组件名称
+const cachedComponents = ref([&#39;UserList&#39;, &#39;PostList&#39;])
+&lt;/script&gt;
+</code></pre>
+<h2>自定义指令</h2>
+<h3>实用指令开发</h3>
+<pre><code class="language-typescript">// src/directives/index.ts
+import type { App, Directive } from &#39;vue&#39;
+
+// 点击外部指令
+const clickOutside: Directive = {
+  mounted(el, binding) {
+    el._clickOutside = (event: Event) =&gt; {
+      if (!(el === event.target || el.contains(event.target as Node))) {
+        binding.value(event)
+      }
+    }
+    document.addEventListener(&#39;click&#39;, el._clickOutside)
+  },
+  unmounted(el) {
+    document.removeEventListener(&#39;click&#39;, el._clickOutside)
+    delete el._clickOutside
+  }
+}
+
+// 懒加载指令
+const lazyLoad: Directive = {
+  mounted(el, binding) {
+    const observer = new IntersectionObserver((entries) =&gt; {
+      entries.forEach(entry =&gt; {
+        if (entry.isIntersecting) {
+          el.src = binding.value
+          observer.unobserve(el)
+        }
+      })
+    })
+    observer.observe(el)
+    el._observer = observer
+  },
+  unmounted(el) {
+    if (el._observer) {
+      el._observer.disconnect()
+      delete el._observer
+    }
+  }
+}
+
+// 防抖指令
+const debounce: Directive = {
+  mounted(el, binding) {
+    let timer: number
+    el.addEventListener(&#39;click&#39;, () =&gt; {
+      clearTimeout(timer)
+      timer = setTimeout(() =&gt; {
+        binding.value()
+      }, binding.arg ? parseInt(binding.arg) : 300)
+    })
+  }
+}
+
+export function setupDirectives(app: App) {
+  app.directive(&#39;click-outside&#39;, clickOutside)
+  app.directive(&#39;lazy-load&#39;, lazyLoad)
+  app.directive(&#39;debounce&#39;, debounce)
+}
+
+// 使用示例
+// &lt;img v-lazy-load=&quot;imageUrl&quot; /&gt;
+// &lt;div v-click-outside=&quot;closeModal&quot;&gt;...&lt;/div&gt;
+// &lt;button v-debounce:500=&quot;handleClick&quot;&gt;点击&lt;/button&gt;
+</code></pre>
+<h2>总结</h2>
+<p>Vite 为 Vue 开发提供了：</p>
+<ul>
+<li>完整的单文件组件支持</li>
+<li>快速的热更新和开发体验</li>
+<li>灵活的配置选项</li>
+<li>现代化的构建优化</li>
+</ul>
+<p>通过合理使用这些特性，可以构建出高性能、可维护的 Vue 应用。</p>
+
+      
