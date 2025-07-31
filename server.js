@@ -136,10 +136,11 @@ async function generateIndex() {
       articleList += `<li data-category="special"><a href="/${special}.html">${special}</a></li>`;
     });
     let categoryFilter = `<button class="category-btn" data-category="all">全部</button>`;
+    categoryFilter += `\n<button class="category-btn" data-category="special">专题</button>`;
     Array.from(categorySet).sort().forEach(cat => {
       categoryFilter += `\n<button class="category-btn" data-category="${cat}">${cat}</button>`;
     });
-    categoryFilter += `\n<button class="category-btn" data-category="special">专题</button>`;
+    
     const indexContent = indexTemplate
       .replace("{{{articleList}}}", articleList)
       .replace("{{{categoryFilter}}}", categoryFilter);
