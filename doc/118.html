@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>控制关键请求的优先级 - 灏天阁</title>
+    <meta name="description" content="控制关键请求的优先级 - 灏天阁技术博客文章">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>控制关键请求的优先级</h1>
+          <p class="article-meta">
+            <span class="category">性能优化</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.01">2025.08.01</time>
+          </p>
+        </header>
+        <article>
+          <h2>前言</h2>
+<p>构建一个网站服务看似简单：发送 HTML，浏览器识别出接下来需要加载什么资源。然后，我们耐心的等待页面就绪。</p>
+<p>你不知道的是，这背后发生了很多事情。你有没有想过，浏览器是如何判断哪些资产需要以什么顺序被请求的？</p>
+<p>内容概览：</p>
+<ol>
+<li>什么是资产优先级？</li>
+<li>Chrome 如何安排资源优先级？</li>
+<li>什么样的请求是关键的？</li>
+<li>Lighthouse 审计：避免关键请求的依赖链。</li>
+<li>技术：控制请求优先级。</li>
+<li>技术：图片懒加载。</li>
+<li>技术：font-display</li>
+<li>关键请求检查清单。</li>
+</ol>
+<h2>什么是资产优先级？</h2>
+<p>现代浏览器用流式解析器来解析 HTML —— 在完全下载之前，就可以在 HTML 标记之中找到资产。当浏览器找到资产时，就会按照预先确定的优先级把它们加到网络队列中。</p>
+<p><img src="../images/sdfhdsfvsdsdghfvsgdhf.gif" alt="Image"></p>
+<p>可视化的分析一个网站以及它的资源优先级。</p>
+<p>预先确定的优先级可能是：<strong>Lowest, Low, Medium, High</strong>  和  <strong>Highest</strong>  其中之一。通过优先级分配，浏览器可以知道哪个请求对页面快速加载最关键。</p>
+<blockquote>
+<p>本文以 Chrome 为主，但其他浏览器对请求的优先级排序也是类似的。你可以在 Chrome、Safari、Firefox 或 Edge 开发者工具中，通过右键单击任何表格标题并选择“优先级”来查看请求优先级。</p>
+</blockquote>
+<p><img src="../images/skjhfijhsfewehdfusif.webp" alt="Image"></p>
+<p>如何在 Chrome 开发者工具中启用“优先级”列来检查请求优先级</p>
+<p>请求优先级也可以在 Chrome 的 Performance 面板中看到：</p>
+<p><img src="../images/bfjbdshjfdashfvdsghfwe.webp" alt="Image"></p>
+<p>如何在 Chrome 开发者工具的 Performance 面板中调查资源的时间和优先级</p>
+<h2>Chrome 如何安排资源优先级？</h2>
+<p>资源按出现的顺序被添加到网络队列中。然后浏览器会把网络活动投入用于尽快获取到最高优先级的资源。</p>
+<p>每种资源类型都有自己的一组规则来决定分配给它的优先级：</p>
+<table>
+<thead>
+<tr>
+<th>资源类型</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>HTML</td>
+<td>Highest</td>
+</tr>
+<tr>
+<td>Fonts</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Stylesheets</td>
+<td>Highest</td>
+</tr>
+<tr>
+<td>通过 @import 加载的 Stylesheets</td>
+<td>Highest，会被安排在阻塞脚本之后。</td>
+</tr>
+<tr>
+<td>Images</td>
+<td>默认是 Low，在初始视口中渲染时升级为 Medium。</td>
+</tr>
+<tr>
+<td>JavaScripts</td>
+<td>Low, Medium 或 High。查看 Addy Osmani 的  JavaScript Loading Priorities in Chrome  来获取更多细节。</td>
+</tr>
+<tr>
+<td>Ajax，XHR，或者 fetch() API</td>
+<td>High</td>
+</tr>
+</tbody></table>
+<h2>什么样的请求是关键的？</h2>
+<blockquote>
+<p>关键请求是指显示在页面初始视口里的资源。</p>
+</blockquote>
+<p>这些资源对  Core Web Vitals 中诸如  Largest Contentful Paint（最大内容绘制）和 First Contentful Paint（首次内容绘制）这些指标有着直接的影响。以这篇文章为例，我们可以直观地识别出视口需要的资产，以便完全渲染。</p>
+<p><img src="../images/bdhsdbfsdbjkfbhjdfd.webp" alt="Image"></p>
+<p>对浏览者来说至关重要的内容是报头和文章标题</p>
+<p>对于这个页面来说，关键的请求是：</p>
+<ol>
+<li>HTML</li>
+<li>CSS</li>
+<li>LOGO</li>
+<li>3 个字权重</li>
+<li>头条图片（Largest Contentful Paint 元素）</li>
+</ol>
+<p>这些资源（注意，没有 JavaScript）对于初始视口的视觉展示至关重要。他们应该先被加载。</p>
+<p>在审计你的页面时，我们推荐：</p>
+<ul>
+<li>对页面进行可视化审计，注意视口中的关键元素。</li>
+<li>最初的 5 个 HTTP 请求应该是：HTML + 4 个关键请求。</li>
+<li>确保关键的请求不要被重定向。</li>
+<li>更新你的站点，确保关键资源是优化过、压缩过、有缓存能力且有正确的 HTTP 头的。</li>
+</ul>
+<h2>Lighthouse 审计：避免关键请求的依赖链</h2>
+<p>谷歌的 Lighthouse 套件附带了一个名为“避免关键请求的依赖链”的审计，高亮展示了被链接在一起的请求。当浏览器在发出请求是由于另一个请求引用它时（也称为依赖项），我们称之为请求链。</p>
+<p><img src="../images/abfhjdsvfhssdfgewu.webp" alt="Image"></p>
+<p>Lighthouse 避免关键请求的依赖链审计的例子</p>
+<p><strong>关键请求链</strong>最常见的一个例子是，比如某些样式表内部加载了在初始页面视口显示的字体或背景图像。</p>
+<pre><code class="language-css">@font-face {
+  font-family: &quot;Calibre&quot;;
+  font-weight: 400;
+  font-display: swap;
+  src: url(&quot;/Calibre-Regular.woff2&quot;) format(&quot;woff2&quot;), url(&quot;/Calibre-Regular.woff&quot;)
+      format(&quot;woff&quot;);
+}
+.carousel-bg {
+  background-image: url(&quot;/images/main-masthead-bg.png&quot;);
+}
+</code></pre>
+<p>你可以使用 Lighthouse 的“避免关键请求的依赖链”的审计来诊断和识别出页面中的资源依赖。</p>
+<p>减少关键请求链的整体数量，有助于更快的 <strong>Largest Contentful Paint（最大内容绘制）</strong> 和即时的用户体验。</p>
+<p>为了减少关键请求链的影响，请使用以下 Web 性能策略：</p>
+<ul>
+<li>减少请求的数量</li>
+<li>使用压缩和最小化来减少资源的大小</li>
+<li>将非关键脚本标记为异步</li>
+<li>考虑将<code>@font-face</code>声明直接内联到 HTML 中</li>
+<li>避免使用 CSS 背景图片或<code>@import</code></li>
+<li>使用预加载提前获取关键资源</li>
+<li>使用 bundlephobia 寻找该库的更小替代品</li>
+</ul>
+<h2>技术：控制请求优先级</h2>
+<p>请求优先级会被 preload 的使用所影响。预加载的资源会被分配为高优先级，并且在页面的初始加载中优先被请求。</p>
+<pre><code class="language-html">&lt;link rel=&quot;preload&quot; href=&quot;Calibre-Regular.woff2&quot; as=&quot;font&quot; crossorigin /&gt;
+</code></pre>
+<p><img src="../images/ahsdgyfhdsafguysdgfuydsf.webp" alt="Image"></p>
+<p>优先级排序前后的 webfont 资产。排序后，以 High 优先级请求字体</p>
+<p><strong>使用 preload，相当于告诉浏览器：“你可能还不知道它是什么，但我们需要它。”</strong></p>
+<p>预加载有助于优化关键请求，但也不要滥用！如果预加载了过多的资源，页面性能会劣化。</p>
+<p>预加载会影响 Largest Contentful Paint（最大内容绘制）和 Cumulative Layout Shift（累积布局偏移）。在某些情况下，影响可能是负面的。我们建议使用预加载请求进行试验，但一定要前后仔细测试。</p>
+<h2>技术：图片懒加载</h2>
+<p>默认情况下，浏览器会加载 HTML 中指定的所有图片，哪怕用户实际上永远不会看见的那些。懒加载允许你指定某些图片只有当用户滚动页面到它们附近时才去请求。如果用户不滚动页面，浏览器就不会加载这些图片。</p>
+<p>使用这种方法，您可以提高整体渲染速度，并节省不必要的数据传输。懒加载是提高 Largest Contentful Paint（最大内容绘制）的有效方法。</p>
+<p>过去，我们使用第三方库或手写脚本实现懒加载。如今，它已内置在浏览器中。</p>
+<p><strong>使用方法如下：</strong></p>
+<ul>
+<li>在已经知道会出现在视口下方的 <code>&lt;img /&gt;</code> 元素上加上 <code>loading=&quot;lazy&quot;</code> 属性。</li>
+<li>当页面滚动时，懒加载的图片已经加载完成，准备好展示了。</li>
+</ul>
+<p><img src="../images/sadvhgasdvghsad.gif" alt="Image"></p>
+<blockquote>
+<p>累积布局偏移（CLS）标识用户交互期间的页面布局偏移。请确保设置图像的 width 和 height 属性，以避免懒加载的图像在渲染时，页面重新布局。</p>
+</blockquote>
+<p>就是这样！懒加载的实现方法并不复杂，但是对加速渲染非常有帮助。一定要尽可能用上。</p>
+<h2>技术：font-display</h2>
+<p>根据 HTTP Archive 中的统计，69% 的站点使用 web 字体。不幸的是，不幸的是，在大多数情况下，它们提供的体验都低于标准。</p>
+<p><strong>每个人都目睹过字体出现，然后消失，改变了粗细，页面仿佛被震动了一样。这些移位现在会被累积布局移位（CLS）指标所测量。</strong></p>
+<p>我们已经证实了用 <code>&lt;link rel=&quot;preload&quot; /&gt;</code> 控制字体请求的优先级对渲染速度有惊人的影响。所以显而易见，我们在大部分情况下都应该提高字体请求的优先级。</p>
+<p>我们可以用  CSS font-display  进一步提高渲染速度。这个 CSS 属性允许你控制字体在请求和加载后如何展示。</p>
+<blockquote>
+<p>你可以用 <code>font-display</code> 来优化 Largest Contentful Paint（最大内容绘制）和 Cumulative Layout Shift（累积布局偏移）</p>
+</blockquote>
+<p>有五个 font-display 选项供您选择。我们推荐使用 <code>swap</code> 选项，它可以先立即呈现文本，然后在加载网络字体后立即替换。</p>
+<p>给定这样的字体栈：</p>
+<pre><code class="language-css">body {
+  font-family: Calibre, Helvetica, Arial;
+}
+</code></pre>
+<p>浏览器会先用 Helvetica 字体展示（或者 Arial，如果你的系统里没有安装 Helvetica）直到 Calibre 字体加载完成。</p>
+<h2>没有 font-display</h2>
+<p>文字在 HTML、CSS 和网络字体加载完后才展示：</p>
+<p><img src="../images/sdkjfshnfjkdsf.webp" alt="Image"></p>
+<p>没有 <code>font-display</code>，文本在 <strong>2.44</strong> 秒显示。</p>
+<h2>加上 font-display: swap</h2>
+<p>文字在 HTML 下载并且处理后立刻显示了，取得 <strong>1.6</strong> 秒的进步：</p>
+<p><img src="../images/dbfhsfhsdvfsfdgd.webp" alt="Image"></p>
+<p>使用 <code>font-display</code>，文本在  <strong>835 毫秒</strong>显示。</p>
+<p><code>font-display</code> 在主流现代浏览器里支持的不错，你可以从今天开始使用它了。</p>
+<h2>关键请求检查清单</h2>
+<p>有了这些知识，您现在应该能够为您的站点选择最关键的资产，并相应地对它们进行优先级排序。如果你想进一步推进优先级和速度的优化，请遵循以下清单：</p>
+<ul>
+<li>启用 Chrome 开发者工具的 Priority 列。</li>
+<li>尽可能减少所需的关键请求的数量。</li>
+<li>检查哪些请求<strong>必须</strong>在用户看到完整渲染的页面之前发出。使用 <code>&lt;link rel=&quot;preload&quot; /&gt;</code> 对这些关键请求进行优先处理。</li>
+<li>使用 <code>link prefetching</code>，优化可能在下一个导航中使用的资源。</li>
+<li>使用 <code>Link Preload HTTP headers</code> 声明要在 HTML 完全交付之前预加载的资源。</li>
+<li>确保图像尺寸正确的提前写好。</li>
+<li>使用内联 SVG 展示 Logo 和图标。</li>
+<li>使用更好的图像格式，如 AVIF 或 WEBP。</li>
+<li>使用 <code>font-display: swap</code> 在初始渲染中展示文本。</li>
+<li>使用压缩的字体格式，如 WOFF2 或 <code>variable fonts</code>（可变形字体）。</li>
+<li>在 <code>Chrome://net-internals/#events</code> 中查看 Chrome 的网络事件。</li>
+<li>记住：最快的请求，是从未发出的请求。</li>
+</ul>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
