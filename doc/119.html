@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TypeScript 超实用的新功能来了 - 灏天阁</title>
+    <meta name="description" content="TypeScript 超实用的新功能来了 - 灏天阁技术博客文章">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>TypeScript 超实用的新功能来了</h1>
+          <p class="article-meta">
+            <span class="category">TypeScript</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.01">2025.08.01</time>
+          </p>
+        </header>
+        <article>
+          <p>由于 TypeScript 团队正全力投入下一代 TS 编译器（v7.0，Go 原生重写）的开发，原定 7 月 22 日发布的 5.9 版本延期至 8 月 1 日。</p>
+<p>虽迟但到，TypeScript 5.9 已正式上线。这一版本没有引入惊天动地的功能，但在模块系统、编辑器体验、默认配置等方面做了不少贴心优化，让我们这些日常用 TS 的开发者写得更顺、更省心。</p>
+<h2>更现代的 tsc --init</h2>
+<p>还记得以前执行 <code>tsc --init</code> 生成的 <code>tsconfig.json</code> 吗？几百行的注释，看得人眼花缭乱，删都删不完。TypeScript 5.9 对此下了狠手——大幅瘦身，只保留了核心配置项，足够现代、也足够实用。</p>
+<p>默认生成的配置如下（删去了不必要的注释和冗余）：</p>
+<p><img src="../images/sbfhsbhdfjwerew.webp" alt="Image"></p>
+<p>整体感觉是: <strong>开箱即用，不再啰嗦</strong>。新手能快速上手，老手也少了删配置的烦恼。</p>
+<h2>全新模块语法：import defer</h2>
+<p>这是 5.9 中最具探索性的新增语法，基于 ECMAScript 的提案实现了一种“懒加载模块”的方式。</p>
+<blockquote>
+<p>提案：<a href="https://github.com/tc39/proposal-defer-import-eval/">https://github.com/tc39/proposal-defer-import-eval/</a></p>
+</blockquote>
+<pre><code class="language-ts">import defer * as logger from &#39;./logger.js&#39;;
+console.log(&#39;程序开始&#39;);
+// logger.js 在这一刻才真正加载并执行
+logger.log(&#39;这是一条日志：前端充电宝nb&#39;);
+</code></pre>
+<p>这意味着什么？模块的副作用代码（比如在顶层输出日志、读取文件等）不会一上来就跑，只有你访问它的某个成员时才触发。这对「有副作用但不一定用到」的工具模块尤其友好。</p>
+<p><strong>使用限制:</strong></p>
+<ul>
+<li>只能在 <code>--module esnext</code> 下启用</li>
+<li>仅支持命名空间形式：<code>import defer * as foo</code>，不支持默认导入</li>
+</ul>
+<p><strong>举个例子</strong>: 假设你有个只在开发时才用的调试工具模块：</p>
+<pre><code class="language-ts">if (process.env.NODE_ENV === &quot;development&quot;) {
+  const { inspect } = await import(&quot;./debug-tools.js&quot;);
+  inspect(data);
+}
+</code></pre>
+<p>可以换成更清爽的写法：</p>
+<pre><code class="language-ts">import defer * as debugTools from &#39;./debug-tools.js&#39;;
+
+if (process.env.NODE_ENV === &#39;development&#39;) {
+  debugTools.inspect(data);
+}
+</code></pre>
+<p><strong>优点显而易见：</strong></p>
+<ul>
+<li>逻辑直观，不再需要动态 <code>import</code>。</li>
+<li>生产环境下不会提前加载该模块，提升性能。</li>
+</ul>
+<h2>新模块目标 node20</h2>
+<p>随着 Node.js 的模块解析机制日趋复杂，TypeScript 也推出了新的模块目标：<code>node20</code>。</p>
+<p>这个选项的作用是让 TS 编译器更好地模拟 Node.js 20 的行为，并避免受未来 Node 版本影响。简单来说，就是「锁定」当前的行为，写起来更安心：</p>
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;module&quot;: &quot;node20&quot;,
+    &quot;moduleResolution&quot;: &quot;node20&quot;
+  }
+}
+</code></pre>
+<p>对比 <code>nodenext</code>，<code>node20</code> 更稳定、保守：</p>
+<ul>
+<li>不追踪 Node 的后续模块变动。</li>
+<li>默认 target 为  <code>es2023</code>，避免过度前沿特性。</li>
+<li>对模块路径和扩展名的要求更严格，有利于避免“能跑不能构建”的尴尬。</li>
+</ul>
+<h2>类型提示更聪明了</h2>
+<p>写 TS 的人应该都被 VS Code 的类型提示“吓”过：一 hover，提示框铺满一整页，复杂嵌套类型压得喘不过气。</p>
+<p>现在不一样了，TypeScript 5.9 对这块做了显著提升：</p>
+<ul>
+<li>类型结构支持折叠/展开</li>
+<li>默认展示更清晰简洁</li>
+<li>可以自定义提示长度（配置项：<code>js/ts.hover.maximumLength</code>）</li>
+</ul>
+<p>来看个简单例子：</p>
+<p><img src="../images/egyuwsdadasdfguysdfdf.webp" alt="Image"></p>
+<p>在 VS Code 里将鼠标悬停在  <code>options</code>  上，5.9 版本会显示这样的内容：</p>
+<p><img src="../images/fhghsdfsdfhsudfuisdfu.webp" alt="Image"></p>
+<p>点击 <code>+</code>，才展开完整结构。这在大项目、深层嵌套的类型系统里，真的省眼又高效。</p>
+<h2>性能优化与 bug 修复</h2>
+<p>虽然不是重头戏，但这部分更新依然值得一提：</p>
+<ul>
+<li>大型项目首次打开更快，编辑器响应更流畅</li>
+<li>修复了 <code>AbortSignal.abort()</code> 类型缺失问题</li>
+<li>改进 JSX 工程的模块处理逻辑</li>
+<li>类型缩减逻辑更严谨，解决一些边缘 bug</li>
+</ul>
+<h2>总结一下</h2>
+<p>TypeScript 5.9 没有大张旗鼓，但每一处改进都很实用：</p>
+<ul>
+<li>项目初始化更轻巧现代</li>
+<li>模块加载更智能灵活</li>
+<li>类型提示更易读可控</li>
+<li>模块目标更稳定可靠</li>
+</ul>
+<p>对于日常开发者来说，写起 TypeScript 来会更顺手、更安心，也更有「这工具懂我」的感觉。</p>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
