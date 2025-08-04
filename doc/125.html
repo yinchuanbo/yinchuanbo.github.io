@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>深入浅出 AST 如何用树形结构解构代码逻辑 - 灏天阁</title>
+    <meta name="description" content="深入浅出 AST 如何用树形结构解构代码逻辑 - 灏天阁技术博客文章">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>深入浅出 AST 如何用树形结构解构代码逻辑</h1>
+          <p class="article-meta">
+            <span class="category">JavaScript</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.04">2025.08.04</time>
+          </p>
+        </header>
+        <article>
+          <h2>一、AST 的本质与核心价值</h2>
+<p>AST（抽象语法树）是源代码的逻辑骨架，通过树形结构剥离冗余符号（如分号、括号），仅保留核心语法元素。其核心特性包括：</p>
+<p>结构化表示 将代码转化为带层级关系的节点树，例如 <code>let sum = a + b * 2</code> 会被解析为：</p>
+<p><img src="../images/c88c3be1e0ff610e5e5ef0f8955382a6.png" alt="Image"></p>
+<h2>二、AST 的生成原理：从字符流到逻辑树</h2>
+<ol>
+<li><p>词法分析（Lexical Analysis） 将代码拆分为最小语义单元（Token），例如 <code>if (x&gt;0) {}</code> 会被拆解为 <code>[if, (, x, &gt;, 0, ), {, }]</code> 过滤空格 <code>/</code> 注释，并标记 Token 类型（关键字/标识符/运算符等）</p>
+</li>
+<li><p>语法分析（Syntax Analysis） 基于语言规范（如 ECMAScript）将 Token 流转换为树形结构 递归下降解析是主流方法，例如解析函数声明时：</p>
+</li>
+</ol>
+<ul>
+<li>先识别 <code>function 关键字 → 创建 FunctionDeclaration 节点</code></li>
+<li><code>解析参数列表 → 生成 Identifier 子节点</code></li>
+<li><code>解析函数体 → 挂载 BlockStatement 节点</code></li>
+</ul>
+<h2>三、AST 节点类型与结构详解</h2>
+<h2>3.1. 常见节点类型（以 JavaScript 为例）</h2>
+<table>
+<thead>
+<tr>
+<th>节点类型</th>
+<th>示例代码</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>VariableDeclaration</td>
+<td>let x = 10;</td>
+<td>变量声明（含 kind 属性区分 let/const）</td>
+</tr>
+<tr>
+<td>ArrowFunctionExpression</td>
+<td>() =&gt; {}</td>
+<td>箭头函数定义</td>
+</tr>
+<tr>
+<td>BinaryExpression</td>
+<td>a + b</td>
+<td>二元运算（含 operator 属性）</td>
+</tr>
+<tr>
+<td>ImportDeclaration</td>
+<td>import React from &#39;react&#39;</td>
+<td>模块导入</td>
+</tr>
+</tbody></table>
+<h2>3.2. 节点属性解析</h2>
+<ul>
+<li>基础属性：type（节点类型）、start/end（字符位置）、loc（行列信息）</li>
+<li>语义属性：如函数节点的 async 标记、循环节点的 break/continue 标签</li>
+</ul>
+<h2>四、AST 的修改与代码生成</h2>
+<h2>4.1 操作 AST 的三大工具链</h2>
+<ul>
+<li>JavaScript：Babel 生态（@babel/parser 生成 AST，@babel/traverse 修改节点）</li>
+<li>Python：内置 ast 模块+第三方库 astor（支持节点替换与代码回写）</li>
+<li>Java：JavaParser 解析 → 编译单元（CompilationUnit）→ 并发分析修改</li>
+</ul>
+<h2>4.2 实战案例：函数重命名</h2>
+<pre><code class="language-bash">import ast
+tree = ast.parse(&quot;def foo(): return 1&quot;)
+
+
+class Modifier(ast.NodeTransformer):
+    def visit_FunctionDef(self, node):
+        node.name = f&quot;modified_{node.name}&quot;
+        return node
+
+modified_tree = Modifier().visit(tree)
+print(ast.dump(modified_tree, indent=4))
+</code></pre>
+<p>输出如下，可查看 function 名字已经被改为 modified_foo</p>
+<pre><code class="language-bash">Module(
+    body=[
+        FunctionDef(
+            name=&#39;modified_foo&#39;,
+            args=arguments(),
+            body=[
+                Return(
+                    value=Constant(value=1))])])
+</code></pre>
+<h2>五、总结：AST 的技术生态价值</h2>
+<p>AST 作为代码的抽象表示，其核心价值在于：</p>
+<ul>
+<li><strong>标准化处理</strong>：统一不同语言/工具链的代码解析逻辑</li>
+<li><strong>自动化基石</strong>：支撑从代码格式化到 AI 编程助手的高级功能</li>
+<li><strong>可扩展性</strong>：开发者可通过操作 AST 实现定制化代码处理流水线</li>
+</ul>
+<p><strong>推荐学习路径：</strong></p>
+<ol>
+<li>使用 AST Explorer 观察常见语法结构的 AST 表示</li>
+<li>通过 Babel 插件实践简单的 AST 修改</li>
+<li>阅读 JavaParser 或 Pythonast 模块源码理解底层实现</li>
+</ol>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
