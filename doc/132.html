@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Git 精准移植代 cherry-pick 简单说明 - 灏天阁</title>
+    <meta name="description" content="Git 精准移植代 cherry-pick 简单说明 - 灏天阁技术博客文章">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>Git 精准移植代 cherry-pick 简单说明</h1>
+          <p class="article-meta">
+            <span class="category">Git</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.05">2025.08.05</time>
+          </p>
+        </header>
+        <article>
+          <h2>一、什么是 cherry-pick？</h2>
+<p>Git 的 <code>cherry-pick</code> 命令允许将<strong>任意提交</strong>复制到当前分支，如同从其他分支&quot;摘取樱桃&quot;。与 <code>merge</code> 或 <code>rebase</code> 不同，它不要求分支间的线性关联，适合以下场景：</p>
+<ul>
+<li>修复生产环境 bug 但不想合并整个功能分支</li>
+<li>将某个功能的多个提交拆分到不同版本</li>
+<li>从废弃分支抢救关键代码</li>
+</ul>
+<h2>二、基础操作演示</h2>
+<p>场景复现<br>假设 <code>dev</code> 分支有 5 次提交（a b c d e），现需仅将 c d e 的修改 合并到 <code>master</code>：</p>
+<pre><code class="language-bash"># 查看提交历史（简化版）
+a1b2c3d (dev) Commit e
+f4g5h6i Commit d
+j7k8l9m Commit c
+n0o1p2q Commit b
+r3s4t5u Commit a
+</code></pre>
+<p>操作步骤</p>
+<ol>
+<li><strong>锁定目标提交</strong></li>
+</ol>
+<pre><code class="language-bash">git checkout dev
+git log --oneline -5  # 确认 c/d/e 的哈希值
+</code></pre>
+<ol start="2">
+<li><strong>移植提交到 master</strong></li>
+</ol>
+<pre><code class="language-bash">git checkout master
+git cherry-pick j7k8l9m f4g5h6i a1b2c3d
+</code></pre>
+<ol start="3">
+<li><strong>处理冲突</strong></li>
+</ol>
+<p>若出现冲突：</p>
+<ul>
+<li>手动编辑标记为 ``</li>
+<li>继续流程：<code>git cherry-pick --continue</code></li>
+</ul>
+<h2>三、高级技巧</h2>
+<ol>
+<li>范围提交</li>
+</ol>
+<p>使用 <code>^</code> 符号指定区间：</p>
+<pre><code class="language-bash">git cherry-pick j7k8l9m^..a1b2c3d  # 包含 c/d/e
+</code></pre>
+<ol start="2">
+<li>交互模式</li>
+</ol>
+<p>结合 <code>rebase -i</code> 生成待选提交列表：</p>
+<pre><code class="language-bash">git rebase -i HEAD~5  # 查看最近 5 次提交
+</code></pre>
+<ol start="3">
+<li>撤销误操作</li>
+</ol>
+<pre><code class="language-bash">git cherry-pick --abort        # 终止当前操作
+git reset --hard HEAD~1        # 回退错误提交
+</code></pre>
+<h2>四、与 merge/rebase 的对比</h2>
+<table>
+<thead>
+<tr>
+<th><strong>策略</strong></th>
+<th><strong>适用场景</strong></th>
+<th><strong>历史记录</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>merge</code></td>
+<td>整合完整功能</td>
+<td>保留分支结构</td>
+</tr>
+<tr>
+<td><code>rebase</code></td>
+<td>线性化提交历史</td>
+<td>重写提交哈希</td>
+</tr>
+<tr>
+<td><code>cherry-pick</code></td>
+<td>精准移植代码片段</td>
+<td>新增独立提交</td>
+</tr>
+</tbody></table>
+<h2>五、注意事项</h2>
+<ul>
+<li><strong>哈希变化</strong>：cherry-pick 会产生新提交，与原提交无直接关联</li>
+<li><strong>依赖关系</strong>：若提交 c 依赖 a/b 的代码，直接移植可能导致运行时错误</li>
+<li><strong>团队协作</strong>：频繁 cherry-pick 可能造成分支历史混乱，需制定规范</li>
+</ul>
+<hr>
+<p>总结<br>cherry-pick 是精细化代码管理的利器，特别适合多版本并行开发的场景。掌握其核心逻辑和操作技巧，能显著提升 Git 使用效率，但需谨慎处理代码依赖关系，避免制造技术债务。</p>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
