@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rust & WASM 之 wasm-bindgen 基础，让 Rust 与 JavaScript 无缝对话 - 灏天阁</title>
+    <meta name="description" content="Rust & WASM 之 wasm-bindgen 基础，让 Rust 与 JavaScript 无缝对话 - 灏天阁技术博客文章">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>Rust & WASM 之 wasm-bindgen 基础，让 Rust 与 JavaScript 无缝对话</h1>
+          <p class="article-meta">
+            <span class="category">Rust</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.06">2025.08.06</time>
+          </p>
+        </header>
+        <article>
+          <h2>一、引言：当 Rust 遇见 JavaScript，Web 开发的「双向奔赴」</h2>
+<p>在 Web 开发中，WASM 打破了语言壁垒，而<code>wasm-bindgen</code>  则架起了 Rust 与 JavaScript 之间的高速桥梁。作为 Rust 与 JavaScript 交互的「翻译官」，<code>wasm-bindgen</code>  让两种语言突破边界，实现了「双向调用」。</p>
+<h2>二、wasm-bindgen 是什么？—— 打破语言壁垒的「桥梁工具」</h2>
+<p><code>wasm-bindgen</code>  是 Rust WASM 生态中的核心库，它提供了一种机制，用于在 Rust 和 JavaScript 之间进行高级别的交互。</p>
+<p><code>wasm-bindgen</code>  使得 Rust 与 JavaScript 能够方便、安全地交换复杂数据类型（如字符串、对象、函数）和调用彼此的函数。它允许 Rust 代码导出函数到 JavaScript，同时也能从 Rust 调用 JavaScript 函数。通过  <code>wasm-bindgen</code>，开发者可以轻松地将 Rust 编写的高性能逻辑与 JavaScript 的灵活性相结合，从而充分利用两者的优点。</p>
+<h3>1. 核心定位</h3>
+<ul>
+<li><p><strong>跨语言交互枢纽</strong></p>
+<p>专为 Rust 和 JavaScript 设计，支持 Rust 函数导出到 JS，也允许 Rust 调用 JS 函数。</p>
+</li>
+<li><p><strong>高层级抽象</strong></p>
+<p>无需手动处理内存分配（如线性内存），自动处理数据类型映射（字符串、对象、数组等）。</p>
+</li>
+<li><p><strong>生态集成</strong></p>
+<p>与  <code>wasm-pack</code>  配合，一键生成 JS 绑定代码，兼容 Webpack、Vite 等前端构建工具。</p>
+</li>
+</ul>
+<h3>2. 核心优势</h3>
+<ul>
+<li><p><strong>类型安全</strong></p>
+<p>严格校验跨语言数据类型，避免运行时错误。</p>
+</li>
+<li><p><strong>零运行时开销</strong></p>
+<p>生成的胶水代码（glue code）轻量高效，不引入额外性能损耗。</p>
+</li>
+<li><p><strong>渐进式集成</strong></p>
+<p>支持从简单函数调用到复杂类结构的交互，适配不同项目规模。</p>
+</li>
+</ul>
+<h2>三、底层原理：如何实现「语言互译」？</h2>
+<h3>1. 核心原理</h3>
+<p><code>wasm-bindgen</code>  的核心原理是通过在 Rust 和 JavaScript 之间生成绑定代码，从而实现两者的交互。这些绑定代码会处理类型转换、内存管理等复杂问题，使得开发者可以专注于业务逻辑的实现，而无需担心底层的细节。</p>
+<ol>
+<li><p><strong>代码标注</strong></p>
+<p>通过  <code>#[wasm_bindgen]</code>  宏标记需交互的函数、结构体或枚。<code>wasm-bindgen</code>  会分析 Rust 代码中的  <code>#[wasm_bindgen]</code>  标记。</p>
+</li>
+<li><p><strong>类型转换</strong></p>
+<p>自动生成 Rust 端和 JavaScript 端的<strong>绑定代码</strong>，处理复杂类型（字符串、数组、对象等）在 WASM 线性内存与 JavaScript 堆之间的转换。</p>
+</li>
+<li><p><strong>函数映射</strong></p>
+<p>将被标记的 Rust 函数转换为 JavaScript 可调用的函数；反之，也可以将 JavaScript 函数或 Web API 包装成 Rust 可调用的形式。</p>
+</li>
+<li><p><strong>错误桥接</strong></p>
+<p>将 Rust 的  <code>Result</code>  转换为 JavaScript 的异常，或将 JavaScript 异常转换为 Rust 的  <code>Result</code>。</p>
+</li>
+<li><p><strong>胶水代码</strong></p>
+<p><code>wasm-bindgen</code>  工具根据元数据生成 JS 接口代码，屏蔽底层 Wasm 细节。</p>
+</li>
+</ol>
+<h3>2. 数据类型映射规则</h3>
+<table>
+<thead>
+<tr>
+<th>Rust 类型</th>
+<th>JavaScript 类型</th>
+<th>示例场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>基本类型（i32、f64、bool）</td>
+<td>对应原始类型</td>
+<td>数值计算、逻辑判断</td>
+</tr>
+<tr>
+<td><code>&amp;str / String</code></td>
+<td>String</td>
+<td>文本处理、日志输出</td>
+</tr>
+<tr>
+<td><code>&amp;[T] / Vec&lt;T&gt;</code></td>
+<td>TypedArray 或 Array</td>
+<td>数组数据传递（如图片像素）</td>
+</tr>
+<tr>
+<td>Rust 结构体/类</td>
+<td>JS 对象</td>
+<td>复杂数据结构交互（如配置项）</td>
+</tr>
+</tbody></table>
+<h2>四、核心功能与基础用法：从「单向调用」到「双向通信」</h2>
+<h3>1. 环境准备</h3>
+<pre><code class="language-toml"># Cargo.toml
+[dependencies]
+wasm-bindgen = &quot;0.2&quot;# 核心库
+web-sys = &quot;0.3&quot;# 浏览器 API 绑定（可选，需调用 JS 原生接口时使用）
+</code></pre>
+<h3>2. 从 Rust 到 JavaScript：导出函数供 JS 调用</h3>
+<h3>Rust 加法函数及结构体</h3>
+<pre><code class="language-rust">// src/lib.rs
+use wasm_bindgen::prelude::*;
+
+// 导出函数到 JS，支持基本类型参数和返回值
+#[wasm_bindgen]
+pub fn add(a: i32, b: i32) -&gt; i32 {
+    a + b
+}
+
+// 导出结构体及方法
+#[wasm_bindgen]
+pub struct MathUtils {
+    base: i32,
+}
+
+#[wasm_bindgen]
+impl MathUtils {
+    pub fn new(base: i32) -&gt; Self {
+        MathUtils { base }
+    }
+
+    pub fn multiply(&amp;self, factor: i32) -&gt; i32 {
+        self.base * factor
+    }
+}
+</code></pre>
+<h4>JS 调用方式</h4>
+<pre><code class="language-js">// index.js
+import init, { add, MathUtils } from &quot;./pkg/your_package.js&quot;;
+
+async function run() {
+  await init(); // 初始化 Wasm 模块
+  console.log(add(2, 3)); // 输出：5
+
+  const utils = newMathUtils(4);
+  console.log(utils.multiply(3)); // 输出：12
+}
+run();
+</code></pre>
+<h3>3. 从 JavaScript 到 Rust：导入函数供 Rust 调用</h3>
+<h4>在 Rust 中调用 JS 的  <code>console.log</code></h4>
+<pre><code class="language-rust">// src/lib.rs
+use wasm_bindgen::prelude::*;
+
+// 导入 JS 函数，指定模块来源（如全局作用域或某个 JS 文件）
+#[wasm_bindgen]
+extern &quot;C&quot; {
+    // 从全局作用域导入，等价于调用 window.console.log
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &amp;str);
+}
+
+// Rust 函数中调用 JS 函数
+#[wasm_bindgen]
+pub fn greet(name: &amp;str) {
+    log(&amp;format!(&quot;Hello, {}!&quot;, name)); // 在浏览器控制台输出
+}
+</code></pre>
+<h4>动态导入 JS 模块</h4>
+<p>JavaScript 代码，导出一个函数和一个类。</p>
+<pre><code class="language-js">// defined-in-js.js
+export function name() {
+  return &quot;Rust&quot;;
+}
+
+export class MyClass {
+  constructor() {
+    this._number = 42;
+  }
+
+  get number() {
+    return this._number;
+  }
+
+  set number(n) {
+    return (this._number = n);
+  }
+
+  render() {
+    return `My number is: ${this.number}`;
+  }
+}
+</code></pre>
+<p>在 Rust 中指定这个 js 文件，声明外部的函数和类型，然后就可以在 Rust 中使用了。</p>
+<pre><code class="language-rust">#[wasm_bindgen(module = &quot;/defined-in-js.js&quot;)]
+extern &quot;C&quot; {
+    fn name() -&gt; String;
+
+    type MyClass;
+
+    #[wasm_bindgen(constructor)]
+    fn new() -&gt; MyClass;
+
+    #[wasm_bindgen(method, getter)]
+    fn number(this: &amp;MyClass) -&gt; u32;
+    #[wasm_bindgen(method, setter)]
+    fn set_number(this: &amp;MyClass, number: u32) -&gt; MyClass;
+    #[wasm_bindgen(method)]
+    fn render(this: &amp;MyClass) -&gt; String;
+}
+
+#[wasm_bindgen]
+extern &quot;C&quot; {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &amp;str);
+}
+
+// wasm模块初始化后调用
+#[wasm_bindgen(start)]
+fn run() {
+    log(&amp;format!(&quot;Hello from {}!&quot;, name())); // 输出 &quot;Hello from Rust!&quot;
+
+    letx = MyClass::new();
+    assert_eq!(x.number(), 42);
+    x.set_number(10);
+    log(&amp;x.render());
+}
+</code></pre>
+<h3>4. 复杂数据交互：字符串与数组的传递</h3>
+<h4>字符串处理</h4>
+<ul>
+<li>Rust <code>&amp;str</code>  传入 JS <code>String</code>：自动转换，无需手动内存管理。</li>
+<li>JS 字符串传入 Rust：Rust 直接使用  <code>&amp;str</code>  或  <code>String</code>  接收。</li>
+</ul>
+<h4>数组处理</h4>
+<pre><code class="language-rust">// Rust 接收 JS 的 Int32Array 并求和
+#[wasm_bindgen]
+pub fn sum_numbers(arr: &amp;[i32]) -&gt; i32 {
+    arr.iter().sum()
+}
+// JS 传递 TypedArray
+const arr = new Int32Array([1, 2, 3, 4]);
+console.log(sum_numbers(arr)); // 输出：10
+</code></pre>
+<h3>5. 错误处理：Rust Result 映射 JS 异常</h3>
+<h4>Rust 定义带错误处理的函数</h4>
+<pre><code class="language-rust">use wasm_bindgen::JsError;
+
+#[wasm_bindgen]
+pub fn divide(dividend: f64, divisor: f64) -&gt; Result&lt;f64, JsError&gt; {
+    if divisor == 0.0 {
+        Err(JsError::new(&quot;Division by zero&quot;)) // 转换为 JS 异常
+    } else {
+        Ok(dividend / divisor)
+    }
+}
+</code></pre>
+<h4>JS 捕获异常</h4>
+<pre><code class="language-js">try {
+  divide(10, 0);
+} catch (error) {
+  console.error(error.message); // 输出：&quot;Division by zero&quot;
+}
+</code></pre>
+<h2>五、优缺点分析：理性看待工具边界</h2>
+<h3>1.显著优势</h3>
+<ol>
+<li><p><strong>开发体验飞跃</strong></p>
+<p>自动处理复杂类型转换，省去手动操作 WASM 线性内存的繁琐，像调用普通函数一样自然。</p>
+</li>
+<li><p><strong>类型安全桥梁</strong></p>
+<p>在编译期和运行时提供一定程度的类型检查和安全转换。</p>
+</li>
+<li><p><strong>无缝错误处理</strong></p>
+<p><code>Result&lt;T, JsValue&gt;</code>  到 JavaScript 异常的自动映射简化了错误传播。</p>
+</li>
+<li><p><strong>生态系统完善</strong></p>
+<p>与  <code>wasm-pack</code>  和  <code>webpack</code>  等工具链无缝集成，开箱即用。为  <code>web-sys</code> (封装 Web API) 和  <code>js-sys</code> (封装 JS 内置对象) 等提供基础能力。</p>
+</li>
+</ol>
+<h3>2. 局限性</h3>
+<ol>
+<li><p><strong>胶水代码的体积</strong></p>
+<p>为了实现高层交互，会生成额外的 JS 代码，增加最终产物的体积。对于追求极致性能和最小体积的场景，可能需要权衡。</p>
+</li>
+<li><p><strong>性能开销</strong></p>
+<p>每次跨越 WASM 和 JS 边界并进行复杂类型转换时，都会有一定的性能开销。如果频繁进行细粒度的调用，性能可能不如纯粹的数字计算。</p>
+</li>
+</ol>
+<h2>六、总结：开启 Rust+Wasm 全栈开发新范式</h2>
+<p><code>wasm-bindgen</code>  不仅是一个工具，更是 Rust 融入 Web 生态的关键枢纽。它通过精妙的代码生成和类型转换，让 Rust 和 JavaScript 这对看似迥异的语言，能够在 Web 平台上简单且高效协作。通过  <code>wasm-bindgen</code>，可以充分利用 Rust 的高性能和安全性，同时保持 JavaScript 的灵活性。</p>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>

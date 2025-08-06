@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rust & WebAssembly，探索js-sys的奇妙世界 - 灏天阁</title>
+    <meta name="description" content="Rust & WebAssembly，探索js-sys的奇妙世界 - 灏天阁技术博客文章">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>Rust & WebAssembly，探索js-sys的奇妙世界</h1>
+          <p class="article-meta">
+            <span class="category">Rust</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.06">2025.08.06</time>
+          </p>
+        </header>
+        <article>
+          <h2>一 js-sys 库简介</h2>
+<p><code>js-sys</code>  是  <code>wasm-bindgen</code>  工具链中的一个底层核心库。它提供了对 JavaScript 全局对象和内置对象的裸绑定（raw bindings），即对 JavaScript 全局对象和内置类型的<strong>原生绑定</strong>。它不添加抽象层，让你在 Rust 中直接操作 JS 原生对象，就像在 JavaScript 中一样自然。</p>
+<p>通过<code>js-sys</code>在 Rust 中创建和操作 JavaScript 的<code>Object</code>、<code>Array</code>、<code>Function</code>等对象，就像在 JavaScript 中操作它们一样自然。</p>
+<p><code>js-sys</code>库为 Rust 与 JavaScript 之间的交互提供了更底层、更直接的方式，是实现复杂 WebAssembly 应用的重要基础。</p>
+<p><strong>核心定位</strong>：</p>
+<ul>
+<li>提供裸绑定（Raw Bindings）到 JavaScript 内置对象</li>
+<li>支持所有  <code>ECMAScript</code>  标准类型</li>
+<li>作为  <code>wasm-bindgen</code>  的底层基础设施</li>
+</ul>
+<h2>二 js-sys 中的常见类型使用</h2>
+<h3>（一）Object 类型</h3>
+<p>在 Rust 中，通过<code>js-sys</code>库可以方便地创建和操作 JavaScript 中的<code>Object</code>对象。</p>
+<p>比如，我们可以使用<code>Object::new()</code>函数来创建一个新的 JavaScript 对象，通过<code>Reflect::set()</code>方法来设置对象的属性，使用<code>Reflect::get()</code>方法获取对象的属性值 。示例代码如下：</p>
+<pre><code class="language-rust">use wasm_bindgen::prelude::*;
+use js_sys::{Object, Reflect};
+
+#[wasm_bindgen]
+pub fn create_js_object() -&gt; Result&lt;Object, JsValue&gt; {
+    // 创建一个空的 JS 对象
+    let obj = Object::new();
+
+    // 使用 Reflect::set 来设置属性
+    // Reflect.set(target, propertyKey, value)
+    Reflect::set(&amp;obj, &amp;&quot;message&quot;.into(), &amp;&quot;This object was born in Rust!&quot;.into())?;
+    Reflect::set(&amp;obj, &amp;&quot;id&quot;.into(), &amp;99.into())?;
+
+    // 创建一个嵌套对象
+    let nested_obj = Object::new();
+    Reflect::set(&amp;nested_obj, &amp;&quot;status&quot;.into(), &amp;&quot;active&quot;.into())?;
+    Reflect::set(&amp;obj, &amp;&quot;data&quot;.into(), &amp;nested_obj.into())?;
+
+    Ok(obj)
+}
+</code></pre>
+<p>在 JavaScript 中调用：</p>
+<pre><code class="language-js">import init, { create_js_object } from &quot;./pkg/your_pkg_name.js&quot;;
+
+const run = async () =&gt; {
+  await init();
+  const myObject = create_js_object();
+  console.log(&quot;Object from Rust:&quot;, myObject);
+  console.log(&quot;Message:&quot;, myObject.message); // &quot;This object was born in Rust!&quot;
+  console.log(&quot;ID:&quot;, myObject.id); // 99
+  console.log(&quot;Nested Status:&quot;, myObject.data.status); // &quot;active&quot;
+};
+
+run();
+</code></pre>
+<h3>（二）Array 类型</h3>
+<p>利用<code>js-sys</code>库，在 Rust 中创建和操作 JavaScript 的<code>Array</code>数组也很简单。可以使用<code>Array::new()</code>函数创建数组，通过<code>Array::push()</code>方法添加元素 ，<code>Array::pop()</code>方法删除元素，使用索引来访问数组元素。示例代码如下：</p>
+<pre><code class="language-rust">use wasm_bindgen::prelude::*;
+use js_sys::Array;
+use web_sys::console;
+
+#[wasm_bindgen]
+pub fn use_js_array() -&gt; Array {
+    // 创建一个 JavaScript 数组
+    let arr = Array::new();
+
+    // 添加不同类型数据
+    arr.push(&amp;&quot;Rust&quot;.into());
+    arr.push(&amp;2023.into());
+    arr.push(&amp;true.into());
+    arr.push(&amp;JsValue::from_str(&quot;Hello from Rust!&quot;)); // 字符串
+    arr.push(&amp;JsValue::from_f64(123.45));           // 数字
+    arr.push(&amp;JsValue::from_bool(true));             // 布尔值
+
+    // 遍历数组
+    for i in 0..arr.length() {
+        let value = arr.get(i);
+        console::log_1(&amp;format!(&quot;Element at index {}: {:?}&quot;, i, value).into());
+    }
+    arr
+}
+</code></pre>
+<p>在 JavaScript 中调用：</p>
+<pre><code class="language-js">import init, { use_js_array } from &quot;./pkg/your_pkg_name.js&quot;;
+
+const run = async () =&gt; {
+  await init();
+  const myArray = use_js_array();
+  console.log(&quot;Array created in Rust:&quot;, myArray);
+  console.log(&quot;Is it a real JS Array?&quot;, Array.isArray(myArray)); // true
+  console.log(&quot;Content:&quot;, myArray[0], myArray[1], myArray[2]);
+};
+
+run();
+</code></pre>
+<h3>（三）Function 类型</h3>
+<p><code>js-sys</code>库中对函数类型的处理，使得我们可以在 Rust 中定义和调用 JavaScript 函数。可以使用<code>Function::new()</code>函数定义一个新的 JavaScript 函数，通过<code>Function::call()</code>方法调用函数。示例代码如下：</p>
+<pre><code class="language-rs">
+use js_sys::{ Array, Function, Reflect };
+
+#[wasm_bindgen]
+pub fn call_js_callback(callback: &amp;Function) {
+    let args = Array::new();
+    args.push(&amp;&quot;来自Rust的消息&quot;.into());
+    Reflect::apply(callback, &amp;JsValue::NULL, &amp;args).unwrap();
+}
+
+#[wasm_bindgen]
+pub fn create_rust_function() -&gt; Function {
+    Function::new_with_args(&quot;a, b&quot;, &quot;return a + b&quot;)
+}
+
+#[wasm_bindgen]
+pub fn create_function() -&gt; Result&lt;(), JsValue&gt; {
+    // 创建一个 JavaScript 函数
+    let func = Function::new_no_args(&quot;
+        console.log(&#39;Hello from JavaScript!&#39;);
+    &quot;);
+
+    // 调用该函数
+    func.call0(&amp;JsValue::undefined())?;
+    Ok(())
+}
+</code></pre>
+<p>在 JavaScript 中调用：</p>
+<pre><code class="language-js">import init, {
+  call_js_callback,
+  create_rust_function,
+  create_function,
+} from &quot;./pkg/your_pkg_name.js&quot;;
+
+const run = async () =&gt; {
+  await init();
+  // 调用 Rust 创建的函数
+  const addFn = create_rust_function();
+  addFn(2, 3); // 返回 5
+
+  // 传递回调给 Rust
+  call_js_callback((msg) =&gt; alert(msg));
+  create_function(); // Hello from JavaScript!
+};
+
+run();
+</code></pre>
+<h3>（四）Date 类型</h3>
+<p>在处理日期和时间时，<code>js-sys</code>库提供了<code>Date</code>类型。可以使用<code>Date::new()</code>函数创建日期对象，通过<code>Date::get_full_year()</code>等方法获取日期信息。示例代码如下：</p>
+<pre><code class="language-rs">use js_sys::Date;
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn format_timestamp(ts: f64) -&gt; String {
+    let date = Date::new(&amp;JsValue::from(ts));
+    format!(
+        &quot;{}-{:02}-{:02}&quot;,
+        date.get_full_year(),
+        date.get_month() + 1,
+        date.get_date()
+    )
+}
+
+#[wasm_bindgen]
+pub fn get_js_timestamp() -&gt; f64 {
+    // 使用 js_sys::Date::new_0() 创建一个新的 Date 对象，等同于 JS 的 new Date()
+    let date = Date::new_0();
+
+    // 调用 getTime() 方法，返回从 1970-01-01 至今的毫秒数
+    // 注意这里返回的是 f64
+    date.get_time()
+}
+</code></pre>
+<p>在 JavaScript 中调用：</p>
+<pre><code class="language-js">import init, {
+  format_timestamp,
+  get_js_timestamp,
+} from &quot;./pkg/your_pkg_name.js&quot;;
+
+const run = async () =&gt; {
+  await init();
+  const ts = get_js_timestamp();
+  console.log(&quot;Current timestamp:&quot;, ts); // 时间戳
+  console.log(&quot;Formatted date:&quot;, format_timestamp(ts)); // 格式化后的日期字符串，如 2025-08-01
+};
+
+run();
+</code></pre>
+<h3>（五）Error 类型</h3>
+<p>通过<code>js-sys</code>库，可以在 Rust 中处理 JavaScript 错误。可以使用<code>Error::new()</code>函数创建错误对象，在<code>try {} catch {}</code>块中捕获错误。示例代码如下：</p>
+<pre><code class="language-rs">use js_sys::Error;
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn validate_input(input: &amp;str) -&gt; Result&lt;(), JsValue&gt; {
+    if input.is_empty() {
+        Err(Error::new(&quot;输入不能为空&quot;).into())
+    } else {
+        Ok(())
+    }
+}
+
+#[wasm_bindgen]
+pub fn error_msg() {
+    // 创建一个错误对象
+    let error = Error::new(&quot;Something went wrong!&quot;);
+
+    // 获取错误信息
+    let message = error.message();
+    console::log_1(&amp;format!(&quot;Error: {}&quot;, message).into());
+}
+</code></pre>
+<p>在 JavaScript 中调用：</p>
+<pre><code class="language-js">import init, { validate_input, error_msg } from &quot;./pkg/your_pkg_name.js&quot;;
+
+const run = async () =&gt; {
+  await init();
+  try {
+    validate_input(&quot;&quot;);
+  } catch (error) {
+    console.log(&quot;Caught error:&quot;, error); //Caught error:输入不能为空 ...
+    error_msg(); // Error: Something went wrong!
+  }
+};
+
+run();
+</code></pre>
+<h3>（六）Promise 类型</h3>
+<p><code>js-sys</code>库中<code>Promise</code>类型的使用，让我们能在 Rust 中处理异步操作。可以使用<code>Promise::new()</code>函数创建<code>Promise</code>对象，通过<code>Promise::then()</code>方法处理异步操作结果。示例代码如下：</p>
+<pre><code class="language-rs">use js_sys::{ Promise, JsValue };
+use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::console;
+
+// 这是一个辅助函数，用于实现延时
+async fn sleep(ms: i32) {
+    let promise = Promise::new(&amp;mut |resolve, _| {
+        let window = web_sys::window().unwrap();
+        window
+            .set_timeout_with_callback_and_timeout_and_arguments_0(&amp;resolve, ms)
+            .unwrap();
+    });
+    JsFuture::from(promise).await.unwrap();
+}
+
+#[wasm_bindgen]
+pub async fn get_data_after_delay() -&gt; Result&lt;JsValue, JsValue&gt; {
+    console::log_1(&amp;&quot;Rust: Waiting for 2 seconds...&quot;.into());
+
+    // 模拟一个异步操作
+    sleep(2000).await;
+
+    let message = &quot;Rust: Here is your data!&quot;;
+    console::log_1(&amp;message.into());
+
+    // 返回一个成功的结果
+    Ok(JsValue::from_str(message))
+}
+</code></pre>
+<p>在 JavaScript 中调用：</p>
+<pre><code class="language-js">import init, { get_data_after_delay } from &quot;./pkg/your_pkg_name.js&quot;;
+
+const run = async () =&gt; {
+  await init();
+  get_data_after_delay().then((data) =&gt; {
+    console.log(&quot;Received data:&quot;, data); // Received data: Rust: Here is your data!
+  });
+  // Rust: Waiting for 2 seconds...
+  // Received data: Rust: Here is your data!
+};
+
+run();
+</code></pre>
+<h2>三 js-sys 与 wasm-bindgen 的关系</h2>
+<p><code>js-sys</code>  通常作为  <code>wasm-bindgen</code>  的底层支持库。</p>
+<p><code>wasm-bindgen</code>  是一个用于在 Rust 和 JavaScript 之间进行高效交互的工具，它提供了更高级的接口和类型安全的绑定。</p>
+<p><code>js-sys</code>  提供的裸绑定能力使得  <code>wasm-bindgen</code>  能够在底层直接操作 JavaScript 对象，从而实现更复杂的交互逻辑。</p>
+<p>例如，在将 Rust 的函数暴露为 JavaScript 可调用的函数时，<code>wasm-bindgen</code>会利用<code>js-sys</code>来处理参数和返回值的类型转换，使得 Rust 函数能够与 JavaScript 环境无缝对接。</p>
+<p>两者协同工作，使得开发者可以在 Rust 中更方便、更灵活地操作 JavaScript 对象，实现强大的 WebAssembly 应用 。</p>
+<h2>四 何时选择使用 js-sys</h2>
+<p>在开发中，当我们需要直接调用 JavaScript 内置对象或全局方法时, 或者性能敏感的场景下，<code>js-sys</code>就派上用场了 。</p>
+<p>在以下场景中可以优先考虑使用  <code>js-sys</code>：</p>
+<ul>
+<li>需要极致的灵活性： 当处理非常动态或者结构不定的 JavaScript 对象时，<code>js-sys</code>  和  <code>Reflect</code>  是你的最佳拍档。</li>
+<li><code>web-sys</code>  中没有绑定： <code>web-sys</code>  虽然庞大，但并非涵盖了所有 Web API 或所有 JavaScript 特性。当你需要使用的某个 API 在  <code>web-sys</code>  中找不到时，可以尝试用  <code>js-sys</code>  来“手动”构建调用。</li>
+<li>性能敏感的底层库开发： 如果在编写一个供其他  Wasm  模块使用的底层库，直接使用  <code>js-sys</code>  可以减少不必要的抽象层，可能会带来微小的性能优势。</li>
+<li>与现有的 JavaScript 库深度集成： 当需要与一个期望接收原生 JavaScript 对象（如  <code>Date</code>, <code>Error</code>）的 JavaScript 库交互时，<code>js-sys</code>  可以让你轻松创建出符合要求的对象。</li>
+</ul>
+<h2>五 总结</h2>
+<p><code>js-sys</code>  是  <code>wasm-bindgen</code>  生态中的底层库，提供对 JavaScript 原生对象的裸绑定。</p>
+<p>可以用它在 Rust 中直接创建和操作  <code>Date</code>, <code>Array</code>, <code>Object</code>, <code>Promise</code>  等 JavaScript 对象。<code>Reflect</code> API 是动态操作  <code>Object</code>  属性的利器。</p>
+<p>js-sys  赋予了我们极大的灵活性，是处理动态数据和底层交互的强大工具。</p>
+<p>在实际开发中，<code>js-sys</code>  适用于需要更底层、更灵活地与 JavaScript 运行时交互的场景，例如直接操作 JavaScript 原生对象、处理复杂的异步逻辑或实现高性能的交互。</p>
+<p>而  <code>wasm-bindgen</code>  则更适合在需要类型安全和高级抽象的场景中使用。两者结合使用，可以充分发挥各自的优势，实现更高效、更安全的 Rust 与 JavaScript 交互。</p>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>

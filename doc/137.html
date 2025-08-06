@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rust & WASM 之 wasm-bindgen 进阶，解锁 Rust 与 JS 的复杂数据交互秘籍 - 灏天阁</title>
+    <meta name="description" content="Rust & WASM 之 wasm-bindgen 进阶，解锁 Rust 与 JS 的复杂数据交互秘籍 - 灏天阁技术博客文章">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>Rust & WASM 之 wasm-bindgen 进阶，解锁 Rust 与 JS 的复杂数据交互秘籍</h1>
+          <p class="article-meta">
+            <span class="category">Rust</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.06">2025.08.06</time>
+          </p>
+        </header>
+        <article>
+          <h2>一 引言：突破基础，掌握高级数据交互</h2>
+<p>在上一篇文章中，我们探讨了如何用  <code>wasm-bindgen</code>  在 Rust 和 JavaScript 之间传递基本数据类型。但当面对<strong>结构体、集合类型</strong>等复杂数据时，这些基础的方法就显得力不从心了。</p>
+<p>今天，就让我们一起踏上探索<code>wasm-bindgen</code>进阶用法的旅程，带你掌握 Rust 与 JS 复杂数据交互的进阶技巧，让两种语言的协作如丝般顺滑。</p>
+<h2>二 Rust 结构体到 JavaScript 类的完美转换</h2>
+<h3>（一）结构体定义与导出</h3>
+<p><code>wasm-bindgen</code>  为 Rust 结构体提供了无缝的 JavaScript 类生成能力。</p>
+<pre><code class="language-rust">// lib.rs
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub struct User {
+    // 私有字段需要getter/setter
+    name: String,
+    // 公开字段，这样 JS 才能访问
+    pub age: u32,
+}
+
+#[wasm_bindgen]
+impl User {
+    // 构造函数
+    #[wasm_bindgen(constructor)]
+    pub fn new(name: String, age: u32) -&gt; User {
+        User { name, age }
+    }
+
+    // 方法
+    pub fn greet(&amp;self) -&gt; String {
+        format!(&quot;Hello, my name is {} and I&#39;m {} years old.&quot;, self.name, self.age)
+    }
+
+    // getter
+    #[wasm_bindgen(getter)]
+    pub fn name(&amp;self) -&gt; String {
+        self.name.clone()
+    }
+
+    // setter
+    #[wasm_bindgen(setter)]
+    pub fn set_name(&amp;mut self, name: String) {
+        self.name = name;
+    }
+}
+</code></pre>
+<p><strong>关键点解析：</strong></p>
+<ul>
+<li><p><code>#[wasm_bindgen]</code></p>
+<p>标记这个  <code>struct</code>  和  <code>impl</code>  块需要暴露给 JS。</p>
+</li>
+<li><p><code>#[wasm_bindgen(constructor)]</code></p>
+<p>将  <code>new</code>  函数指定为 JS 类的构造函数。</p>
+</li>
+<li><p>字段可见性</p>
+<p>默认情况下，Rust 的私有字段在 JS 中无法直接访问。那么可以选择将字段设为  <code>pub</code>，或者提供 getter/setter 方法。</p>
+</li>
+<li><p>内存管理</p>
+<p>JS 对象持有 Rust 内存指针，需手动释放。</p>
+</li>
+</ul>
+<h3>（二）在 JavaScript 中使用导出的结构体</h3>
+<p>编译后，就可以在 JS 中像使用普通类一样操作  <code>User</code>：</p>
+<pre><code class="language-js">// index.js
+import init, { User } from &quot;./pkg/your_project_name.js&quot;;
+
+async function run() {
+  await init();
+
+  // 使用构造函数创建实例
+  const user = new User(&quot;Alice&quot;, 28);
+
+  // 访问公共字段
+  console.log(&quot;Age:&quot;, user.age); // 输出: Age: 28
+
+  // 调用方法
+  console.log(user.greet()); // 输出: Hello, my name is Alice and I&#39;m 28 years old.
+
+  // 使用 getter/setter
+  console.log(&quot;Name:&quot;, user.name()); // 输出: Name: Alice
+  user.set_name(&quot;Bob&quot;);
+  console.log(user.greet()); // 输出: Hello, my name is Bob and I&#39;m 28 years old.
+
+  // 别忘了释放内存！
+  user.free();
+}
+
+run();
+</code></pre>
+<p><strong>注意：</strong> <code>wasm-bindgen</code>  生成的 JS 对象持有一个指向 Rust 内存的指针。当不再需要这个对象时，最好调用  <code>free()</code>  方法来释放 Rust 分配的内存，避免内存泄漏。</p>
+<h2>三 Rust 接收 JavaScript 对象</h2>
+<h3>（一）灵活但类型不安全的 JsValue 方案</h3>
+<p><code>JsValue</code>  是一个万能类型，可以表示任何 JavaScript 值（对象、数组、字符串、数字等）。当不知道或不关心 JS 对象的具体结构时，它非常有用。</p>
+<pre><code class="language-rust">// lib.rs
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+extern &quot;C&quot; {
+    // 导入 JS 的 console.log
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &amp;str);
+}
+
+#[wasm_bindgen]
+pub fn process_js_object(obj: &amp;JsValue) {
+    // 你可以使用 serde_wasm_bindgen 将其反序列化为 Rust 结构体
+    // 我们稍后会详细讲
+    log(&amp;format!(&quot;Received JS value: {:?}&quot;, obj));
+    if let Ok(name) = obj.get(&quot;name&quot;)?.as_string() {
+        log(&amp;format!(&quot;Received JS value: {}&quot;, name));
+   }
+
+
+   if let Ok(age) = obj.get(&quot;age&quot;)?.as_f64() {
+        log(&amp;format!(&quot;Received JS value: {}&quot;, age));
+   }
+}
+</code></pre>
+<pre><code class="language-js">// index.js
+import init, { process_js_object } from &quot;./pkg/your_project_name.js&quot;;
+
+async function run() {
+  await init();
+
+  const myObject = {
+    id: 101,
+    data: &quot;some payload&quot;,
+    nested: { a: 1 },
+    name: &quot;Tom&quot;,
+    age: 20,
+  };
+
+  process_js_object(myObject); // 在浏览器的 console 中会看到输出
+}
+
+run();
+</code></pre>
+<p>这里通过<code>obj.get(&quot;name&quot;)</code>和<code>obj.get(&quot;age&quot;)</code>来获取对象中的属性值，并使用<code>as_string</code>和<code>as_f64</code>方法将其转换为 Rust 中的类型 。</p>
+<h3>（二）定义特定类型的安全方案</h3>
+<p>如果 JS 对象的结构是固定的，我们可以使用  <code>#[wasm_bindgen]</code>  来定义一个类型，专门用来接收它。</p>
+<pre><code class="language-rust">
+// lib.rs
+use wasm_bindgen::prelude::*;
+
+// 使用 `typescript_type` 来告诉 wasm-bindgen 对应的 TS 类型
+#[wasm_bindgen(typescript_type = &quot;MyJsObject&quot;)]
+pub extern &quot;C&quot; {
+    // 定义一个类型来映射 JS 对象
+    #[wasm_bindgen(extends = js_sys::Object)]
+    #[derive(Debug, Clone)]
+    type MyJsObject;
+
+    // 定义 getter 方法来访问属性
+    #[wasm_bindgen(method, getter)]
+    fn id(this: &amp;MyJsObject) -&gt; u32;
+
+    #[wasm_bindgen(method, getter)]
+    fn data(this: &amp;MyJsObject) -&gt; String;
+}
+
+#[wasm_bindgen]
+pub fn process_typed_object(obj: &amp;MyJsObject) {
+    // 现在可以安全地访问属性了！
+    log(&amp;format!(&quot;Received typed object with id: {} and data: &#39;{}&#39;&quot;, obj.id(), obj.data()));
+}
+</code></pre>
+<pre><code class="language-js">// index.js
+import init, { process_typed_object } from &quot;./pkg/your_project_name.js&quot;;
+
+async function run() {
+  await init();
+
+  const myObject = {
+    id: 101,
+    data: &quot;some payload&quot;,
+  };
+
+  process_typed_object(myObject); // 在浏览器的 console 中会看到输出
+}
+
+run();
+</code></pre>
+<p>这种方式虽然代码多一点，但换来了编译时的类型安全检查，是更健壮的做法。</p>
+<h3>（三）<code>serde</code> + <code>serde-wasm-bindgen</code>：终极解决方案</h3>
+<p>手动处理类型转换太繁琐？<code>serde</code>（Rust 序列化标准库）+ <code>serde-wasm-bindgen</code>  可自动完成 Rust 结构体与 JS 对象的双向转换，兼顾灵活与安全。</p>
+<p><code>serde</code>  是 Rust 生态中用于序列化和反序列化的标准库。<code>serde-wasm-bindgen</code>  则是连接  <code>serde</code>  和  <code>wasm-bindgen</code>  的桥梁，可以自动将 Rust 结构体和  <code>JsValue</code>  进行相互转换。</p>
+<pre><code class="language-toml"># Cargo.toml
+[dependencies]
+serde = { version = &quot;1.0&quot;, features = [&quot;derive&quot;] }
+serde-wasm-bindgen = &quot;0.6&quot;
+</code></pre>
+<p>结构体加上  <code>#[derive(Serialize, Deserialize)]</code>，然后将函数的参数和返回值类型从具体结构体改为  <code>JsValue</code>  即可。</p>
+<pre><code class="language-rs">// lib.rs
+use wasm_bindgen::prelude::*;
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+pub struct ComplexData {
+    id: u32,
+    name: String,
+    tags: Vec&lt;String&gt;,
+    active: bool,
+}
+
+// 接收 JS 对象，自动反序列化为 Rust 结构体
+#[wasm_bindgen]
+pub fn process_data_with_serde(val: JsValue) -&gt; Result&lt;JsValue, JsValue&gt; {
+    // 1. JsValue -&gt; Rust struct
+    let data: ComplexData = serde_wasm_bindgen::from_value(val)?;
+
+    // ... 在 Rust 中对 data 进行各种复杂操作 ...
+    println!(&quot;Processed in Rust: {:?}&quot;, data.name);
+
+    // 2. Rust struct -&gt; JsValue
+    let processed_data = ComplexData {
+        id: data.id + 100,
+        ..data // 使用 struct update 语法
+    };
+    Ok(serde_wasm_bindgen::to_value(&amp;processed_data)?)
+}
+</code></pre>
+<p>JS 代码变得异常简洁，只需要传递和接收普通的 JS 对象！</p>
+<pre><code class="language-js">// index.js
+import init, { process_data_with_serde } from &quot;./pkg/your_project_name.js&quot;;
+
+async function run() {
+  await init();
+
+  const myData = {
+    id: 1,
+    name: &quot;Wasm-Bindgen&quot;,
+    tags: [&quot;rust&quot;, &quot;webassembly&quot;, &quot;serde&quot;],
+    active: true,
+  };
+
+  try {
+    const result = process_data_with_serde(myData);
+    console.log(&quot;Result from Rust:&quot;, result);
+    // 输出: {id: 101, name: &#39;Wasm-Bindgen&#39;, tags: [&#39;rust&#39;, &#39;webassembly&#39;, &#39;serde&#39;], active: true}
+  } catch (error) {
+    console.error(&quot;Error from Rust:&quot;, error);
+  }
+}
+run();
+</code></pre>
+<p><code>serde-wasm-bindgen</code>  几乎抹平了两种语言间数据结构的差异，强烈推荐！</p>
+<h2>四 serde 与 wasm-bindgen 的梦幻联动</h2>
+<h3>（一）serde 与序列化反序列化</h3>
+<p><code>serde</code>是一个极为强大的序列化和反序列化框架，它就像是一座桥梁，连接着 Rust 数据结构与各种存储或传输格式，如 JSON、YAML、CBOR 等。<code>serde</code>通过提供<code>Serialize</code>和<code>Deserialize</code>这两个核心 trait，让我们可以轻松地将 Rust 数据类型转换为其他格式，或者从其他格式还原为 Rust 数据类型 。</p>
+<h3>（二）serde-wasm-bindgen 的集成</h3>
+<p><code>serde-wasm-bindgen</code>则是将<code>serde</code>与<code>wasm-bindgen</code>完美集成的一个库，它使得 Rust 和 JavaScript 之间复杂数据的序列化和反序列化变得更加高效和便捷。</p>
+<p>首先，在<code>Cargo.toml</code>文件中添加依赖：</p>
+<pre><code class="language-toml">[dependencies]
+serde = { version = &quot;1.0&quot;, features = [&quot;derive&quot;] }
+serde-wasm-bindgen = &quot;0.2&quot;
+</code></pre>
+<p>假设有一个包含多个<code>Point</code>的<code>Points</code>结构体，并且希望在 Rust 和 JavaScript 之间传递它：</p>
+<pre><code class="language-rs">// lib.rs
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Points {
+   pub points: Vec&lt;Point&gt;,
+}
+</code></pre>
+<p>在 Rust 中，我们可以使用<code>serde-wasm-bindgen</code>提供的函数来进行序列化和反序列化。</p>
+<pre><code class="language-rust">use wasm_bindgen::prelude::*;
+use serde_wasm_bindgen::to_value;
+
+#[wasm_bindgen]
+pub fn serialize_points(points: &amp;Points) -&gt; Result&lt;JsValue, JsValue&gt; {
+    // 将Rust结构序列化为JsValue
+    to_value(points).map_err(|e| JsValue::from_str(&amp;format!(&quot;Serialization error: {}&quot;, e)))
+}
+
+#[wasm_bindgen]
+pub fn deserialize_points(value: JsValue) -&gt; Result&lt;Points, JsValue&gt; {
+    from_value(value).map_err(|e| {
+        JsValue::from_str(&amp;format!(&quot;反序列化失败: {}&quot;, e))
+    })
+}
+</code></pre>
+<p>在 JavaScript 中接收并反序列化：</p>
+<pre><code class="language-js">import init, { serialize_points } =  from &#39;./pkg/your_package_name.js&#39;;
+async function main() {
+   await init();
+   let points = { points: [{ x: 1, y: 2 }, { x: 3, y: 4 }] };
+   let serialized = serialize_points(points);
+
+   let deserialized = deserialize_points(serialized);
+
+   console.log(&#39;Deserialized points:&#39;, deserialized);
+}
+
+main();
+</code></pre>
+<p>通过这样的方式，可以方便地在 Rust 和 JavaScript 之间传递复杂的数据结构，并且利用<code>serde</code>强大的序列化和反序列化能力，确保数据的准确传输和处理 。</p>
+<h2>五 集合类型的跨语言传递</h2>
+<h3>（一）传递数组和向量</h3>
+<p>在 Rust 和 JavaScript 之间传递数组和<code>Vec</code>类型是很常见的需求。在 Rust 中，<code>Vec</code>是动态数组，非常灵活。</p>
+<p>当从 JavaScript 传递数组到 Rust 时，我们可以利用<code>wasm-bindgen</code>提供的工具。</p>
+<pre><code class="language-js">import init, { sum_of_array: sumOfArray } from &#39;./pkg/your_package_name.js&#39;;
+async function main() {
+   await init();
+   let numbers = [1, 2, 3, 4, 5];
+   let result = sumOfArray(numbers);
+   console.log(`Sum of array: ${result}`);
+}
+
+main();
+</code></pre>
+<p>在 Rust 中实现<code>sum_of_array</code>函数：</p>
+<pre><code class="language-rs">// lib.rs
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn sum_of_array(arr: Vec&lt;i32&gt;) -&gt; i32 {
+   arr.into_iter().sum()
+}
+</code></pre>
+<p>这里，<code>wasm-bindgen</code>会自动将 JavaScript 数组转换为 Rust 的<code>Vec&lt;i32&gt;</code>类型，可以直接在 Rust 中对其进行操作。</p>
+<p>反过来，将 Rust 的<code>Vec</code>传递给 JavaScript 也很简单。比如在 Rust 中生成一个包含斐波那契数列的<code>Vec</code>，并传递给 JavaScript：</p>
+<pre><code class="language-rs">#[wasm_bindgen]
+pub fn fibonacci(n: u32) -&gt; Vec&lt;u32&gt; {
+   let mut fib = vec![0, 1];
+   for i in 2..n {
+       let next = fib[i - 1] + fib[i - 2];
+       fib.push(next);
+   }
+   fib
+}
+</code></pre>
+<p>在 JavaScript 中接收并使用这个<code>Vec</code>：</p>
+<pre><code class="language-js">import init, { fibonacci } from &quot;./pkg/your_package_name.js&quot;;
+async function main() {
+  await init();
+  let fibSeq = fibonacci(10);
+
+  console.log(&quot;Fibonacci sequence:&quot;, fibSeq);
+}
+
+main();
+</code></pre>
+<h3>（二）传递哈希图(HashMap)</h3>
+<p><code>HashMap</code>是 Rust 中常用的键值对集合类型，在与 JavaScript 交互时，我们需要注意键值类型的转换。由于 JavaScript 对象本质上也是键值对结构，我们可以利用这一点来实现<code>HashMap</code>的传递 。</p>
+<p>假设 Rust 中有一个<code>HashMap</code>，存储着学生的姓名和成绩，把这个<code>HashMap</code>传递给 JavaScript：</p>
+<pre><code class="language-rust">use std::collections::HashMap;
+use wasm_bindgen::prelude::*;
+use serde::{Serialize, Deserialize};
+use serde_wasm_bindgen::to_value;
+
+#[derive(Serialize, Deserialize, Debug)]
+struct StudentScores {
+   scores: HashMap&lt;String, u32&gt;,
+}
+
+
+#[wasm_bindgen]
+pub fn get_student_scores() -&gt; Result&lt;JsValue, JsValue&gt; {
+   let mut scores = HashMap::new();
+   scores.insert(&quot;Alice&quot;.to_string(), 95);
+   scores.insert(&quot;Bob&quot;.to_string(), 88);
+   let student_scores = StudentScores { scores };
+   to_value(&amp;student_scores)
+}
+</code></pre>
+<p>在 JavaScript 中接收并解析这个<code>HashMap</code>：</p>
+<pre><code class="language-js">import init, { get_student_scores } from &quot;./pkg/your_package_name.js&quot;;
+async function main() {
+  await init();
+  let scores = get_student_scores();
+  console.log(&quot;Student scores:&quot;, scores.scores);
+}
+
+main();
+</code></pre>
+<p>通过<code>serde-wasm-bindgen</code>的序列化和反序列化，我们可以方便地在 Rust 和 JavaScript 之间传递<code>HashMap</code>类型的数据，确保数据的完整性和正确性 。</p>
+<h2>六 所有权和生命周期：跨语言边界的思考</h2>
+<p>当数据跨越  <code>Wasm</code>  边界时，内存管理和所有权变得尤为重要。</p>
+<h3>（一）所有权转移</h3>
+<p>在 Rust 与 JavaScript 通过<code>wasm-bindgen</code>交互时，所有权转移是一个需要特别关注的概念。Rust 的所有权系统是其内存安全的基石，当数据在 Rust 和 JavaScript 之间传递时，所有权的规则依然适用 。</p>
+<ul>
+<li><p><strong>所有权转移</strong></p>
+<p>当 JS 将一个对象（如数组）传递给 Rust 的  <code>Vec&lt;T&gt;</code>  时，<code>wasm-bindgen</code>  会在 Wasm 内存中创建一个新的  <code>Vec</code>，数据被<strong>复制</strong>过来。JS 端的原始数据不受影响。</p>
+</li>
+<li><p><strong>借用 (<code>&amp;T</code>, <code>&amp;mut T</code>)</strong></p>
+<p>当使用借用时，通常意味着数据不会被复制，而是直接操作 JS 内存中的数据（或其在 Wasm 内存中的一个临时表示）。这通常更高效，但也更复杂。</p>
+</li>
+<li><p><strong><code>#[wasm_bindgen(start)]</code></strong></p>
+<p>当 Wasm 模块加载时，这个函数会被调用。适合做一些初始化工作。</p>
+</li>
+<li><p><strong>手动内存管理</strong></p>
+<p>对于通过  <code>#[wasm_bindgen]</code>  导出的结构体，如例子中的  <code>User</code>，它的内存是由 Rust 的分配器管理的。当 JS 不再需要它时，调用  <code>user.free()</code>  是一个好习惯。</p>
+</li>
+</ul>
+<p><strong>简单原则：</strong>  优先使用  <code>serde-wasm-bindgen</code>，它能处理好大部分内存细节。对于高性能场景或需要精细控制的场合，再考虑手动管理和借用。</p>
+<h3>（二）生命周期管理</h3>
+<p>在 Wasm 交互中，数据的生命周期管理同样至关重要。由于 WebAssembly 运行在浏览器环境中，与传统的 Rust 程序运行环境有所不同，需要特别注意避免悬空指针和内存泄漏等问题 。</p>
+<p>假设我们有一个 Rust 函数，返回一个指向内部数据的引用：</p>
+<pre><code class="language-rs">#[wasm_bindgen]
+pub fn get_internal_data() -&gt; &amp;&#39;static str {
+   &quot;This is internal data&quot;
+}
+</code></pre>
+<p>这里使用<code>&#39;static</code>生命周期标注，表示这个字符串字面量的生命周期是整个程序的生命周期，这样就确保了在任何时候返回的引用都是有效的 。</p>
+<p>在实际开发中，还可以利用 Rust 的智能指针，如<code>Rc</code>（引用计数）和<code>Arc</code>（原子引用计数），来管理数据的生命周期。</p>
+<h2>七 可选参数和默认值的巧妙处理</h2>
+<h3>（一）在 Rust 中定义</h3>
+<p>在 Rust 中，虽然不像一些其他语言（如 Python）那样直接支持在函数定义中设置参数默认值，但我们可以通过<code>Option</code>枚举来实现类似的效果。</p>
+<pre><code class="language-rs">// lib.rs
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn greet_with_options(name: String, age: Option&lt;u32&gt;) {
+    match age {
+        Some(a) =&gt; log(&amp;format!(&quot;Hello, {}! You are {} years old.&quot;, name, a)),
+        None =&gt; log(&amp;format!(&quot;Hello, {}! Your age is a secret.&quot;, name)),
+    }
+}
+</code></pre>
+<h3>（二）在 JavaScript 中调用</h3>
+<p>在 JavaScript 中调用这个带有可选参数的 Rust 函数时，我们可以根据需要传递第二个参数，也可以不传递：</p>
+<pre><code class="language-js">import init, { greet_with_options } from &quot;./pkg/your_package_name.js&quot;;
+async function main() {
+  await init();
+  greet_with_options(&quot;Alice&quot;, 30); // &quot;Hello, Alice! You are 30 years old.&quot;
+  greet_with_options(&quot;Bob&quot;, undefined); // &quot;Hello, Bob! Your age is a secret.&quot;
+  greet_with_options(&quot;Charlie&quot;, null); // &quot;Hello, Charlie! Your age is a secret.&quot;
+}
+
+main();
+</code></pre>
+<h2>八 总结</h2>
+<p>今天我们一起探索了  <code>wasm-bindgen</code>  的强大功能，从导出 Rust 结构体到利用  <code>serde</code>  实现无缝的复杂数据交换。</p>
+<p><strong>核心要点回顾：</strong></p>
+<ol>
+<li><p><strong>直接导出  <code>struct</code></strong></p>
+<p>使用  <code>#[wasm_bindgen]</code>，可生成对应的 JS 类，但需要注意手动内存管理 (<code>free()</code>)。</p>
+</li>
+<li><p><strong>处理 JS 对象</strong></p>
+<p><code>JsValue</code>  灵活，但类型不安全；定义类型映射更健壮。</p>
+</li>
+<li><p><strong>终极神器  <code>serde</code></strong></p>
+<p>通过  <code>serde-wasm-bindgen</code>，可以轻松地在 Rust 结构体和普通 JS 对象之间进行自动转换，是处理复杂数据的首选方案。</p>
+</li>
+<li><p><strong>集合类型不是问题</strong></p>
+<p><code>Vec&lt;T&gt;</code>  对应  <code>Array</code>，<code>HashMap</code>  对应  <code>Map</code>。</p>
+</li>
+<li><p><strong>内存安全</strong></p>
+<p>始终关注数据在 Wasm 边界上的所有权和生命周期。</p>
+</li>
+</ol>
+<p>掌握了这些进阶技巧，就拥有了构建复杂、高性能 WebAssembly 应用的坚实基础。现在，你可以尝试将你项目中更核心、更复杂的逻辑用 Rust 来实现，并与你的 JavaScript 前端无缝集成了！</p>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
