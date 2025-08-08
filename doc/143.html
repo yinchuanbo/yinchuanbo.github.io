@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端定高和不定高虚拟列表 - 灏天阁</title>
+    <meta name="description" content="前端定高和不定高虚拟列表 - 灏天阁技术博客文章">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>前端定高和不定高虚拟列表</h1>
+          <p class="article-meta">
+            <span class="category">JavaScript</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.08">2025.08.08</time>
+          </p>
+        </header>
+        <article>
+          <h2>定高虚拟列表 (Fixed-Height Virtual List)</h2>
+<p>定高虚拟列表的实现相对简单，因为每个列表项的高度是固定的。这意味着我们可以通过简单的乘法来精确计算任何一个列表项在整个列表中的位置（<code>top</code> 值）以及整个列表的总高度。</p>
+<h3>实现思路</h3>
+<ol>
+<li><p><strong>确定容器和列表项高度：</strong> 设定列表容器的固定高度 (<code>containerHeight</code>) 和每个列表项的固定高度 (<code>itemHeight</code>)。</p>
+</li>
+<li><p><strong>计算总高度：</strong> <code>totalHeight = data.length * itemHeight</code>。这个高度用于撑开一个占位元素 (<code>phantom</code> 或 <code>scroller</code>)，以确保滚动条的正常显示和长度。</p>
+</li>
+<li><p><strong>监听滚动事件：</strong> 当用户滚动容器时，获取当前的 <code>scrollTop</code> 值。</p>
+</li>
+<li><p><strong>计算可见区域：</strong></p>
+<ul>
+<li><strong>起始索引 (<code>startIndex</code>)：</strong> <code>Math.floor(scrollTop / itemHeight)</code>。这是当前可视区域的第一个元素的索引。</li>
+<li><strong>结束索引 (<code>endIndex</code>)：</strong> <code>startIndex + Math.ceil(containerHeight / itemHeight)</code>。这是当前可视区域的最后一个元素的索引。</li>
+<li>为了优化用户体验，通常会增加一个缓冲区域 (<code>bufferCount</code>)，例如在 <code>startIndex</code> 前和 <code>endIndex</code> 后多渲染几个元素，以避免快速滚动时出现白屏。那么 <code>startIndex</code> 变为 <code>Math.max(0, startIndex - bufferCount)</code>，<code>endIndex</code> 变为 <code>Math.min(data.length - 1, endIndex + bufferCount)</code>。</li>
+</ul>
+</li>
+<li><p><strong>计算偏移量 (<code>offsetY</code>)：</strong> <code>offsetY = startIndex * itemHeight</code>。这个值将作为 <code>transform: translateY()</code> 应用到实际渲染列表项的容器上，使得渲染的元素在视觉上处于正确的位置。</p>
+</li>
+<li><p><strong>动态渲染：</strong> 根据 <code>startIndex</code> 和 <code>endIndex</code> 从原始数据中截取需要渲染的数据子集，并渲染到 DOM 中。</p>
+</li>
+</ol>
+<h3>代码实现 (Vanilla JavaScript)</h3>
+<p>以下是一个简单的定高虚拟列表的实现示例：</p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;title&gt;定高虚拟列表&lt;/title&gt;
+    &lt;style&gt;
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      h2 {
+        color: #333;
+      }
+      .virtual-list-container {
+        width: 300px;
+        height: 400px; /* 容器固定高度 */
+        overflow-y: auto; /* 允许垂直滚动 */
+        border: 1px solid #ccc;
+        background-color: #fff;
+        position: relative; /* 为内部绝对定位元素提供参考 */
+        margin: 20px auto;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      .virtual-list-phantom {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        z-index: -1; /* 确保不遮挡内容 */
+      }
+      .virtual-list-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+      }
+      .list-item {
+        height: 50px; /* 列表项固定高度 */
+        line-height: 50px;
+        padding: 0 15px;
+        border-bottom: 1px solid #eee;
+        box-sizing: border-box;
+        background-color: #f9f9f9;
+        color: #555;
+      }
+      .list-item:nth-child(even) {
+        background-color: #eef;
+      }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;定高虚拟列表示例&lt;/h2&gt;
+    &lt;div class=&quot;virtual-list-container&quot; id=&quot;fixedListContainer&quot;&gt;
+      &lt;div class=&quot;virtual-list-phantom&quot; id=&quot;fixedListPhantom&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;virtual-list-content&quot; id=&quot;fixedListContent&quot;&gt;
+        &lt;!-- 列表项将在这里渲染 --&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+      const fixedListContainer = document.getElementById(&quot;fixedListContainer&quot;);
+      const fixedListPhantom = document.getElementById(&quot;fixedListPhantom&quot;);
+      const fixedListContent = document.getElementById(&quot;fixedListContent&quot;);
+
+      // 模拟大量数据
+      const totalData = Array.from({ length: 10000 }, (_, i) =&gt; ({
+        id: i,
+        text: `列表项 ${i + 1}`,
+      }));
+
+      const itemHeight = 50; // 每个列表项的高度 (px)
+      const bufferCount = 5; // 上下缓冲区域的列表项数量，用于平滑滚动体验
+
+      let containerHeight = 0; // 容器的实际高度
+      let visibleData = []; // 当前可见的数据
+      let startIndex = 0; // 当前可见区域的起始索引
+      let endIndex = 0; // 当前可见区域的结束索引
+
+      // 更新可见列表项
+      function updateVisibleItems() {
+        containerHeight = fixedListContainer.clientHeight; // 获取容器当前高度
+        const scrollTop = fixedListContainer.scrollTop; // 获取当前滚动位置
+
+        // 计算起始索引
+        startIndex = Math.floor(scrollTop / itemHeight);
+        // 增加缓冲区域
+        startIndex = Math.max(0, startIndex - bufferCount);
+
+        // 计算结束索引
+        endIndex =
+          startIndex +
+          Math.ceil(containerHeight / itemHeight) +
+          bufferCount * 2;
+        endIndex = Math.min(totalData.length, endIndex);
+
+        // 截取需要渲染的数据
+        visibleData = totalData.slice(startIndex, endIndex);
+
+        // 计算内容区域的偏移量
+        const offsetY = startIndex * itemHeight;
+
+        // 设置 phantom 元素的高度，撑开滚动条
+        fixedListPhantom.style.height = `${totalData.length * itemHeight}px`;
+
+        // 移动内容区域到正确的位置
+        fixedListContent.style.transform = `translateY(${offsetY}px)`;
+
+        // 渲染可见数据
+        fixedListContent.innerHTML = visibleData
+          .map((item, index) =&gt; {
+            // 这里的index是visibleData中的索引，需要加上startIndex才是原始数据中的真实索引
+            return `&lt;div class=&quot;list-item&quot; data-index=&quot;${startIndex + index}&quot;&gt;${
+              item.text
+            }&lt;/div&gt;`;
+          })
+          .join(&quot;&quot;);
+      }
+
+      // 监听滚动事件
+      fixedListContainer.addEventListener(&quot;scroll&quot;, () =&gt; {
+        // 可以添加节流或防抖以优化性能，但对于定高列表，通常直接更新即可
+        updateVisibleItems();
+      });
+
+      // 页面加载和窗口大小改变时更新
+      window.addEventListener(&quot;load&quot;, updateVisibleItems);
+      window.addEventListener(&quot;resize&quot;, updateVisibleItems);
+
+      // 初始渲染
+      updateVisibleItems();
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p><strong>代码解释：</strong></p>
+<ol>
+<li><p><strong>HTML 结构：</strong></p>
+<ul>
+<li><code>virtual-list-container</code>: 外部容器，设置固定高度并 <code>overflow-y: auto</code> 来创建滚动条。它是 <code>position: relative</code> 的，以便内部的绝对定位元素可以相对于它定位。</li>
+<li><code>virtual-list-phantom</code>: 占位元素，<code>position: absolute</code> 且 <code>z-index: -1</code>。它的高度会被动态设置为所有数据项的总高度，从而模拟出完整的滚动条。</li>
+<li><code>virtual-list-content</code>: 实际渲染列表项的容器，<code>position: absolute</code>。它会根据滚动位置通过 <code>transform: translateY()</code> 进行垂直位移，使其内部渲染的可见列表项始终处于可视区域内。</li>
+</ul>
+</li>
+<li><p><strong>CSS 样式：</strong> 定义了容器、占位元素、内容区域和列表项的基本样式，特别是列表项的固定高度 <code>height: 50px</code> 是关键。</p>
+</li>
+<li><p><strong>JavaScript 逻辑：</strong></p>
+<ul>
+<li><p><code>totalData</code>: 模拟了包含 10000 条数据的数组。</p>
+</li>
+<li><p><code>itemHeight</code>: 定义了每个列表项的高度，这是定高虚拟列表的基础。</p>
+</li>
+<li><p><code>bufferCount</code>: 缓冲区的数量，在可视区域上下各多渲染一些元素，减少快速滚动时的白屏现象，提升用户体验。</p>
+</li>
+<li><p><code>updateVisibleItems()</code> 函数是核心：</p>
+<ul>
+<li>获取容器的 <code>clientHeight</code> 和 <code>scrollTop</code>。</li>
+<li>根据 <code>scrollTop</code> 和 <code>itemHeight</code> 计算 <code>startIndex</code> 和 <code>endIndex</code>，并考虑 <code>bufferCount</code>。</li>
+<li>使用 <code>totalData.slice(startIndex, endIndex)</code> 截取需要渲染的数据子集。</li>
+<li>设置 <code>fixedListPhantom.style.height</code> 为 <code>totalData.length * itemHeight</code>，确保滚动条的正确长度。</li>
+<li>设置 <code>fixedListContent.style.transform =</code> translateY(${offsetY}px)`` ，将内容区域整体位移，使得当前 <code>startIndex</code> 对应的元素位于正确的位置。</li>
+<li>通过 <code>innerHTML</code> 渲染 <code>visibleData</code>。</li>
+</ul>
+</li>
+<li><p>监听 <code>scroll</code> 事件，当容器滚动时调用 <code>updateVisibleItems</code>。</p>
+</li>
+<li><p>在页面加载和窗口大小改变时也调用 <code>updateVisibleItems</code>，确保初始渲染和布局正确。</p>
+</li>
+</ul>
+</li>
+</ol>
+<h2>不定高虚拟列表 (Variable-Height Virtual List)</h2>
+<p>不定高虚拟列表的实现要复杂得多，因为每个列表项的高度是可变的。这意味着我们不能简单地通过索引和固定高度来计算元素的精确位置和总高度。</p>
+<h3>实现思路</h3>
+<ol>
+<li><p><strong>预估高度与真实高度：</strong></p>
+<ul>
+<li>由于无法提前知道所有列表项的真实高度，我们首先给每个列表项一个<strong>预估高度</strong> (<code>estimatedItemHeight</code>)。</li>
+<li>当列表项被渲染到 DOM 中后，我们需要测量它们的<strong>真实高度</strong>，并缓存起来。</li>
+<li>对于尚未渲染的列表项，继续使用预估高度。</li>
+</ul>
+</li>
+<li><p><strong>维护位置信息：</strong></p>
+<ul>
+<li>我们需要一个数据结构（例如一个数组 <code>positions</code>）来存储每个列表项的详细位置信息，包括 <code>index</code>、<code>height</code>（真实高度或预估高度）、<code>top</code>（距离列表顶部的距离）和 <code>bottom</code>（距离列表顶部的距离 + 高度）。</li>
+<li><code>positions</code> 数组会随着列表项的渲染和真实高度的测量而不断更新。</li>
+</ul>
+</li>
+<li><p><strong>动态计算总高度：</strong></p>
+<ul>
+<li>总高度不再是 <code>data.length * itemHeight</code>。它将是 <code>positions</code> 数组中所有已知真实高度的总和，加上未渲染项的预估高度总和。</li>
+<li><code>totalHeight = sum(positions[i].height)</code>。</li>
+</ul>
+</li>
+<li><p><strong>查找可见区域的起始索引：</strong></p>
+<ul>
+<li>由于高度不固定，不能直接 <code>scrollTop / itemHeight</code>。</li>
+<li>需要通过遍历 <code>positions</code> 数组或使用<strong>二分查找</strong>来找到第一个 <code>bottom</code> 值大于 <code>scrollTop</code> 的列表项的索引，即 <code>startIndex</code>。</li>
+</ul>
+</li>
+<li><p><strong>处理高度差异导致的跳动：</strong></p>
+<ul>
+<li><p>当一个列表项首次渲染并测量到真实高度与预估高度不同时，其后续所有列表项的 <code>top</code> 和 <code>bottom</code> 值都会受到影响，导致整个列表的总高度发生变化。</p>
+</li>
+<li><p>这可能导致滚动条跳动或内容位置不匹配。为了解决这个问题，当某个列表项的真实高度被测量后，需要：</p>
+<ul>
+<li>更新该列表项在 <code>positions</code> 数组中的 <code>height</code>。</li>
+<li>重新计算该列表项及其之后所有列表项的 <code>top</code> 和 <code>bottom</code> 值。</li>
+<li>如果 <code>scrollTop</code> 发生了变化（因为内容高度变化导致滚动条位置相对变化），可能需要调整 <code>scrollTop</code> 来保持用户视角的稳定。一种常见的方法是计算高度差异 (<code>diff = realHeight - estimatedHeight</code>)，然后将 <code>scrollTop</code> 加上这个 <code>diff</code>，以抵消内容高度变化带来的视觉跳动。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><strong>渲染和测量：</strong></p>
+<ul>
+<li>根据 <code>startIndex</code> 和 <code>endIndex</code> 渲染可见数据。</li>
+<li>使用 <code>IntersectionObserver</code> 或在渲染后立即通过 <code>getBoundingClientRect()</code> 测量每个渲染项的真实高度。</li>
+<li>将测量到的真实高度更新到 <code>positions</code> 数组中。</li>
+</ul>
+</li>
+</ol>
+<h3>代码实现 (Vanilla JavaScript)</h3>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;title&gt;不定高虚拟列表&lt;/title&gt;
+    &lt;style&gt;
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      h2 {
+        color: #333;
+      }
+      .virtual-list-container {
+        width: 300px;
+        height: 400px; /* 容器固定高度 */
+        overflow-y: auto; /* 允许垂直滚动 */
+        border: 1px solid #ccc;
+        background-color: #fff;
+        position: relative; /* 为内部绝对定位元素提供参考 */
+        margin: 20px auto;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      .virtual-list-phantom {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        z-index: -1;
+      }
+      .virtual-list-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+      }
+      .list-item {
+        padding: 10px 15px; /* 不定高，所以只有padding */
+        border-bottom: 1px solid #eee;
+        box-sizing: border-box;
+        background-color: #f9f9f9;
+        color: #555;
+        word-wrap: break-word; /* 确保文本换行 */
+        min-height: 30px; /* 最小高度，防止内容过少时高度为0 */
+      }
+      .list-item:nth-child(even) {
+        background-color: #eef;
+      }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;不定高虚拟列表示例&lt;/h2&gt;
+    &lt;div class=&quot;virtual-list-container&quot; id=&quot;variableListContainer&quot;&gt;
+      &lt;div class=&quot;virtual-list-phantom&quot; id=&quot;variableListPhantom&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;virtual-list-content&quot; id=&quot;variableListContent&quot;&gt;
+        &lt;!-- 列表项将在这里渲染 --&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+      const variableListContainer = document.getElementById(
+        &quot;variableListContainer&quot;
+      );
+      const variableListPhantom = document.getElementById(
+        &quot;variableListPhantom&quot;
+      );
+      const variableListContent = document.getElementById(
+        &quot;variableListContent&quot;
+      );
+
+      // 模拟大量数据，内容长度随机
+      const totalData = Array.from({ length: 1000 }, (_, i) =&gt; {
+        const randomLength = Math.floor(Math.random() * 100) + 20; // 20到120个字符
+        const text = `列表项 ${
+          i + 1
+        }: ${&quot;这是一个很长很长的文本，用于测试不定高虚拟列表的渲染效果。&quot;
+          .repeat(Math.ceil(randomLength / 20))
+          .substring(0, randomLength)}`;
+        return { id: i, text: text };
+      });
+
+      const estimatedItemHeight = 60; // 预估每个列表项的高度 (px)
+      const bufferCount = 5; // 上下缓冲区域的列表项数量
+
+      let positions = []; // 存储每个列表项的位置信息 { index, height, top, bottom }
+      let containerHeight = 0;
+
+      // 初始化 positions 数组
+      function initPositions() {
+        positions = totalData.map((_, i) =&gt; ({
+          index: i,
+          height: estimatedItemHeight,
+          top: i * estimatedItemHeight,
+          bottom: (i + 1) * estimatedItemHeight,
+        }));
+      }
+
+      // 获取某个索引的列表项的 top 值
+      function getItemTop(index) {
+        if (index &lt; 0) return 0;
+        if (index &gt;= positions.length)
+          return positions[positions.length - 1].bottom;
+        return positions[index].top;
+      }
+
+      // 根据 scrollTop 查找起始索引 (二分查找优化)
+      function getStartIndex(scrollTop) {
+        let low = 0;
+        let high = positions.length - 1;
+        let startIndex = 0;
+
+        while (low &lt;= high) {
+          const mid = Math.floor((low + high) / 2);
+          const item = positions[mid];
+          if (item.bottom &gt; scrollTop) {
+            startIndex = mid;
+            high = mid - 1;
+          } else {
+            low = mid + 1;
+          }
+        }
+        return startIndex;
+      }
+
+      // 更新可见列表项
+      function updateVisibleItems() {
+        containerHeight = variableListContainer.clientHeight;
+        const scrollTop = variableListContainer.scrollTop;
+
+        // 计算起始索引
+        startIndex = getStartIndex(scrollTop);
+        startIndex = Math.max(0, startIndex - bufferCount); // 加上缓冲
+
+        // 计算结束索引
+        // 简单估算需要渲染的项数，然后加上缓冲
+        const visibleCount = Math.ceil(containerHeight / estimatedItemHeight);
+        endIndex = startIndex + visibleCount + bufferCount * 2;
+        endIndex = Math.min(totalData.length, endIndex);
+
+        // 截取需要渲染的数据
+        const visibleData = totalData.slice(startIndex, endIndex);
+
+        // 计算内容区域的偏移量
+        const offsetY = getItemTop(startIndex);
+
+        // 计算总高度
+        const totalHeight = positions[positions.length - 1].bottom;
+        variableListPhantom.style.height = `${totalHeight}px`;
+
+        // 移动内容区域到正确的位置
+        variableListContent.style.transform = `translateY(${offsetY}px)`;
+
+        // 渲染可见数据
+        variableListContent.innerHTML = visibleData
+          .map((item, index) =&gt; {
+            // 这里的index是visibleData中的索引，需要加上startIndex才是原始数据中的真实索引
+            return `&lt;div class=&quot;list-item&quot; data-index=&quot;${startIndex + index}&quot;&gt;${
+              item.text
+            }&lt;/div&gt;`;
+          })
+          .join(&quot;&quot;);
+
+        // 测量真实高度并更新 positions
+        measureAndCorrectPositions();
+      }
+
+      // 测量真实高度并修正 positions
+      function measureAndCorrectPositions() {
+        const items = variableListContent.children;
+        let hasHeightChanged = false;
+        let currentOffset = getItemTop(startIndex); // 当前渲染区域的起始top
+
+        for (let i = 0; i &lt; items.length; i++) {
+          const itemDom = items[i];
+          const index = parseInt(itemDom.dataset.index);
+          const realHeight = itemDom.offsetHeight; // 获取真实高度
+
+          if (positions[index].height !== realHeight) {
+            // 如果真实高度与缓存高度不一致，更新并标记需要重新计算
+            const oldHeight = positions[index].height;
+            positions[index].height = realHeight;
+            const diff = realHeight - oldHeight;
+
+            // 更新后续所有项的 top/bottom
+            for (let j = index + 1; j &lt; positions.length; j++) {
+              positions[j].top += diff;
+              positions[j].bottom += diff;
+            }
+            hasHeightChanged = true;
+          }
+        }
+
+        // 如果有高度变化，可能需要重新渲染或调整滚动位置
+        if (hasHeightChanged) {
+          // 重新计算总高度
+          const newTotalHeight = positions[positions.length - 1].bottom;
+          variableListPhantom.style.height = `${newTotalHeight}px`;
+
+          // 重新调用 updateVisibleItems 确保内容和滚动条同步
+          // 或者更精细地处理：如果当前scrollTop在变化项之后，需要调整scrollTop
+          // 这里简单粗暴地重新更新一次，实际项目中可能需要更复杂的逻辑来避免跳动
+          // 例如：如果用户正在滚动，且变化发生在可视区域之外，可以延迟更新
+          // 或者计算当前scrollTop应有的新值并设置
+          const currentScrollTop = variableListContainer.scrollTop;
+          const newOffset = getItemTop(startIndex);
+          const offsetDiff = newOffset - currentOffset; // 渲染区域起始位置的变化
+
+          if (offsetDiff !== 0) {
+            // 调整滚动条位置以保持视觉稳定
+            variableListContainer.scrollTop = currentScrollTop + offsetDiff;
+          }
+          updateVisibleItems(); // 再次调用以确保渲染内容正确
+        }
+      }
+
+      // 监听滚动事件
+      variableListContainer.addEventListener(&quot;scroll&quot;, () =&gt; {
+        // 可以添加节流或防抖以优化性能
+        updateVisibleItems();
+      });
+
+      // 页面加载和窗口大小改变时更新
+      window.addEventListener(&quot;load&quot;, () =&gt; {
+        initPositions(); // 初始化位置数据
+        updateVisibleItems();
+      });
+      window.addEventListener(&quot;resize&quot;, () =&gt; {
+        // 窗口大小改变时，容器高度可能变化，需要重新计算
+        updateVisibleItems();
+      });
+
+      // 初始渲染
+      initPositions();
+      updateVisibleItems();
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p><strong>代码解释：</strong></p>
+<ol>
+<li><p><strong>HTML 结构和 CSS 样式：</strong></p>
+<ul>
+<li>与定高列表类似，但 <code>list-item</code> 不再有固定 <code>height</code>，而是使用 <code>padding</code> 和 <code>min-height</code> 来适应内容。</li>
+</ul>
+</li>
+<li><p><strong>JavaScript 逻辑：</strong></p>
+<ul>
+<li><p><code>totalData</code>: 模拟数据，每个列表项的文本长度随机，从而产生不同的高度。</p>
+</li>
+<li><p><code>estimatedItemHeight</code>: 预估高度，用于初始化 <code>positions</code> 数组和初步计算。</p>
+</li>
+<li><p><code>positions</code>: 核心数据结构，存储每个列表项的 <code>index</code>、<code>height</code>（真实或预估）、<code>top</code> 和 <code>bottom</code>。</p>
+</li>
+<li><p><code>initPositions()</code>: 在加载时初始化 <code>positions</code> 数组，所有项都使用 <code>estimatedItemHeight</code>。</p>
+</li>
+<li><p><code>getItemTop(index)</code>: 根据 <code>positions</code> 数组获取指定索引项的 <code>top</code> 值。</p>
+</li>
+<li><p><code>getStartIndex(scrollTop)</code>: 使用二分查找在 <code>positions</code> 数组中快速定位 <code>scrollTop</code> 对应的 <code>startIndex</code>。这是不定高列表的关键优化点，避免了线性遍历。</p>
+</li>
+<li><p><code>updateVisibleItems()</code>:</p>
+<ul>
+<li>与定高列表类似，获取 <code>scrollTop</code> 和 <code>containerHeight</code>。</li>
+<li>使用 <code>getStartIndex</code> 确定 <code>startIndex</code>。</li>
+<li>计算 <code>endIndex</code>，同样考虑缓冲。</li>
+<li>根据 <code>startIndex</code> 获取 <code>offsetY</code>（当前渲染区域的 <code>top</code> 值）。</li>
+<li>设置 <code>variableListPhantom</code> 的高度为 <code>positions</code> 数组中最后一项的 <code>bottom</code> 值，这是当前计算出的总高度。</li>
+<li>通过 <code>transform: translateY()</code> 移动 <code>variableListContent</code>。</li>
+<li>渲染可见数据。</li>
+<li><strong>最重要的一步：</strong> 调用 <code>measureAndCorrectPositions()</code> 来测量刚渲染的列表项的真实高度并更新 <code>positions</code>。</li>
+</ul>
+</li>
+<li><p><code>measureAndCorrectPositions()</code>:</p>
+<ul>
+<li><p>遍历 <code>variableListContent</code> 中所有已渲染的 DOM 元素。</p>
+</li>
+<li><p>通过 <code>itemDom.offsetHeight</code> 获取每个元素的真实高度。</p>
+</li>
+<li><p>如果真实高度与 <code>positions</code> 中缓存的高度不一致，则更新 <code>positions[index].height</code>。</p>
+</li>
+<li><p>计算高度差异 <code>diff</code>。</p>
+</li>
+<li><p><strong>关键：</strong> 遍历 <code>index</code> 之后的所有列表项，更新它们的 <code>top</code> 和 <code>bottom</code> 值，因为它们的位置都因 <code>diff</code> 而发生了变化。</p>
+</li>
+<li><p>如果发生高度变化 (<code>hasHeightChanged</code> 为 <code>true</code>)，需要：</p>
+<ul>
+<li>重新设置 <code>variableListPhantom</code> 的高度，以反映新的总高度。</li>
+<li><strong>调整 <code>scrollTop</code>：</strong> 如果渲染区域的起始 <code>top</code> 值因高度变化而改变 (<code>offsetDiff !== 0</code>)，则需要将 <code>variableListContainer.scrollTop</code> 加上 <code>offsetDiff</code>，以抵消内容位移，保持用户视角的稳定。</li>
+<li>再次调用 <code>updateVisibleItems()</code> 确保渲染内容和滚动条的同步。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>滚动事件监听、加载和窗口大小改变的事件监听与定高列表类似。</p>
+</li>
+</ul>
+</li>
+</ol>
+<p>不定高虚拟列表的挑战在于如何高效且平滑地处理高度变化。上述代码提供了一个基础的实现，通过预估高度、测量真实高度、更新位置数组和调整滚动条来解决核心问题。在实际生产环境中，可能还需要进一步的优化，例如使用 <code>requestAnimationFrame</code> 进行滚动节流，更复杂的滚动位置调整策略，以及对数据更新的响应等。</p>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
