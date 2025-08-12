@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>什么是 Podman？能否替代 Docker？Podman 快速入门 - 灏天阁</title>
+    <meta name="description" content="什么是 Podman？能否替代 Docker？Podman 快速入门 - 灏天阁技术博客文章">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>什么是 Podman？能否替代 Docker？Podman 快速入门</h1>
+          <p class="article-meta">
+            <span class="category">部署</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.13">2025.08.13</time>
+          </p>
+        </header>
+        <article>
+          <h2>什么是 Podman</h2>
+<p>Podman（POD Manager）是一个开源的无守护进程（daemonless）容器引擎，用于管理容器、容器镜像、容器卷和网络。</p>
+<p>它兼容 OCI 标准，可以运行 Docker 镜像，并且设计上与 Docker CLI 命令高度兼容。</p>
+<p><img src="../images/abf730f32de5709bbebd1338583f4edc.png" alt="podman logo"></p>
+<h2>Podman 的特点与优势</h2>
+<ul>
+<li><strong>Daemonless 进程，更轻</strong></li>
+</ul>
+<p>Podman 直接使用 RunC（或其他符合 OCI 的运行时）来创建和运行容器。每个容器都是当前用户的一个子进程。</p>
+<p>基于 Daemonless 能够提供更安全（减少攻击面）、更稳定（守护进程崩溃不影响现有容器）、资源消耗更低、更符合 Linux 进程模型。</p>
+<p>对比 Docker，依赖于一个长期运行的后台进程 (dockerd) 来管理容器。</p>
+<ul>
+<li><strong>Rootless 容器，更安全</strong></li>
+</ul>
+<p>普通用户无需 sudo 或 root 权限即可直接启动和管理容器。</p>
+<p>极大提升安全性（容器进程以用户权限运行，即使容器被攻破，影响范围也限于该用户）、满足更严格的安全合规要求、允许多用户在同一系统上安全地管理各自的容器。</p>
+<p>对比 Docker，目前也支持 Rootless 容器，但需要进行特殊配置，且默认仍然需要 root 权限。</p>
+<ul>
+<li><strong>基于标准设计，兼容好</strong></li>
+</ul>
+<p>Podman 支持 OCI 标准，且与 Docker 兼容，大部分命令与 Docker 命令相同。</p>
+<p>Docker 用户迁移成本小，学习曲线低，现有脚本通常只需替换命令即可工作。</p>
+<ul>
+<li><strong>Kubernetes Pod 原生支持：</strong></li>
+</ul>
+<p>Podman 对 Kubernetes 的 Pod 概念有原生支持。可以轻松创建和管理包含多个共享命名空间（网络、IPC、UTS）容器的 Pod。</p>
+<p>可以在创建、启动、检查和管理 Pod。直接使用 Podman 操作 Kubernetes YAML，从 Pod 生成 Kubernetes YAML，并部署到现有的 Kubernetes 环境中。</p>
+<h2>Podman 安装</h2>
+<ul>
+<li><strong>在 Window 和 MacOS 上安装 Podman</strong></li>
+</ul>
+<p>容器是基于 Linux 内核的，因此和 Docker 一样，在 Window 和 MacOS 上运行容器时需要用到虚拟机。</p>
+<p>和 Docker Machine 一样，Podman 也有 Podman Machine 虚拟机。</p>
+<p>如在 MacOS 上安装 Podman</p>
+<pre><code class="language-bash">brew install podman
+podman info
+podman machine init
+podman machine start
+podman machine ls
+podman run hello-world
+</code></pre>
+<p>在 Windows 上，每台 Podman 机器都由一个虚拟化的 Windows Subsystem for Linux（WSLv2）发行版提供支持。</p>
+<p>安装后，可以直接从 Windows PowerShell（或 CMD）提示符运行 podman 命令，该命令会与在 WSL 环境中运行的 podman 服务进行远程通信。</p>
+<p>或者，如果您更喜欢 Linux 提示符和 Linux 工具，也可以直接从 WSL 实例访问 Podman。</p>
+<p>除了直接使用 podman 外，Podman Desktop 也可以作为图形界面工具，</p>
+<ul>
+<li><strong>在 Linux 上安装 Podman</strong></li>
+</ul>
+<p>在 Linux 上安装 Podman 的最简单方法是使用包管理器。</p>
+<pre><code class="language-bash"># Arch Linux &amp; Manjaro Linux
+sudo pacman -S podman
+
+# Alpine Linux
+sudo apk add podman
+
+# CentOS Stream/Fedora
+sudo dnf -y install podman
+
+# Debian/Ubuntu
+sudo apt-get -y install podman
+
+# Gentoo
+sudo emerge app-containers/podman
+
+# openSUSE
+sudo zypper install podman
+</code></pre>
+<h2>Podman 使用</h2>
+<p>podman 命令和 docker 命令基本一样，设置一个简单的别名  <code>alias docker=podman</code>  就能无缝切换。</p>
+<ul>
+<li><strong>查找镜像</strong></li>
+</ul>
+<p>Podman 会在不同的镜像仓库中搜索。</p>
+<pre><code class="language-bash">podman search httpd --filter=is-official
+</code></pre>
+<ul>
+<li><strong>拉取镜像</strong></li>
+</ul>
+<p>建议使用完整的镜像名称（如 docker.io/library/httpd，而不是 httpd），以确保您使用的是正确的镜像。</p>
+<pre><code class="language-bash">podman pull docker.io/library/httpd
+</code></pre>
+<ul>
+<li><strong>运行一个容器</strong></li>
+</ul>
+<p>示例容器将运行一个基础的 httpd 服务器</p>
+<pre><code class="language-bash">podman run -dt -p 8080:80/tcp docker.io/library/httpd
+</code></pre>
+<p>容器是在分离模式<code>-d</code>下运行的，Podman 将在执行命令后打印出容器 ID。<code>-t</code>  选项还会添加一个伪终端，以便在交互式 shell 中运行任意命令。<code>-p</code>  添加一个端口映射，将 httpd 的 80 端口映射到主机的 8080 端口。</p>
+<ul>
+<li><strong>查看容器状态</strong></li>
+</ul>
+<p><code>podman ps</code>命令用于列出已创建和正在运行的容器。</p>
+<pre><code class="language-bash">podman ps
+</code></pre>
+<p>如果添加  <code>-a</code>  参数，Podman 将显示所有容器，包括已创建、已退出、正在运行等。</p>
+<ul>
+<li><strong>测试 httpd 服务</strong></li>
+</ul>
+<p>通过端口映射，httpd 服务的 80 端口映射到宿主机的 8080 端口。</p>
+<pre><code class="language-bash">curl http://localhost:8080
+</code></pre>
+<ul>
+<li><strong>其他命令</strong></li>
+</ul>
+<p>其他如  <code>podman logs</code> 、<code>podman inspect</code>、 <code>podman stop</code>、<code>podman rm</code> 、<code>podman images</code>  和 docker 的命令一致，可以查看详细的 podman 或 docker 的命令行文档。</p>
+<h2>Podman 和 Docker 生态对比</h2>
+<table>
+<thead>
+<tr>
+<th>对比项目</th>
+<th>Docker</th>
+<th>Podman</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Daemonless</td>
+<td>dockerd</td>
+<td>无</td>
+</tr>
+<tr>
+<td>Rootless</td>
+<td>需要特殊配置</td>
+<td>默认 rootless</td>
+</tr>
+<tr>
+<td>Machine</td>
+<td>Docker Machine</td>
+<td>Podman Machine</td>
+</tr>
+<tr>
+<td>Compose</td>
+<td>Docker Compose</td>
+<td>Podman Compose</td>
+</tr>
+<tr>
+<td>Desktop</td>
+<td>Docker Desktop</td>
+<td>Podman Desktop</td>
+</tr>
+<tr>
+<td>Dockerfile</td>
+<td>Dockerfile</td>
+<td>Containerfile</td>
+</tr>
+</tbody></table>
+<h2>Podman 和 Docker 该如何选？</h2>
+<p><strong>如果对安全是否有更高的要求，推荐 Podman</strong></p>
+<ul>
+<li>Podman 是开源的，由 CNCF 社区托管。避免了单一厂商的锁定。</li>
+<li>Podman 默认是 Rootless。业务逻辑运行在容器内，避免了越权问题。</li>
+<li>Podman 默认不运行后台进程。减少容器运行时消耗的资源，以及安全攻击面。</li>
+</ul>
+<p><strong>如果对产品成熟度和生态完善性有更高的要求，推荐 Docker</strong></p>
+<ul>
+<li><p>当前很多 DevOps 工具默认集成了 Docker。如 Jenkines、ArgoCD 等</p>
+</li>
+<li><p>Podman 还处于 CNCF 的沙盒阶段，距离孵化和毕业还需要很长一段时间。</p>
+</li>
+<li><p>Podman 功能上大部分兼容 Docker，但仍然有一些功能还未完全兼容，如不支持 Docker 的  <code>--restart=always</code>（依赖守护进程实现容器自启），Podman 需通过 Systemd 单元文件管理。</p>
+</li>
+<li><p>藏云阁 Pro（服务号）：极少的内容推送，菜单按照移动端 APP 思路配置，提供微信端快速的知识库访问。深度的云技术思考，综合性的架构解决方案。</p>
+</li>
+<li><p>云原生技术栈（订阅号）：提供云技术的最佳实践、科普内容，了解更多优秀的开源项目及其使用方法、问题解决方法等。</p>
+</li>
+</ul>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
