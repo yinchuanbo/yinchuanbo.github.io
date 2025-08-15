@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>从零到一使用 turborepo + pnpm 搭建企业级 Monorepo项目 - 灏天阁</title>
+    <meta name="description" content="从零到一使用 turborepo + pnpm 搭建企业级 Monorepo项目 - 灏天阁技术博客文章">
+    <link href="https://fonts.cdnfonts.com/css/sf-mono" rel="stylesheet">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>从零到一使用 turborepo + pnpm 搭建企业级 Monorepo项目</h1>
+          <p class="article-meta">
+            <span class="category">工程化</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.16">2025.08.16</time>
+          </p>
+        </header>
+        <article>
+          <p>单纯使用 pnpm 就能实现 Monorepo 项目我们都知道，因为它原生支持 workspace，但是它也依然存在一些缺点，例如：</p>
+<ol>
+<li>任务运行策略：虽然 pnpm 支持工作空间间的依赖管理和一些任务的并行执行，但是它并不那么灵活或高效地处理跨包的构建、测试和发布任务比如增量构建和任务缓存，可以显著提高大型 Monorepo 的开发和持续集成的效率。</li>
+<li>自定义构建和发布流程：pnpm 在自定义构建流程、测试流程和发布流程方面的能力有限。对于需要高度定制化工作流的复杂 Monorepo 项目，可能需要额外的脚本或配置来满足这些需求。</li>
+<li>构建效率：在没有专门的构建缓存机制的情况下，pnpm 对于大型 Monorepo 项目的构建效率可能不如使用了缓存策略的工具。这可能导致在持续集成/持续部署（CI/CD）环境中，构建和部署的时间增长。</li>
+<li>高级任务调度和资源管理：pnpm 本身可能不提供高级的任务调度和资源管理特性，如限制并行任务数目以避免过度占用系统资源，或者根据任务的资源使用情况动态调整优先级。</li>
+</ol>
+<p>尽管 pnpm 为 Monorepo 提供了强大的支持，并且在许多场景下都能很好地工作，但在需要复杂的任务运行策略、细粒度的任务控制以及高效的任务执行优化时，可能会遇到一些问题，在这种情况下我们可能就需要通过额外的工具、脚本或工作流来补充或优化 pnpm 的使用。</p>
+<h2>什么是 Turborepo</h2>
+<p>Turborepo 是一个高性能的构建系统，专为 JavaScript 和 TypeScript 的 Monorepo 项目设计。它提供了一种高效管理和构建项目中多个包的方式，通过缓存先前构建和测试的结果来显著减少重复工作的需要，从而加快开发和持续集成的流程。Turborepo 旨在提高大型 Monorepo 项目的构建效率，特别是在复杂的项目中，它可以处理依赖关系、执行任务、并确保构建的正确性和效率。</p>
+<p>那么接下来我们将使用 Pnpm 来带大家领略 Turborepo 的魅力！</p>
+<h2>TurboRepo 的优势</h2>
+<p>Turborepo 提供了多个优势，特别适合管理和优化大型 Monorepo 项目的构建和开发流程。</p>
+<h2>多任务并行处理</h2>
+<p>Turborepo 支持多个任务的并行运行，在执行任何任务之前，Turborepo 首先分析项目中各个包之间的依赖关系。这包括识别包之间的直接依赖以及跨包的间接依赖。通过这种依赖分析，Turborepo 能够构建出一个执行任务的依赖图，确保在执行任何特定任务之前，其所有依赖项都已经被处理。</p>
+<p>依据构建的依赖图，Turborepo 使用一种智能调度算法来决定任务的执行顺序。它会并行执行那些彼此之间没有依赖关系的任务，而将有依赖关系的任务按正确的顺序排队执行。这种方法最大化地利用了系统的 CPU 和内存资源，同时确保了构建过程的正确性。</p>
+<p>在传统的 Monorepo 任务管理中虽然可以执行一些基本的并行操作，但通常缺乏一个综合策略来最大化并行效率，可能导致资源未充分利用。在没有智能管理的情况下，同时运行多个重资源任务可能会导致性能瓶颈，影响任务执行效率。</p>
+<p>为了可以了解 turbo 多么强大，下图比较了 turbo vs lerna 任务执行时间线：</p>
+<p><img src="../images/7aef254a7c6f5a977cb13c8ffd7eef9b.png" alt="20240307083620"></p>
+<p>Turbo 它能够有效地安排任务类似于瀑布可以同时异步执行多个任务，而 lerna 一次只能执行一项任务 所以 Turbo 的 性能不言而喻。</p>
+<p>假设一个 Monorepo 项目包含三个包：A，B，和 C，其中 A 依赖于 B 和 C，但 B 和 C 之间没有依赖关系。在这种情况下，Turborepo 会同时启动 B 和 C 的构建任务，因为它们可以独立完成。只有当 B 和 C 的任务都完成后，它才会开始执行 A 的构建任务。</p>
+<h2>增量构建</h2>
+<p>增量构建意味着在构建过程中，只有自上次成功构建以来发生变化的部分才会被重新构建，而未更改的部分则会跳过，直接使用上次构建的结果。</p>
+<p>Turborepo 首先分析项目的依赖图，包括识别各个包之间的依赖关系。这是增量构建的基础，确保只有当依赖的包发生变化时，依赖它们的包才会被重新构建。</p>
+<p>使用文件指纹（或哈希）技术来确定文件自上次构建以来是否发生了更改。通过比较文件的当前指纹与存储在缓存中的上一次构建指纹，Turborepo 能够快速识别哪些文件需要重新构建。</p>
+<p>Turborepo 利用先进的缓存机制来存储构建结果，包括编译后的代码、测试结果等。如果检测到某个包或任务自上次构建以来没有变化（基于文件指纹比较），Turborepo 将跳过这些任务的执行，并直接使用缓存中的结果。</p>
+<p>第一次打包：</p>
+<p><img src="../images/ce0f2bd3b2ff46c0a75069b968680748.png" alt="20240307085957"></p>
+<p>第二次打包：</p>
+<p><img src="../images/669438969637b3e7f1e9f3da4da21ec5.png" alt="20240307090034"></p>
+<p>从上面的图我们应该可以看得出，我们并没有对文件就行修改，打包的速度和第一次相比直接少了 2s 多。</p>
+<h2>云缓存</h2>
+<p>云缓存功能是其高效构建系统的关键特性之一，它允许开发团队在云端存储和共享构建缓存。这种机制不仅提高了构建和测试的速度，还增强了团队成员间的协作效率，尤其是在大型 Monorepo 项目中。</p>
+<p>云缓存基于一个简单的原理：将构建任务的输出（如编译代码、测试结果等）存储在云端服务中。当相同的任务在未来被触发时，Turborepo 首先检查云缓存中是否存在相应的输出。如果存在，它将直接使用缓存的结果，而不是重新执行任务。这种机制依赖于对任务输入（如源代码文件）的敏感度分析，确保仅当输入未发生变化时，才复用缓存结果。</p>
+<p>它主要包括了以下几个优点：</p>
+<ol>
+<li>构建速度提升：通过避免重复执行未更改的任务，云缓存显著减少了构建和测试所需的时间。</li>
+<li>团队协作优化：云缓存支持跨团队成员共享，意味着一个团队成员的构建结果可以被其他成员复用，进一步提高了整个团队的工作效率。</li>
+<li>CI/CD 效率增强：在持续集成/持续部署（CI/CD）流程中，云缓存可以跨不同构建和部署任务共享，减少了构建步骤，加快了软件交付速度。</li>
+<li>资源优化：减少了对计算资源的需求，尤其是在资源受限的环境中，如限制了并行构建数的 CI 服务。</li>
+</ol>
+<h2>Turborepo 核心概念</h2>
+<h2>管道</h2>
+<p>Turborepo 的任务管道（Pipelines）是其核心特性之一，允许开发者定义和执行跨多个包（packages）的自定义任务序列。任务管道使得在 Monorepo 环境中的构建、测试、部署等过程更加灵活、高效。通过在 turbo.json 配置文件中定义任务管道，Turborepo 能够根据依赖关系自动优化任务的执行顺序，实现并行处理，以及利用缓存来加速重复任务的执行。</p>
+<p>在 pipeline 中的每一个 key 都指向我们在 package.json 中定义的 script 脚本执行命令,并且在 pipeline 中的每一个 key 都是可以被 turbo run 所执行 执行 pipeline 的脚本的名称。您可以使用其下方的键以及与缓存相关的一些其他选项来指定其依赖项。</p>
+<p>在我们执行 turbo run xxx 命令的时候 turbo 会根据我们定义的 Pipelines 里对命令的各种配置去对我们的每个 package 中的 package.json 中 对应的 script 执行脚本进行有序的执行和缓存输出的文件。</p>
+<p>例如当我们在根目录上执行 pnpm run dev 的时候，会执行所有 packages 目录下的子包中的 package.json 中对应的 script 脚本：</p>
+<p><img src="../images/cbe64b3758638271ae30fc7b1198e0de.png" alt="20240307085850"></p>
+<p>接下来我们来解析每一个对象中的 key 到底是用来做什么的帮助我们更好的理解 pipeline。</p>
+<h3>DependsOn</h3>
+<p>在 Turborepo 中，DependsOn 是一种配置属性，它允许你明确指定任务之间的依赖关系。通过使用 DependsOn，你可以确保在执行某个任务之前，其所有依赖的任务都已经完成。这是构建复杂 Monorepo 项目时确保正确执行顺序的关键机制。</p>
+<p>DependsOn 的主要功能是定义任务执行的先决条件，这对于管理具有复杂依赖关系的大型项目尤其重要。在 Monorepo 设置中，不同的包可能需要按照特定的顺序构建，或者某些任务（如测试或部署）可能需要等待其他任务（如构建或编译）完成后才能开始。</p>
+<p>假设你有一个 Monorepo 项目，其中包含两个包：ui 和 api。ui 依赖于 api，因为前端 UI 需要调用后端 API。如果你想要先构建 api 包，然后再构建 ui 包，你可以在 turbo.json 中使用 DependsOn 来配置这种依赖关系。</p>
+<pre><code class="language-json">{
+  &quot;tasks&quot;: {
+    &quot;build&quot;: {
+      &quot;dependsOn&quot;: [&quot;^build&quot;]
+    }
+  },
+  &quot;pipeline&quot;: {
+    &quot;build&quot;: {
+      &quot;dependsOn&quot;: [&quot;^build&quot;]
+    },
+    &quot;api:build&quot;: {
+      &quot;outputs&quot;: [&quot;dist/**&quot;]
+    },
+    &quot;ui:build&quot;: {
+      &quot;inputs&quot;: [&quot;src/**&quot;, &quot;public/**&quot;],
+      &quot;dependsOn&quot;: [&quot;api:build&quot;]
+    }
+  }
+}
+</code></pre>
+<p>在这个例子中，ui:build 任务通过 dependsOn 属性声明了对 api:build 任务的依赖。这意味着 Turborepo 会先执行 api:build 任务，确保 API 构建完成后，才开始执行 ui:build。</p>
+<h3>cache</h3>
+<p>cache 表示是否缓存，通常我们执行 dev 命令的时候会结合 watch 模式，所以我们一般在项目启动模式下不需要开启 turbo 缓存机制</p>
+<pre><code class="language-js">{
+  &quot;$schema&quot;: &quot;https://turborepo.org/schema.json&quot;,
+  &quot;pipeline&quot;: {
+    &quot;dev&quot;: {
+      &quot;cache&quot;: false
+    }
+  }
+}
+</code></pre>
+<h3>OutputMode</h3>
+<p>outputMode 代表输出的模式类型是字符串：</p>
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>full</td>
+<td>显示所有输出（默认）</td>
+</tr>
+<tr>
+<td>hash-only</td>
+<td>仅显示任务的哈希值</td>
+</tr>
+<tr>
+<td>new-only</td>
+<td>仅显示缓存未命中的输出</td>
+</tr>
+<tr>
+<td>errors-only</td>
+<td>仅显示任务失败的输出</td>
+</tr>
+<tr>
+<td>none</td>
+<td>隐藏所有任务输出</td>
+</tr>
+</tbody></table>
+<p>例如：</p>
+<pre><code class="language-json">{
+  &quot;$schema&quot;: &quot;https://turbo.build/schema.json&quot;,
+  &quot;pipeline&quot;: {
+    &quot;build&quot;: {
+      &quot;dependsOn&quot;: [&quot;^build&quot;],
+      &quot;outputs&quot;: [&quot;.svelte-kit/**&quot;, &quot;dist/**&quot;],
+      &quot;outputMode&quot;: &quot;new-only&quot;
+    },
+    &quot;test&quot;: {
+      &quot;dependsOn&quot;: [&quot;build&quot;]
+    }
+  }
+}
+</code></pre>
+<p>full：</p>
+<p><img src="../images/ebdfad99521bd7bb74861823ea23ee8a.png" alt="20240307091658"></p>
+<p>new-only：</p>
+<p><img src="../images/8ebf2383ad4599a1618b434bd7f165eb.png" alt="20240307091853"></p>
+<p>none：</p>
+<p><img src="../images/206546f2a39e807f762212e22b9486fc.png" alt="20240307092026"></p>
+<p>errors-only：</p>
+<p><img src="../images/91b6cad471382238346a287d74be4068.png" alt="20240307092109"></p>
+<h2>过滤包 （Filtering Packages）</h2>
+<p>在 Turborepo 中，--filter 是一个非常有用的命令行选项，允许开发者有选择性地运行特定的任务或针对特定的包执行操作。这个功能特别适合在大型 Monorepo 项目中使用，因为它可以帮助你缩小命令的作用范围，仅对那些你确实想要操作的包或任务进行构建、测试或其他任何支持的命令。</p>
+<p>在一个包含多个包（packages）的 Monorepo 中，如果你只想要构建或测试某些包，可以使用 --filter 来指定这些包。</p>
+<p>例如：</p>
+<pre><code class="language-bash">turbo run &lt;command&gt; --filter=&lt;package name&gt;
+</code></pre>
+<p><code>--filter</code> 选项为 Turborepo 用户提供了强大的灵活性，使他们能够精确控制 Monorepo 中的构建和任务执行流程。通过精确指定哪些包需要操作，可以节省时间，使开发流程更高效。</p>
+<p>到这里我就算对 Turborepo 有一个大概的了解了，更多详细的功能可以参考官方文档进行学习。</p>
+<h2>实战</h2>
+<p>在本次体验中，我们只是使用 turbo 结合 pnpm 来实现一个简单的 demo，具体的构建方式以及完整项目可以查看  create-neat</p>
+<p>在终端中我们输入命令来创建基础项目：</p>
+<pre><code class="language-bash">npx create-turbo@latest
+</code></pre>
+<p><img src="../images/d7752d5d7afbd994bb199bbffe2ce963.png" alt="20240307095011"></p>
+<p>我们是使用 pnpm 来构建。最终为我们生成了如下目录：</p>
+<p><img src="../images/f17a56559a92c4ef2c5582fe6c43cebf.png" alt="20240307095220"></p>
+<p>假设我们已经都会了使用 pnpm 来管理 Monorepo 的项目，如果不懂，可以阅读   为什么 PNPM 能够实现 Monorepo🙆🙆🙆</p>
+<p>我们直接对 create-neat 的包架构进行讲解，如下目录：</p>
+<p><img src="../images/b17127d998e401df9a673c41a415f78d.png" alt="20240307100035"></p>
+<p>在上面的子包中，我们的 core 依赖到 utils 包，那么我们必然要先执行 utils 在执行 core 的，这个时候，我们就可以编写 turbo.json 文件对任务进行编排：</p>
+<pre><code class="language-json">{
+  &quot;$schema&quot;: &quot;https://turbo.build/schema.json&quot;,
+  &quot;globalDependencies&quot;: [&quot;**/.env.*local&quot;],
+  &quot;pipeline&quot;: {
+    &quot;build&quot;: {
+      &quot;dependsOn&quot;: [&quot;^build&quot;],
+      &quot;outputs&quot;: [&quot;dist/**&quot;]
+    },
+    &quot;lint&quot;: {
+      &quot;dependsOn&quot;: [&quot;^lint&quot;]
+    },
+    &quot;dev&quot;: {
+      &quot;dependsOn&quot;: [&quot;^build&quot;],
+      &quot;outputs&quot;: [&quot;&quot;],
+      &quot;cache&quot;: false,
+      &quot;persistent&quot;: true
+    },
+    &quot;@laconic/utils&quot;: {
+      &quot;outputs&quot;: [&quot;&quot;]
+    },
+    &quot;create-neat&quot;: {
+      &quot;dependsOn&quot;: [&quot;@laconic/utils&quot;],
+      &quot;outputs&quot;: [&quot;&quot;]
+    }
+  }
+}
+</code></pre>
+<p>在上面的配置中，@laconic/utils 这个任务没有指定 dependsOn 属性，意味着它不依赖于其他任务。因此，它可能是最先执行的任务之一，但具体取决于 turbo 的调度决策。</p>
+<p>create-neat 任务：它依赖于@laconic/utils 任务。这意味着@laconic/utils 任务完成后，create-neat 任务才会执行。</p>
+<p>这个时候我们就可以执行根目录的 package.json 中的 build 来打包构建了：</p>
+<p><img src="../images/532baa5f030b721a54dbe0b2a442662e.png" alt="20240307100743"></p>
+<p>这个时候，它会查看 packages 目录下的所有子包根据 turbo.json 的配置进行构建：</p>
+<p><img src="../images/d859e0cc4024681e911c425ec1780a34.png" alt="20240307100947"></p>
+<h2>参考资料</h2>
+<ul>
+<li>🚀Turborepo：发布当月就激增 3.8k Star，这款超神的新兴 Monorepo 方案，你不打算尝试下吗？</li>
+<li>官网</li>
+</ul>
+<h2>总结</h2>
+<p>Turborepo 是一个高效的构建系统，专为 JavaScript 和 TypeScript 的代码库设计，它通过优化任务执行的依赖关系和缓存策略，来加快构建和测试过程。Turborepo 支持并行处理和增量构建，从而显著提升大型项目的开发效率和构建性能。</p>
+<p>最后分享两个我的两个开源项目,它们分别是:</p>
+<ul>
+<li>前端脚手架 create-neat</li>
+<li>在线代码协同编辑器</li>
+</ul>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
