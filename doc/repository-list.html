@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仓库列表 - 灏天阁</title>
+    <meta name="description" content="灏天阁技术博客仓库列表，展示开源项目">
+    <link href="https://fonts.cdnfonts.com/css/sf-mono" rel="stylesheet">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon" />
+    <link rel="stylesheet" href="/css/style.css" />
+    <style>
+        .repository-container {
+            display: flex;
+            margin: 32px auto;
+            gap: 32px;
+            padding: 0 24px;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        
+        .repository-main {
+            width: var(--main-width);
+            position: relative;
+            z-index: 1;
+            padding: 64px 72px;
+            border-radius: 32px;
+            box-shadow: var(--shadow-premium);
+            backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border);
+            transition: all 0.6s var(--ease-out-quart);
+            background: var(--glass-bg);
+        }
+        
+        .repository-main::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(102, 126, 234, 0.05) 0%,
+                rgba(118, 75, 162, 0.01) 100%
+            );
+            border-radius: 32px;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .repository-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+        }
+        
+        .repository-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 28px;
+            transition: all 0.6s var(--ease-out-quart);
+            box-shadow: var(--shadow-md);
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .repository-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(102, 126, 234, 0.03) 0%,
+                rgba(118, 75, 162, 0.01) 100%
+            );
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.6s var(--ease-out-quart);
+            pointer-events: none;
+        }
+        
+        .repository-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-premium), var(--glow-subtle);
+            border-color: var(--accent-primary);
+        }
+        
+        .repository-card:hover::before {
+            opacity: 1;
+        }
+        
+        .repository-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--accent-primary);
+            text-decoration: none;
+            margin-bottom: 16px;
+            display: block;
+            transition: all 0.3s var(--ease-out-quart);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .repository-title:hover {
+            color: var(--accent-secondary);
+            transform: translateX(4px);
+        }
+        
+        .repository-description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .repository-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .repository-language {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        
+        .language-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .search-container {
+            margin-bottom: 32px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 16px 48px 16px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            font-family: var(--ff);
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            transition: all 0.3s var(--ease-out-quart);
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(20px);
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background: var(--glass-hover);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2), var(--glow-subtle);
+        }
+        
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .search-button {
+            position: absolute;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .search-button:hover {
+            color: var(--accent-primary);
+            transform: scale(1.1);
+        }
+        
+        .stats-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="repository-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9,22 9,12 15,12 15,22"/>
+        </svg>
+    </a>
+
+    <div class="repository-container">
+        <main class="repository-main">
+            <header>
+                <h1>仓库列表</h1>
+                <p>探索我的开源项目，发现有趣的代码</p>
+            </header>
+            
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="搜索仓库..." id="searchInput">
+                <button class="search-button" id="searchButton">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+            </div>
+        
+        <div class="repository-grid" id="repositoryGrid">
+            <!-- Frontend Projects -->
+            <div class="repository-card" data-name="vue-admin-dashboard" data-language="vue">
+                <a href="https://gitee.com/yinchuanbo/vue-admin-dashboard" target="_blank" class="repository-title">
+                    Vue Admin Dashboard
+                </a>
+                <p class="repository-description">
+                    A modern admin dashboard built with Vue.js, featuring responsive design, data visualization, and user management.
+                </p>
+                <div class="repository-meta">
+                    <div class="repository-language">
+                        <span class="language-dot" style="background-color: #4FC08D;"></span>
+                        Vue.js
+                    </div>
+                    <span>⭐ 45</span>
+                    <span>🍴 12</span>
+                </div>
+            </div>
+            
+            <div class="repository-card" data-name="react-component-library" data-language="react">
+                <a href="https://gitee.com/yinchuanbo/react-component-library" target="_blank" class="repository-title">
+                    React Component Library
+                </a>
+                <p class="repository-description">
+                    A collection of reusable React components with TypeScript support, Storybook documentation, and comprehensive testing.
+                </p>
+                <div class="repository-meta">
+                    <div class="repository-language">
+                        <span class="language-dot" style="background-color: #61DAFB;"></span>
+                        React
+                    </div>
+                    <span>⭐ 38</span>
+                    <span>🍴 8</span>
+                </div>
+            </div>
+            
+            <div class="repository-card" data-name="tailwind-ui-kit" data-language="css">
+                <a href="https://gitee.com/yinchuanbo/tailwind-ui-kit" target="_blank" class="repository-title">
+                    Tailwind UI Kit
+                </a>
+                <p class="repository-description">
+                    A comprehensive UI kit built with Tailwind CSS, including components, layouts, and design patterns.
+                </p>
+                <div class="repository-meta">
+                    <div class="repository-language">
+                        <span class="language-dot" style="background-color: #38B2AC;"></span>
+                        CSS
+                    </div>
+                    <span>⭐ 52</span>
+                    <span>🍴 15</span>
+                </div>
+            </div>
+            
+            <!-- Backend Projects -->
+            <div class="repository-card" data-name="node-api-server" data-language="javascript">
+                <a href="https://gitee.com/yinchuanbo/node-api-server" target="_blank" class="repository-title">
+                    Node.js API Server
+                </a>
+                <p class="repository-description">
+                    RESTful API server built with Node.js, Express, and MongoDB. Includes authentication, validation, and API documentation.
+                </p>
+                <div class="repository-meta">
+                    <div class="repository-language">
+                        <span class="language-dot" style="background-color: #F7DF1E;"></span>
+                        JavaScript
+                    </div>
+                    <span>⭐ 29</span>
+                    <span>🍴 6</span>
+                </div>
+            </div>
+            
+            <div class="repository-card" data-name="python-web-scraper" data-language="python">
+                <a href="https://gitee.com/yinchuanbo/python-web-scraper" target="_blank" class="repository-title">
+                    Python Web Scraper
+                </a>
+                <p class="repository-description">
+                    Advanced web scraping toolkit with support for dynamic content, proxy rotation, and data export to multiple formats.
+                </p>
+                <div class="repository-meta">
+                    <div class="repository-language">
+                        <span class="language-dot" style="background-color: #3776AB;"></span>
+                        Python
+                    </div>
+                    <span>⭐ 34</span>
+                    <span>🍴 9</span>
+                </div>
+            </div>
+            
+            <!-- Tools & Utilities -->
+            <div class="repository-card" data-name="code-generator" data-language="typescript">
+                <a href="https://gitee.com/yinchuanbo/code-generator" target="_blank" class="repository-title">
+                    Code Generator
+                </a>
+                <p class="repository-description">
+                    CLI tool for generating boilerplate code, templates, and project scaffolding with customizable configurations.
+                </p>
+                <div class="repository-meta">
+                    <div class="repository-language">
+                        <span class="language-dot" style="background-color: #3178C6;"></span>
+                        TypeScript
+                    </div>
+                    <span>⭐ 41</span>
+                    <span>🍴 11</span>
+                </div>
+            </div>
+            
+            <div class="repository-card" data-name="build-tools" data-language="javascript">
+                <a href="https://gitee.com/yinchuanbo/build-tools" target="_blank" class="repository-title">
+                    Build Tools Collection
+                </a>
+                <p class="repository-description">
+                    A collection of build tools and configurations for modern web development, including Webpack, Vite, and Rollup setups.
+                </p>
+                <div class="repository-meta">
+                    <div class="repository-language">
+                        <span class="language-dot" style="background-color: #F7DF1E;"></span>
+                        JavaScript
+                    </div>
+                    <span>⭐ 26</span>
+                    <span>🍴 5</span>
+                </div>
+            </div>
+            
+            <!-- Mobile Development -->
+            <div class="repository-card" data-name="flutter-app" data-language="dart">
+                <a href="https://gitee.com/yinchuanbo/flutter-app" target="_blank" class="repository-title">
+                    Flutter Mobile App
+                </a>
+                <p class="repository-description">
+                    Cross-platform mobile application built with Flutter, featuring offline support, push notifications, and native integrations.
+                </p>
+                <div class="repository-meta">
+                    <div class="repository-language">
+                        <span class="language-dot" style="background-color: #0175C2;"></span>
+                        Dart
+                    </div>
+                    <span>⭐ 33</span>
+                    <span>🍴 7</span>
+                </div>
+            </div>
+            
+            <!-- Documentation -->
+            <div class="repository-card" data-name="tech-blog" data-language="markdown">
+                <a href="https://gitee.com/yinchuanbo/tech-blog" target="_blank" class="repository-title">
+                    Tech Blog
+                </a>
+                <p class="repository-description">
+                    Technical blog and documentation site built with static site generators, featuring articles on web development and programming.
+                </p>
+                <div class="repository-meta">
+                    <div class="repository-language">
+                        <span class="language-dot" style="background-color: #083FA1;"></span>
+                        Markdown
+                    </div>
+                    <span>⭐ 18</span>
+                    <span>🍴 3</span>
+                </div>
+            </div>
+            
+            <!-- Open Source Contributions -->
+            <div class="repository-card" data-name="awesome-resources" data-language="markdown">
+                <a href="https://gitee.com/yinchuanbo/awesome-resources" target="_blank" class="repository-title">
+                    Awesome Resources
+                </a>
+                <p class="repository-description">
+                    Curated list of awesome resources, tools, libraries, and learning materials for web developers and programmers.
+                </p>
+                <div class="repository-meta">
+                    <div class="repository-language">
+                        <span class="language-dot" style="background-color: #083FA1;"></span>
+                        Markdown
+                    </div>
+                    <span>⭐ 67</span>
+                    <span>🍴 22</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const repositoryGrid = document.getElementById('repositoryGrid');
+        const repositoryCards = document.querySelectorAll('.repository-card');
+        
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            repositoryCards.forEach(card => {
+                const name = card.dataset.name.toLowerCase();
+                const language = card.dataset.language.toLowerCase();
+                const title = card.querySelector('.repository-title').textContent.toLowerCase();
+                const description = card.querySelector('.repository-description').textContent.toLowerCase();
+                
+                const isMatch = name.includes(searchTerm) || 
+                               language.includes(searchTerm) || 
+                               title.includes(searchTerm) || 
+                               description.includes(searchTerm);
+                
+                card.style.display = isMatch ? 'block' : 'none';
+            });
+        });
+        
+        // Add click tracking
+        document.querySelectorAll('.repository-title').forEach(link => {
+            link.addEventListener('click', function() {
+                console.log('Repository clicked:', this.textContent.trim());
+            });
+        });
+    </script>
+</body>
+</html>
