@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCSS模块系统详解 @import、@use、@forward 深度解析 - 灏天阁</title>
+    <meta name="description" content="SCSS模块系统详解 @import、@use、@forward 深度解析 - 灏天阁技术博客文章">
+    <link href="https://fonts.cdnfonts.com/css/sf-mono" rel="stylesheet">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>SCSS模块系统详解 @import、@use、@forward 深度解析</h1>
+          <p class="article-meta">
+            <span class="category">SCSS</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.22">2025.08.22</time>
+          </p>
+        </header>
+        <article>
+          <p>SCSS（Sass）提供了强大的模块系统来组织和管理样式代码。本文将详细介绍三个核心指令：<code>@import</code>、<code>@use</code> 和 <code>@forward</code>，帮助你构建更好的样式架构。</p>
+<h2>目录</h2>
+<ul>
+<li>@import - 传统的导入方式</li>
+<li>@use - 现代模块系统</li>
+<li>@forward - 模块转发</li>
+<li>最佳实践</li>
+<li>迁移指南</li>
+</ul>
+<h2>@import - 传统的导入方式</h2>
+<h3>基本语法</h3>
+<pre><code class="language-scss">@import &quot;path/to/file&quot;;
+@import &quot;file1&quot;, &quot;file2&quot;, &quot;file3&quot;;
+@import url(&quot;https://fonts.googleapis.com/css2?family=Roboto&quot;);
+</code></pre>
+<h3>特点</h3>
+<ul>
+<li><strong>全局作用域</strong>：导入的所有变量、混合器、函数都变成全局可用</li>
+<li><strong>重复导入问题</strong>：同一文件可能被多次导入，导致 CSS 重复</li>
+<li><strong>命名冲突</strong>：没有命名空间，容易产生变量名冲突</li>
+</ul>
+<h3>示例</h3>
+<pre><code class="language-scss">// _variables.scss
+$primary-color: #007bff;
+$font-size: 16px;
+
+// _mixins.scss
+@mixin button-style {
+  padding: 10px 20px;
+  border-radius: 4px;
+}
+
+// main.scss
+@import &quot;variables&quot;;
+@import &quot;mixins&quot;;
+
+.button {
+  @include button-style;
+  background-color: $primary-color;
+  font-size: $font-size;
+}
+</code></pre>
+<h3>问题与限制</h3>
+<pre><code class="language-scss">// 问题示例：命名冲突
+// _theme1.scss
+$color: red;
+
+// _theme2.scss
+$color: blue;
+
+// main.scss
+@import &quot;theme1&quot;;
+@import &quot;theme2&quot;;
+// $color 现在是 blue，theme1 的值被覆盖了
+</code></pre>
+<h2>@use - 现代模块系统</h2>
+<h3>基本语法</h3>
+<pre><code class="language-scss">@use &quot;path/to/file&quot;;
+@use &quot;path/to/file&quot; as namespace;
+@use &quot;path/to/file&quot; as *;
+@use &quot;path/to/file&quot; with (
+  $variable: value
+);
+</code></pre>
+<h3>核心特性</h3>
+<p><strong>1. 命名空间</strong></p>
+<pre><code class="language-scss">// _colors.scss
+$primary: #007bff;
+$secondary: #6c757d;
+
+@function lighten-color($color, $amount) {
+  @return lighten($color, $amount);
+}
+
+// main.scss
+@use &quot;colors&quot;;
+
+.button {
+  background-color: colors.$primary;
+  border-color: colors.lighten-color(colors.$primary, 20%);
+}
+</code></pre>
+<p><strong>2. 自定义命名空间</strong></p>
+<pre><code class="language-scss">// 使用自定义命名空间
+@use &quot;colors&quot; as c;
+
+.button {
+  background-color: c.$primary;
+}
+
+// 使用通配符导入到全局
+@use &quot;colors&quot; as *;
+
+.button {
+  background-color: $primary; // 直接使用，无需命名空间
+}
+</code></pre>
+<p><strong>3. 配置变量</strong></p>
+<pre><code class="language-scss">// _theme.scss
+$base-font-size: 16px !default;
+$primary-color: #007bff !default;
+
+.text {
+  font-size: $base-font-size;
+  color: $primary-color;
+}
+
+// main.scss
+@use &quot;theme&quot; with (
+  $base-font-size: 18px,
+  $primary-color: #28a745
+);
+</code></pre>
+<p><strong>4. 私有成员</strong></p>
+<pre><code class="language-scss">// _utils.scss
+$_private-var: &quot;This is private&quot;;
+$public-var: &quot;This is public&quot;;
+
+@function _private-function() {
+  @return $_private-var;
+}
+
+@function public-function() {
+  @return $public-var;
+}
+
+// main.scss
+@use &quot;utils&quot;;
+
+.test {
+  // content: utils.$public-var; ✓ 可以访问
+  // content: utils.$_private-var; ✗ 错误：私有变量不可访问
+  // content: utils.public-function(); ✓ 可以访问
+  // content: utils._private-function(); ✗ 错误：私有函数不可访问
+}
+</code></pre>
+<h3>高级用法</h3>
+<p><strong>条件导入</strong></p>
+<pre><code class="language-scss">// 根据条件导入不同模块
+@use &quot;sass:meta&quot;;
+
+@if meta.feature-exists(&quot;at-error&quot;) {
+  @use &quot;modern-utils&quot;;
+} @else {
+  @use &quot;legacy-utils&quot;;
+}
+</code></pre>
+<p><strong>动态配置</strong></p>
+<pre><code class="language-scss">// _config.scss
+$theme: &quot;light&quot; !default;
+$breakpoints: (
+  &quot;sm&quot;: 576px,
+  &quot;md&quot;: 768px,
+  &quot;lg&quot;: 992px,
+) !default;
+
+// main.scss
+@use &quot;config&quot; with (
+  $theme: &quot;dark&quot;,
+  $breakpoints: (
+    &quot;sm&quot;: 480px,
+    &quot;md&quot;: 768px,
+    &quot;lg&quot;: 1024px,
+    &quot;xl&quot;: 1200px,
+  )
+);
+</code></pre>
+<h2>@forward - 模块转发</h2>
+<h3>基本概念</h3>
+<p><code>@forward</code> 允许一个模块加载另一个模块的成员，并将这些成员作为自己 API 的一部分导出。</p>
+<h3>基本语法</h3>
+<pre><code class="language-scss">@forward &quot;path/to/file&quot;;
+@forward &quot;path/to/file&quot; hide $var1, function1;
+@forward &quot;path/to/file&quot; show $var1, $var2;
+@forward &quot;path/to/file&quot; as prefix-*;
+@forward &quot;path/to/file&quot; with (
+  $variable: value
+);
+</code></pre>
+<h3>实际应用场景</h3>
+<p><strong>1. 创建统一入口文件</strong></p>
+<pre><code class="language-scss">// _variables.scss
+$primary-color: #007bff;
+$secondary-color: #6c757d;
+
+// _mixins.scss
+@mixin button {
+  padding: 10px 20px;
+  border-radius: 4px;
+}
+
+@mixin card {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+
+// _functions.scss
+@function rem($pixels) {
+  @return #{$pixels / 16}rem;
+}
+
+// index.scss - 统一入口
+@forward &quot;variables&quot;;
+@forward &quot;mixins&quot;;
+@forward &quot;functions&quot;;
+
+// main.scss - 使用者只需导入一个文件
+@use &quot;index&quot; as theme;
+
+.button {
+  @include theme.button;
+  background-color: theme.$primary-color;
+  font-size: theme.rem(16);
+}
+</code></pre>
+<p><strong>2. 选择性转发</strong></p>
+<pre><code class="language-scss">// _internal.scss
+$_internal-var: &quot;secret&quot;;
+$public-var: &quot;visible&quot;;
+$debug-var: &quot;debug-info&quot;;
+
+@function _internal-helper() {
+  /* ... */
+}
+@function public-helper() {
+  /* ... */
+}
+@function debug-helper() {
+  /* ... */
+}
+
+// _public-api.scss
+// 只转发公共API，隐藏内部实现和调试工具
+@forward &quot;internal&quot; hide $_internal-var, _internal-helper, $debug-var, debug-helper;
+
+// 或者使用 show 明确指定要转发的成员
+// @forward &#39;internal&#39; show $public-var, public-helper;
+</code></pre>
+<p><strong>3. 添加前缀避免冲突</strong></p>
+<pre><code class="language-scss">// _bootstrap-vars.scss
+$primary: #007bff;
+$secondary: #6c757d;
+
+// _material-vars.scss
+$primary: #2196f3;
+$surface: #ffffff;
+
+// _unified-theme.scss
+@forward &quot;bootstrap-vars&quot; as bs-*;
+@forward &quot;material-vars&quot; as md-*;
+
+// main.scss
+@use &quot;unified-theme&quot; as theme;
+
+.bootstrap-button {
+  background-color: theme.$bs-primary;
+}
+
+.material-button {
+  background-color: theme.$md-primary;
+}
+</code></pre>
+<p><strong>4. 配置转发</strong></p>
+<pre><code class="language-scss">// _base-theme.scss
+$font-family: &quot;Helvetica Neue&quot; !default;
+$base-font-size: 16px !default;
+$line-height: 1.5 !default;
+
+// _dark-theme.scss
+@forward &quot;base-theme&quot; with (
+  $font-family: &quot;Roboto&quot;,
+  $base-font-size: 14px
+);
+
+// 添加暗色主题特定的变量
+$background-color: #1a1a1a;
+$text-color: #ffffff;
+
+// main.scss
+@use &quot;dark-theme&quot;;
+</code></pre>
+<h3>复杂示例：构建设计系统</h3>
+<pre><code class="language-scss">// design-system/
+// ├── tokens/
+// │   ├── _colors.scss
+// │   ├── _typography.scss
+// │   ├── _spacing.scss
+// │   └── index.scss
+// ├── components/
+// │   ├── _button.scss
+// │   ├── _card.scss
+// │   └── index.scss
+// └── index.scss
+
+// tokens/_colors.scss
+$blue-50: #e3f2fd;
+$blue-500: #2196f3;
+$blue-900: #0d47a1;
+
+$primary: $blue-500 !default;
+$primary-light: $blue-50 !default;
+$primary-dark: $blue-900 !default;
+
+// tokens/_typography.scss
+$font-family-base: &quot;Roboto&quot;, sans-serif !default;
+$font-size-base: 16px !default;
+$font-weight-normal: 400 !default;
+$font-weight-bold: 700 !default;
+
+// tokens/_spacing.scss
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+
+// tokens/index.scss
+@forward &quot;colors&quot;;
+@forward &quot;typography&quot;;
+@forward &quot;spacing&quot;;
+
+// components/_button.scss
+@use &quot;../tokens&quot; as tokens;
+
+.button {
+  font-family: tokens.$font-family-base;
+  font-size: tokens.$font-size-base;
+  font-weight: tokens.$font-weight-bold;
+  padding: tokens.$spacing-sm tokens.$spacing-md;
+  background-color: tokens.$primary;
+  color: white;
+  border: none;
+  border-radius: 4px;
+
+  &amp;:hover {
+    background-color: tokens.$primary-dark;
+  }
+}
+
+// components/index.scss
+@forward &quot;button&quot;;
+@forward &quot;card&quot;;
+
+// design-system/index.scss
+@forward &quot;tokens&quot;;
+@forward &quot;components&quot;;
+
+// 最终使用
+// app.scss
+@use &quot;design-system&quot; with (
+  $primary: #ff5722,
+  $font-family-base: &quot;Inter&quot;
+);
+</code></pre>
+<h2>最佳实践</h2>
+<h3>1. 文件组织结构</h3>
+<pre><code class="language-bash">styles/
+├── abstracts/
+│   ├── _variables.scss
+│   ├── _functions.scss
+│   ├── _mixins.scss
+│   └── index.scss
+├── base/
+│   ├── _reset.scss
+│   ├── _typography.scss
+│   └── index.scss
+├── components/
+│   ├── _button.scss
+│   ├── _card.scss
+│   └── index.scss
+├── layout/
+│   ├── _header.scss
+│   ├── _sidebar.scss
+│   └── index.scss
+└── main.scss
+</code></pre>
+<h3>2. 命名约定</h3>
+<pre><code class="language-scss">// 使用语义化的命名空间
+@use &quot;abstracts&quot; as abs;
+@use &quot;components&quot; as comp;
+@use &quot;layout&quot; as layout;
+
+// 私有成员使用下划线前缀
+$_private-variable: value;
+@function _private-function() {
+  /* ... */
+}
+
+// 使用 !default 标记可配置变量
+$primary-color: #007bff !default;
+</code></pre>
+<h3>3. 避免深度嵌套</h3>
+<pre><code class="language-scss">// ✗ 避免
+@use &quot;level1&quot; as l1;
+// level1 内部又 @use 了很多其他模块
+
+// ✓ 推荐：使用 @forward 创建扁平的API
+@forward &quot;level1&quot;;
+@forward &quot;level2&quot;;
+@forward &quot;level3&quot;;
+</code></pre>
+<h3>4. 性能优化</h3>
+<pre><code class="language-scss">// 只导入需要的成员
+@use &quot;large-library&quot; as lib;
+// 只使用 lib.$specific-variable 而不是全部导入
+
+// 使用条件导入
+@use &quot;sass:meta&quot;;
+@if meta.module-exists(&quot;optional-feature&quot;) {
+  @use &quot;optional-feature&quot;;
+}
+</code></pre>
+<h2>迁移指南</h2>
+<h3>从 @import 到 @use 的迁移步骤</h3>
+<p><strong>1. 分析依赖关系</strong></p>
+<pre><code class="language-scss">// 原始代码
+@import &quot;variables&quot;;
+@import &quot;mixins&quot;;
+@import &quot;functions&quot;;
+
+// 迁移后
+@use &quot;variables&quot; as vars;
+@use &quot;mixins&quot; as mix;
+@use &quot;functions&quot; as fn;
+</code></pre>
+<p><strong>2. 更新变量引用</strong></p>
+<pre><code class="language-scss">// 原始代码
+.button {
+  color: $primary-color;
+  @include button-style;
+  font-size: calculate-rem(16);
+}
+
+// 迁移后
+.button {
+  color: vars.$primary-color;
+  @include mix.button-style;
+  font-size: fn.calculate-rem(16);
+}
+</code></pre>
+<p><strong>3. 处理循环依赖</strong></p>
+<pre><code class="language-scss">// 使用 @forward 解决循环依赖
+// _api.scss
+@forward &quot;variables&quot;;
+@forward &quot;mixins&quot;;
+@forward &quot;functions&quot;;
+
+// main.scss
+@use &quot;api&quot;;
+</code></pre>
+<p><strong>4. 渐进式迁移</strong></p>
+<pre><code class="language-scss">// 可以在同一项目中混用，但要避免同时导入同一文件
+@import &quot;legacy-file&quot;; // 旧的导入方式
+@use &quot;new-file&quot; as new; // 新的导入方式
+</code></pre>
+<h2>总结</h2>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>@import</th>
+<th>@use</th>
+<th>@forward</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>命名空间</td>
+<td>✗</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>重复导入保护</td>
+<td>✗</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>配置变量</td>
+<td>✗</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>私有成员</td>
+<td>✗</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>较差</td>
+<td>良好</td>
+<td>良好</td>
+</tr>
+<tr>
+<td>推荐使用</td>
+<td>✗</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+</tbody></table>
+<h3>选择指南</h3>
+<ul>
+<li><strong>@use</strong>：在需要使用其他模块的功能时使用</li>
+<li><strong>@forward</strong>：在创建 API 入口或重新导出模块时使用</li>
+<li><strong>@import</strong>：仅在处理遗留代码或 CSS 文件时使用</li>
+</ul>
+<p>通过合理使用这三个指令，你可以构建出更加模块化、可维护和高性能的 SCSS 代码架构。建议在新项目中完全采用 <code>@use</code> 和 <code>@forward</code>，逐步将现有项目从 <code>@import</code> 迁移过来。</p>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
