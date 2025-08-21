@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>从零搭建 Vite 7 + React 19 + Tailwind CSS v4 企业级应用 - 灏天阁</title>
+    <meta name="description" content="从零搭建 Vite 7 + React 19 + Tailwind CSS v4 企业级应用 - 灏天阁技术博客文章">
+    <link href="https://fonts.cdnfonts.com/css/sf-mono" rel="stylesheet">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>从零搭建 Vite 7 + React 19 + Tailwind CSS v4 企业级应用</h1>
+          <p class="article-meta">
+            <span class="category">工程化</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.21">2025.08.21</time>
+          </p>
+        </header>
+        <article>
+          <p>本文记录从零搭建 <code>Vite + React + Tailwind CSS</code> 项目，省去一个个官网去查阅文档，旨在方便快速丝滑的创建项目。</p>
+<p>项目中涉及到 <strong><code>pages</code> 页面自动生成路由</strong>、<strong><code>svg</code> 自动转组件</strong>等插件，以及 <code>Vite</code> <strong>企业级应用</strong>常见配置，可按需选择添加。</p>
+<h2>初始化项目</h2>
+<p>这里选择 <code>pnpm</code> 管理项目：</p>
+<pre><code class="language-bash">$ pnpm create vite
+</code></pre>
+<p>执行命令后按照提示操作即可。如需支持 <code>TS</code> 还是非 <code>TS</code>，又或者 <code>TS + SWC</code> 等等，根据自己的需求选择。</p>
+<h2>基于文件的路由（Pages 目录自动生成路由）</h2>
+<p>很多框架或脚手架（比如 <code>next.js</code>、<code>nuxt.js</code>、<code>umi.js</code>等）都是约定一个目录自动生成路由，如果不想用那些框架的情况下，又希望根据 pages 目录自动生成路由，可以安装这个插件：</p>
+<pre><code class="language-bash">pnpm i -D vite-plugin-pages
+</code></pre>
+<p>安装完成后进行如下配置：</p>
+<pre><code class="language-javascript">import { defineConfig } from &quot;vite&quot;;
+import react from &quot;@vitejs/plugin-react-swc&quot;;
+import Pages from &quot;vite-plugin-pages&quot;;
+
+// &lt;https://vite.dev/config/&gt;
+export default defineConfig({
+  plugins: [react(), Pages()],
+});
+</code></pre>
+<h2>配置路径别名</h2>
+<p>在引入一些文件的时候，你肯定不希望像这样：</p>
+<pre><code class="language-javascript">// 你肯定不希望像这样
+import utils from &quot;../../../../../utils&quot;;
+
+// 一般希望这样
+import utils from &quot;@/utils&quot;;
+</code></pre>
+<p>如果想要支持类似 <code>@/</code> 的路径引用别名，增加以下配置即可：</p>
+<pre><code class="language-javascript">import { defineConfig } from &quot;vite&quot;;
+import react from &quot;@vitejs/plugin-react-swc&quot;;
+
+// &lt;https://vite.dev/config/&gt;
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    // 路径别名（简化导入）
+    alias: {
+      &quot;@&quot;: path.resolve(__dirname, &quot;./src&quot;),
+    },
+    // 自动补全扩展名
+    extensions: [&quot;.js&quot;, &quot;.ts&quot;, &quot;.jsx&quot;, &quot;.tsx&quot;],
+  },
+});
+</code></pre>
+<h2>SVG 图标文件自动转为组件</h2>
+<p>如果希望在导入 svg 图标的时候，自动转为 React 组件，虽然默认支持，但不想每次都 <code>as</code> 一下，比如这样：</p>
+<pre><code class="language-javascript">import { ReactComponent as IconUser } from &quot;@/assets/user.svg&quot;;
+</code></pre>
+<p>可以增加以下配置：</p>
+<pre><code class="language-javascript">import { defineConfig } from &quot;vite&quot;;
+import react from &quot;@vitejs/plugin-react-swc&quot;;
+import svgr from &quot;vite-plugin-svgr&quot;;
+
+// &lt;https://vite.dev/config/&gt;
+export default defineConfig({
+  plugins: [
+    react(),
+    svgr({
+      include: &quot;**/*.svg&quot;,
+      svgrOptions: {
+        plugins: [
+          // 一般两者一起使用
+          &quot;@svgr/plugin-svgo&quot;, // 启用 SVGO 压缩优化
+          &quot;@svgr/plugin-jsx&quot;, // JSX 转换
+        ],
+        svgoConfig: {
+          floatPrecision: 2, // 设置压缩精度
+        },
+      },
+    }),
+  ],
+});
+</code></pre>
+<p>这样在使用的时候就可以直接导入了，如下：</p>
+<pre><code class="language-javascript">import IconUser from &quot;@/assets/user.svg&quot;;
+</code></pre>
+<h2>增加支持 tailwindcss</h2>
+<h3>安装依赖包</h3>
+<p>首先安装 Tailwind CSS 及其相关依赖：</p>
+<pre><code class="language-bash">pnpm add -D tailwindcss @tailwindcss/vite
+</code></pre>
+<h3>配置 Vite 插件</h3>
+<p>将 <code>@tailwindcss/vite</code> 加入 <code>vite.config.ts</code>，如下：</p>
+<pre><code class="language-javascript">import { defineConfig } from &quot;vite&quot;;
+import tailwindcss from &quot;@tailwindcss/vite&quot;;
+export default defineConfig({
+  plugins: [tailwindcss()],
+});
+</code></pre>
+<h3>导入 <strong>Tailwind CSS</strong></h3>
+<p>在 CSS 主入口文件（如 <code>global.css</code> / <code>index.css</code>） 导入 <code>tailwindcss</code>:</p>
+<pre><code class="language-scss">@import &quot;tailwindcss&quot;;
+</code></pre>
+<h3>开始使用</h3>
+<p>配置好之后就可以在项目中使用了，如：</p>
+<pre><code class="language-html">&lt;div className=&quot;flex items-center justify-center&quot;&gt;Hello World！&lt;/div&gt;
+</code></pre>
+<h3>关于 Tailwind CSS v4</h3>
+<p>本项目使用的 Tailwind CSS v4 版本，默认使用 <strong>Lightning CSS</strong> 引擎，可直接解析 CSS 文件，无需通过 PostCSS 处理。这意味着</p>
+<ul>
+<li><strong>无需配置 PostCSS 插件</strong>：如  <code>autoprefixer</code>或  <code>postcss-import</code>。</li>
+<li><strong>配置移至 CSS 文件</strong>：主题、变量等直接在 CSS 中通过  <code>@theme</code>指令定义，例如：</li>
+</ul>
+<pre><code class="language-css">@theme {
+  --color-primary: oklch(0.84 0.18 117.33);
+  --color-mint-500: oklch(0.72 0.11 178);
+  --font-sans: &quot;Inter&quot;, sans-serif;
+}
+</code></pre>
+<pre><code class="language-html">&lt;div class=&quot;bg-mint-500&quot;&gt;
+  &lt;!-- ... --&gt;
+&lt;/div&gt;
+</code></pre>
+<p>也可以：</p>
+<pre><code class="language-html">&lt;div style=&quot;background-color: var(--color-mint-500)&quot;&gt;
+  &lt;!-- ... --&gt;
+&lt;/div&gt;
+</code></pre>
+<ul>
+<li><strong>零配置内容检测</strong>：自动扫描项目文件，无需在  <code>tailwind.config.js</code>中手动配置  <code>content</code>路径。</li>
+</ul>
+<h2>Vite 企业级应用配置</h2>
+<h3>常见基础配置</h3>
+<pre><code class="language-javascript">import { defineConfig } from &quot;vite&quot;;
+import react from &quot;@vitejs/plugin-react-swc&quot;;
+import tailwindcss from &quot;@tailwindcss/vite&quot;;
+import Pages from &quot;vite-plugin-pages&quot;;
+import svgr from &quot;vite-plugin-svgr&quot;;
+import path from &quot;path&quot;;
+
+// &lt;https://vite.dev/config/&gt;
+export default defineConfig({
+  // base: &#39;/app/&#39;, // 部署基础路径（子目录部署时需要）
+  plugins: [
+    react(),
+    Pages(),
+    tailwindcss(),
+    svgr({
+      include: &quot;**/*.svg&quot;,
+      svgrOptions: {
+        plugins: [&quot;@svgr/plugin-svgo&quot;, &quot;@svgr/plugin-jsx&quot;], // 启用 SVGO 压缩和 JSX 转换（两者需一起使用）
+        svgoConfig: {
+          floatPrecision: 2, // 设置压缩精度
+        },
+      },
+    }),
+  ],
+  resolve: {
+    // 配置路径别名(简化导入)
+    alias: {
+      &quot;@&quot;: path.resolve(__dirname, &quot;./src&quot;),
+    },
+    // 自动补全扩展名
+    extensions: [&quot;.js&quot;, &quot;.ts&quot;, &quot;.jsx&quot;, &quot;.tsx&quot;],
+  },
+  // 开发服务器配置
+  server: {
+    port: 3000, // 端口号
+    open: true, // 自动打开浏览器
+    proxy: {
+      &quot;/api&quot;: {
+        target: &quot;&lt;http://localhost:8080&gt;&quot;, // 后端地址
+        changeOrigin: true, // 修改请求源
+        rewrite: (path) =&gt; path.replace(/^\/api/, &quot;&quot;), // 路径重写
+        // secure: false  // 如果出现代理配置无效可将其打开，尝试关闭HTTPS验证
+      },
+    },
+  },
+  build: {
+    outDir: &quot;dist&quot;, // 打包输出目录
+    sourcemap: true, // 生成 sourcemap 便于调试
+  },
+});
+</code></pre>
+<p>字段说明：</p>
+<ul>
+<li><code>base</code> - 部署基础路径，当项目部署在非根路径时使用（如 GitHub Pages）；</li>
+<li><code>resolve.alias</code> - 让<code>import</code>语句更简洁；</li>
+<li><code>server.proxy</code>：解决开发环境 <code>API</code> 请求跨域问题。</li>
+</ul>
+<h3>性能优化配置</h3>
+<pre><code class="language-javascript">import { defineConfig } from &quot;vite&quot;;
+
+// &lt;https://vite.dev/config/&gt;
+export default defineConfig({
+  // 生产环境专属配置
+  build: {
+    assetsDir: &quot;static&quot;, // 静态资源存放目录
+    minify: &quot;terser&quot;, // 使用terser进行代码压缩
+    chunkSizeWarningLimit: 1500, // 分块大小警告阈值(KB)
+    rollupOptions: {
+      output: {
+        // 代码分割策略
+        manualChunks: {
+          react: [&quot;react&quot;, &quot;react-dom&quot;], // 单独打包 React 相关库
+          utils: [&quot;lodash&quot;, &quot;axios&quot;], // 工具库单独打包
+        },
+      },
+    },
+  },
+});
+</code></pre>
+<h3>环境变量管理</h3>
+<ol>
+<li>创建环境文件：</li>
+</ol>
+<pre><code class="language-bash">.env.development  # 开发环境
+.env.production   # 生产环境
+</code></pre>
+<ol start="2">
+<li>变量定义规则：</li>
+</ol>
+<pre><code class="language-ini"># 必须以VITE_开头才能被客户端访问
+VITE_API_URL=https://api.example.com
+VITE_DEBUG=true
+</code></pre>
+<p>安全建议：</p>
+<p>敏感变量应放在 <code>.env.local</code>（已默认在 <code>.gitignore</code>）</p>
+<h3>区分环境按需加载配置</h3>
+<p>针对开发或生产环境各自单独加载配置：</p>
+<pre><code class="language-javascript">import { defineConfig } from &quot;vite&quot;;
+
+// &lt;https://vite.dev/config/&gt;
+export default defineConfig(({ command, mode }) =&gt; {
+  if (command === &quot;serve&quot;) {
+    return {
+      /* 开发配置 */
+      server: {},
+    };
+  } else {
+    return {
+      // 生产环境专属配置
+      build: {},
+    };
+  }
+});
+</code></pre>
+<h3>多页面应用支持</h3>
+<p>需要支持多页面入口的时候可以参考以下配置：</p>
+<pre><code class="language-js">import { defineConfig } from &quot;vite&quot;;
+import path from &quot;path&quot;;
+
+// &lt;https://vite.dev/config/&gt;
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      // 多页面入口配置
+      input: {
+        main: path.resolve(__dirname, &quot;index.html&quot;),
+        about: path.resolve(__dirname, &quot;about.html&quot;),
+      },
+    },
+  },
+});
+</code></pre>
+<h3>SSR 支持</h3>
+<p>需要支持服务端渲染时可以添加以下配置：</p>
+<pre><code class="language-javascript">import { defineConfig } from &quot;vite&quot;;
+
+// &lt;https://vite.dev/config/&gt;
+export default defineConfig({
+  ssr: {
+    target: &quot;node&quot;, // SSR 运行环境
+    noExternal: [&quot;react-icons&quot;], // 需要包含的打包依赖
+  },
+});
+</code></pre>
+<h2>第三方库推荐</h2>
+<p>项目搭建好了之后，就可以去继续完善项目中常用的第三方库了，这里推荐一些比较不错的第三方库，根据自己的需求按需“食用”。</p>
+<h3>无头 UI 库</h3>
+<p>既然用上了 <code>tailwindcss</code>，自然少不了一些比较方便自定义 UI 的无头组件库，比如： <code>@headlessui/react</code>、<code>shadcn/ui</code>。</p>
+<ul>
+<li><strong>@headlessui/react：</strong> 由 <code>tailwindcss</code> 团队开发的无 UI 组件库，提供纯交互功能，完全无样式。</li>
+<li><strong>shadcn/ui</strong>：设计精美的组件，开放源码，可以按需复制并粘贴到您的应用程序中，无障碍，可定制。它的核心理念是提供可修改的组件代码，而不是一个传统的、黑盒式的组件库。</li>
+</ul>
+<h3>状态管理库</h3>
+<ul>
+<li><p><strong>TanStack Query 和 ahooks</strong></p>
+<p>目前比较火热的服务数据状态管理库比如 <code>react-query</code>（现在叫：<code>TanStack Query</code>）、<code>ahooks</code> 等等都是非常优秀的。</p>
+</li>
+<li><p><strong>zustand</strong></p>
+<p>一个轻量且直观的状态管理方案，基于 Hooks、**无需 Context Provider、**简单易上手。</p>
+</li>
+</ul>
+<h3>国际化</h3>
+<p>提到国际化，自然就会想到耳熟能详的 <code>i18next</code>。针对各个框架生态下有<code>react-i18next</code>、<code>next-i18next</code> 、<code>vue-i18n</code> 等等。</p>
+<p>如果项目中需要用到国际化，建议搭配 <code>i18next-browser-languagedetector</code> 一起“食用”更佳，这个库可以自动检测用户的浏览器语言设置，并将其提供给 i18next 来设置页面语言。</p>
+<p>具体的搭建步骤就不再详细阐述了，可以自己搜索相关配置文章。</p>
+<h2>结语</h2>
+<p>好了，以上就是整个项目的搭建过程以及 Vite 常见的企业级应用配置，掌握这些配置技巧后，可以让我们的项目获得最佳的项目实践，以及最优化的打包输出，如有错误之处，欢迎指正～</p>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
