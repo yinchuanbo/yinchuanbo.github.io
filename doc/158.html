@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>一个有趣的搜索神器 pinyin-match - 灏天阁</title>
+    <meta name="description" content="一个有趣的搜索神器 pinyin-match - 灏天阁技术博客文章">
+    <link href="https://fonts.cdnfonts.com/css/sf-mono" rel="stylesheet">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>一个有趣的搜索神器 pinyin-match</h1>
+          <p class="article-meta">
+            <span class="category">工具库</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.21">2025.08.21</time>
+          </p>
+        </header>
+        <article>
+          <blockquote>
+<p>今天介绍一个拼音神器 <code>pinyin-match</code>：让搜索支持拼音模糊匹配</p>
+</blockquote>
+<p>平时微信用得比较多的小伙伴， 你是否发现微信里使用拼音是可以搜索到对应的中文昵称的。</p>
+<p><img src="../images/0627f00682ba2ab4d8387f3c7e5d81cd.awebp" alt=""></p>
+<p>中文搜索一直是个小麻烦 —— 用户习惯输入拼音，而我们往往只能用中文才能搜到结果。 今天给你介绍的 <code>pinyin-match</code>，就完全可以解决这个麻烦！</p>
+<p>它是一个轻量级的 JavaScript 库，帮你轻松实现<strong>中文 + 拼音</strong>的模糊搜索，支持全拼、缩写、混合输入，还能定位匹配位置，方便做高亮显示。</p>
+<h2>它能做什么？</h2>
+<p>pinyin-match 支持以下几种模式：</p>
+<p>✅ 全拼匹配：beijing → 北京</p>
+<p>✅ 首字母匹配：bj → 北京</p>
+<p>✅ 模糊匹配：beij → 北京</p>
+<p>✅ 混合匹配：bei 京 → 北京</p>
+<p>✅ 高亮定位：返回匹配区间 [start, end]，方便 UI 标记</p>
+<p>举个例子：</p>
+<pre><code class="language-javascript">import PinyinMatch from &quot;pinyin-match&quot;;
+
+let text = &quot;123曾经沧海难为水&quot;;
+
+console.log(PinyinMatch.match(text, &quot;cjc&quot;));
+// [3, 5]  =&gt; 命中“曾经”
+
+console.log(PinyinMatch.match(text, &quot;engjingcanghai&quot;));
+// false  =&gt; 输入少了个“c”
+</code></pre>
+<h2>使用场景</h2>
+<h3>搜索框优化</h3>
+<p>拼音、首字母都能搜到目标中文</p>
+<p><img src="../images/23f7b6327af4a356a2fc9d0228e3374e.awebp" alt=""></p>
+<h3>电商搜索平台</h3>
+<p>想买“华为手机”，却懒得切中文输入？直接打 hw，结果照样一键命中。</p>
+<p><img src="../images/84ad8ad3590178ec929e808fab549b3b.awebp" alt=""></p>
+<h3>通讯录 / 联系人搜索</h3>
+<p>不记得名字怎么写？随便敲个拼音，就能在通讯录里立刻找到对方。再也不用担心输不出生僻字。</p>
+<p>就如上面举例的微信通讯录一样</p>
+<h3>全局搜索 / Ctrl+F</h3>
+<p>在长文档、知识库、甚至整个应用里，Ctrl + F 的搜索功能也能支持拼音。输入 zgn 就能秒定位到“中华人民共和国”，查资料效率直线上升。</p>
+<p><img src="../images/8b2e66fe7d192fa933b0967d9f8a47a7.awebp" alt=""></p>
+<p>还有很多涉及到采用拼音匹配中文的场景都可以使用<code>pinyin-match</code>快速实现，提升产品体验。</p>
+<h2>实现原理</h2>
+<p><code>pinyin-match</code> 可不是“简单字符串替换”那么粗暴。</p>
+<p><code>pinyin-match</code> 的底层实现其实类似 <code>word-break</code> 算法（对字符串进行分词匹配），流程大概是：</p>
+<ol>
+<li><p>输入分词：把用户输入的拼音拆分成可能的音节组合</p>
+<ul>
+<li><code>jinan → ji nan | jin an | ji na n(...)</code></li>
+</ul>
+</li>
+<li><p>中文转拼音：把候选中文转换成拼音（考虑多音字，例如“曾”可以是 ceng 也可以是 zeng）</p>
+</li>
+<li><p>匹配校验：比较分词结果和中文拼音，支持不完整输入（最后一个音可以只打到一半）。</p>
+</li>
+</ol>
+<p>比如：</p>
+<ul>
+<li>输入 <code>cengd</code></li>
+<li>文本 我曾大 → 拼音 <code>[wo, ceng/zeng, da]</code></li>
+<li>匹配结果命中 <code>ceng da</code></li>
+</ul>
+<p>这样一来，哪怕用户输入的拼音不完整、夹杂缩写，也能很聪明地匹配成功。</p>
+<h2>优势亮点</h2>
+<p>✅ 轻量级：不到 10KB，无额外依赖</p>
+<p>🔄 多模式匹配：全拼、首字母、模糊、混合输入都能搞定</p>
+<p>✨ 高亮支持：返回匹配区间，方便 UI 渲染搜索结果</p>
+<p>🌏 简体 / 繁体：一行代码即可切换</p>
+<p>⚡ 通用性强：Node.js / 浏览器 / 前端框架都能无缝使用</p>
+<h2>快速尝鲜</h2>
+<h3>安装</h3>
+<pre><code class="language-bash">npm install pinyin-match --save
+</code></pre>
+<h3>项目引入</h3>
+<pre><code class="language-javascript">// 引入简体版：
+import PinyinMatch from &quot;pinyin-match&quot;; // es
+
+const PinyinMatch = require(&quot;pinyin-match&quot;); // commonjs
+</code></pre>
+<p>如果你的项目涉及繁体字， 还需要另外引入繁体版本：</p>
+<pre><code class="language-javascript">import PinyinMatch from &quot;pinyin-match/es/traditional.js&quot;; // es
+
+const PinyinMatch = require(&quot;pinyin-match/lib/traditional.js&quot;); // commonjs
+</code></pre>
+<h3>简单使用</h3>
+<pre><code class="language-javascript">import PinyinMatch from &quot;pinyin-match&quot;;
+
+let text = &quot;白日依山尽，黄河入海流&quot;;
+
+// 直接中文匹配
+console.log(PinyinMatch.match(text, &quot;黄河&quot;));
+// [6, 7]
+
+// 拼音全拼匹配
+console.log(PinyinMatch.match(text, &quot;bairiyishanjin&quot;));
+// [0, 4]
+
+// 拼音缩写匹配
+console.log(PinyinMatch.match(text, &quot;hhrhl&quot;));
+// [6, 9]
+
+// 模糊输入（最后一个字母没打完）
+console.log(PinyinMatch.match(text, &quot;huan&quot;));
+// [6, 6]
+
+// 拼音 + 汉字混合
+console.log(PinyinMatch.match(text, &quot;bai日&quot;));
+// [0, 1]
+
+// 无法命中
+console.log(PinyinMatch.match(text, &quot;abcdef&quot;));
+// false
+</code></pre>
+<p>如果你正在做搜索框、通讯录、知识库，强烈建议试试 <code>pinyin-match</code>。</p>
+<p>只要几行代码，你的搜索功能就能秒升级 —— 从“只能搜中文”，变成“中拼混合全能搜”。</p>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
