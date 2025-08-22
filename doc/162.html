@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>autohue.js 自动提取图片主题色和边缘色 - 灏天阁</title>
+    <meta name="description" content="autohue.js 自动提取图片主题色和边缘色 - 灏天阁技术博客文章">
+    <link href="https://fonts.cdnfonts.com/css/sf-mono" rel="stylesheet">
+    <link rel="shortcut icon" href="/images/code.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/prism.css" />
+  </head>
+  <body class="article-page">
+    <!-- 返回首页按钮 -->
+    <a href="/" class="home-button" title="返回首页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    </a>
+    
+    <div class="article-container">
+      <main class="article-main" role="main">
+        <header>
+          <h1>autohue.js 自动提取图片主题色和边缘色</h1>
+          <p class="article-meta">
+            <span class="category">工具库</span>
+            <span class="separator">|</span>
+            <time datetime="2025.08.22">2025.08.22</time>
+          </p>
+        </header>
+        <article>
+          <p>你有没有遇到过这种场景：</p>
+<p>Banner 图放到网站上，却发现两边被背景色硬撑开，看起来非常违和。</p>
+<p>如果每张图片都要手动挑背景色，那也太麻烦了。</p>
+<p>有没有办法，让图片和背景<strong>自动融合</strong>？</p>
+<p>今天介绍的库 —— <strong>autohue.js</strong>，就能帮你做到。</p>
+<hr>
+<h2>1. 它是什么？</h2>
+<p><strong>autohue.js</strong>  是一个自动提取图片主题色 &amp; 边缘色的工具。</p>
+<p>它的核心目标：</p>
+<ul>
+<li>从图片中提取  <strong>主题色</strong>（面积最大）</li>
+<li>提取  <strong>次主题色</strong>（面积第二大）</li>
+<li>获取图片  <strong>上下左右的边缘色</strong>（方便生成背景渐变）</li>
+</ul>
+<p>这样，图片在网页或 App 中就能和背景“无缝衔接”，看起来更自然。</p>
+<p>📷 <strong>配图建议</strong>：一张 Banner 图左右留白，autohue 自动生成背景渐变填充，几乎看不出边界。</p>
+<hr>
+<h2>2. 为什么需要它？</h2>
+<p>很多已有的取色库（如  <strong>color-thief、vibrant.js、rgbaster.js</strong>）能很好地提取主色，但有几个问题：</p>
+<ul>
+<li>没有考虑  <strong>实际的页面应用场景</strong>（尤其是轮播 Banner）</li>
+<li>渐变图片容易提取出成千上万个颜色，精度高但不实用</li>
+<li>提取出的主色和边缘色不一定契合，填充背景时容易“穿帮”</li>
+</ul>
+<p>而  <strong>autohue.js</strong>  针对这些痛点做了优化：</p>
+<ul>
+<li>自动聚类，提取有代表性的主题色</li>
+<li>边缘色单独分析，适合做渐变背景</li>
+<li>降采样处理，性能与准确度平衡</li>
+</ul>
+<hr>
+<h2>3. 使用场景</h2>
+<ul>
+<li><strong>网站轮播 Banner</strong>：不同风格的图放一起，背景自动融合</li>
+<li><strong>电商商品展示</strong>：图片外的留白区域自动延伸渐变</li>
+<li><strong>视频 / 音乐播放器封面</strong>：背景和专辑图颜色统一，沉浸感更强</li>
+<li><strong>个性化主题生成</strong>：根据用户上传的图片生成应用主题色</li>
+</ul>
+<hr>
+<h2>4. 快速上手</h2>
+<h3>安装</h3>
+<pre><code class="language-css">pnpm i autohue.js
+</code></pre>
+<h3>使用</h3>
+<pre><code class="language-javascript">import autohue from &quot;autohue.js&quot;;
+
+autohue(url, {
+  threshold: {
+    primary: 10,
+    left: 1,
+    bottom: 12,
+  },
+  maxSize: 50,
+})
+  .then((result) =&gt; {
+    console.log(&quot;主题色&quot;, result.primaryColor);
+    console.log(&quot;次主题色&quot;, result.secondaryColor);
+    console.log(&quot;左边缘色&quot;, result.backgroundColor.left);
+    console.log(&quot;右边缘色&quot;, result.backgroundColor.right);
+
+    // 自动生成渐变背景
+    const bg = `linear-gradient(to right, ${result.backgroundColor.left}, ${result.backgroundColor.right})`;
+    document.body.style.background = bg;
+  })
+  .catch((err) =&gt; console.error(err));
+</code></pre>
+<p>运行后，背景会自动融合图片边缘色，效果非常自然。</p>
+<p><img src="../images/dc39dd8adddf0fe4924250526c8e7ed0.png" alt="Image"></p>
+<hr>
+<h2>5. 参数说明</h2>
+<ul>
+<li><p><strong>threshold</strong>：簇阈值，用于控制相近色的合并程度（默认 10，推荐 8~12）</p>
+</li>
+<li><p>也可单独指定  <code>{ left, right, top, bottom }</code>  来调整边缘取色精度</p>
+</li>
+<li><p><strong>maxSize</strong>：降采样尺寸（默认 100），数值越小处理越快，但精度降低</p>
+</li>
+</ul>
+<hr>
+<h2>6. 优势亮点</h2>
+<ul>
+<li><strong>针对场景优化</strong>：不仅取色，还考虑背景填充的实际使用场景</li>
+<li><strong>边缘取色支持</strong>：完美解决图片左右留白问题</li>
+<li><strong>渐变背景友好</strong>：直接生成 CSS 渐变色</li>
+<li><strong>性能可控</strong>：降采样平衡速度与精度</li>
+</ul>
+<p>对比其他库：</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>功能侧重点</th>
+<th>背景融合支持</th>
+<th>渐变适配</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>color-thief</td>
+<td>提取主色、调色板</td>
+<td>❌ 否</td>
+<td>❌ 否</td>
+</tr>
+<tr>
+<td>vibrant.js</td>
+<td>提取突出色彩</td>
+<td>❌ 否</td>
+<td>❌ 否</td>
+</tr>
+<tr>
+<td>rgbaster.js</td>
+<td>提取主色、次色</td>
+<td>❌ 否</td>
+<td>❌ 否</td>
+</tr>
+<tr>
+<td><strong>autohue.js</strong></td>
+<td>主题色 + 边缘色</td>
+<td>✅ 是</td>
+<td>✅ 是</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>7. 使用限制</h2>
+<ul>
+<li>对于复杂品牌设计，仍需要人工挑选搭配</li>
+<li>大图处理时可能有性能消耗，建议调整  <code>maxSize</code></li>
+<li>渐变突变边缘场景，可能需要 CSS 蒙层辅助</li>
+</ul>
+<hr>
+<h2>8. 总结</h2>
+<p><strong>autohue.js</strong>  不是一个单纯的“取色工具”，而是一个<strong>面向实际 UI 场景的自动化解决方案</strong>。</p>
+<p>它能帮你把图片的主题色、次主题色、边缘色全部提取出来，让背景和图片自然衔接，免去了“每张图都手动挑背景色”的烦恼。</p>
+<p>👉 GitHub 地址：<a href="https://github.com/Auto-Plugin/autohue.js">Auto-Plugin/autohue.js</a></p>
+<p>👉 NPM 地址：<a href="https://www.npmjs.com/package/autohue.js">autohue.js</a></p>
+<p>下次给 Banner 换图时，尝试一下交给  <strong>autohue.js</strong>，让它帮你“自动调色”。</p>
+<p><img src="../images/9568df80a931d4bf7ca09abbc4304563.png" alt="Image"></p>
+
+        </article>
+      </main>
+      
+      <aside class="toc-container" role="complementary">
+        <h3>目录</h3>
+        <nav class="toc" aria-label="文章目录"></nav>
+      </aside>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button class="to-top home-button" title="回到顶部" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5,12 12,5 19,12"/>
+      </svg>
+    </button>
+    
+    <script src="/js/prism.js"></script>
+    <script src="/js/script.js"></script>
+    <script src="/js/background.js"></script>
+  </body>
+</html>
