@@ -130,7 +130,7 @@ async function generateIndex() {
     articles.sort((a, b) => b.date - a.date);
     articles.forEach(article => {
       const dateStr = article.date.getTime() > 0 ? `${article.date.getFullYear()}.${String(article.date.getMonth() + 1).padStart(2, "0")}.${String(article.date.getDate()).padStart(2, "0")}` : "未知日期";
-      articleList += `<li data-category="${article.category}"><a href="/${article.htmlFileName}">${article.title}</a></li>`;
+      articleList += `<li data-category="${article.category}"><a href="/${article.htmlFileName}"><span class="time category">${article.category}</span>${article.title} <span class="time">${dateStr}</span></a></li>`;
     });
     specials.forEach(special => {
       articleList += `<li data-category="special"><a href="/${special}.html">${special}</a></li>`;
