@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
       this.baseSize = this.size;
       this.speedX = Math.random() * 1 - 0.5;
       this.speedY = Math.random() * 1 - 0.5;
-      this.color = `rgba(34, 197, 94, ${Math.random() * 0.5 + 0.2})`; // Green color with varying opacity
+      this.color = `rgba(139, 92, 246, ${Math.random() * 0.5 + 0.2})`; // Purple color with varying opacity
       this.glowing = Math.random() > 0.9; // Some particles will glow
       this.glowIntensity = 0;
       this.glowDirection = 1;
@@ -131,8 +131,8 @@ document.addEventListener('DOMContentLoaded', function() {
           this.x, this.y, 0,
           this.x, this.y, this.size * 4
         );
-        gradient.addColorStop(0, `rgba(34, 197, 94, ${0.5 * this.glowIntensity})`);
-        gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+        gradient.addColorStop(0, `rgba(139, 92, 246, ${0.5 * this.glowIntensity})`);
+        gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const opacity = 0.15 * (1 - connection.distance / (connectionDistance * 1.5));
         
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(34, 197, 94, ${opacity})`;
+        ctx.strokeStyle = `rgba(139, 92, 246, ${opacity})`;
         ctx.lineWidth = 0.5;
         ctx.setLineDash([2, 2]); // Dashed line for data connections
         ctx.moveTo(this.x, this.y);
@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
       this.pulseDirection = 1;
       this.rotation = 0;
       this.rotationSpeed = Math.random() * 0.02 - 0.01;
-      this.color = `rgba(34, 197, 94, 0.8)`;
+      this.color = `rgba(139, 92, 246, 0.8)`;
     }
     
     update() {
@@ -192,8 +192,8 @@ document.addEventListener('DOMContentLoaded', function() {
         this.x, this.y, 0,
         this.x, this.y, this.size * 3
       );
-      gradient.addColorStop(0, `rgba(34, 197, 94, 0.3)`);
-      gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+      gradient.addColorStop(0, `rgba(139, 92, 246, 0.3)`);
+      gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
       
       ctx.fillStyle = gradient;
       ctx.beginPath();
@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           // Draw connection with data flow effect
           ctx.beginPath();
-          ctx.strokeStyle = `rgba(34, 197, 94, ${0.1 * (1 - distance / connectionDistance)})`;
+          ctx.strokeStyle = `rgba(139, 92, 246, ${0.1 * (1 - distance / connectionDistance)})`;
           ctx.lineWidth = 0.5;
           
           // Use gradient for high-tech look
@@ -273,9 +273,9 @@ document.addEventListener('DOMContentLoaded', function() {
             particles[i].x, particles[i].y,
             particles[j].x, particles[j].y
           );
-          gradient.addColorStop(0, `rgba(34, 197, 94, ${0.05 * (1 - distance / connectionDistance)})`);
-          gradient.addColorStop(0.5, `rgba(34, 197, 94, ${0.2 * (1 - distance / connectionDistance)})`);
-          gradient.addColorStop(1, `rgba(34, 197, 94, ${0.05 * (1 - distance / connectionDistance)})`);
+          gradient.addColorStop(0, `rgba(139, 92, 246, ${0.05 * (1 - distance / connectionDistance)})`);
+          gradient.addColorStop(0.5, `rgba(139, 92, 246, ${0.2 * (1 - distance / connectionDistance)})`);
+          gradient.addColorStop(1, `rgba(139, 92, 246, ${0.05 * (1 - distance / connectionDistance)})`);
           
           ctx.strokeStyle = gradient;
           ctx.moveTo(particles[i].x, particles[i].y);
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const gridSize = 30;
     const gridOpacity = 0.05;
     
-    ctx.strokeStyle = `rgba(34, 197, 94, ${gridOpacity})`;
+    ctx.strokeStyle = `rgba(139, 92, 246, ${gridOpacity})`;
     ctx.lineWidth = 0.5;
     
     // Draw vertical lines
@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Draw pulse ring
     if (pulseEffect > 0) {
       ctx.beginPath();
-      ctx.strokeStyle = `rgba(34, 197, 94, ${pulseEffect * 0.3})`;
+      ctx.strokeStyle = `rgba(139, 92, 246, ${pulseEffect * 0.3})`;
       ctx.lineWidth = 2;
       ctx.arc(mouseX, mouseY, mouseRadius * pulseEffect, 0, Math.PI * 2);
       ctx.stroke();
@@ -341,7 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Draw targeting reticle
-    ctx.strokeStyle = 'rgba(34, 197, 94, 0.5)';
+    ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
     ctx.lineWidth = 1;
     
     // Outer circle
@@ -428,7 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
       binaryDiv.style.position = 'absolute';
       binaryDiv.style.left = `${Math.random() * window.innerWidth}px`;
       binaryDiv.style.top = `${Math.random() * window.innerHeight}px`;
-      binaryDiv.style.color = 'rgba(34, 197, 94, 0.4)';
+      binaryDiv.style.color = 'rgba(139, 92, 246, 0.4)';
       binaryDiv.style.fontSize = `${Math.random() * 12 + 8}px`;
       binaryDiv.style.fontFamily = 'monospace';
       binaryDiv.style.pointerEvents = 'none';
@@ -476,7 +476,7 @@ style.textContent = `
     position: absolute;
     pointer-events: none;
     user-select: none;
-    text-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
+    text-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
   }
 `;
 document.head.appendChild(style);
