@@ -193,6 +193,59 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 设置图片点击预览
   setupImagePreview();
+
+  // 目录滚动监听高亮
+  const tocLinks = toc.querySelectorAll("a");
+  const scrollContainer = document.querySelector("main");
+
+  function highlightToc() {
+    let currentId = "";
+
+    if (!scrollContainer) return;
+
+    // 如果滚动到底部，高亮最后一个
+    const scrollHeight = scrollContainer.scrollHeight;
+    const scrollTop = scrollContainer.scrollTop;
+    const clientHeight = scrollContainer.clientHeight;
+
+    // 允许 50px 的误差
+    if (scrollTop + clientHeight >= scrollHeight - 50) {
+      if (headings.length > 0) {
+        currentId = headings[headings.length - 1].id;
+      }
+    } else {
+      headings.forEach((heading) => {
+        const rect = heading.getBoundingClientRect();
+        // 标题距离视口顶部小于 150px 时，视为当前章节
+        if (rect.top <= 150) {
+          currentId = heading.id;
+        }
+      });
+    }
+
+    tocLinks.forEach((link) => {
+      link.classList.remove("active");
+      const href = link.getAttribute("href");
+      if (href && href.substring(1) === currentId) {
+        link.classList.add("active");
+      }
+    });
+  }
+
+  let isTicking = false;
+  if (scrollContainer) {
+    scrollContainer.addEventListener("scroll", () => {
+      if (!isTicking) {
+        window.requestAnimationFrame(() => {
+          highlightToc();
+          isTicking = false;
+        });
+        isTicking = true;
+      }
+    });
+  }
+
+  highlightToc();
 });
 
 // 分类筛选功能
