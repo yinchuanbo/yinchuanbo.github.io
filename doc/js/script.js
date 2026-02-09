@@ -157,15 +157,25 @@ document.addEventListener("DOMContentLoaded", function () {
   const headings = document.querySelectorAll("main h2, main h3");
   const toc = document.querySelector(".toc");
 
-  headings.forEach((heading) => {
+  // 用于确保ID唯一的计数器
+  const idCounters = {};
+
+  headings.forEach((heading, index) => {
     if (!heading.id) {
-      heading.id =
-        "heading-" +
-        heading.textContent
-          .toLowerCase()
-          .replace(/[^\w\u4e00-\u9fa5]+/g, "-")
-          .replace(/^-+|-+$/g, "")
-          .replace(/(\d+)-(\d+)/g, "$1$2");
+      let baseId = heading.textContent
+        .toLowerCase()
+        .replace(/[^\w\u4e00-\u9fa5]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .replace(/(\d+)-(\d+)/g, "$1$2");
+
+      // 如果ID已存在，添加索引确保唯一
+      if (idCounters[baseId] !== undefined) {
+        idCounters[baseId]++;
+        heading.id = `heading-${baseId}-${idCounters[baseId]}`;
+      } else {
+        idCounters[baseId] = 0;
+        heading.id = `heading-${baseId}`;
+      }
     }
     const link = document.createElement("a");
     link.href = `#${heading.id}`;
